@@ -1,0 +1,7 @@
+
+PINTLIB_DIR = pintlib
+include $(PINTLIB_DIR)/Makefile.inc
+PINTLIB_SOURCES := $(SOURCES:%=pintlib/%) \
+export PINTLIB_SOURCES
+
+# vi:set syntax=make:
