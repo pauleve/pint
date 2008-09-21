@@ -22,6 +22,6 @@ let to_dot (graph:('a,'b)t) string_of_vertex string_of_label =
 		source ^ "\"" ^ (string_of_vertex vertex1) ^ "\" -> \"" 
 				^ (string_of_vertex vertex2) ^ "\"[label=\" " ^ (string_of_label label) ^" \"]\n"
 	in
-	(Hashtbl.fold write_edge graph source) ^ "}"
+	(Hashtbl.fold write_edge graph source) ^ "}\n"
 ;;
 
