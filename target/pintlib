@@ -1,0 +1,5 @@
+include Makefile.common
+SOURCES = $(PINTLIB_SOURCES)
+RESULT = pintlib
+include OCamlMakefile
+# vi:set syntax=make:
