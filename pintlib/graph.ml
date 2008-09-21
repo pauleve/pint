@@ -1,15 +1,11 @@
 
-(*
-type 'a t_vertex = 'a
-type ('b, 'a) t_edge = 'b * 'a t_vertex
-type ('a, 'b) t_graph = ('a, ('b,'a) t_edge) Hashtbl.t
-*)
+type ('a, 'b) t = ('a, ('b * 'a)) Hashtbl.t
 
 let create = Hashtbl.create;;
-let add = Hashtbl.add;;
-let get = Hashtbl.find_all;;
+let add (graph:('a,'b)t) = Hashtbl.add graph;;
+let get (graph:('a,'b)t) = Hashtbl.find_all graph;;
 
-let to_dot graph string_of_vertex string_of_label =
+let to_dot (graph:('a,'b)t) string_of_vertex string_of_label =
 	let insert_if_new li el = if List.mem el li then li else el::li
 	in
 	let register_vertex vertex1 (label, vertex2) acc =
