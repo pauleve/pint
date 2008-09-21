@@ -5,4 +5,4 @@ a.out
 *.cmxa
 *.cmx
 ._*
-test
+./test
