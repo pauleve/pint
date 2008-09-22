@@ -1,9 +1,9 @@
 include Makefile.common
 
 SOURCES = $(PINTLIB_SOURCES) \
-	test.ml
+	test_pseudomonas.ml
 
-RESULT = test
+RESULT = test_pseudomonas
 
 include OCamlMakefile
 # vi:set syntax=make:
