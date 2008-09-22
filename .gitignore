@@ -6,3 +6,5 @@ a.out
 *.cmx
 ._*
 ./test
+./runs
+./test_pseudomonas
