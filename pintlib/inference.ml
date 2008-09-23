@@ -61,7 +61,7 @@ let rec proportion spig p = function
 		let vars_following = Constraint.Vars (List.fold_left build_prod Constraint.None following)
 		and vars_deviant = Constraint.Vars (List.fold_left build_prod Constraint.None deviant)
 		in
-		let cs = Constraint.Relation(vars_following, Constraint.FactorEqual p, vars_deviant)
+		let cs = Constraint.Relation(vars_following, Constraint.FactorEqual (p/.(1.-.p)), vars_deviant)
 		in
 		Constraint.And (exists spig (Trace trace), cs)
 ;;
