@@ -24,6 +24,8 @@ let string_of_pi_edge = function
 let string_of_pi_proc proc = proc
 ;;
 let string_of_transition = function Transition(name) -> name;;
+let string_of_state = String.concat ",";;
+let string_of_rname x = x;;
 
 let to_dot (spig:t) = Graph.to_dot spig string_of_pi_proc string_of_pi_edge;;
 
@@ -52,7 +54,7 @@ let next spig state =
 	let transitions = List.flatten (List.map (fun (p1, p1_edges) -> build_transitions p1 p1_edges) edges)
 	in
 	let rec replace p1 p2 = function [] -> []
-		| p::q -> if p == p1 then p2::q else p::(replace p1 p2 q)
+		| p::q -> if p = p1 then p2::q else p::(replace p1 p2 q)
 	in
 	List.map (fun (p1, tr, p2) -> (tr, replace p1 p2 state)) transitions
 ;;

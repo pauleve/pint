@@ -1,7 +1,9 @@
 
 SOURCES := \
-	io.ml\
+	constraint.ml\
 	graph.mli graph.ml\
-	spig.ml
+	io.ml\
+	spig.ml\
+	inference.ml\
 
 # vi:set syntax=make:
