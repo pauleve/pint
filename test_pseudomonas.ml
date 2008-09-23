@@ -29,7 +29,7 @@ let cs = Inference.exists spi (Inference.Stable ([], ["x2";"y1"]::[]))
 in
 show_constraints cs;
 
-let cs = Inference.proportion spi 9. (Inference.Trace (["x0";"y0"]::["x1";"y0"]::["x1";"y1"]::["x0";"y1"]::["x0";"y0"]::[]))
+let cs = Inference.proportion spi 0.9 (Inference.Trace (["x0";"y0"]::["x1";"y0"]::["x1";"y1"]::["x0";"y1"]::["x0";"y0"]::[]))
 in
 show_constraints cs;
 
