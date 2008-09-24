@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+$PINT_PATH/pint.top -I $PINT_PATH/pintlib $*

@@ -26,7 +26,7 @@ let string_of_relop = function
 	| Greater -> ">"
 ;;
 let rec string_of_expression string_of_atype = function
-	  Empty -> "{}"
+	  Empty -> "$"
 	| Or(e1, e2) -> (string_of_expression string_of_atype e1) ^ " OR " ^ 
 						(string_of_expression string_of_atype e2)
 	| And(e1, e2) -> "{" ^ (string_of_expression string_of_atype e1) ^ ", " ^

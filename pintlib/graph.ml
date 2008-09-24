@@ -4,6 +4,7 @@ type ('a, 'b) t = ('a, ('b * 'a)) Hashtbl.t
 let create = Hashtbl.create;;
 let add (graph:('a,'b)t) = Hashtbl.add graph;;
 let get (graph:('a,'b)t) = Hashtbl.find_all graph;;
+let iter f (graph:('a,'b)t) = Hashtbl.iter f graph;;
 
 let to_dot (graph:('a,'b)t) string_of_vertex string_of_label =
 	let insert_if_new li el = if List.mem el li then li else el::li
