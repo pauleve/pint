@@ -27,9 +27,11 @@ let spig_of_brg (brg:t) = let spig = Spig.create 1 in
 	in
 	let rec xiter func a b = if b >= a then (func b; xiter func a (b-1))
 	in
+	let highest_t last ((t, epsilon), j) = max last t
+	in
 	let apply_action i ((t,epsilon), j) =
-		let bi = List.length (get brg i)
-		and bj = List.length (get brg j)
+		let bi = List.fold_left highest_t 0 (get brg i)
+		and bj = List.fold_left highest_t 0 (get brg j)
 		and epsilon' e = if e < t then not_epsilon epsilon else epsilon
 		in
 		let op e = match epsilon' e with Activation -> 1 | Inhibition -> -1
