@@ -1,1 +1,1 @@
-target/test
+target/pinttop
