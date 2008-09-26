@@ -59,3 +59,14 @@ let next spig state =
 	List.map (fun (p1, tr, p2) -> (tr, replace p1 p2 state)) transitions
 ;;
 
+let stateg_of_spig spig states =
+	let stateg = Graph.create (List.length states)
+	in
+	let push_state state = List.iter (fun edge -> Graph.add stateg state edge) (next spig state)
+	in
+	List.iter push_state states;
+	stateg
+;;
+let stateg_to_dot stateg = Graph.to_dot stateg string_of_state string_of_transition
+;;
+
