@@ -11,7 +11,7 @@ let rec exists spig = function
 		let rset = List.filter (fun (tr, d) -> d = s2) (Spig.next spig s1)
 		in
 		let make_constraint = function (Spig.Transition name,d) -> 
-			Constraint.Relation(Constraint.Var(name), Constraint.Greater, Constraint.Value(0.))
+			Constraint.Relation(Constraint.Var name, Constraint.Greater, Constraint.Value 0.)
 		in
 		let cs = List.map make_constraint rset
 		in
@@ -26,14 +26,14 @@ let rec exists spig = function
 			| s1::s2::q ->
 				let rset = List.filter (fun (tr,d) -> d <> s2) (Spig.next spig s1)
 				in
-				let make_constraint = function (Spig.Transition(name),d) ->
-					Constraint.Relation(Constraint.Var(name), Constraint.Equal, Constraint.Value(0.))
+				let make_constraint = function (Spig.Transition name,d) ->
+					Constraint.Relation(Constraint.Var name, Constraint.Equal, Constraint.Value 0.)
 				in
 				let cs = List.map make_constraint rset
 				in
 				let c = List.fold_left Constraint.conjonction Constraint.Empty cs
 				in
-				Constraint.And(c, (no_deviation (s2::q)))
+				Constraint.And(c, no_deviation (s2::q))
 		in
 		Constraint.And(exists spig (Trace (trace@cycle)), no_deviation cycle)
 ;;
