@@ -2,7 +2,6 @@
 SOURCES := \
 	util.ml\
 	constraint.ml\
-	valuation.ml\
 	graph.mli graph.ml\
 	io.ml\
 	spig.ml\

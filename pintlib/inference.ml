@@ -5,15 +5,19 @@ type t_trace = Trace of (Spig.t_state list)
 type t_prop = float
 ;;
 
+let transition_exists (Spig.Transition name, dest) =
+	Constraint.Relation (name, Constraint.Greater 0.)
+;;
+let transition_never (Spig.Transition name, dest) =
+	Constraint.Relation (name, Constraint.Equal 0.)
+;;
+
 let rec exists spig = function
 	  Trace([]) | Trace([_]) -> Constraint.Empty
 	| Trace(s1::s2::q) -> 
 		let rset = List.filter (fun (tr, d) -> d = s2) (Spig.next spig s1)
 		in
-		let make_constraint = function (Spig.Transition name,d) -> 
-			Constraint.Relation(Constraint.Var name, Constraint.Greater, Constraint.Value 0.)
-		in
-		let cs = List.map make_constraint rset
+		let cs = List.map transition_exists rset
 		in
 		let c = List.fold_left Constraint.disjonction Constraint.Empty cs
 		in Constraint.And(c, exists spig (Trace (s2::q)))
@@ -26,10 +30,7 @@ let rec exists spig = function
 			| s1::s2::q ->
 				let rset = List.filter (fun (tr,d) -> d <> s2) (Spig.next spig s1)
 				in
-				let make_constraint = function (Spig.Transition name,d) ->
-					Constraint.Relation(Constraint.Var name, Constraint.Equal, Constraint.Value 0.)
-				in
-				let cs = List.map make_constraint rset
+				let cs = List.map transition_never rset
 				in
 				let c = List.fold_left Constraint.conjonction Constraint.Empty cs
 				in
@@ -51,17 +52,45 @@ let rec proportion spig p = function
 				(if List.length trs > 1 then [List.filter (pred s2) trs] else [])
 				@ (filter_trace pred (s2::q))
 		in
-		let following = filter_trace (fun s (tr,d) -> d = s) trace
-		and deviant = filter_trace (fun s (tr,d) -> d <> s) trace
+		let extract_tracename traces =
+			List.map (fun (Spig.Transition name, dest) -> name) traces
 		in
-		let build_sum e = fun (Spig.Transition a, d) -> Constraint.Sum(e, a)
+
+		(* deviant *)
+		let deviant = List.map extract_tracename 
+						(filter_trace (fun s (tr,d) -> d <> s) trace)
 		in
-		let build_prod e trs = Constraint.Prod(e, List.fold_left build_sum Constraint.None trs)
+		let sum_of_list = function [] -> raise (Invalid_argument "sum_of_list")
+			| [t] -> t
+			| h::q -> List.fold_left (fun exp t -> Constraint.Sum (exp, t)) h q
+		and prod_of_list = function [] -> raise (Invalid_argument "prod_of_list")
+			| [t] -> t
+			| h::q -> List.fold_left (fun exp t -> Constraint.Prod (exp, t)) h q
+		and vars_of_list = List.map (fun t -> Constraint.Var t)
 		in
-		let vars_following = Constraint.Vars (List.fold_left build_prod Constraint.None following)
-		and vars_deviant = Constraint.Vars (List.fold_left build_prod Constraint.None deviant)
+		let deviant_exp = prod_of_list (List.map sum_of_list
+				(List.map vars_of_list deviant))
 		in
-		let cs = Constraint.Relation(vars_following, Constraint.FactorEqual (p/.(1.-.p)), vars_deviant)
+
+		(* following *)
+		let following_l = List.map extract_tracename
+							(filter_trace (fun s (tr,d) -> d = s) trace)
+		in
+		let following = List.flatten following_l
+		in
+		assert ((List.length following) = (List.length following_l));
+
+		(* x = factor * (deviant / following - x) *)
+		let factor = p /. (1. -. p)
+		in
+		let div = match following with [] -> failwith "no following..."
+			| [t] -> deviant_exp
+			| t::q -> Constraint.Div (deviant_exp, prod_of_list (vars_of_list q))
+		in
+		let relop = Constraint.FactorEqual (factor, div)
+		and var = List.hd following
+		in 
+		let cs = Constraint.Relation (var, relop)
 		in
 		Constraint.And (exists spig (Trace trace), cs)
 ;;
