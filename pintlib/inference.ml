@@ -22,10 +22,13 @@ let rec exists spig = function
 	| Trace(s1::s2::q) -> 
 		let rset = List.filter (fun (tr, d) -> d = s2) (Spig.next spig s1)
 		in
+		if s1 = s2 && List.length rset = 0 then exists spig (Trace (s2::q))
+		else (
 		assert (List.length rset = 1);
 		let cs = transition_exists (List.hd rset)
 		in
 		cs::(exists spig (Trace (s2::q)))
+		)
 
 	| Stable(trace, []) -> exists spig (Trace trace)
 	| Stable(trace, h::q) ->
