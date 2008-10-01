@@ -74,13 +74,19 @@ let stateg_to_dot stateg = Graph.to_dot stateg string_of_state string_of_transit
 
 let spi_of_spig (spig:t) valuation default_rate init_state =
 
+	let string_of_rate rate = 
+		let s = string_of_float rate
+		in
+		s ^ if s.[String.length s - 1] = '.' then "0" else ""
+	in
+
 	(* 1. declare channels and delays rate *)
 	let rate rname = try List.assoc rname valuation with Not_found -> default_rate
 	in
 	let declare_delay delay = "val "^(string_of_rname delay)^" = "^
-		string_of_float (rate delay)
+		string_of_rate (rate delay)
 	and declare_channel channel = "new "^(string_of_rname channel)^"@"^
-		(string_of_float (rate channel))^":chan"
+		(string_of_rate (rate channel))^":chan"
 	in
 	let register_rates _ (edge, _) (channels, delays) =
 		match edge with
@@ -113,7 +119,7 @@ let spi_of_spig (spig:t) valuation default_rate init_state =
 	in
 
 	(* 3. run *)
-	let run = "run ("^(String.concat " | "
+	let run = "run ("^(String.concat " | "
 		(List.map (fun proc -> (string_of_pi_proc proc)^"()") init_state))^")"
 	in
 

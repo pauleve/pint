@@ -16,8 +16,12 @@ let make_spi spig constraints default_rate init_state =
 	Spig.spi_of_spig spig valuation default_rate init_state
 ;;
 
-let show_results constraints =
+let print_constraints constraints =
 	print_endline (Constraint.string_of_constraints Spig.string_of_rname constraints);
+;;
+
+let show_results constraints =
+	print_constraints constraints;
 	(try
 		let valuation, equation = Valuation.valuation_of_constraints constraints
 		in
