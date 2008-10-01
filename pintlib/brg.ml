@@ -40,7 +40,6 @@ let spig_of_brg (brg:t) = let spig = Spig.create 1 in
 		let make e f =
 			let f' = apply_op (op e) f bj
 			in
-			print_endline (i^(string_of_int e)^"->"^j^(string_of_int f)^" = "^j^(string_of_int f'));
 			let pie = proc_of_gene_level i e
 			and pjf = proc_of_gene_level j f
 			and pjf' = proc_of_gene_level j f'

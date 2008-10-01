@@ -1,40 +1,29 @@
 
 
-type 'a expression = Var of 'a
-				| Prod of ('a expression * 'a expression)
-				| Sum of ('a expression * 'a expression)
-				| Div of ('a expression * 'a expression)
+type 'a expleft = Prod of ('a list)
+type 'a expright = ProdSum of ('a list list)
 
-type 'a relation = Null | NotNull
-			| FactorEqual of (float * 'a expression)
+type 'a relation = Null of 'a | NotNull of 'a
+			| FactorEqual of ('a expleft * float * 'a expright)
 
-type 'a constraints = ('a * 'a relation) list
+type 'a constraints = 'a relation list
 ;;
 
-let rec string_of_expression string_of_var e =
-	let do_protect curexp child = match curexp, child with
-		  (_, Var _) -> false
-		| (Prod _, Prod _) | (Sum _, Sum _) | (Div _, Div _) -> false
-		| _ -> true
-	in
-	let protect curexp child = 
-		if do_protect curexp child then "("^(string_of_expression string_of_var child)^")"
-		else string_of_expression string_of_var child
-	in
-	match e with
-	  Var var -> string_of_var var
-	| Prod (c1, c2) -> (protect e c1)^" * "^(protect e c2)
-	| Sum (c1, c2) -> (protect e c1)^" + "^(protect e c2)
-	| Div (c1, c2) -> (protect e c1)^" / "^(protect e c2)
+let string_of_prod string_of_var (Prod vars) = 
+	String.concat "." (List.map string_of_var vars)
+;;
+let string_of_prodsum string_of_var (ProdSum sums) =
+	"(" ^ (String.concat ") * ("
+		(List.map (fun vars -> String.concat "+" (List.map string_of_var vars))
+			sums)) ^ ")"
 ;;
 
-let string_of_relation string_of_var (var, relop) =
-	string_of_var var ^
-	match relop with
-		  Null -> " = 0"
-		| NotNull -> " > 0"
-		| FactorEqual (f, expr) -> " = "^(string_of_float f)^" * "^
-								(string_of_expression string_of_var expr)
+let string_of_relation string_of_var = function
+	  Null var -> (string_of_var var) ^ " = 0"
+	| NotNull var -> (string_of_var var) ^ " > 0"
+	| FactorEqual (e1, f, e2) -> 
+		(string_of_prod string_of_var e1) ^ " = " ^ (string_of_float f) ^
+			" * " ^ (string_of_prodsum string_of_var e2)
 ;;
 
 let rec string_of_constraints string_of_var constraints =

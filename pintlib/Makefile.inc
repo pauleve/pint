@@ -1,9 +1,9 @@
 
 SOURCES := \
 	util.ml\
-	constraint.ml\
 	graph.mli graph.ml\
-	io.ml\
+	constraint.ml\
+	valuation.ml\
 	spig.ml\
 	brg.ml\
 	inference.ml\

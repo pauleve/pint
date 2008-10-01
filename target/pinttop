@@ -1,6 +1,7 @@
 all: top
 include Makefile.common
-SOURCES = $(PINTLIB_SOURCES)
+SOURCES = $(PINTLIB_SOURCES)\
+	ui.ml
 RESULT = pint
 include OCamlMakefile
 # vi:set syntax=make:
