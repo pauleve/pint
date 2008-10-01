@@ -7,6 +7,8 @@ let cross_list (x:'a list list) : 'a list list = List.fold_left cross [[]] x;;
 
 let list_union a b = a @ (List.filter (fun x -> not (List.mem x a)) b);;
 
+let list_prepend_if_new a l = if List.mem a l then l else a::l;;
+
 let list_uniq (l:'a list) =
 	let rec _list_uniq u = function [] -> u
 		| h::q -> if List.mem h u then _list_uniq u q 

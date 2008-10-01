@@ -15,6 +15,8 @@ type t = (pi_proc, pi_edge) Graph.t
 let create = Graph.create;;
 let add (spig:t) = Graph.add spig;;
 let get (spig:t) = Graph.get spig;;
+let fold f (spig:t) = Graph.fold f spig;;
+let procs (spig:t) = Graph.vertices spig;;
 
 let string_of_pi_edge = function
 	  Delay(rname) -> rname
@@ -69,4 +71,55 @@ let stateg_of_spig spig states =
 ;;
 let stateg_to_dot stateg = Graph.to_dot stateg string_of_state string_of_transition
 ;;
+
+let spi_of_spig (spig:t) valuation default_rate init_state =
+
+	(* 1. declare channels and delays rate *)
+	let rate rname = try List.assoc rname valuation with Not_found -> default_rate
+	in
+	let declare_delay delay = "val "^(string_of_rname delay)^" = "^
+		string_of_float (rate delay)
+	and declare_channel channel = "new "^(string_of_rname channel)^"@"^
+		(string_of_float (rate channel))^":chan"
+	in
+	let register_rates _ (edge, _) (channels, delays) =
+		match edge with
+			  Call channel | Take channel -> 
+			  	Util.list_prepend_if_new channel channels, delays
+			| Delay delay ->
+				channels, Util.list_prepend_if_new delay delays
+	in
+	let channels, delays = fold register_rates spig ([],[])
+	in
+
+	(* 2. program *)
+	let source_of_edge = function
+		  Delay delay -> "delay@"^delay
+		| Call channel -> "?"^channel
+		| Take channel -> "!"^channel
+	in
+	let source_of_action (edge, dest) =
+		(source_of_edge edge)^"; "^(string_of_pi_proc dest)^"()"
+	in
+	let source_of_proc proc =
+		(string_of_pi_proc proc) ^ "() = " ^
+		(match List.map source_of_action (get spig proc) with
+			  [] -> failwith ("no action for proc "^string_of_pi_proc proc)
+			| [action] -> action
+			| actions -> "do "^String.concat " or " actions)
+	in
+	let program = "\tlet\n"^String.concat "\n\tand\n" 
+		(List.map source_of_proc (procs spig))
+	in
+
+	(* 3. run *)
+	let run = "run ("^(String.concat " | "
+		(List.map (fun proc -> (string_of_pi_proc proc)^"()") init_state))^")"
+	in
+
+	(String.concat "\n" (
+		(List.map declare_delay delays)
+		@ (List.map declare_channel channels)
+		@ [program; run]
+	))^"\n"
 
