@@ -10,9 +10,9 @@ let proportion spi p trace =
 ;;
 
 let make_spi spig constraints default_rate init_state =
-	let valuation, equation = Valuation.valuation_of_constraints constraints
+	let valuation, equations = Valuation.valuation_of_constraints constraints
 	in 
-	assert (Valuation.equation_solved equation);
+	assert (equations = []);
 	Spig.spi_of_spig spig valuation default_rate init_state
 ;;
 
@@ -23,11 +23,13 @@ let print_constraints constraints =
 let show_results constraints =
 	print_constraints constraints;
 	(try
-		let valuation, equation = Valuation.valuation_of_constraints constraints
+		let valuation, equations = Valuation.valuation_of_constraints constraints
 		in
 			print_endline (Valuation.string_of_valuation Spig.string_of_rname valuation);
-			if not (Valuation.equation_solved equation) then
-				print_endline ("TO SOLVE : "^(Valuation.string_of_equation Spig.string_of_rname equation))
+			if equations <> [] then (
+				print_endline "TO SOLVE:";
+				print_endline (String.concat "\n" (List.map (Valuation.string_of_equation Spig.string_of_rname) equations))
+			)
 	with Valuation.No_solution -> print_endline "NO SOLUTIONS!");
 	print_endline ""
 ;;

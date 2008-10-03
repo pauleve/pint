@@ -22,6 +22,11 @@ let rec list_intersection a = function [] -> []
 ;;
 
 let list_remove v = List.filter (fun x -> x <> v)
+;;
+
+let list_separate pred l = List.filter pred l, List.filter (fun x -> not (pred x)) l
+;;
+
 
 let dump_to_file filename content = 
 	let fd = open_out filename in
