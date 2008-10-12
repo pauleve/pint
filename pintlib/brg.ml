@@ -45,11 +45,12 @@ let spig_of_brg (brg:t) = let spig = Spig.create 1 in
 			and pjf' = proc_of_gene_level j f'
 			and rname = rate_name_of_gene_action i e j f
 			in
-			if pie = pjf && pie = pjf' then 
-				Spig.add spig pie (Spig.Delay rname, pjf)
-			else 
+			if i <> j then
 				(Spig.add spig pie (Spig.Take rname, pie);
 				Spig.add spig pjf (Spig.Call rname, pjf'))
+			else
+				if e <> f' then
+					Spig.add spig pie (Spig.Delay ("d"^pie), pjf')
 		in
 		if i <> j then
 			let minlevel e = match epsilon' e with Activation -> 0
@@ -59,7 +60,7 @@ let spig_of_brg (brg:t) = let spig = Spig.create 1 in
 			in
 			xiter (fun e -> xiter (make e) (minlevel e) (maxlevel e)) 0 bi
 		else 
-			xiter (fun e -> make e e) t bi
+			xiter (fun e -> make e e) 0 bi
 	in
 	iter apply_action brg;
 	spig

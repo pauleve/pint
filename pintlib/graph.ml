@@ -11,7 +11,12 @@ let vertices (graph:('a,'b)t) =
 	let register_vertex vertex1 (label, vertex2) acc =
 		Util.list_prepend_if_new vertex2 (Util.list_prepend_if_new vertex1 acc)
 	in
-	Hashtbl.fold register_vertex graph []
+	fold register_vertex graph []
+;;
+let edges graph =
+	let register_edge a (e, b) acc = Util.list_prepend_if_new e acc
+	in
+	fold register_edge graph []
 ;;
 
 let to_dot (graph:('a,'b)t) string_of_vertex string_of_label =
@@ -19,7 +24,7 @@ let to_dot (graph:('a,'b)t) string_of_vertex string_of_label =
 		let svertex = string_of_vertex vertex in
 		"\"" ^ svertex ^ "\"[label = \"" ^ svertex ^ "\"]\n"
 	in
-	let source = "digraph G { node[fillcolor = yellow, fontsize = 20] edge[fontsize = 20,fontname=times]\n" ^
+	let source = "digraph G { node[fontsize=20] edge[fontsize=20,fontname=times]\n" ^
 		(String.concat "" (List.map dot_of_vertex (vertices graph)))
 	and write_edge vertex1 (label, vertex2) source =
 		source ^ "\"" ^ (string_of_vertex vertex1) ^ "\" -> \"" 

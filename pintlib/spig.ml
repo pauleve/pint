@@ -72,6 +72,30 @@ let stateg_of_spig spig states =
 let stateg_to_dot stateg = Graph.to_dot stateg string_of_state string_of_transition
 ;;
 
+let dot_of_sgc stateg =
+	let dot_of_state state =
+		let id = string_of_state state
+		in
+		"\""^id^"\"[label=\""^id^"\"]"
+	and dot_of_transition transition =
+		let id = string_of_transition transition
+		in
+		"\""^id^"\"[label=\""^id^"\",style=filled,fillcolor=green,shape=diamond,fontsize=10]"
+	and dot_of_edge s1 (tr, s2) acc =
+		let sid1 = string_of_state s1
+		and sid2 = string_of_state s2
+		and trid = string_of_transition tr
+		in
+		("\""^sid1^"\" -> \""^trid^"\" \""^trid^"\" -> \""^sid2^"\"")::acc
+	and states = Graph.vertices stateg
+	and transitions = Graph.edges stateg
+	in
+	"digraph G { node[fontsize=15] edge[fontsize=15,fontname=times]\n" ^ 
+		(String.concat "\n" (List.map dot_of_state states))^"\n"^
+		(String.concat "\n" (List.map dot_of_transition transitions))^"\n"^
+		(String.concat "\n" (Graph.fold dot_of_edge stateg []))^"\n"^
+		"}\n"
+
 let spi_of_spig (spig:t) valuation default_rate init_state =
 
 	let string_of_rate rate = 
