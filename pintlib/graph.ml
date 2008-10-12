@@ -21,15 +21,22 @@ let edges graph =
 
 let to_dot (graph:('a,'b)t) string_of_vertex string_of_label =
 	let dot_of_vertex vertex = 
-		let svertex = string_of_vertex vertex in
-		"\"" ^ svertex ^ "\"[label = \"" ^ svertex ^ "\"]\n"
+		let id = string_of_vertex vertex in "\""^id^ "\"[label=\""^id^"\"]"
+	and dot_of_edge ((a,b),labels) =
+		let aid = string_of_vertex a
+		and bid = string_of_vertex b
+		and label = String.concat "," (List.map string_of_label labels)
+		in
+		"\""^aid^"\"->\""^bid^"\"[label=\""^label^"\"]"
+	and register_edge a (e, b) acc =
+		((a,b), e::try List.assoc (a,b) acc with Not_found -> [])
+		::List.remove_assoc (a,b) acc
 	in
-	let source = "digraph G { node[fontsize=20] edge[fontsize=20,fontname=times]\n" ^
-		(String.concat "" (List.map dot_of_vertex (vertices graph)))
-	and write_edge vertex1 (label, vertex2) source =
-		source ^ "\"" ^ (string_of_vertex vertex1) ^ "\" -> \"" 
-				^ (string_of_vertex vertex2) ^ "\"[label=\" " ^ (string_of_label label) ^" \"]\n"
+	let edges = fold register_edge graph []
 	in
-	(Hashtbl.fold write_edge graph source) ^ "}\n"
+	"digraph G { node[fontsize=20] edge[fontsize=15,fontname=times]\n" ^
+	(String.concat "\n" (List.map dot_of_vertex (vertices graph)))^"\n" ^
+	(String.concat "\n" (List.map dot_of_edge edges))^"\n"^
+	"}\n"
 ;;
 
