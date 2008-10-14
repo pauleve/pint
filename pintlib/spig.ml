@@ -129,15 +129,16 @@ let apply_constraints spig cs =
 let dynamic spig states =
 	let rec from_states stateg known = function [] -> ()
 		| states ->
-			let push_state acc state = acc @ List.map
-				(fun (tr, s') -> Graph.add stateg state (tr,s'); s')
-				(next spig state);
+			let push_state state = List.iter
+				(fun (tr, s') -> Graph.add stateg state (tr,s'))
+				(next spig state)
 			in
-			let dests = List.fold_left push_state [] states
+			List.iter push_state states;
+			let states = Graph.vertices stateg
 			in
-			let known = known @ states
+			let newstates = Util.list_sub states known
 			in
-			from_states stateg known (Util.list_sub dests known)
+			from_states stateg states newstates
 	in
 	let stateg = Graph.create (List.length states)
 	in
