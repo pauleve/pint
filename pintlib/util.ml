@@ -24,9 +24,13 @@ let rec list_intersection a = function [] -> []
 let list_remove v = List.filter (fun x -> x <> v)
 ;;
 
+let rec list_sub a = function [] -> a | v::b -> list_sub (list_remove v a) b
+;;
+
 let list_separate pred l = List.filter pred l, List.filter (fun x -> not (pred x)) l
 ;;
 
+let rec range a b = if a <= b then b::range a (b-1) else [];;
 
 let dump_to_file filename content = 
 	let fd = open_out filename in

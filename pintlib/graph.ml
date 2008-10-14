@@ -29,7 +29,7 @@ let to_dot (graph:('a,'b)t) string_of_vertex string_of_label =
 		in
 		"\""^aid^"\"->\""^bid^"\"[label=\""^label^"\"]"
 	and register_edge a (e, b) acc =
-		((a,b), e::try List.assoc (a,b) acc with Not_found -> [])
+		((a,b), Util.list_prepend_if_new e (try List.assoc (a,b) acc with Not_found -> []))
 		::List.remove_assoc (a,b) acc
 	in
 	let edges = fold register_edge graph []

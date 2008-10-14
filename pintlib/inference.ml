@@ -85,3 +85,11 @@ let rec proportion spig p = function
 		::exists spig (Trace trace)
 ;;
 
+let never_transition_matching_from_state spig pred state =
+	let trs = Spig.next spig state
+	in
+	let trs = List.filter (fun (tr, dest) -> pred state dest) trs
+	in
+	List.map transition_never trs
+;;
+
