@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+ocamlc -I $PINT_PATH -I $PINT_PATH/pintlib $*
+
