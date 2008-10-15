@@ -25,6 +25,18 @@ let contains_subst graph state subst =
 	in
 	List.mem next (Graph.next_vertices graph state)
 ;;
+let contains_path graph state substs =
+	let folder state subst =
+		if contains_subst graph state subst then
+			apply_subst state subst
+		else
+			raise Not_found
+	in
+	try 
+		ignore(List.fold_left folder state substs);
+		true
+	with Not_found -> false
+;;
 
 let count graph =
 	let sum acc state =
