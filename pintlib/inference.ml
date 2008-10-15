@@ -5,10 +5,10 @@ type t_trace = Trace of (Spig.t_state list)
 type t_prop = float
 ;;
 
-let extract_tracename = List.map (fun (Spig.Transition name, dest) -> name);;
+let extract_tracename = List.map (fun (name, dest) -> name);;
 
-let transition_exists (Spig.Transition name, dest) = Constraint.NotNull name;;
-let transition_never (Spig.Transition name, dest) = Constraint.Null name;;
+let transition_exists (name, dest) = Constraint.NotNull name;;
+let transition_never (name, dest) = Constraint.Null name;;
 
 let string_of_trace string_of_state trace = 
 	let string_of_states states = "["^(String.concat "];["

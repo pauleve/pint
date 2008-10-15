@@ -9,22 +9,56 @@ let build_brg brg_spec =
 let show_deleted_channels chans =
 	let chans = Util.list_uniq chans
 	in
-	print_endline ("deleted "^String.concat " " (List.map Spig.string_of_transition chans));
+	print_endline ("deleted [\""^(String.concat "\";\"" (List.map Spig.string_of_transition chans))^"\"]");
 	chans
 ;;
 
 let spi_stable_state spi state =
-	print_endline (">>> stable "^Spig.string_of_state state);
+	print_endline ("<<< stable "^Spig.string_of_state state);
 	let chans = Spig.stable_state spi state
 	in
 	show_deleted_channels chans
 ;;
 
 let spi_stable spi state substs =
-	print_endline (">>> stable "^Dynamic.string_of_substs Spig.string_of_state state substs);
+	print_endline ("<<< stable "^Dynamic.string_of_substs Spig.string_of_state state substs);
 	let chans = Spig.stable spi state substs
 	in
 	show_deleted_channels chans
+;;
+
+let spi_reach_only spi states start =
+	print_endline ("<<< "^(Spig.string_of_state start)^" reaches only "^String.concat " or " (List.map Spig.string_of_state states));
+	let chans_l = Spig.reach_only spi states start
+	in
+	let rec show_channels_list id = function
+		  [] -> ()
+		| chans::q ->
+			print_endline (":: solution "^(string_of_int id));
+			ignore(show_deleted_channels chans);
+			show_channels_list (id+1) q
+	in
+	show_channels_list 1 chans_l;
+	chans_l
+;;
+
+let test_reachability stateg dest start =
+	Graph.reachability stateg dest start
+;;
+let show_test_reachability stateg dest start =
+	print_endline (">>> reachability "^(Spig.string_of_state dest)^" from "^Spig.string_of_state start);
+	print_endline (string_of_bool (test_reachability stateg dest start))
+;;
+
+let test_reach_only dyn states start =
+	let colors = Util.list_uniq (Graph.color_reachability dyn states start)
+	and all = Util.list_uniq (Graph.vertices dyn)
+	in
+	List.length colors = List.length all
+;;
+let show_test_reach_only dyn states start =
+	print_endline (">>> "^(String.concat " or " (List.map Spig.string_of_state states))^" reached only by "^Spig.string_of_state start);
+	print_endline (string_of_bool (test_reach_only dyn states start))
 ;;
 
 let exists spi trace =
