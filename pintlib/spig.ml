@@ -7,7 +7,6 @@ type pi_edge = Delay of pi_rname
 			| Take of pi_rname
 
 type t_state = pi_proc list
-type t_transition = Transition of pi_rname
 
 type t = (pi_proc, pi_edge) Graph.t
 ;;
@@ -26,10 +25,9 @@ let string_of_pi_edge = function
 ;;
 let string_of_pi_proc (proc, level) = proc ^ string_of_int level
 ;;
-let string_of_transition = function Transition(name) -> name;;
+let string_of_transition x = x;;
 let string_of_state state = String.concat "," (List.map string_of_pi_proc state);;
 let string_of_rname x = x;;
-let id_from_transition = function Transition(name) -> name;;
 
 let to_dot (spig:t) = Graph.to_dot spig string_of_pi_proc string_of_pi_edge;;
 
@@ -39,7 +37,7 @@ let pi_edge_complement = function
 	| _ -> invalid_arg "Delay(rname)"
 ;;
 let transition_of_pi_edge = function
-	  Call(rname) | Take(rname) | Delay(rname) -> Transition(rname)
+	  Call(rname) | Take(rname) | Delay(rname) -> rname
 ;;
 
 let next spig state = 
@@ -48,7 +46,7 @@ let next spig state =
 	let has_pi_edge mpe = List.exists (fun (p, p_edges) -> List.mem (mpe,p) p_edges)
 	in
 	let rec build_transitions p1 = function [] -> []
-		| (Delay(rname),p2)::q -> (p1,Transition(rname),p2)::(build_transitions p1 q)
+		| (Delay(rname),p2)::q -> (p1,rname,p2)::(build_transitions p1 q)
 		| (pe,p2)::q -> 
 			if p1 != p2 && has_pi_edge (pi_edge_complement pe) edges then
 				(p1,transition_of_pi_edge(pe),p2)::(build_transitions p1 q)
@@ -102,6 +100,7 @@ let rec stable spig state = function [] -> []
 		transitions @ stable spig (Dynamic.apply_subst state subst) q
 ;;
 
+
 let remove_channels spig rnames =
 	let nspig = create 0
 	in
@@ -113,7 +112,7 @@ let remove_channels spig rnames =
 	iter copy_matching spig;
 	nspig
 ;;
-let remove_transitions spig trs = remove_channels spig (List.map id_from_transition trs);;
+let remove_transitions spig trs = remove_channels spig trs;;
 
 let apply_constraints spig cs =
 	let null_channels, cs = Util.list_separate
@@ -130,7 +129,7 @@ let dynamic spig states =
 	let rec from_states stateg known = function [] -> ()
 		| states ->
 			let push_state state = List.iter
-				(fun (tr, s') -> Graph.add stateg state (tr,s'))
+				(Graph.add stateg state)
 				(next spig state)
 			in
 			List.iter push_state states;
@@ -229,4 +228,73 @@ let spi_of_spig (spig:t) valuation default_rate init_state =
 		@ (List.map declare_channel channels)
 		@ [program; run]
 	))^"\n"
+;;
+
+exception No_solution;;
+
+exception Bad_state of t_state;;
+
+let reach_only spig states start =
+	let validate dyn =
+		let conj prev state = prev && Graph.reachability dyn state start
+		in
+		List.fold_left conj true states
+	in
+	let remove_channels dyn chans =
+		let dyn = Graph.remove_labeled dyn chans
+		in
+		if validate dyn then dyn else raise No_solution
+	in
+	let next_bad_channels dyn colors start =
+		let bad_substs = List.map (Dynamic.extract_subst start)
+			(Graph.next_uncolored_vertices dyn colors start)
+		in
+		List.flatten (List.map (restrict spig start) bad_substs)
+	in
+	let rec make_vertex_valid dyn colors start =
+		let bad_chans = next_bad_channels dyn colors start
+		in
+		match bad_chans with
+		  [] -> [], dyn, colors
+		| _ -> let dyn = remove_channels dyn bad_chans
+			in
+			let colors = Graph.color_reachability dyn states start
+			in
+			let bad_chans2, dyn, colors = make_vertex_valid dyn colors start
+			in
+			(bad_chans@bad_chans2), dyn, colors
+	in
+	let rec make_valid rid dyn colors known =
+		let start = List.hd known
+		in
+		if List.mem start states then 
+			[[]]
+		else (
+			let bad_chans, dyn, colors = make_vertex_valid dyn colors start
+			in
+			let next_vertices = Graph.next_uncolored_vertices dyn known start
+			in
+			let make_sub_valid dyn colors next_v =
+				try make_valid (rid+1) dyn colors (next_v::(known@next_vertices))
+				with No_solution ->
+					raise (Bad_state next_v)
+			in
+			try (
+				let subs = List.map (make_sub_valid dyn colors) next_vertices
+				in
+				match subs with
+				  [] -> raise No_solution
+				| _ -> List.flatten (List.map
+					(List.map (fun chans' -> bad_chans@chans')) subs)
+			) with Bad_state state -> (
+				make_valid rid dyn (Util.list_remove state colors) known
+			)
+		)
+	in
+	let dyn = dynamic spig [start]
+	in
+	let colors = Graph.color_reachability dyn states start
+	in
+	Util.list_uniq2 (make_valid 0 dyn colors [start])
+;;
 

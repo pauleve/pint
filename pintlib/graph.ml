@@ -40,3 +40,58 @@ let to_dot (graph:('a,'b)t) string_of_vertex string_of_label =
 	"}\n"
 ;;
 
+
+let remove_labeled graph labels =
+	let graph2 = create 0
+	in
+	let register_non_matching a (label, b) =
+		if not (List.mem label labels) then add graph2 a (label, b)
+	in
+	iter register_non_matching graph;
+	graph2
+;;
+
+let next_vertices graph start =
+	Util.list_uniq (List.map snd (get graph start))
+;;
+
+let next_colored_vertices graph colored start =
+	List.filter (fun v -> List.mem v colored) (next_vertices graph start)
+;;
+
+let next_uncolored_vertices graph colored start =
+	List.filter (fun v -> not(List.mem v colored)) (next_vertices graph start)
+;;
+
+let reachability graph dest start =
+	let rec _reachability graph colored dest = 
+		let start = List.hd colored
+		in
+		if dest <> start then
+			let folder (found, colored) v =
+				match found with 
+					  true -> (found,colored)
+					| false -> _reachability graph (v::colored) dest
+			and following = next_uncolored_vertices graph colored start
+			in
+			List.fold_left folder (false, colored) following
+		else (true, colored)
+	in
+	fst (_reachability graph [start] dest)
+;;
+
+let color_reachability graph vertices start =
+	let rec _reachability graph colored vertices = 
+		let start = List.hd colored
+		in
+		if not (List.mem start vertices) then
+			let folder colored v = _reachability graph (v::colored) vertices
+			and following = next_uncolored_vertices graph colored start
+			in
+			List.fold_left folder colored following
+		else colored
+	in
+	_reachability graph [start] vertices
+;;
+
+

@@ -16,6 +16,8 @@ let list_uniq (l:'a list) =
 	in
 	_list_uniq [] l
 ;;
+let list_uniq2 l =
+	list_uniq (List.map (List.sort Pervasives.compare) l)
 
 let rec list_intersection a = function [] -> []
 	| h::q -> (if List.mem h a then [h] else []) @ list_intersection a q
