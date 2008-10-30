@@ -6,11 +6,12 @@ let build_brg brg_spec =
 	brg
 ;;
 
-let show_deleted_channels chans =
-	let chans = Util.list_uniq chans
-	in
-	print_endline ("deleted [\""^(String.concat "\";\"" (List.map Spig.string_of_transition chans))^"\"]");
-	chans
+let show_deleted_channels = function [] -> print_endline "nothing to do."; []
+	| chans -> 
+		let chans = Util.list_uniq chans
+		in
+		print_endline ("deleted [\""^(String.concat "\";\"" (List.map Spig.string_of_transition chans))^"\"]");
+		chans
 ;;
 
 let spi_stable_state spi state =
@@ -29,17 +30,9 @@ let spi_stable spi state substs =
 
 let spi_reach_only spi states start =
 	print_endline ("<<< "^(Spig.string_of_state start)^" reaches only "^String.concat " or " (List.map Spig.string_of_state states));
-	let chans_l = Spig.reach_only spi states start
+	let chans = Spig.reach_only spi states start
 	in
-	let rec show_channels_list id = function
-		  [] -> ()
-		| chans::q ->
-			print_endline (":: solution "^(string_of_int id));
-			ignore(show_deleted_channels chans);
-			show_channels_list (id+1) q
-	in
-	show_channels_list 1 chans_l;
-	chans_l
+	show_deleted_channels chans
 ;;
 
 let test_reachability stateg dest start =
@@ -51,14 +44,29 @@ let show_test_reachability stateg dest start =
 ;;
 
 let test_reach_only dyn states start =
-	let colors = Util.list_uniq (Graph.color_reachability dyn states start)
+	let colors = Util.list_uniq (Graph.color_reachability dyn states)
 	and all = Util.list_uniq (Graph.vertices dyn)
 	in
-	List.length colors = List.length all
+	Util.list_sub all colors = []
 ;;
 let show_test_reach_only dyn states start =
 	print_endline (">>> "^(String.concat " or " (List.map Spig.string_of_state states))^" reached only by "^Spig.string_of_state start);
 	print_endline (string_of_bool (test_reach_only dyn states start))
+;;
+
+let test_contains_path = Dynamic.contains_path 
+;;
+let show_test_contains_path dyn start substs name =
+	print_endline (">>> contains "^name);
+	print_endline (string_of_bool (test_contains_path dyn start substs))
+;;
+let show_test_paths dyn paths =
+	print_endline ">>> registered paths";
+	let paths = List.filter 
+		(fun (name, state, substs) -> test_contains_path dyn state substs)
+		paths
+	in
+	print_endline (String.concat " " (List.map (fun (a,_,_) -> a) paths));
 ;;
 
 let exists spi trace =
@@ -105,4 +113,7 @@ let spig_of_k brg spig (d, r, k) =
 	in
 	spig2
 ;;
+
+let dump_dynamic dyn filename = 
+	Util.dump_to_file filename (Spig.stateg_to_dot dyn);;
 

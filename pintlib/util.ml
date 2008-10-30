@@ -32,6 +32,10 @@ let rec list_sub a = function [] -> a | v::b -> list_sub (list_remove v a) b
 let list_separate pred l = List.filter pred l, List.filter (fun x -> not (pred x)) l
 ;;
 
+let rec subset l = function [] -> true
+	| h::q -> (List.mem h l) && subset l q
+;;
+
 let rec range a b = if a <= b then b::range a (b-1) else [];;
 
 let dump_to_file filename content = 

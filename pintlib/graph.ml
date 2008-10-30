@@ -19,6 +19,15 @@ let edges graph =
 	fold register_edge graph []
 ;;
 
+let reverse graph =
+	let rgraph = create 0
+	in
+	let register_vertex a (l, b) = add rgraph b (l,a)
+	in
+	iter register_vertex graph;
+	rgraph
+;;
+
 let to_dot (graph:('a,'b)t) string_of_vertex string_of_label =
 	let dot_of_vertex vertex = 
 		let id = string_of_vertex vertex in "\""^id^ "\"[label=\""^id^"\"]"
@@ -80,18 +89,24 @@ let reachability graph dest start =
 	fst (_reachability graph [start] dest)
 ;;
 
-let color_reachability graph vertices start =
-	let rec _reachability graph colored vertices = 
-		let start = List.hd colored
+let color_reachability graph vertices =
+	let rgraph = reverse graph
+	in
+	let rec _reachability colored =
+		let folder colored vertex =
+			if not (List.mem vertex colored) then
+				_reachability (vertex::colored)
+			else colored
 		in
-		if not (List.mem start vertices) then
-			let folder colored v = _reachability graph (v::colored) vertices
-			and following = next_uncolored_vertices graph colored start
-			in
-			List.fold_left folder colored following
+		let following = next_uncolored_vertices rgraph colored (List.hd colored)
+		in
+		List.fold_left folder colored following
+	in
+	let folder colored starter =
+		if not (List.mem starter colored) then
+			_reachability (starter::colored)
 		else colored
 	in
-	_reachability graph [start] vertices
+	List.fold_left folder [] vertices
 ;;
-
 
