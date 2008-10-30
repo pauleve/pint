@@ -252,49 +252,51 @@ let reach_only spig states start =
 		List.flatten (List.map (restrict spig start) bad_substs)
 	in
 	let rec make_vertex_valid dyn colors start =
-		let bad_chans = next_bad_channels dyn colors start
-		in
-		match bad_chans with
-		  [] -> [], dyn, colors
-		| _ -> let dyn = remove_channels dyn bad_chans
-			in
-			let colors = Graph.color_reachability dyn states start
-			in
-			let bad_chans2, dyn, colors = make_vertex_valid dyn colors start
-			in
-			(bad_chans@bad_chans2), dyn, colors
+		if not (List.mem start colors) then
+			raise No_solution
+		else (
+			match next_bad_channels dyn colors start with
+			  [] -> [], dyn, colors
+			| bad_chans -> let dyn = remove_channels dyn bad_chans
+				in
+				let colors = Graph.color_reachability dyn states
+				in
+				let bad_chans2, dyn, colors = make_vertex_valid dyn colors start
+				in
+				(bad_chans@bad_chans2), dyn, colors)
 	in
-	let rec make_valid rid dyn colors known =
+	let rec make_valid dyn colors known =
 		let start = List.hd known
 		in
 		if List.mem start states then 
-			[[]]
+			[], (dyn, colors, known)
 		else (
-			let bad_chans, dyn, colors = make_vertex_valid dyn colors start
+			let sol, dyn, colors = make_vertex_valid dyn colors start
 			in
-			let next_vertices = Graph.next_uncolored_vertices dyn known start
+			let folder (sol, (dyn, colors, known)) next_v =
+				if List.mem next_v known then
+					(sol, (dyn, colors, known))
+				else (
+				try 
+					let sol', ctx = make_valid dyn colors (next_v::known)
+					in
+					sol@sol', ctx
+				with No_solution -> raise (Bad_state next_v))
 			in
-			let make_sub_valid dyn colors next_v =
-				try make_valid (rid+1) dyn colors (next_v::(known@next_vertices))
-				with No_solution ->
-					raise (Bad_state next_v)
-			in
-			try (
-				let subs = List.map (make_sub_valid dyn colors) next_vertices
+			try 
+				List.fold_left folder (sol, (dyn, colors, known))
+					(Graph.next_uncolored_vertices dyn known start)
+			with Bad_state state -> (
+				let sol', ctx = make_valid dyn (Util.list_remove state colors) known
 				in
-				match subs with
-				  [] -> raise No_solution
-				| _ -> List.flatten (List.map
-					(List.map (fun chans' -> bad_chans@chans')) subs)
-			) with Bad_state state -> (
-				make_valid rid dyn (Util.list_remove state colors) known
+				sol@sol', ctx
 			)
 		)
 	in
 	let dyn = dynamic spig [start]
 	in
-	let colors = Graph.color_reachability dyn states start
+	let colors = Graph.color_reachability dyn states
 	in
-	Util.list_uniq2 (make_valid 0 dyn colors [start])
+	Util.list_uniq (fst (make_valid dyn colors [start]))
 ;;
 

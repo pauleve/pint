@@ -45,3 +45,37 @@ let count graph =
 	List.fold_left sum 0 (Graph.vertices graph)
 ;;
 
+let project dyn pred =
+	let project_state state = List.filter pred state
+	in
+	let dyn' = Graph.create 0
+	in
+	let register_transition s (l, s') =
+		Graph.add dyn' (project_state s) (l, project_state s')
+	in
+	Graph.iter register_transition dyn;
+	dyn'
+;;
+
+let extract_strict dyn states =
+	let dyn' = Graph.create (List.length states)
+	in
+	let register_transition s (l, s') =
+		if List.mem s states && List.mem s' states then
+			Graph.add dyn' s (l, s')
+	in
+	Graph.iter register_transition dyn;
+	dyn'
+;;
+let extract dyn states =
+	let dyn' = Graph.create (List.length states)
+	in
+	let register_transition s (l, s') =
+		if List.mem s states then
+			Graph.add dyn' s (l, s')
+	in
+	Graph.iter register_transition dyn;
+	dyn'
+;;
+
+
