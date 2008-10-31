@@ -26,6 +26,10 @@ let rec list_intersection a = function [] -> []
 let list_remove v = List.filter (fun x -> x <> v)
 ;;
 
+let rec list_replace v v' = function [] -> []
+	| h::q -> (if h = v then v' else h)::list_replace v v' q
+;;
+
 let rec list_sub a = function [] -> a | v::b -> list_sub (list_remove v a) b
 ;;
 

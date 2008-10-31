@@ -117,3 +117,11 @@ let spig_of_k brg spig (d, r, k) =
 let dump_dynamic dyn filename = 
 	Util.dump_to_file filename (Spig.stateg_to_dot dyn);;
 
+let show_decisions decisions = 
+	print_endline "****** decisions *******";
+	print_endline (String.concat "\n" 
+		(List.map Decision.string_of_decision decisions));
+	print_endline "**"
+;;
+
+

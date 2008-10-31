@@ -145,6 +145,33 @@ let dynamic spig states =
 	stateg
 ;;
 
+let decisions spig =
+	let decisions_from_channel = function Delay _ -> []
+		| channel ->
+			let folder (m,l) (e, p') acc =
+				if e = pi_edge_complement channel then 
+					(m,l)::acc
+				else acc
+			in
+			let callers = fold folder spig []
+			in
+			assert (List.length callers = 1);
+			let m, l = List.hd callers
+			in
+			[Decision.L (m,string_of_int l)]
+	in
+	let folder (m,l) (e, (m',l')) acc =
+		if m = m' && l <> l' then
+			let a = (if l > l' then Decision.Dec else Decision.Inc)
+			and i = [Decision.L (m,string_of_int l)]
+			and i' = decisions_from_channel e
+			in
+			Util.list_prepend_if_new (m,i@i',a) acc
+		else acc
+	in
+	fold folder spig [] 
+;;
+
 let stateg_to_dot stateg = Graph.to_dot stateg string_of_state string_of_transition
 ;;
 
