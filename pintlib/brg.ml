@@ -9,8 +9,9 @@ type t = (gene, (threshold * epsilon)) Graph.t
 let create = Graph.create;;
 let add (brg:t) = Graph.add brg;;
 let get (brg:t) = Graph.get brg;;
-let iter f (brg:t) = Graph.iter f brg;;
 let genes (brg:t) = Graph.vertices brg;;
+let iter f (brg:t) = Graph.iter f brg;;
+let fold f (brg:t) = Graph.fold f brg;;
 
 let string_of_edge (t, e) = 
 	string_of_int(t)^","^(match e with Activation -> "+" | Inhibition -> "-")
