@@ -123,5 +123,25 @@ let show_decisions decisions =
 		(List.map Decision.string_of_decision decisions));
 	print_endline "**"
 ;;
+let show_specification (constraints, properties) =
+	print_endline "### SPEC ####";
+	print_endline "-- constraints";
+	print_endline (String.concat "\n"
+		(List.map Decision.string_of_transition constraints));
+	print_endline "-- properties";
+	print_endline (String.concat "\n"
+		(List.map Decision.string_of_transition properties));
+	print_endline "##"
+;;
 
+let state_api_1_to_2 (s:Spig.pi_pname list) =
+	List.map (fun (m,v) -> m,string_of_int v) s
+;;
+let subst_api_1_to_2 ((m,l),(m',l')) =
+	assert (m = m');
+	(m,string_of_int l), if l > l' then Decision.Dec else Decision.Inc
+;;
+let path_api_1_to_2 (init,substs) =
+	(state_api_1_to_2 init), (List.map subst_api_1_to_2 substs)
+;;
 

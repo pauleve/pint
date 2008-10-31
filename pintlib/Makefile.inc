@@ -4,6 +4,7 @@ SOURCES := \
 	graph.ml\
 	decision.ml\
 	dynamic.ml\
+	spec.ml\
 	constraint.ml\
 	valuation.ml\
 	spig.ml\

@@ -95,14 +95,8 @@ let state_match_dyninfo i s =
 ;;
 let d_appliers (m, i, a) = List.filter (state_match_dyninfo i)
 ;;
-let drivers states decisions t =
-	let states = t_appliers t states
-	and decisions = List.filter (fun (m,i,a) -> a = snd t) decisions
-	in
-	List.filter (fun d -> d_appliers d states <> []) decisions
-;;
-let drivers_e decisions ((p,a),s) =
-	List.filter (fun (m,i,a') -> a = a' && state_match_dyninfo i s) decisions
+let drivers_e decisions (((m,l),a),s) =
+	List.filter (fun (m',i,a') -> m = m' && a = a' && state_match_dyninfo i s) decisions
 ;;
 
 (*
@@ -182,7 +176,7 @@ let solve_conflict (m,i,a) pctxs cctxs =
 	decisions_of_sol (List.hd sols)
 ;;
 
-let solve states decisions constraints properties =
+let solve states decisions (constraints,properties) =
 	let extend tl =
 		List.flatten (List.map (t_extend states) tl)
 	in
@@ -209,7 +203,7 @@ let solve states decisions constraints properties =
 	in
 
 	(* 1. filter free properties *)
-	let p_not_free (t, ds) = not (Util.subset cds ds)
+	let p_not_free (t, ds) = Util.subset cds ds
 	in
 	let pdsm = List.filter p_not_free pdsm
 	in
