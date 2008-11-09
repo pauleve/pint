@@ -25,6 +25,8 @@ let cycle = function s1::q -> s1::q @ [s1]
 
 let merge_spec (c,p) (c',p') = c@c', p@p';;
 
+let fold_specs (specs:('a*'b) list)  = List.fold_left merge_spec ([],[]) specs;;
+
 let rec stable dyn = function [] | [_] -> [],[] 
 	| s1::s2::q -> 
 		let next = List.filter (fun s -> s <> s2) (Graph.next_vertices dyn s1)
