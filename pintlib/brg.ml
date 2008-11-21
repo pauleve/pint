@@ -1,5 +1,5 @@
 
-type gene = string
+type gene = Decision.metaproc
 type threshold = int
 type epsilon = Activation | Inhibition
 
