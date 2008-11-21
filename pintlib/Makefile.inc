@@ -11,5 +11,6 @@ SOURCES := \
 	inference.ml\
 	\
 	brg.ml\
+	logical.ml\
 
 # vi:set syntax=make:
