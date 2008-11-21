@@ -95,8 +95,15 @@ let state_match_dyninfo i s =
 ;;
 let d_appliers (m, i, a) = List.filter (state_match_dyninfo i)
 ;;
-let drivers_e decisions (((m,l),a),s) =
-	List.filter (fun (m',i,a') -> m = m' && a = a' && state_match_dyninfo i s) decisions
+let driver decisions (((m,l),a),s) =
+	List.filter (fun (m',i,a') -> 
+		m = m' && a = a' && state_match_dyninfo i s
+	) decisions
+;;
+let wdriver decisions (((m,l),a),s) =
+	List.filter (fun (m',i,a') -> 
+		not(m = m' && a = a') && state_match_dyninfo i s
+	) decisions
 ;;
 
 let involved_metaproc_dyninfo =
@@ -119,7 +126,7 @@ let involved_procs_dyninfo =
  * decision
  *)
 let string_of_decision (m, i, a) =
-	"\\delta_{"^m^"}("^(string_of_dyninfo i)^")"^string_of_action a
+	"\\delta_{"^m^"}^"^(string_of_action a)^"("^(string_of_dyninfo i)^")"
 ;;
 
 let select metaproc = List.filter (fun (m,_,_) -> m = metaproc)
@@ -207,7 +214,7 @@ let rec free_transition (m,i,a) (t,s) constraints =
 let solve states decisions (constraints,properties) =
 	let rec free_properties decisions constraints cds = function
 		  [] -> decisions
-		| t::q -> let ds = drivers_e decisions t in
+		| t::q -> let ds = driver decisions t in
 			if Util.subset cds ds then
 				let d = List.hd ds
 				in
@@ -224,7 +231,7 @@ let solve states decisions (constraints,properties) =
 	and properties = extend properties
 	in
 	let cds = Util.list_uniq (List.flatten (List.map
-		(fun t -> drivers_e decisions t) constraints))
+		(fun t -> driver decisions t) constraints))
 	in
 
 	let decisions = free_properties decisions constraints cds properties
