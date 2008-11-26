@@ -145,3 +145,17 @@ let path_api_1_to_2 (init,substs) =
 	(state_api_1_to_2 init), (List.map subst_api_1_to_2 substs)
 ;;
 
+let show_path_rate r =
+	print_endline (Decision.Polynome.to_string r)
+;;
+
+let show_path_rates_mapped decisions rs =
+	let map = Decision.map_decisions decisions
+	in
+	List.iter (fun (d,x) -> print_endline 
+					("# "^x^" <- "^Decision.string_of_decision d))
+			map;
+	List.iter (fun r -> print_endline (Decision.Polynome.to_mapped_string map r))
+			rs
+;;
+

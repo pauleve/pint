@@ -84,6 +84,29 @@ let string_of_dyninfo i =
 	in
 	String.concat ";" (List.map string_of_bit i)
 ;;
+
+let dyninfo_compare =
+	let proc_compare (m1,l1) (m2,l2) =
+		let dm = compare m1 m2
+		in
+		if dm <> 0 then dm else compare l1 l2
+	in
+	let rec bit_compare b1 b2 = match b1,b2 with
+		  L p, Neg b -> 1
+		| Neg b, L p -> -1
+		| L p, L p' -> proc_compare p p'
+		| Neg b, Neg b' -> bit_compare b b'
+	in
+	let rec list_compare l1 l2 = match l1,l2 with
+		  [],[] -> 0 | [],_ -> -1 | _,[] -> 1
+		| h::q, h'::q' ->
+			let dh = bit_compare h h'
+			in
+			if dh <> 0 then dh else list_compare q q'
+	in
+	list_compare
+;;
+
 let state_match_dyninfo i s =
 	let rec match_bit = function
 		  L p -> List.mem p s
@@ -127,6 +150,25 @@ let involved_procs_dyninfo =
  *)
 let string_of_decision (m, i, a) =
 	"\\delta_{"^m^"}^"^(string_of_action a)^"("^(string_of_dyninfo i)^")"
+;;
+
+let action_compare a1 a2 =
+	let int_of_action = function
+		Dec -> -1 | Dis -> 0 | Inc -> 1
+	in
+	(int_of_action a1) - (int_of_action a2)
+;;
+
+let decision_compare (m1,i1,a1) (m2,i2,a2) =
+	let dm = compare m1 m2
+	in
+	if dm <> 0 then dm
+	else (
+		let di = dyninfo_compare i1 i2
+		in
+		if di <> 0 then di
+		else action_compare a1 a2
+	)
 ;;
 
 let select metaproc = List.filter (fun (m,_,_) -> m = metaproc)
@@ -238,4 +280,48 @@ let solve states decisions (constraints,properties) =
 	in
 	Util.list_sub decisions cds
 ;;
+
+
+module Polynome = Polynome.Make
+	(struct 
+		type t = decision
+		let compare = decision_compare
+		let to_string = string_of_decision
+	end)
+;;
+
+let path_rate decisions (rf,ro) state substs =
+	assert (rf <= ro);
+	let rec make_eq state = function [] -> []
+		| subst::q ->
+			let dok, dko = driver decisions (subst,state), wdriver decisions (subst,state)
+			in
+			let r = if List.length dko > 0 then [(dok,dok@dko)] else []
+			in
+			r @ make_eq (apply_substitution state subst) q
+	in
+	Polynome.init (make_eq state substs) (Num.div_num (Num.Int rf) (Num.Int ro))
+;;
+
+let map_decisions decisions =
+	let rec string_from_i i =
+		"x("^(string_of_int i)^")"
+		(*
+		let di = i / 27
+		and ri = i mod 27
+		in
+		(if di > 0 then string_from_i (di-1) else "")
+		^Char.escaped (char_of_int (97+ri))
+		*)
+	in
+	let folder (map,i) decision =
+		let varname = string_from_i i
+		(*in
+		let varname = if String.length varname > 1 then "<"^varname^">" else varname*)
+		in
+		(decision, varname)::map, i+1
+	in
+	fst (List.fold_left folder ([],1) decisions)
+;;
+
 
