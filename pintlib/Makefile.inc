@@ -2,6 +2,7 @@
 SOURCES := \
 	util.ml\
 	graph.ml\
+	polynome.ml\
 	decision.ml\
 	dynamic.ml\
 	spec.ml\
@@ -12,7 +13,6 @@ SOURCES := \
 	\
 	brg.ml\
 	logical.ml\
-	polynome.ml\
 
 LIBS := nums
 
