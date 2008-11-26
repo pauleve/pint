@@ -33,7 +33,12 @@ let rec list_replace v v' = function [] -> []
 let rec list_sub a = function [] -> a | v::b -> list_sub (list_remove v a) b
 ;;
 
-let list_separate pred l = List.filter pred l, List.filter (fun x -> not (pred x)) l
+let list_separate pred =
+	let folder (sideA, sideB) item =
+		if pred item then item::sideA, sideB
+		else sideA, item::sideB
+	in
+	List.fold_left folder ([], [])
 ;;
 
 let rec subset l = function [] -> true
@@ -46,5 +51,12 @@ let dump_to_file filename content =
 	let fd = open_out filename in
 	output_string fd content;
 	close_out fd
+;;
+
+let rec count_elements = function [] -> []
+	| h::q ->
+		let hs, q = list_separate (fun h' -> h = h') q
+		in
+		(h, 1+List.length hs)::count_elements q
 ;;
 
