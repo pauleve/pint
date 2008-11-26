@@ -2,6 +2,7 @@ all: top
 include Makefile.common
 SOURCES = $(PINTLIB_SOURCES)\
 	ui.ml
+LIBS = $(PINTLIB_LIBS)
 RESULT = pint
 include OCamlMakefile
 # vi:set syntax=make:

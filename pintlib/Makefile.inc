@@ -12,5 +12,8 @@ SOURCES := \
 	\
 	brg.ml\
 	logical.ml\
+	polynome.ml\
+
+LIBS := nums
 
 # vi:set syntax=make:
