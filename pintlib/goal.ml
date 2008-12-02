@@ -180,7 +180,7 @@ let string_of_state state =
 	"("^(String.concat "," (List.map (fun (m,l) -> m^string_of_int l) state))^")"
 ;;
 let responsible_rules =
-let rec responsible_rules known mdom mrules goal (init:state) (goal':state) =
+let rec responsible_rules known (mdom:Domain.t StringMap.t) mrules goal (init:state) (goal':state) =
 	let pstate_if_match (m,l',a) state =
 		let pstate = (m,l')::List.remove_assoc m state
 		in
