@@ -42,8 +42,11 @@ end
 
 type metaproc = string
 type action = Inc | Dec
-type rule = (int * action) * Domain.t StringMap.t list
 type state = (metaproc * int) list
+
+type reachability = Reach of state | NotReach of state
+type implication = Domain.t StringMap.t * reachability
+
 ;;
 
 module RuleMap = Map.Make(struct type t = metaproc*int*action
