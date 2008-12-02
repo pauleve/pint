@@ -13,6 +13,7 @@ SOURCES := \
 	\
 	brg.ml\
 	logical.ml\
+	goal.ml\
 
 LIBS := nums
 

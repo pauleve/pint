@@ -306,18 +306,9 @@ let path_rate decisions (rf,ro) state substs =
 let map_decisions decisions =
 	let rec string_from_i i =
 		"x("^(string_of_int i)^")"
-		(*
-		let di = i / 27
-		and ri = i mod 27
-		in
-		(if di > 0 then string_from_i (di-1) else "")
-		^Char.escaped (char_of_int (97+ri))
-		*)
 	in
 	let folder (map,i) decision =
 		let varname = string_from_i i
-		(*in
-		let varname = if String.length varname > 1 then "<"^varname^">" else varname*)
 		in
 		(decision, varname)::map, i+1
 	in
