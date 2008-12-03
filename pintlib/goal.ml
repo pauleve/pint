@@ -149,7 +149,7 @@ let mvar_is_useless mvar =
 				try
 					let dom' = SMap.find var mvar
 					in
-					Domain.subset dom dom'
+					Domain.subset dom' dom
 				with Not_found -> false
 			else false
 		in
@@ -409,7 +409,7 @@ let implications_saturate_1 mdom mimpl =
 		in
 		let mimpl = List.fold_left (folder true) mimpl (Util.range 2 max_l)
 		in
-		List.fold_left (folder false) mimpl (Util.range 0 (max_l-2))
+		List.fold_left (folder false) mimpl (Util.rrange 0 (max_l-2))
 		)
 	in
 	List.fold_left saturate mimpl (smap_keys mdom)
@@ -475,12 +475,7 @@ let implications_for_single_context mdom mrules mimpl dest context =
 		if not (SMap.is_empty md_ok) then
 			let md_ok = mdom_add_value m l md_ok
 			in
-			let mvars = md_ok::try ImplyMap.find (true,dest) mimpl
-				with Not_found -> []
-			in
-			let mvars = Util.list_uniq mvars
-			in
-			ImplyMap.add (true,dest) mvars mimpl
+			implications_add (true,dest) [md_ok] mimpl
 		else
 			mimpl
 	in
