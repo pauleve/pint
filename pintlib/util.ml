@@ -45,7 +45,8 @@ let rec subset l = function [] -> true
 	| h::q -> (List.mem h l) && subset l q
 ;;
 
-let rec range a b = if a <= b then b::range a (b-1) else [];;
+let rec rrange a b = if a <= b then b::rrange a (b-1) else [];;
+let rec range a b = if a <= b then a::range (a+1) b else [];;
 
 let dump_to_file filename content = 
 	let fd = open_out filename in

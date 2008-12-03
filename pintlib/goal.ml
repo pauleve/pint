@@ -52,6 +52,18 @@ struct
 	let subset (ml',v') (ml,v) = match v',v with
 		  Empty,_ | _,Full -> true | Full,_ | _,Empty -> false
 		| S s', S s -> IntSet.subset s' s
+	
+	let cardinal (ml,v) = match v with
+		  Empty -> 0
+		| Full -> ml+1
+		| S s -> IntSet.cardinal s
+
+	let is_empty (ml,v) = v = Empty
+
+	let inter (ml',v') (ml,v) = assert (ml=ml'); ml, match v,v' with
+		  Empty,_ | _,Empty -> Empty
+		| Full,x | x,Full -> x
+		| S s,S s' -> S (IntSet.inter s s')
 
 end
 ;;
@@ -85,6 +97,8 @@ struct
 		else SMap.compare compare s s'
 end)
 ;;
+
+exception Not_satisfied;;
 
 let string_of_state state = 
 	let folder m l sl =
@@ -252,18 +266,6 @@ let merge_rules r1 r2 =
 
 
 
-exception Not_satisfied;;
-
-let implications_from_rules mdom mrules =
-	let folder (m,l,a) mvars impl =
-		let mvars = List.map (fun mvar -> 
-				SMap.add m (Domain.one l (SMap.find m mdom)) mvar) mvars
-		and state = SMap.add m (match a with Inc -> l+1 | Dec -> l-1) SMap.empty
-		in
-		ImplyMap.add (true,state) (mvars@try ImplyMap.find (true,state) impl with Not_found->[]) impl
-	in
-	RuleMap.fold folder mrules ImplyMap.empty
-;;
 
 let rec filter_valuation_mvars valuation = function [] -> []
 	| mvar::q ->
@@ -306,6 +308,185 @@ let satisfy_reach reach mimpl dest orig =
 	with Not_found -> false
 ;;
 
+let state_predecessors mdom mrules state =
+	let pstate_if_match (m,l',a) state =
+		let pstate = SMap.add m l' state
+		in
+		if match_rule (m,l',a) pstate mrules
+		then [pstate,(m,l',a)] else []
+	in
+	let folder m l preds =
+		preds @ 
+		(if l > 0 then pstate_if_match (m,l-1,Inc) state else []) @
+		if l < fst (SMap.find m mdom) then pstate_if_match (m,l+1,Dec) state else []
+	in
+	SMap.fold folder state []
+;;
+
+let filter_mvars state mvars =
+	let folder mvars mvar =
+		let folder m l mvar =
+			try
+				let dom = SMap.find m mvar
+				in
+				if Domain.mem l dom then
+					let dom = Domain.one l dom
+					in
+					SMap.add m dom mvar
+				else raise Not_satisfied
+			with Not_found -> raise Not_satisfied
+		in
+		try
+			let mvar = SMap.fold folder state mvar
+			in
+			mvar::mvars
+		with Not_satisfied -> mvars
+	in
+	List.fold_left folder [] mvars
+;;
+
+let implications_add k lv' mimpl =
+	let lv = try ImplyMap.find k mimpl with Not_found -> []
+	in
+	ImplyMap.add k (simplify_mvars (lv@lv')) mimpl
+;;
+
+let mvar_replace_proc_by_mvar (m,l) mv mvar =
+	(* 1. remove (m,l) from mvar, check it *)
+	let mvar = try
+		let dom = SMap.find m mvar
+		in
+		if Domain.cardinal dom = 1 && Domain.mem l dom then
+			SMap.remove m mvar
+		else raise Not_satisfied
+	with Not_found -> raise Not_satisfied
+	in
+
+	(* 2. conjonction with mv, check for empty domains *)
+	let folder m dom mvar =
+		let dom = try
+				let dom = Domain.inter (SMap.find m mvar) dom
+				in
+				if Domain.is_empty dom then raise Not_satisfied
+				else dom
+			with Not_found -> dom
+		in
+		SMap.add m dom mvar
+	in
+	SMap.fold folder mv mvar
+;;
+
+let implications_saturate_1 mdom mimpl =
+	let saturate mimpl m =
+		let max_l = fst (SMap.find m mdom)
+		in
+		if max_l < 2 then mimpl else (
+		let folder incr mimpl l =
+			let l1 = if incr then l-1 else l+1
+			in
+			let v1 = SMap.add m l1 SMap.empty
+			and v2 = SMap.add m l SMap.empty
+			in
+			let c1 = filter_mvars v1 (ImplyMap.find (true,v2) mimpl)
+			in
+			let folder mimpl l0 =
+				let c0 = filter_mvars (SMap.add m l0 SMap.empty) 
+					(ImplyMap.find (true,v1) mimpl)
+				in
+				let folder mimpl = function
+					[c;c'] -> (try
+							let c = mvar_replace_proc_by_mvar (m,l1) c' c
+							in
+							implications_add (true,v2) [c] mimpl
+						with Not_satisfied -> mimpl)
+					| _ -> raise (Invalid_argument "saturate1/folder")
+				in
+				List.fold_left folder mimpl (Util.cross_list [c0;c1])
+			in
+			let r = if incr then Util.range 0 (l-2) else Util.range 2 max_l
+			in
+			List.fold_left folder mimpl r
+		in
+		let mimpl = List.fold_left (folder true) mimpl (Util.range 2 max_l)
+		in
+		List.fold_left (folder false) mimpl (Util.range 0 (max_l-2))
+		)
+	in
+	List.fold_left saturate mimpl (smap_keys mdom)
+;;
+
+let implications_from_rules mdom mrules =
+	let folder (m,l,a) mvars impl =
+		let mvars = List.map (fun mvar -> 
+				SMap.add m (Domain.one l (SMap.find m mdom)) mvar) mvars
+		and state = SMap.add m (match a with Inc -> l+1 | Dec -> l-1) SMap.empty
+		in
+		ImplyMap.add (true,state) (mvars@try ImplyMap.find (true,state) impl with Not_found->[]) impl
+	in
+	let mimpl = RuleMap.fold folder mrules ImplyMap.empty
+	in
+	implications_saturate_1 mdom mimpl
+;;
+
+let implications_for_single_context mdom mrules mimpl dest context =
+	let mdom_add_value m l md =
+		let curdom = try SMap.find m md
+			with Not_found -> Domain.empty (fst (SMap.find m mdom))
+		in
+		let curdom = Domain.add l curdom
+		in
+		SMap.add m curdom md
+	in
+	let r1 ctx m l (md_ok,l_conds) = (* reach (m,l) from any (m,l') *)
+		let r1' ctx =
+			let conds = try ImplyMap.find (true, (SMap.add m l SMap.empty)) mimpl
+				with Not_found -> []
+			in
+			let conds = simplify_mvars (filter_valuation_mvars ctx conds)
+			in
+			match conds with
+				  [] -> false, []
+				| h::t ->
+					if SMap.is_empty h then true, []
+					else true, h::t
+		in
+		let folder (md_ok,l_conds) l' =
+			if l = l' then
+				mdom_add_value m l md_ok, l_conds
+			else
+				match r1' (SMap.add m l' ctx) with
+					  false, _ -> md_ok, l_conds
+					| true, [] -> mdom_add_value m l' md_ok, l_conds
+					| true, conds -> md_ok, (m,(l',conds))::l_conds
+		in
+		let m_dom = SMap.find m mdom
+		in
+		List.fold_left folder (md_ok,l_conds) (Domain.elements m_dom)
+	in
+	let fold_common m l mimpl =
+		let ms = Util.list_remove m (smap_keys dest)
+		and ctx = SMap.add m l SMap.empty
+		in
+		let folder (md_ok,l_conds) m = 
+			r1 ctx m (SMap.find m dest) (md_ok,l_conds)
+		in
+		let md_ok,l_conds = List.fold_left folder (SMap.empty,[]) ms
+		in
+		if not (SMap.is_empty md_ok) then
+			let md_ok = mdom_add_value m l md_ok
+			in
+			let mvars = md_ok::try ImplyMap.find (true,dest) mimpl
+				with Not_found -> []
+			in
+			let mvars = Util.list_uniq mvars
+			in
+			ImplyMap.add (true,dest) mvars mimpl
+		else
+			mimpl
+	in
+	SMap.fold fold_common context mimpl
+;;
+
 let check_reachability mdom mrules mimpl dest orig =
 	print_endline ("check_reachability of "^(string_of_state dest)^" from "^string_of_state orig);
 	if satisfy_reach true mimpl dest orig then (
@@ -315,66 +496,13 @@ let check_reachability mdom mrules mimpl dest orig =
 		print_endline ("-- found an implication saying no!");
 		mimpl, false
 	) else (
+	(*
 	let common = smap_intersection dest orig
 	in
 	print_endline ("- common parts = "^string_of_state common);
-	let mdom_add_value m l md =
-		let curdom = try SMap.find m md
-			with Not_found -> Domain.empty (fst (SMap.find m mdom))
-		in
-		let curdom = Domain.add l curdom
-		in
-		SMap.add m curdom md
-	in
 	if not (SMap.is_empty common) then (
-		let r1 ctx m l (md_ok,l_conds) = (* reach (m,l) from any (m,l') *)
-			let r1' ctx =
-				let conds = try ImplyMap.find (true, (SMap.add m l SMap.empty)) mimpl
-					with Not_found -> []
-				in
-				let conds = simplify_mvars (filter_valuation_mvars ctx conds)
-				in
-				match conds with
-					  [] -> false, []
-					| h::t ->
-						if SMap.is_empty h then true, []
-						else true, h::t
-			in
-			let folder (md_ok,l_conds) l' =
-				if l = l' then
-					mdom_add_value m l md_ok, l_conds
-				else
-					match r1' (SMap.add m l' ctx) with
-						  false, _ -> md_ok, l_conds
-						| true, [] -> mdom_add_value m l' md_ok, l_conds
-						| true, conds -> md_ok, (m,(l',conds))::l_conds
-			in
-			let m_dom = SMap.find m mdom
-			in
-			List.fold_left folder (md_ok,l_conds) (Domain.elements m_dom)
-		in
-		let fold_common m l mimpl =
-			let ms = Util.list_remove m (smap_keys dest)
-			and ctx = SMap.add m l SMap.empty
-			in
-			let folder (md_ok,l_conds) m = 
-				r1 ctx m (SMap.find m dest) (md_ok,l_conds)
-			in
-			let md_ok,l_conds = List.fold_left folder (SMap.empty,[]) ms
-			in
-			if not (SMap.is_empty md_ok) then
-				let md_ok = mdom_add_value m l md_ok
-				in
-				let mvars = md_ok::try ImplyMap.find (true,dest) mimpl
-					with Not_found -> []
-				in
-				let mvars = Util.list_uniq mvars
-				in
-				ImplyMap.add (true,dest) mvars mimpl
-			else
-				mimpl
-		in
-		let mimpl = SMap.fold fold_common common mimpl
+	*)
+		let mimpl = implications_for_single_context mdom mrules mimpl dest dest
 		in
 		if satisfy_reach true mimpl dest orig then (
 			print_endline ("-- found an implication saying yes!");
@@ -386,30 +514,16 @@ let check_reachability mdom mrules mimpl dest orig =
 			print_endline ("!! found no implication... giving up.");
 			mimpl, false
 		)
+		(*
 	) else failwith "not implemented: check_reachability without commmon parts"
+	*)
 	)
 ;;
 
 let responsible_rules =
 let rec responsible_rules known mdom mrules impl goal (init:state) goal' =
-	let pstate_if_match (m,l',a) state =
-		let pstate = SMap.add m l' state
-		in
-		if match_rule (m,l',a) pstate mrules
-		then [pstate,(m,l',a)] else []
+	let preds = state_predecessors mdom mrules goal
 	in
-	let folder m l preds =
-		preds @ 
-		(if l > 0 then pstate_if_match (m,l-1,Inc) goal else []) @
-		if l < fst (SMap.find m mdom) then pstate_if_match (m,l+1,Dec) goal else []
-	in
-	let preds = SMap.fold folder goal []
-	in
-	(** DEBUG **)
-	print_endline "==== preds are : ";
-	List.iter (fun (state,_) -> print_endline (string_of_state state)) preds;
-	(** END DEBUG **)
-
 	let folder (impl,reach,nreach) (pred,rk) =
 		let impl, doesreach = check_reachability mdom mrules impl goal' pred
 		in
