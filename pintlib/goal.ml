@@ -64,6 +64,17 @@ struct
 		  Empty,_ | _,Empty -> Empty
 		| Full,x | x,Full -> x
 		| S s,S s' -> S (IntSet.inter s s')
+	
+	let union (ml',v') (ml,v) = assert (ml=ml'); ml, match v,v' with
+		  Empty,x | x,Empty -> x
+		| Full,_ | _,Full -> Full
+		| S s,S s' -> let set = IntSet.union s s' in
+			if IntSet.cardinal set = ml+1 then Full else S set
+
+	let equal (ml',v') (ml,v) = ml = ml' && (match v,v' with
+		  Empty,Empty | Full,Full -> true
+		| S s,S s' -> s = s'
+		| _ -> false)
 
 end
 ;;
@@ -169,8 +180,50 @@ let simplify_mvars mvars =
 	List.fold_left folder [] (Util.list_uniq mvars)
 ;;
 
-let simplify_rules mrules =
-	RuleMap.map simplify_mvars mrules
+let rec factorize_mvars mvars =
+	print_endline ("### factorize "^string_of_dismvars mvars);		
+	let folder (known,fmvars) mvar =
+		if List.mem mvar known then known,fmvars else (
+		let f_by_var var dom (known,fmvars) =
+			let rvar = SMap.remove var mvar
+			in
+			let matching_mvar mvar' =
+				if SMap.mem var mvar' then
+					SMap.equal Domain.equal (SMap.remove var mvar') rvar
+				else false
+			in
+			let matching = List.filter matching_mvar mvars
+			in
+			let folder mvar mvar' =
+				let dom, dom' = SMap.find var mvar, SMap.find var mvar'
+				in
+				SMap.add var (Domain.union dom' dom) mvar
+			in
+			print_endline ("    "^(string_of_dismvars matching)^" are matching "^
+				var^","^string_of_mvar rvar);
+			match matching with 
+				  [] | [_] -> known, fmvars
+				| _ -> let nvar = List.fold_left folder mvar matching
+					in
+					print_endline ("      -> "^string_of_mvar nvar);
+					known@matching, nvar::fmvars
+		in
+		SMap.fold f_by_var mvar (known,fmvars))
+	in
+	let known,fmvars = List.fold_left folder ([],[]) mvars
+	in
+	match fmvars with [] -> print_endline "*** factorize empty"; mvars
+		| _ -> 
+			let mvars' = fmvars@Util.list_sub mvars known
+			in
+			print_endline ("*** factorize "^(string_of_dismvars mvars)^" : "^string_of_dismvars mvars');		
+			factorize_mvars mvars'
+;;
+let implications_factorize =
+	ImplyMap.map factorize_mvars
+;;
+let simplify_rules =
+	RuleMap.map simplify_mvars 
 ;;
 
 let rules_of_decision mdom (m,i,a) =
@@ -351,6 +404,23 @@ let implications_add k lv' mimpl =
 	ImplyMap.add k (simplify_mvars (lv@lv')) mimpl
 ;;
 
+let union_mvar mvar mvar' =
+	let folder var dom mvar =
+		try
+			let dom' = SMap.find var mvar
+			in
+			SMap.add var (Domain.union dom dom') mvar
+		with Not_found -> SMap.add var dom mvar
+	in
+	SMap.fold folder mvar' mvar
+;;
+let mvar_add_proc_level mdom (m,l) mvar =
+	try
+		SMap.add m (Domain.add l (SMap.find m mvar)) mvar
+	with Not_found ->
+		SMap.add m (Domain.one l (SMap.find m mdom)) mvar
+;;
+
 let mvar_replace_proc_by_mvar (m,l) mv mvar =
 	(* 1. remove (m,l) from mvar, check it *)
 	let mvar = try
@@ -425,8 +495,11 @@ let implications_from_rules mdom mrules =
 	in
 	let mimpl = RuleMap.fold folder mrules ImplyMap.empty
 	in
-	implications_saturate_1 mdom mimpl
+	let mimpl = implications_saturate_1 mdom mimpl
+	in
+	implications_factorize mimpl
 ;;
+
 
 let implications_for_single_context mdom mrules mimpl dest context =
 	let mdom_add_value m l md =
@@ -464,6 +537,7 @@ let implications_for_single_context mdom mrules mimpl dest context =
 		List.fold_left folder (md_ok,l_conds) (Domain.elements m_dom)
 	in
 	let fold_common m l mimpl =
+		if SMap.find m dest <> l then mimpl else (
 		let ms = Util.list_remove m (smap_keys dest)
 		and ctx = SMap.add m l SMap.empty
 		in
@@ -475,9 +549,31 @@ let implications_for_single_context mdom mrules mimpl dest context =
 		if not (SMap.is_empty md_ok) then
 			let md_ok = mdom_add_value m l md_ok
 			in
-			implications_add (true,dest) [md_ok] mimpl
+			let satisfy_mvar var dom res =
+				res && (try
+						let dom' = SMap.find var md_ok
+						in
+						Domain.subset dom' dom
+					with Not_found -> false)
+			in
+			let satisfy_lconds res (m,(l,conds)) =
+				let satisfy_one res mvar =
+					res || SMap.fold satisfy_mvar mvar true
+				in
+				let satisfied = List.fold_left satisfy_one false conds
+				in
+				if satisfied then
+					(mvar_add_proc_level mdom (m,l) md_ok)::res
+				else
+					res
+			in
+			let mvars = List.fold_left satisfy_lconds [] l_conds
+			in
+			let mvars = match mvars with [] -> [md_ok] | _ -> mvars
+			in
+			implications_add (true,dest) mvars mimpl
 		else
-			mimpl
+			mimpl)
 	in
 	SMap.fold fold_common context mimpl
 ;;
@@ -497,7 +593,7 @@ let check_reachability mdom mrules mimpl dest orig =
 	print_endline ("- common parts = "^string_of_state common);
 	if not (SMap.is_empty common) then (
 	*)
-		let mimpl = implications_for_single_context mdom mrules mimpl dest dest
+		let mimpl = implications_for_single_context mdom mrules mimpl dest orig
 		in
 		if satisfy_reach true mimpl dest orig then (
 			print_endline ("-- found an implication saying yes!");
@@ -517,6 +613,10 @@ let check_reachability mdom mrules mimpl dest orig =
 
 let responsible_rules =
 let rec responsible_rules known mdom mrules impl goal (init:state) goal' =
+
+	let impl = implications_for_single_context mdom mrules impl goal' goal'
+	in
+
 	let preds = state_predecessors mdom mrules goal
 	in
 	let folder (impl,reach,nreach) (pred,rk) =
