@@ -741,3 +741,53 @@ in
 responsible_rules []
 ;;
 
+(*
+ * VERSION COLORIAGE DE GRAPHE
+ *)
+module StateMap = Map.Make(
+struct
+	type t = state
+	let compare = SMap.compare compare
+end
+);;
+
+let color_reachability mdom mrules goal mcolor =
+	let rec color_reachability known state mcolor =
+		if List.mem state known then known,mcolor
+		else (
+			let mcolor = StateMap.add state true mcolor
+			in
+			let preds = state_predecessors mdom mrules state
+			in
+			let folder (known,mcolor) (pred,rk) =
+				color_reachability known pred mcolor
+			in
+			List.fold_left folder (state::known, mcolor) preds
+		)
+	in
+	snd (color_reachability [] goal mcolor)
+;;
+
+let responsible_rules_by_graph mdom mrules goal goal' =
+	let mcolor = color_reachability mdom mrules goal' StateMap.empty
+	in
+	let rec responsible_rules known state rules =
+		if List.mem state known then known,rules
+		else (
+			let preds = state_predecessors mdom mrules state
+			in
+			let folder (known,rules) (pred,rk) =
+				if StateMap.mem pred mcolor then
+					let rules = merge_rules rules (matching_rules rk pred mrules)
+					in
+					known, rules
+				else
+					responsible_rules known pred rules
+			in
+			List.fold_left folder (state::known,rules) preds
+		)
+	in
+	snd (responsible_rules [] goal RuleMap.empty)
+;;
+
+
