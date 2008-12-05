@@ -25,7 +25,7 @@ let append_smap k vl smap =
 	SMap.add k (vl::vl') smap
 ;;
 
-let body_of_rules mrules =
+let body_of_rules mrules init =
 
 	(* group by metaproc/level *)
 	let folder (m,l,a) conds mproc =
@@ -178,6 +178,60 @@ let body_of_rules mrules =
 	let sichans = String.concat "\n" (List.map string_of_def_ichan ichans)
 	and sdefs = SMap.fold folder mspim []
 	in
-	(dchans, (sichans^"\n\tlet\n"^String.concat "\n\tand\n" sdefs))
+	(* by default set all rates to 1. *)
+	let dchans = List.map (fun chan -> chan,1.) dchans
+	in
+
+	(* initial run *)
+	let folder m l species =
+		proc_of_ml m l::species
+	in
+	let species = SMap.fold folder init []
+	in
+	let obs_state species ps =
+		let ps' = List.map (fun p -> (if List.mem p species then "" else "_")^p) ps
+		in
+		string_of_controller ps'
+	in
+	let species = species @ (List.map (obs_state species) obs)
+	in
+	let srun = "run ("^(String.concat " | " (List.map (fun p -> p^"()") species))^")"
+	in
+
+
+	dchans,
+	sichans^"\n\n"^
+	"\tlet\n"^(String.concat "\n\tand\n" sdefs)^"\n\n"^
+	srun^"\n"
 ;;
+
+let string_of_rate rate = 
+	let s = string_of_float rate
+	in
+	s ^ if s.[String.length s - 1] = '.' then "0" else ""
+;;
+
+let string_of_dchans dchans =
+	let string_of_dchan (chan, rate) =
+		match chan with
+			  Delay s -> "val "^s^" = "^string_of_rate rate
+			| Channel s -> "new "^s^"@"^(string_of_rate rate)^":chan"
+	in
+	String.concat "\n" (List.map string_of_dchan dchans)
+;;
+
+let species_of_mdom mdom = 
+	let folder m dom species =
+		species @ List.map (fun l -> m^(string_of_int l)^"()")
+					(Domain.elements dom)
+	in
+	SMap.fold folder mdom []
+;;
+
+let full_source dchans body toplot headers =
+	String.concat "\n" headers^"\n"^
+	"directive plot "^(String.concat ";" toplot)^"\n\n"^
+	(string_of_dchans dchans)^"\n\n"^body
+;;
+
 
