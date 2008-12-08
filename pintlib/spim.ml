@@ -180,7 +180,26 @@ let body_of_rules mrules init =
 		| _ -> failwith "delays cannot be internals"
 	in
 	let string_of_choice (actions,p) =
-		(String.concat ";" (List.map string_of_action actions))^";"^p^"()"
+		let string_of_actions actions = 
+			String.concat ";" (List.map string_of_action actions)
+		in
+		(* try to split call and take *)
+		let folder (call,take) action =
+			match action with
+				  Call _ -> assert (take = []);
+					action::call, take
+				| Take _ -> call, action::take
+		in
+		let calls,takes = List.fold_left folder ([],[]) actions
+		in
+		match calls with
+			  [] -> string_of_actions takes^";"^p^"()"
+			| _ -> 
+				let p = if List.length takes > 0 then
+							"("^(string_of_actions takes)^"|"^p^"())"
+						else (p^"()")
+				in
+				string_of_actions calls^";"^p
 	in
 	let folder p choices sl =
 		let s = p^"() = "^
