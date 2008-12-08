@@ -25,8 +25,7 @@ let append_smap k vl smap =
 	SMap.add k (vl::vl') smap
 ;;
 
-let body_of_rules mrules init =
-
+let decisions_of_rules mrules =
 	(* group by metaproc/level *)
 	let folder (m,l,a) conds mproc =
 		let l' = match a with Goal.Inc -> l+1 | Goal.Dec -> l-1
@@ -40,18 +39,36 @@ let body_of_rules mrules init =
 		in
 		SMap.add p (choices'@choices) mproc
 	in
-	let mdecs = RuleMap.fold folder mrules SMap.empty
+	RuleMap.fold folder mrules SMap.empty
+;;
+let ps_of_cond cond =
+	let folder m dom ps =
+		let levels = Domain.elements dom
+		in assert (List.length levels = 1);
+		(proc_of_ml m (List.hd levels))::ps
 	in
+	SMap.fold folder cond []
+;;
 
-	(* build actions from decisions *)
-	let ps_of_cond cond =
-		let folder m dom ps =
-			let levels = Domain.elements dom
-			in assert (List.length levels = 1);
-			(proc_of_ml m (List.hd levels))::ps
-		in
-		SMap.fold folder cond []
+let channels_of_rules mrules =
+	let mdecs = decisions_of_rules mrules
 	in
+	let channels p chans (cond,p') =
+		match ps_of_cond cond with
+			  [] -> Delay (p^p')::chans
+			| ps -> Channel ((String.concat "" ps)^p^p')::chans
+	in
+	let folder p choices chans =
+		List.fold_left (channels p) chans choices
+	in
+	SMap.fold folder mdecs []
+;;
+
+let body_of_rules mrules init =
+
+	let mdecs = decisions_of_rules mrules
+	in
+	(* build actions from decisions *)
 	let string_of_controller ps =
 		let term q = if q.[0] = '_' then String.sub q 1 (String.length q - 1)
 			else q
@@ -203,6 +220,13 @@ let body_of_rules mrules init =
 	sichans^"\n\n"^
 	"\tlet\n"^(String.concat "\n\tand\n" sdefs)^"\n\n"^
 	srun^"\n"
+;;
+
+let update_channels_rate rate channels =
+	let replace (c,r) =
+		if List.mem c channels then (c,rate) else (c,r)
+	in
+	List.map replace
 ;;
 
 let string_of_rate rate = 
