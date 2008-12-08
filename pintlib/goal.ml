@@ -137,7 +137,7 @@ let string_of_dismvars mvars = String.concat " OR " (List.map
 ;;
 let string_of_rule (m,l,a) mvars =
 	m^(string_of_int l) ^
-	(match a with Inc -> "+" | Dec -> "-") ^ " => " ^
+	(match a with Inc -> "+" | Dec -> "-") ^ " <= " ^
 	string_of_dismvars mvars
 ;;
 let string_of_rules mrules =
