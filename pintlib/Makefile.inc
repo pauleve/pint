@@ -1,6 +1,7 @@
 
 SOURCES := \
 	util.ml\
+	types.ml\
 	graph.ml\
 	polynome.ml\
 	decision.ml\
