@@ -1,5 +1,6 @@
 
 open Goal;;
+open Types;;
 
 type proc = string
 type chan = Delay of string | Channel of string
@@ -28,7 +29,7 @@ let append_smap k vl smap =
 let decisions_of_rules mrules =
 	(* group by metaproc/level *)
 	let folder (m,l,a) conds mproc =
-		let l' = match a with Goal.Inc -> l+1 | Goal.Dec -> l-1
+		let l' = match a with Inc -> l+1 | Dec -> l-1
 		in
 		let p = proc_of_ml m l
 		and p' = proc_of_ml m l'

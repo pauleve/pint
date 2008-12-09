@@ -1,123 +1,5 @@
 
-module ISet = Set.Make(struct type t = int let compare = compare end);;
-module SMap = Map.Make(struct type t = string let compare = compare end);;
-module IMap = Map.Make(struct type t = int let compare = compare end);;
-
-module Domain =
-struct
-	type value = Empty | Full | S of ISet.t
-	type t = ISet.elt * value
-
-	let full ml = ml,Full
-	let empty ml = ml,Empty
-	let one l (ml,v) = assert (l <= ml);
-		ml, if ml = 0 then Full else S (ISet.add l ISet.empty)
-
-	let _fulllist ml = Util.range 0 ml
-	let _fullset ml = 
-		List.fold_right ISet.add (_fulllist ml) ISet.empty
-	
-	let mem l (ml,v) = match v with
-		  Empty -> false
-		| Full -> true
-		| S set -> ISet.mem l set
-	
-	let add l (ml,v) = ml, match v with
-		  Empty -> if ml = 0 then Full else S (ISet.singleton l)
-		| Full -> Full
-		| S set -> let set = ISet.add l set in
-			if ISet.cardinal set = ml+1 then Full else S set
-	
-	let remove l (ml,v) = ml, match v with
-		  Empty -> Empty
-		| Full -> if ml = 0 then Empty else S (ISet.remove l (_fullset ml))
-		| S set -> let set = ISet.remove l set
-			in if ISet.is_empty set then Empty else S set
-	
-	let elements (ml,v) = match v with
-		  Empty -> []
-		| Full -> _fulllist ml
-		| S set -> ISet.elements set
-	
-	let map f (ml,v) = match v with
-		  Empty -> []
-		| Full -> List.map f (_fulllist ml)
-		| S set -> List.map f (ISet.elements set)
-
-	let to_string (ml,v) = match v with
-		  Empty -> "/"
-		| Full -> "*"
-		| S set -> String.concat "," 
-			(List.map string_of_int (ISet.elements set))
-
-	let subset (ml',v') (ml,v) = match v',v with
-		  Empty,_ | _,Full -> true | Full,_ | _,Empty -> false
-		| S s', S s -> ISet.subset s' s
-	
-	let cardinal (ml,v) = match v with
-		  Empty -> 0
-		| Full -> ml+1
-		| S s -> ISet.cardinal s
-
-	let is_empty (ml,v) = v = Empty
-
-	let inter (ml',v') (ml,v) = assert (ml=ml'); ml, match v,v' with
-		  Empty,_ | _,Empty -> Empty
-		| Full,x | x,Full -> x
-		| S s,S s' -> S (ISet.inter s s')
-	
-	let union (ml',v') (ml,v) = assert (ml=ml'); ml, match v,v' with
-		  Empty,x | x,Empty -> x
-		| Full,_ | _,Full -> Full
-		| S s,S s' -> let set = ISet.union s s' in
-			if ISet.cardinal set = ml+1 then Full else S set
-
-	let equal (ml',v') (ml,v) = ml = ml' && (match v,v' with
-		  Empty,Empty | Full,Full -> true
-		| S s,S s' -> s = s'
-		| _ -> false)
-
-end
-;;
-
-type metaproc = string
-type action = Inc | Dec
-type state = int SMap.t
-
-type t_reachability = Reach | NotReach | Inconc
-type t_mvar = Domain.t SMap.t
-type t_mvars = t_mvar list
-
-;;
-
-module RuleMap = Map.Make(struct type t = metaproc*int*action
-	let compare (m,l,t) (m',l',t') =
-		let c = compare m m' in
-		if c <> 0 then c else (
-		let c = compare l l' in
-		if c <> 0 then c else (match t,t' with
-			  Inc,Inc | Dec,Dec -> 0
-			| Inc,Dec -> 1 | Dec,Inc -> -1
-		)
-		)
-end)
-;;
-
-module ImplyMap = Map.Make(
-struct
-	type t = bool * state
-	let compare (b,s) (b',s') =
-		let c = compare b b' in if c <> 0 then c
-		else SMap.compare compare s s'
-end)
-;;
-
-type t_mdom = (ISet.elt * Domain.value) SMap.t
-type t_mimpl = t_mdom list ImplyMap.t 
-type t_mreach = t_mdom list IMap.t SMap.t list ImplyMap.t
-;;
-
-exception Not_satisfied;;
+open Types;;
 
 let string_of_state state = 
 	let folder m l sl =
@@ -146,10 +28,10 @@ let string_of_rules mrules =
 	in
 	String.concat "\n" (RuleMap.fold folder mrules [])
 ;;
+let string_of_reach = function
+	true -> "Reach" | false -> "NotReach"
+;;
 let string_of_implication (reach, goal) mvals =
-	let string_of_reach = function
-		true -> "Reach" | false -> "NotReach"
-	in
 	(string_of_dismvars mvals)^" => "^(string_of_reach reach)^" "^
 		string_of_state goal
 ;;
@@ -158,6 +40,13 @@ let string_of_implications mimpl =
 		sl@[string_of_implication k v]
 	in
 	String.concat "\n" (ImplyMap.fold folder mimpl [])
+;;
+let string_of_impl (init, (reach, dest)) =
+	(string_of_mvar init)^" => "^(string_of_reach reach)^" "^
+		string_of_mvar dest
+;;
+let string_of_limpl limpl =
+	String.concat "\n" (List.map string_of_impl limpl)
 ;;
 
 let string_of_mlevel mlevel =
@@ -179,16 +68,13 @@ let string_of_mcond mcond =
 	"{"^(String.concat ";" (SMap.fold folder mcond []))^"}"
 ;;
 
-let string_of_reach (reach, goal) mconds =
-	let string_of_reach = function
-		true -> "Reach" | false -> "NotReach"
-	in
+let string_of_reach_conds (reach, goal) mconds =
 	(string_of_reach reach)^" "^(string_of_state goal)^" <= \n\t\t"^
 	String.concat "\n\t\t" (List.map string_of_mcond mconds)
 ;;
 let string_of_mreach mreach =
 	let folder k v sl =
-		sl@[string_of_reach k v]
+		sl@[string_of_reach_conds k v]
 	in
 	String.concat "\n" (ImplyMap.fold folder mreach [])
 ;;
@@ -257,7 +143,7 @@ let rec factorize_mvars mvars =
 		| _ -> 
 			let mvars' = fmvars@Util.list_sub mvars known
 			in
-			print_endline ("*** factorize "^(string_of_dismvars mvars)^" : "^string_of_dismvars mvars');		
+			(*print_endline ("*** factorize "^(string_of_dismvars mvars)^" : "^string_of_dismvars mvars');*)
 			factorize_mvars mvars'
 ;;
 let implications_factorize =
@@ -518,6 +404,12 @@ let mvar_matches state mvar =
 	SMap.fold folder mvar true
 ;;
 
+let substate sub state =
+	let folder m l res = res &&
+		(try SMap.find m state = l with Not_found -> false)
+	in
+	SMap.fold folder sub true
+;;
 
 (*
  * mvars
@@ -596,7 +488,61 @@ let implications_saturate_1 mdom mimpl =
 	List.fold_left saturate mimpl (smap_keys mdom)
 ;;
 
+let nimplications_from_rules mdom mrules mimpl =
+	let mrules = RuleMap.map factorize_mvars mrules
+	in
+	let folder k v msingles =
+		match v with
+		  [mvar] -> if smap_size mvar = 1 then RuleMap.add k v msingles
+					else msingles
+		| _ -> msingles
+	in
+	let msingles = RuleMap.fold folder mrules RuleMap.empty
+	in
+
+	let get_single_m_domain = function
+		[mvar] -> List.hd (smap_elements mvar)
+		| _ -> raise (Invalid_argument "get_single_m_domain on non-single rule")
+	in
+
+	let folder (m,l,a) mvars mimpl =
+		let m',dm' = get_single_m_domain mvars
+		and ml = fst (SMap.find m mdom)
+		in
+		let borders = Domain.borders dm'
+		in
+		let folder mimpl (l',a') =
+			try
+				let m'',dm = get_single_m_domain (RuleMap.find (m',l',a') msingles)
+				in
+				(if m'' <> m then raise Not_found);
+				if Domain.mem l dm then
+					mimpl
+				else (
+					let dm = Domain.one l dm
+					and dm' = Domain.one l' dm'
+					in
+					let init = SMap.add m dm (SMap.add m' dm' SMap.empty)
+					and df = match a with
+						  Inc -> Util.range (l+1) ml
+						| Dec -> Util.range 0 (l-1)
+					in
+					let folder mimpl l =
+						implications_add (false,SMap.add m l SMap.empty)
+							[init] mimpl
+					in
+					List.fold_left folder mimpl df
+				)
+			with Not_found -> mimpl
+		in
+		List.fold_left folder mimpl borders
+	in
+	RuleMap.fold folder msingles mimpl
+;;
+
 let implications_from_rules mdom mrules =
+	let mimpl = nimplications_from_rules mdom mrules ImplyMap.empty
+	in
 	let folder (m,l,a) mvars impl =
 		let mvars = List.map (fun mvar -> 
 				SMap.add m (Domain.one l (SMap.find m mdom)) mvar) mvars
@@ -604,12 +550,14 @@ let implications_from_rules mdom mrules =
 		in
 		ImplyMap.add (true,state) (mvars@try ImplyMap.find (true,state) impl with Not_found->[]) impl
 	in
-	let mimpl = RuleMap.fold folder mrules ImplyMap.empty
+	let mimpl = RuleMap.fold folder mrules mimpl
 	in
 	let mimpl = implications_saturate_1 mdom mimpl
 	in
 	implications_factorize mimpl
 ;;
+
+
 
 
 let cond_set m l mvars mcond =
@@ -693,13 +641,29 @@ let mreach_from_last_steps mdom (mimpl,mreach) state =
 
 let check_reachability mdom (mimpl,mreach) dest orig =
 	print_endline ("check_reachability of "^(string_of_state dest)^" from "^string_of_state orig);
-	match reachability dest orig mreach with
-	  Reach -> print_endline ("-- found an implication saying yes!");
-		(mimpl,mreach), true
-	| NotReach -> print_endline ("-- found an implication saying no!");
+
+	(* search for NotReach dest implication *)
+	let has_notreach (reach,goal) mvars res = res ||
+		not reach && substate goal dest && mvars_matches orig mvars
+	in
+	let notreach = ImplyMap.fold has_notreach mimpl false
+	in
+	if notreach then (
+		print_endline ("-- found an implication saying no!");
 		(mimpl,mreach), false
-	| Inconc -> print_endline ("-- found no implication");
-		(mimpl,mreach), false
+	) else (
+		match reachability dest orig mreach with
+		  Reach -> print_endline ("-- found a reachability saying yes!");
+			(mimpl,mreach), true
+		| NotReach -> print_endline ("-- found a reachability saying no!");
+			(mimpl,mreach), false
+		| Inconc ->
+			print_endline "####### implications #######";
+			print_endline (string_of_implications mimpl);
+			print_endline "####### reachabilities #######";
+			print_endline (string_of_mreach mreach);
+			failwith "missing implications"
+	)
 ;;
 
 let responsible_rules =
