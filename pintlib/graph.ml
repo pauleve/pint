@@ -49,6 +49,27 @@ let to_dot (graph:('a,'b)t) string_of_vertex string_of_label =
 	"}\n"
 ;;
 
+let state_graph_to_dot sg =
+
+	let dot_of_vertex vertex = 
+		"\""^vertex^ "\"[label=\""^vertex^"\"]"
+	and dot_of_edge (s, s') =
+		"\""^s^"\"->\""^s'^"\""
+	in
+
+	let folder s s' (vertices, edges) =
+		Util.list_prepend_if_new s (Util.list_prepend_if_new s' vertices),
+		(s,s')::edges
+	in
+	let vertices, edges = Hashtbl.fold folder sg ([],[])
+	in
+	"digraph G { node[fontsize=20]\n" ^
+	(String.concat "\n" (List.map dot_of_vertex vertices ))^"\n" ^
+	(String.concat "\n" (List.map dot_of_edge edges))^"\n"^
+	"}\n"
+;;
+
+
 
 let remove_labeled graph labels =
 	let graph2 = create 0

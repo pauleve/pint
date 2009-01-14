@@ -230,6 +230,20 @@ let dynamic_of_decisions decisions states =
 	dyn
 ;;
 
+let state_graph_of_dynamic dyn =
+	let sg = Hashtbl.create 1
+	in
+	let iter s (_,s') =
+		let s, s' = string_of_context s, string_of_context s'
+		in
+		if not (List.mem s' (Hashtbl.find_all sg s)) then
+			Hashtbl.add sg s s'
+	in
+	Hashtbl.iter iter dyn;
+	sg
+;;
+
+
 let rec free_transition (m,i,a) (t,s) constraints =
 	let im = involved_procs_dyninfo i
 	in
