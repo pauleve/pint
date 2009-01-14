@@ -115,7 +115,16 @@ let spig_of_k brg spig (d, r, k) =
 ;;
 
 let dump_dynamic dyn filename = 
-	Util.dump_to_file filename (Spig.stateg_to_dot dyn);;
+	Util.dump_to_file filename (Spig.stateg_to_dot dyn)
+;;
+
+let dump_state_graph_for_decisions dec states filename =
+	let dyn = Decision.dynamic_of_decisions dec states
+	in
+	let sg = Decision.state_graph_of_dynamic dyn
+	in
+	Util.dump_to_file filename (Graph.state_graph_to_dot sg)
+;;
 
 let show_decisions decisions = 
 	print_endline "****** decisions *******";
