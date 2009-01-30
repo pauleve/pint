@@ -16,6 +16,11 @@ SOURCES := \
 	logical.ml\
 	goal.ml\
 	spim.ml\
+	\
+	ph_types.mli\
+	ph_parser.mly\
+	ph_lexer.mll\
+	ph.ml\
 
 LIBS := nums
 
