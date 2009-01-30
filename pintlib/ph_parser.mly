@@ -22,9 +22,8 @@ let merge_instr ((ps,aps),hits) (p1,p2,l,r) =
 		try
 			let ml = List.assoc name (ps@aps)
 			in
-			if ml < 0 || ml < level then 
-				failwith (errstr^
-							"level out of bound (max is "^(string_of_int ml)^")")
+			if level < 0 || ml < level then 
+				failwith (errstr^"level out of bound (max is "^(string_of_int ml)^")")
 		with Not_found -> failwith (errstr^"undefined metaprocess")
 	in
 	assert_p_exists p1;
