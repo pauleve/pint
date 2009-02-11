@@ -1,13 +1,7 @@
 
 open Ph_types;;
 
-let from_channel chan =
-	let lexbuf = Lexing.from_channel chan
-	in
-	Ph_parser.main Ph_lexer.lexer lexbuf
-;;
-
-let spim_of_ph ((ps,aps),hits) init_state time =
+let spim_of_ph ((ps,aps),hits) init_state properties =
 	let name_of_process (p,l) = p^string_of_int l^"()"
 	in
 	let register_metaproc piprocs (p,l) =
@@ -69,7 +63,7 @@ let spim_of_ph ((ps,aps),hits) init_state time =
 		String.concat "\nand " (List.map string_of_piproc piprocs)
 
 	and directives = String.concat "\n" [
-		"directive sample "^Spim.string_of_rate time;
+		"directive sample "^Spim.string_of_rate (float_of_string (List.assoc "sample" properties));
 		"directive plot "^String.concat ";" (fst (List.split piprocs))]
 
 	and run = "run ("^(String.concat " | " 
