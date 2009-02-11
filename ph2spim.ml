@@ -1,10 +1,8 @@
 
 let make_spim output ph properties =
-	let procs = fst ph
+	let init_state = List.map (fun _ -> 0) (fst ph)
 	in
-	let init_state = List.map (fun _ -> 0) (fst procs @ snd procs)
-	in
-	let spim = Ph.spim_of_ph ph init_state properties
+	let spim = Ph.spim_of_ph2 ph init_state properties
 	in
 	Util.dump_to_file output spim
 ;;

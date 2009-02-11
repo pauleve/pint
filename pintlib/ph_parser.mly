@@ -1,5 +1,5 @@
 %{
-let merge_decl ((ps,aps),hits) (p,real) =
+let merge_decl (ps,hits) p =
 	let merge_metaproc ps (p,l) =
 		try
 			let ol = List.assoc p ps
@@ -9,18 +9,14 @@ let merge_decl ((ps,aps),hits) (p,real) =
 			else (p,l)::List.remove_assoc p ps
 		with Not_found -> (p,l)::ps
 	in
-	let ps, aps =
-		if real then merge_metaproc ps p, aps
-		else ps, merge_metaproc aps p
-	in
-	((ps,aps),hits)
+	merge_metaproc ps p, hits
 ;;
-let merge_instr ((ps,aps),hits) (p1,p2,l,r) = 
+let merge_instr (ps,hits) (p1,p2,l,r) = 
 	let assert_p_exists (name,level) =
 		let errstr = "Invalid reference to process "^name^(string_of_int level)^": "
 		in
 		try
-			let ml = List.assoc name (ps@aps)
+			let ml = List.assoc name ps
 			in
 			if level < 0 || ml < level then 
 				failwith (errstr^"level out of bound (max is "^(string_of_int ml)^")")
@@ -30,7 +26,7 @@ let merge_instr ((ps,aps),hits) (p1,p2,l,r) =
 	assert_p_exists p2;
 	assert_p_exists (fst p2, l);
 	Hashtbl.add hits p2 ((p1, r),l);
-	((ps,aps),hits)
+	(ps,hits)
 ;;
 %}
 
@@ -49,8 +45,7 @@ process :
   Name Level	{ ($1, $2) }
 ;
 decl :
-  New process	{ ($2, true) }
-| Art New process { ($3, false) }
+  New process	{ $2 }
 ;
 instr : 
   process Hit process Level			{ ($1, $3, $4, Ph_types.RateInf) }
@@ -59,7 +54,7 @@ instr :
 content :
   content decl { merge_decl $1 $2 }
 | content instr { merge_instr $1 $2 }
-| decl		 { merge_decl (([],[]),Hashtbl.create 0) $1 }
+| decl		 { merge_decl ([], Hashtbl.create 0) $1 }
 ;
 
 header :
