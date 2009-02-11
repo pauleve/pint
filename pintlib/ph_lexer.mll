@@ -4,7 +4,6 @@ open Ph_parser;;
 let digit = ['0'-'9']
 rule lexer = parse
   [' ' '\t' '\r' '\n']	{ lexer lexbuf }
-| "artificial"  { Art }
 | "metaprocess" { New }
 | "directive" { Directive }
 | "sample" { Sample }

@@ -6,5 +6,5 @@ type rate = RateInf | Rate of float
 
 type hits = (process, ((process * rate) * int)) Hashtbl.t
 
-type ph = (metaprocess list * metaprocess list) * hits
+type ph = metaprocess list * hits
 
