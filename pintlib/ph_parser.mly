@@ -30,26 +30,25 @@ let merge_instr (ps,hits) (p1,p2,l,r) =
 ;;
 %}
 
-%token <int> Level
 %token <string> Name
 %token <float> Float
-%token <int> PosInt
+%token <int> Int
 %token New Art Hit At Eof
-%token Directive Sample StochAbs
+%token Directive Sample Stoch_abs
 
 %start main
 %type <(string * string) list * Ph_types.ph> main
 
 %%
 process :
-  Name Level	{ ($1, $2) }
+  Name Int	{ ($1, $2) }
 ;
 decl :
-  New process	{ $2 }
+  New process	{ assert (snd $2 > 0); $2 }
 ;
 instr : 
-  process Hit process Level			{ ($1, $3, $4, Ph_types.RateInf) }
-| process Hit process Level At Float { ($1, $3, $4, Ph_types.Rate $6) }
+  process Hit process Int			{ ($1, $3, $4, Ph_types.RateInf) }
+| process Hit process Int At Float { ($1, $3, $4, Ph_types.Rate $6) }
 ;
 content :
   content decl { merge_decl $1 $2 }
@@ -59,7 +58,7 @@ content :
 
 header :
   Sample Float { ("sample",string_of_float $2) }
-| StochAbs PosInt { ("stochasticity_absorption",string_of_int $2) }
+| Stoch_abs Int { assert ($2 > 0); ("stochasticity_absorption",string_of_int $2) }
 ;
 
 headers :

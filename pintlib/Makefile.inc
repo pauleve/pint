@@ -22,6 +22,6 @@ SOURCES := \
 	ph_lexer.mll\
 	ph.ml\
 
-LIBS := nums
+LIBS := nums str
 
 # vi:set syntax=make:

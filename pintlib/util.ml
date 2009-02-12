@@ -61,3 +61,10 @@ let rec count_elements = function [] -> []
 		(h, 1+List.length hs)::count_elements q
 ;;
 
+let rec string_apply substring data = function [] -> data
+	| h::t ->
+		let data = Str.replace_first (Str.regexp_string substring) h data
+		in
+		string_apply substring data t
+;;
+

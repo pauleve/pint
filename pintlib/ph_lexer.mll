@@ -1,17 +1,25 @@
 {
 open Ph_parser;;
+
+let line_incr lexbuf =
+	let pos = Lexing.lexeme_end_p lexbuf in
+	let pos = {pos with Lexing.pos_lnum = pos.Lexing.pos_lnum+1; Lexing.pos_bol = pos.Lexing.pos_cnum}
+	in
+	lexbuf.Lexing.lex_curr_p <- pos
+;;
+
 }
 let digit = ['0'-'9']
 rule lexer = parse
-  [' ' '\t' '\r' '\n']	{ lexer lexbuf }
+  [' ' '\t' '\r']	{ lexer lexbuf }
+| '\n' {line_incr lexbuf; lexer lexbuf}
 | "metaprocess" { New }
 | "directive" { Directive }
 | "sample" { Sample }
-| "stochasticity_absorption" { StochAbs }
+| "stochasticity_absorption" { Stoch_abs }
 | "->" { Hit }
 | "@" { At }
-| digit+ as level { Level (int_of_string level) }
+| digit+ as value { Int (int_of_string value) }
 | ['A'-'z']+ as name { Name name }
 | digit+ "." digit* as rate	{ Float (float_of_string rate) }
-| ['1'-'9'] digit* as value { PosInt (int_of_string value) }
 | eof { Eof }
