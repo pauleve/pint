@@ -78,10 +78,10 @@ let spim_of_ph2 (ps,hits) init_state properties =
 		
 	let string_of_channel (cid, rate, ischan) = match ischan with
 		  true -> "new "^cid^(match rate with 
-		  				  Rate f -> "@("^Spim.string_of_rate f^"/float_of_int sa)"
+		  				  Rate f -> "@("^Spim.string_of_rate f^"*float_of_int sa)"
 						| RateInf -> "")^":chan"
 		| false -> (match rate with
-						  Rate f -> "val "^cid^"="^Spim.string_of_rate f^"/float_of_int sa"
+						  Rate f -> "val "^cid^"="^Spim.string_of_rate f^"*float_of_int sa"
 						| RateInf -> "")
 	and string_of_piproc (piproc, choices) =
 		let args = List.assoc piproc piprocs_args
