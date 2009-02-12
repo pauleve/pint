@@ -7,7 +7,7 @@ type piproc_arg_action = ArgReset | ArgUpdate of (string * string) list;;
 let spim_of_ph2 (ps,hits) init_state properties =
 	let chanl_of_process p = "l_"^p
 	and p_level (p,l) = p^"("^string_of_int l^")"
-	and name_of_process (p,l) = p^string_of_int l^"()"
+	and pi_name_level (p,l) = p^string_of_int l
 	in
 	let register_metaproc piprocs (p,l) =
 		piprocs @ List.map (fun l -> (p,l),[]) (Util.range 0 l)
@@ -29,7 +29,7 @@ let spim_of_ph2 (ps,hits) init_state properties =
 		in
 		let stochasticity_absorption pl action (nexts,nextd) = match r with 
 			    RateInf -> action^nexts, nextd
-			  | Rate _ -> "if "^i_cid^" = 1 then ("^action^nexts^") else ("^action^"%%)", nextd@[pl,ArgUpdate [cid,"-1"]]
+			  | Rate _ -> action^"if "^i_cid^" = 1 then ("^nexts^") else (%%)", nextd@[pl,ArgUpdate [i_cid,"-1"]]
 		in
 		let piprocs = 
 			if p1 = p2 then (
@@ -53,6 +53,29 @@ let spim_of_ph2 (ps,hits) init_state properties =
 	in
 	let piprocs,channels,counter = Hashtbl.fold register_hit hits (piprocs,[],0)
 	in
+	let extract_args (piproc, pi) =
+		let extract_args (_, d) = List.flatten 
+			(List.map (fun (pl,arg_action) -> match arg_action with ArgUpdate args -> List.map fst args | _ -> []) d)
+		in
+		piproc, List.flatten (List.map extract_args pi)
+	in
+	let piprocs_args = List.map extract_args piprocs
+	in
+
+	let string_of_picall (pl, arg_action) =
+		let args = List.assoc pl piprocs_args
+		in
+		(pi_name_level pl)^"("^(String.concat "," (match arg_action with
+		  ArgUpdate au -> List.map (fun arg ->
+		  	arg^try List.assoc arg au with Not_found -> "") args
+		| ArgReset -> List.map (fun arg -> "sa") args
+		))^")"
+	in
+
+	let string_of_pi piproc (pis, pid) =
+		Util.string_apply "%%" pis (List.map string_of_picall pid)
+	in
+		
 	let string_of_channel (cid, rate, ischan) = match ischan with
 		  true -> "new "^cid^(match rate with 
 		  				  Rate f -> "@("^Spim.string_of_rate f^"/float_of_int sa)"
@@ -61,10 +84,15 @@ let spim_of_ph2 (ps,hits) init_state properties =
 						  Rate f -> "val "^cid^"="^Spim.string_of_rate f^"/float_of_int sa"
 						| RateInf -> "")
 	and string_of_piproc (piproc, choices) =
-		piproc ^ " = " ^ match choices with
-				  [] -> "!dead"
-				| [pi] -> pi
-				| pis -> "do "^String.concat " or " pis
+		let args = List.assoc piproc piprocs_args
+		in
+
+		(pi_name_level piproc)^"("^(String.concat "," (List.map
+			(fun arg -> arg^":int") args))^") = "
+		^ match choices with
+		  [] -> "!dead"
+		| [pi] -> string_of_pi piproc pi
+		| pis -> "do "^String.concat " or " (List.map (string_of_pi piproc) pis)
 	in
 
 	let def_level_channels = String.concat "\n"
@@ -89,8 +117,9 @@ let spim_of_ph2 (ps,hits) init_state properties =
 	]
 
 	and run = "run ("^(String.concat " | " 
-					(List.map (fun ((n,_),l) -> name_of_process (n,l) ^ "|" ^ p_level (n,l))
-						(List.combine ps init_state))) ^ ")\n"
+					(List.map (fun ((n,_),l) -> string_of_picall ((n,l),ArgReset)
+						^ "|" ^ p_level (n,l))
+							(List.combine ps init_state))) ^ ")\n"
 	in
 	directives ^ "\n\n" ^ defs ^ "\n\n" ^ body ^ "\n\n" ^ run
 
