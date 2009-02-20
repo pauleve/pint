@@ -13,7 +13,7 @@ let digit = ['0'-'9']
 rule lexer = parse
   [' ' '\t' '\r']	{ lexer lexbuf }
 | '\n' {line_incr lexbuf; lexer lexbuf}
-| "metaprocess" { New }
+| "process" { New }
 | "directive" { Directive }
 | "sample" { Sample }
 | "stochasticity_absorption" { Stoch_abs }
