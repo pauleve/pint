@@ -13,3 +13,4 @@ a.out
 ./pintlib/ph_parser.ml
 ./pintlib/ph_parser.mli
 ./pintlib/ph_lexer.ml
+./dist

@@ -1,6 +1,6 @@
 all: nc
 
-include Makefile.common
+include phlib/Makefile.inc
 
 SOURCES = $(PHLIB_SOURCES) \
 	ph2spim.ml
