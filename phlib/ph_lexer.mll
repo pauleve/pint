@@ -19,6 +19,7 @@ rule lexer = parse
 | "stochasticity_absorption" { Stoch_abs }
 | "->" { Hit }
 | "@" { At }
+| "~" { Absorb }
 | digit+ as value { Int (int_of_string value) }
 | ['A'-'z']+ as name { Name name }
 | digit+ "." digit* as rate	{ Float (float_of_string rate) }
