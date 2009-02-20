@@ -1,4 +1,11 @@
 
+PHLIB_DIR = phlib
+include $(PHLIB_DIR)/Makefile.inc
+PHLIB_SOURCES := $(SOURCES:%=phlib/%) \
+export PHLIB_SOURCES
+PHLIB_LIBS := $(LIBS)
+export PHLIB_LIBS
+
 PINTLIB_DIR = pintlib
 include $(PINTLIB_DIR)/Makefile.inc
 PINTLIB_SOURCES := $(SOURCES:%=pintlib/%) \

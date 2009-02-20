@@ -1,7 +1,8 @@
 all: nc
 
 include Makefile.common
-SOURCES = $(PINTLIB_SOURCES) \
+
+SOURCES = $(PHLIB_SOURCES) \
 	ph2spim.ml
 
 RESULT = bin/ph2spim

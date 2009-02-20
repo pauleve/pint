@@ -249,11 +249,7 @@ let update_channels_rate rate channels =
 	List.map replace
 ;;
 
-let string_of_rate rate = 
-	let s = string_of_float rate
-	in
-	s ^ if s.[String.length s - 1] = '.' then "0" else ""
-;;
+let string_of_rate = Util.string_of_float0;;
 
 let string_of_dchans dchans =
 	let string_of_dchan (chan, rate) =

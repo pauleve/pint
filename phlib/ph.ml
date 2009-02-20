@@ -78,10 +78,10 @@ let spim_of_ph2 (ps,hits) init_state properties =
 		
 	let string_of_channel (cid, rate, ischan) = match ischan with
 		  true -> "new "^cid^(match rate with 
-		  				  Rate f -> "@("^Spim.string_of_rate f^"*float_of_int sa)"
+		  				  Rate f -> "@("^Util.string_of_float0 f^"*float_of_int sa)"
 						| RateInf -> "")^":chan"
 		| false -> (match rate with
-						  Rate f -> "val "^cid^"="^Spim.string_of_rate f^"*float_of_int sa"
+						  Rate f -> "val "^cid^"="^Util.string_of_float0 f^"*float_of_int sa"
 						| RateInf -> "")
 	and string_of_piproc (piproc, choices) =
 		let args = List.assoc piproc piprocs_args
@@ -109,7 +109,7 @@ let spim_of_ph2 (ps,hits) init_state properties =
 		String.concat "\nand " (List.map string_of_piproc piprocs)
 
 	and directives = String.concat "\n" [
-		"directive sample "^Spim.string_of_rate (float_of_string (List.assoc "sample" properties));
+		"directive sample "^Util.string_of_float0 (float_of_string (List.assoc "sample" properties));
 		"directive plot "^pl_to_plot;
 		"\nval sa = "^(List.assoc "stochasticity_absorption" properties)^" (* stochasticity absorption *)";
 		"\n(* level watchers *)";
@@ -167,10 +167,10 @@ let spim_of_ph (ps,hits) init_state properties =
 	in
 	let string_of_channel (cid, rate, ischan) = match ischan with
 		  true -> "new "^cid^(match rate with 
-		  				Rate f -> "@"^Spim.string_of_rate f
+		  				Rate f -> "@"^Util.string_of_float0 f
 						| RateInf -> "")^":chan"
 		| false -> (match rate with
-						Rate f -> "val "^cid^"="^Spim.string_of_rate f
+						Rate f -> "val "^cid^"="^Util.string_of_float0 f
 						| RateInf -> "")
 	and string_of_piproc (piproc, choices) =
 		piproc ^ " = " ^ match choices with
@@ -185,7 +185,7 @@ let spim_of_ph (ps,hits) init_state properties =
 		String.concat "\nand " (List.map string_of_piproc piprocs)
 
 	and directives = String.concat "\n" [
-		"directive sample "^Spim.string_of_rate (float_of_string (List.assoc "sample" properties));
+		"directive sample "^Util.string_of_float0 (float_of_string (List.assoc "sample" properties));
 		"directive plot "^String.concat ";" (fst (List.split piprocs))]
 
 	and run = "run ("^(String.concat " | " 

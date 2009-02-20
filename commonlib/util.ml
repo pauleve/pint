@@ -68,3 +68,9 @@ let rec string_apply substring data = function [] -> data
 		string_apply substring data t
 ;;
 
+let string_of_float0 value =
+	let s = string_of_float value
+	in
+	s ^ if s.[String.length s - 1] = '.' then "0" else ""
+;;
+
