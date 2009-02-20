@@ -19,7 +19,7 @@ let spim_of_ph2 (ps,hits) init_state properties =
 		in
 		(piproc,pi::pis)::List.remove_assoc piproc piprocs
 	in
-	let register_hit p2 ((p1,r),l) (piprocs,channels,counter) =
+	let register_hit p2 ((p1,(r,sa)),l) (piprocs,channels,counter) =
 		let cid = "hit"^string_of_int counter
 		and p2' = (fst p2,l)
 		and notify_level = "!"^chanl_of_process (fst p2)^"("^string_of_int l^")"
@@ -29,7 +29,7 @@ let spim_of_ph2 (ps,hits) init_state properties =
 		in
 		let stochasticity_absorption pl action (nexts,nextd) = match r with 
 			    RateInf -> action^nexts, nextd
-			  | Rate _ -> action^"if "^i_cid^" = 1 then ("^nexts^") else (%%)", nextd@[pl,ArgUpdate [i_cid,"-1"]]
+			  | Rate _ -> action^"if "^i_cid^" = 1 then ("^nexts^") else (%%)", nextd@[pl,ArgUpdate [cid,"-1"]]
 		in
 		let piprocs = 
 			if p1 = p2 then (
@@ -47,7 +47,7 @@ let spim_of_ph2 (ps,hits) init_state properties =
 				add_pichoice piprocs p2 pi
 			)
 		in
-		let c = (cid, r, p2 <> p1)
+		let c = (cid, r, sa, p2 <> p1)
 		in
 		(piprocs,c::channels,counter+1)
 	in
@@ -67,8 +67,8 @@ let spim_of_ph2 (ps,hits) init_state properties =
 		in
 		(pi_name_level pl)^"("^(String.concat "," (match arg_action with
 		  ArgUpdate au -> List.map (fun arg ->
-		  	arg^try List.assoc arg au with Not_found -> "") args
-		| ArgReset -> List.map (fun arg -> "sa") args
+		  	"i_"^arg^try List.assoc arg au with Not_found -> "") args
+		| ArgReset -> List.map (fun arg -> "sa_"^arg) args
 		))^")"
 	in
 
@@ -76,19 +76,19 @@ let spim_of_ph2 (ps,hits) init_state properties =
 		Util.string_apply "%%" pis (List.map string_of_picall pid)
 	in
 		
-	let string_of_channel (cid, rate, ischan) = match ischan with
+	let string_of_channel (cid, rate, _, ischan) = match ischan with
 		  true -> "new "^cid^(match rate with 
-		  				  Rate f -> "@("^Util.string_of_float0 f^"*float_of_int sa)"
+		  				  Rate f -> "@("^Util.string_of_float0 f^"*float_of_int sa_"^cid^")"
 						| RateInf -> "")^":chan"
 		| false -> (match rate with
-						  Rate f -> "val "^cid^"="^Util.string_of_float0 f^"*float_of_int sa"
+						  Rate f -> "val "^cid^"="^Util.string_of_float0 f^"*float_of_int sa_"^cid
 						| RateInf -> "")
 	and string_of_piproc (piproc, choices) =
 		let args = List.assoc piproc piprocs_args
 		in
 
 		(pi_name_level piproc)^"("^(String.concat "," (List.map
-			(fun arg -> arg^":int") args))^") = "
+			(fun arg -> "i_"^arg^":int") args))^") = "
 		^ match choices with
 		  [] -> "!dead"
 		| [pi] -> string_of_pi piproc pi
@@ -112,7 +112,9 @@ let spim_of_ph2 (ps,hits) init_state properties =
 	and directives = String.concat "\n" [
 		"directive sample "^Util.string_of_float0 (float_of_string (List.assoc "sample" properties));
 		"directive plot w();"^pl_to_plot;
-		"\nval sa = "^(List.assoc "stochasticity_absorption" properties)^" (* stochasticity absorption *)";
+		"\n(* stochasticity absorption *)";
+		String.concat "\n" (List.map (fun (cid,rate,sa,ischan) -> 
+			"val sa_"^cid^" = "^match sa with None -> List.assoc "stochasticity_absorption" properties | Some value -> string_of_int value) channels);
 		"\n(* level watchers *)";
 		def_level_channels; pl
 	]
