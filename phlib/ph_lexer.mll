@@ -9,7 +9,9 @@ let line_incr lexbuf =
 ;;
 
 }
+
 let digit = ['0'-'9']
+
 rule lexer = parse
   [' ' '\t' '\r']	{ lexer lexbuf }
 | '\n' {line_incr lexbuf; lexer lexbuf}
@@ -24,3 +26,11 @@ rule lexer = parse
 | ['A'-'z']+ as name { Name name }
 | digit+ "." digit* as rate	{ Float (float_of_string rate) }
 | eof { Eof }
+| "(*"	{ comment 1 lexbuf } 
+
+and comment n = parse
+ | "(*"  		{ comment (n+1) lexbuf } 
+ | '\n' 		{ line_incr lexbuf; comment n lexbuf}
+ | "*)" 		{ if (n-1) > 0 then comment (n-1) lexbuf else lexer lexbuf} 
+ |  _ 			{ comment n lexbuf } 
+
