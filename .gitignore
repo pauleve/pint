@@ -10,7 +10,7 @@ a.out
 ./test_pseudomonas
 ./pint.top
 ./bin/ph2spim
-./pintlib/ph_parser.ml
-./pintlib/ph_parser.mli
-./pintlib/ph_lexer.ml
-./dist
+./phlib/ph_parser.ml
+./phlib/ph_parser.mli
+./phlib/ph_lexer.ml
+/dist
