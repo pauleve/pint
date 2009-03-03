@@ -1,6 +1,8 @@
 
-let make_spim output ph properties =
-	let init_state = List.map (fun _ -> 0) (fst ph)
+let make_spim output ph properties init_state =
+	let init_state = List.map 
+		(fun (p,l) -> try List.assoc p init_state with Not_found -> 0)
+		(fst ph)
 	in
 	let spim = Ph.spim_of_ph2 ph init_state properties
 	in
@@ -26,10 +28,10 @@ let _ =
 		  		(pos.Lexing.pos_cnum - pos.Lexing.pos_bol) ^ ": "
 	in
 	try 
-		let properties, ph = Ph_parser.main Ph_lexer.lexer lexbuf
+		let properties, ph, init_state = Ph_parser.main Ph_lexer.lexer lexbuf
 		in
 		make_spim (filename^".spi") ph
-					(properties@default_properties)
+					(properties@default_properties) init_state
 	with Parsing.Parse_error ->
 		failwith (show_position (Lexing.lexeme_start_p lexbuf) ^
 						"Syntax error");
