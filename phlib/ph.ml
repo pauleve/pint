@@ -107,7 +107,7 @@ let spim_of_ph2 (ps,hits) init_state properties =
 		(String.concat "\n" (List.map string_of_channel channels))
 	and body = "let "^
 		String.concat "\nand " (List.map string_of_piproc piprocs)^
-		"\n\nlet w() = delay@0.1; w()"
+		"\n\nlet w() = delay@0.5; w()"
 
 	and directives = String.concat "\n" [
 		"directive sample "^Util.string_of_float0 (float_of_string (List.assoc "sample" properties));
