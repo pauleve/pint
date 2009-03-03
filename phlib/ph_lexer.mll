@@ -22,6 +22,8 @@ rule lexer = parse
 | "->" { Hit }
 | "@" { At }
 | "~" { Absorb }
+| "," { Comma }
+| "initial_state" { Initial }
 | digit+ as value { Int (int_of_string value) }
 | ['A'-'z']+ as name { Name name }
 | digit+ "." digit* as rate	{ Float (float_of_string rate) }

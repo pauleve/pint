@@ -35,9 +35,10 @@ let merge_instr (ps,hits) (p1,p2,l,r,sa) =
 %token <int> Int
 %token New Art Hit At Eof
 %token Directive Sample Stoch_abs Absorb
+%token Comma Initial
 
 %start main
-%type <(string * string) list * Ph_types.ph> main
+%type <(string * string) list * Ph_types.ph * (string * int) list> main
 
 %%
 process :
@@ -67,11 +68,21 @@ headers :
 | header Directive headers { $1::$3 }
 ;
 
-main :
-  Directive headers main2 { ($2,$3) }
-| main2 { ([],$1) }
+processlist :
+  process { $1::[] }
+| process Comma processlist { $1::$3 }
 ;
-main2 :
-  content Eof { $1 }
+initstate :
+  Initial processlist { $2 }
+;
+
+footer :
+  Eof { [] }
+| initstate Eof { $1 }
+;
+
+main :
+  Directive headers content footer { ($2,$3,$4) }
+| content footer { ([],$1,$2) }
 ;
 %%
