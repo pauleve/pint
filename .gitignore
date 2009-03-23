@@ -14,3 +14,7 @@ a.out
 ./phlib/ph_parser.mli
 ./phlib/ph_lexer.ml
 /dist
+docs/*.aux
+docs/*.log
+docs/*.backup
+docs/*.pdf

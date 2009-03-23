@@ -4,7 +4,7 @@ let make_spim output ph properties init_state =
 		(fun (p,l) -> try List.assoc p init_state with Not_found -> 0)
 		(fst ph)
 	in
-	let spim = Ph.spim_of_ph2 ph init_state properties
+	let spim = Ph.spim_of_ph ph init_state properties
 	in
 	Util.dump_to_file output spim
 ;;
