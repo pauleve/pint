@@ -1,0 +1,53 @@
+\documentclass[11pt]{article}
+\usepackage{fullpage}
+\usepackage{amsmath}
+\usepackage{color}
+
+\title{The Process Hitting Language}
+\author{Lo\"ic Paulev\'e, Morgan Magnin, Olivier Roux}
+
+\newcommand{\term}[1]{\text{\color{blue}\textbf{#1}}}
+\newcommand{\comment}[1]{\hspace{1cm}\text{#1}}
+\newcommand{\regexp}[1]{{\color{red}#1}}
+\newcommand{\ch}[1]{{\color{black}#1}}
+
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+TODO
+
+\newpage
+\section{Language summary}
+
+$\{ Definition \}$ stands for optional definitions.
+
+\begin{eqnarray*}
+Program &::=& \{ Directive_1 \dots Directive_M \}\\
+&& Definition \\
+&& Declaration_1 \dots Declaration_N\\
+&& \{ \term{initial\_state}~Process_1\term{,}\dots\term{,} Process_K \}\\
+\\
+Directive &::=& \term{directive}~\term{sample}~Float \\
+&& \term{directive}~\term{stochasticity\_absorption}~Integer\\
+\\
+Process &::=& Name~Integer\\
+\\
+Definition &::=& \term{process}~Process\\
+\\
+Declaration &::=& Definition \\
+& | & Action\\
+\\
+Action &::=& Process~\term{$->$}~Process~Integer~\{\term{@}~Float~\{\term{\textasciitilde}~Integer\}\}\\
+\\
+Name & ::= & \regexp{(\ch{A}\cdots \ch{z})+}\\
+Integer & ::= & \regexp{(\ch{0}\cdots \ch{9})+}\\
+Float & ::= & \regexp{(\ch{0}\cdots \ch{9})+ \ch{.} (\ch{0}\cdots \ch{9})*}\\
+\end{eqnarray*}
+
+Comments are delimited by \term{(*} and \term{*)} and can be nested.
+
+
+\end{document}
