@@ -18,3 +18,4 @@ docs/*.aux
 docs/*.log
 docs/*.backup
 docs/*.pdf
+./playground/test_qgamma
