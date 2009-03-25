@@ -12,7 +12,7 @@ void printpts( double r, int sa ) {
 	double scale = 1/(shape*r);
 	double a = qgamma(C, shape, scale, 1, 0);
 	double b = qgamma(C, shape, scale, 0, 0);
-	printf("%.5f\t%d\t%.5f\t%.5f\t%.5f\n", r, sa, a, b);
+	printf("%.5f\t%d\t%.5f\t%.5f\n", r, sa, a, b);
 }
 
 #define lsa_min 0
