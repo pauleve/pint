@@ -19,3 +19,6 @@ docs/*.log
 docs/*.backup
 docs/*.pdf
 ./playground/test_qgamma
+playground/erlang-r.pts
+playground/erlang-sa.pts
+playground/r_plot_erlang
