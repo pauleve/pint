@@ -1,6 +1,7 @@
 \documentclass[11pt]{article}
 \usepackage{fullpage}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{color}
 
 \title{The Process Hitting Language}
@@ -11,11 +12,54 @@
 \newcommand{\regexp}[1]{{\color{red}#1}}
 \newcommand{\ch}[1]{{\color{black}#1}}
 
+\newcommand{\hit}[3]{\mbox{$#1\rightarrow#2\Rsh#3$}}
+
 
 \begin{document}
 \maketitle
 
 \section{Introduction}
+
+\subsection{Directives}
+
+Located at the top of the source code, two directives may be specified :
+\begin{description}
+\item[sample] Duration of the simulation.
+\item[stochasticity\_absorption] Default stochasticity absorption factor. If not specified, the default is $1$ (no absorption).
+\end{description}
+
+\subsection{Process Definition}
+
+Processes are defined by a name and a maximum level.
+
+\noindent The follwing example define a process $a$ with 2 levels $\{0,1\}$ and a process $b$ with 3 levels $\{0,1,2\}$:
+\begin{verbatim}
+process a 1
+process b 2
+\end{verbatim}
+
+
+\subsection{Actions}
+
+Declare actions $\hit{a_i}{b_j}{b_k}$ and attach to them a use rate and optionaly a stochasticity absorption factor.
+If no stochasticity absorption is specified, the default stochasticity absorption factor is used.
+Processes have to be defined before creating such an action.
+
+\noindent The following example adds an action $\hit{a_1}{b_2}{b_0}$ with a use rate $r=0.5$ and a stochasticity absorption $sa = 10$:
+\begin{verbatim}
+a1 -> b2 0 @ 0.5 ~ 10
+\end{verbatim}
+
+
+\subsection{Initial state}
+
+The initial state is by default all processes at level 0.
+It may be changed through the statement \verb|initial_state| by giving a list of process level present initially.
+
+\begin{verbatim}
+initial_state a1,b2
+\end{verbatim}
+
 
 \newpage
 \section{Language summary}

@@ -1,4 +1,4 @@
-/* gcc -I/usr/share/R/include -L/usr/lib/R/lib/ -lR -o test_qgamma r_gamma.c */
+/* gcc `pkg-config --cflags --libs libR` -o test_qgamma r_gamma.c */
 
 #include <stdio.h>
 #include <Rmath.h>
