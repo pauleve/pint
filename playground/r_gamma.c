@@ -1,6 +1,7 @@
-/* gcc `pkg-config --cflags --libs libR` -o test_qgamma r_gamma.c */
+/* gcc `pkg-config --cflags --libs libRmath` -o test_qgamma r_gamma.c */
 
 #include <stdio.h>
+#define MATHLIB_STANDALONE
 #include <Rmath.h>
 int main() {
 	double q, shape, scale, res;
