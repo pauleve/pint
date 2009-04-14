@@ -207,9 +207,9 @@ let prism_of_ph (ps,hits) init_state properties =
 						let hc = hitcounter hitid
 						in
 						[hc ^": [1.."^string_of_int sa^"] init 1;"],
-						["[] "^prism_is_state b j^" & "^hc^"<"^string_of_int sa^
+						[sync^prism_is_state b j^" & "^hc^"<"^string_of_int sa^
 								" -> "^r^": ("^hc^"'="^hc^"+1);"
-						;"[] "^prism_is_state b j^" & "^hc^"="^string_of_int sa^
+						;sync^prism_is_state b j^" & "^hc^"="^string_of_int sa^
 								" -> "^r^": "^
 								prism_set_state b k^" & %%;"],
 						[hc]
