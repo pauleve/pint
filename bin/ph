@@ -1,8 +1,9 @@
 #!/bin/bash
 PH=$1; shift
-TIME=$1; shift
 PROCS=$*
 
-ph2spim $PH $TIME || exit
-pspim $PH.spi || exit
-ph-plot $PH.spi.csv $PROCS
+spi=$PH.spi
+
+phc -spim $PH $spi || exit
+pspim $spi || exit
+ph-plot $spi $PROCS
