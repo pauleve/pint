@@ -1,5 +1,6 @@
 
 open Ph_types;;
+let string_of_float0 = Util.string_of_float0;;
 
 type piproc_arg_action = ArgReset | ArgUpdate of (string * string) list;;
 
@@ -172,25 +173,22 @@ let prism_of_ph (ps,hits) init_state properties =
 		let modules =
 			let sa = sa_value sa
 			in
-			let r = r *. float_of_int sa
+			let r = string_of_float0 (r *. float_of_int sa)
 			in
 			if (a,i) = (b,j) then (
 				let mod_a = 
 					if sa = 1 then (
 						[],
-						["[] "^prism_is_state a i^" -> "^
-							string_of_float r^": "^prism_set_state a k^";"],
+						["[] "^prism_is_state a i^" -> "^r^": "^prism_set_state a k^";"],
 						[]
 					) else (
 						let hc = hitcounter hitid
 						in
 						[hc ^": [1.."^string_of_int sa^"] init 1;"],
 						["[] "^prism_is_state a i^" & "^hc^"<"^string_of_int sa^
-								" -> "^string_of_float r^": "^
-								hc^"'="^hc^"+1;"
+								" -> "^r^": ("^hc^"'="^hc^"+1);"
 						;"[] "^prism_is_state a i^" & "^hc^"="^string_of_int sa^
-								" -> "^string_of_float r^": "^
-								prism_set_state a k^" & %%"],
+								" -> "^r^": "^prism_set_state a k^" & %%;"],
 						[hc]
 					)
 				in
@@ -199,7 +197,7 @@ let prism_of_ph (ps,hits) init_state properties =
 				let sync = "[h_"^string_of_int hitid^"] "
 				in
 				let action_a = sync^prism_is_state a i^" -> "^
-					string_of_float r^": "^prism_set_state a i^";"
+					r^": "^prism_set_state a i^";"
 				and mod_b =
 					if sa = 1 then (
 						[],
@@ -210,11 +208,10 @@ let prism_of_ph (ps,hits) init_state properties =
 						in
 						[hc ^": [1.."^string_of_int sa^"] init 1;"],
 						["[] "^prism_is_state b j^" & "^hc^"<"^string_of_int sa^
-								" -> "^string_of_float r^": "^
-								hc^"'="^hc^"+1;"
+								" -> "^r^": ("^hc^"'="^hc^"+1);"
 						;"[] "^prism_is_state b j^" & "^hc^"="^string_of_int sa^
-								" -> "^string_of_float r^": "^
-								prism_set_state b k^" & %%"],
+								" -> "^r^": "^
+								prism_set_state b k^" & %%;"],
 						[hc]
 					)
 				in
