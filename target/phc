@@ -3,9 +3,9 @@ all: nc
 include phlib/Makefile.inc
 
 SOURCES = $(PHLIB_SOURCES) \
-	ph2spim.ml
+	phc.ml
 
-RESULT = bin/ph2spim
+RESULT = bin/phc
 
 include OCamlMakefile
 # vi:set syntax=make:

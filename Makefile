@@ -1,19 +1,19 @@
-all: pint ph2spim
+all: pint phc
 
-ph2spim:
-	make -f target/ph2spim
+phc:
+	make -f target/phc
 pint:
 	make -f target/pinttop
 
 clean:
-	make -f target/ph2spim clean
+	make -f target/phc clean
 	make -f target/pinttop clean
 
 exportph: clean
-	-rm -rf dist/ph2spim
-	mkdir -p dist/ph2spim
-	cp -rv commonlib phlib ph2spim.ml dist/ph2spim
-	cp target/ph2spim dist/ph2spim/Makefile
-	cp OCamlMakefile dist/ph2spim
-	mkdir dist/ph2spim/bin
+	-rm -rf dist/phc
+	mkdir -p dist/phc
+	cp -rv commonlib phlib phc.ml dist/phc
+	cp target/phc dist/phc/Makefile
+	cp OCamlMakefile dist/phc
+	mkdir dist/phc/bin
 

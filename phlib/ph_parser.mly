@@ -48,9 +48,8 @@ decl :
   New process	{ assert (snd $2 > 0); $2 }
 ;
 instr : 
-  process Hit process Int						{ ($1, $3, $4, Ph_types.RateInf, None) }
-| process Hit process Int At Float 				{ ($1, $3, $4, Ph_types.Rate $6, None) }
-| process Hit process Int At Float Absorb Int 	{ ($1, $3, $4, Ph_types.Rate $6, Some $8) }
+  process Hit process Int At Float 				{ ($1, $3, $4, $6, None) }
+| process Hit process Int At Float Absorb Int 	{ ($1, $3, $4, $6, Some $8) }
 ;
 content :
   content decl { merge_decl $1 $2 }

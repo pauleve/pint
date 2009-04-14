@@ -9,7 +9,7 @@ a.out
 ./runs
 ./test_pseudomonas
 ./pint.top
-./bin/ph2spim
+./bin/phc
 ./phlib/ph_parser.ml
 ./phlib/ph_parser.mli
 ./phlib/ph_lexer.ml
