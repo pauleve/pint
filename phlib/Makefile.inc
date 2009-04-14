@@ -5,7 +5,7 @@ SOURCES := \
 	ph_types.mli\
 	ph_parser.mly\
 	ph_lexer.mll\
-	ph.ml\
+	ph_translator.ml\
 
 LIBS := str
 
