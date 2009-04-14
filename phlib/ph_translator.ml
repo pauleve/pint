@@ -128,6 +128,9 @@ let spim_of_ph (ps,hits) init_state properties =
 let prism_of_ph (ps,hits) init_state properties =
 	let modname p = "proc_"^p
 	and statemod p = p
+	and hitcounter hitid = "c_"^string_of_int hitid
+	and sa_value = function Some sa -> sa
+		| None -> int_of_string (List.assoc "stochasticity_absorption" properties)
 	in
 
 	let module_of_proc (a,l_a) =
@@ -135,130 +138,93 @@ let prism_of_ph (ps,hits) init_state properties =
 					(string_of_int (List.assoc a init_state))
 					^"; // state"
 		in
-		(a, ([decl],[]))
+		(a, ([decl],[],[]))
 	in
 	let modules = List.map module_of_proc ps
 	in
 
-	let module_update modules id decls actions =
-		let _decls,_actions = List.assoc id modules
+	let module_update modules (id,(decls,actions,counters)) =
+		let _decls,_actions,_counters = List.assoc id modules
 		in
-		(id, (_decls@decls,_actions@actions))::List.remove_assoc id modules
+		(id, (_decls@decls,_actions@actions,_counters@counters))
+		::List.remove_assoc id modules
+	in
+	let modules_update = List.fold_left module_update
+	in
+	let string_of_module (a, (decls, actions,counters)) =
+		let reset_counters = "("^(String.concat "'=1) & (" counters)^"'=1)"
+		in
+		let apply = Str.global_replace (Str.regexp_string "%%") reset_counters
+		in
+		"module "^(modname a)^"\n"^
+		"\t"^(String.concat "\n\t" decls)^"\n\n"^
+		"\t"^apply (String.concat "\n\t" actions)^"\n\n"^
+		"endmodule"
 	in
 
-	let register_hit (a,i) (((b,j),(r,sa)),k) (modules, hitid) =
+	let prism_is_state a i = 
+		statemod a^"="^string_of_int i
+	and prism_set_state a i' =
+		"("^statemod a^"'="^string_of_int i'^")"
+	in
+
+	let register_hit (b,j) (((a,i),(r,sa)),k) (modules, hitid) =
 		let modules =
+			let sa = sa_value sa
+			in
+			let r = r *. float_of_int sa
+			in
 			if (a,i) = (b,j) then (
-				let action = "[] "^(statemod a)^"="^(string_of_int i)^" -> "^
-					string_of_float r^": "^
-						statemod b^"' = "^string_of_int k^";"
+				let mod_a = 
+					if sa = 1 then (
+						[],
+						["[] "^prism_is_state a i^" -> "^
+							string_of_float r^": "^prism_set_state a k^";"],
+						[]
+					) else (
+						let hc = hitcounter hitid
+						in
+						[hc ^": [1.."^string_of_int sa^"] init 1;"],
+						["[] "^prism_is_state a i^" & "^hc^"<"^string_of_int sa^
+								" -> "^string_of_float r^": "^
+								hc^"'="^hc^"+1;"
+						;"[] "^prism_is_state a i^" & "^hc^"="^string_of_int sa^
+								" -> "^string_of_float r^": "^
+								prism_set_state a k^" & %%"],
+						[hc]
+					)
 				in
-				module_update modules a [] [action]
+				modules_update modules [a,mod_a]
 			) else (
-				modules
+				let sync = "[h_"^string_of_int hitid^"] "
+				in
+				let action_a = sync^prism_is_state a i^" -> "^
+					string_of_float r^": "^prism_set_state a i^";"
+				and mod_b =
+					if sa = 1 then (
+						[],
+						[sync^prism_is_state b j^" -> "^prism_set_state b k^";"],
+						[]
+					) else (
+						let hc = hitcounter hitid
+						in
+						[hc ^": [1.."^string_of_int sa^"] init 1;"],
+						["[] "^prism_is_state b j^" & "^hc^"<"^string_of_int sa^
+								" -> "^string_of_float r^": "^
+								hc^"'="^hc^"+1;"
+						;"[] "^prism_is_state b j^" & "^hc^"="^string_of_int sa^
+								" -> "^string_of_float r^": "^
+								prism_set_state b k^" & %%"],
+						[hc]
+					)
+				in
+				modules_update modules [a,([],[action_a],[]);b,mod_b]
 			)
 		in modules, hitid + 1
 	in
 	let modules, _ = Hashtbl.fold register_hit hits (modules,0)
 	in
-		(*
-		let sync = if a = b then "[]" else ("[h"^(string_of_int hitid)^"]")
-		in
-		and p2' = (fst p2,l)
-		and notify_level = "!"^chanl_of_process (fst p2)^"("^string_of_int l^")"
-		in
-		let i_cid = "i_"^cid
-		and next = notify_level^";%%", [p2',ArgReset]
-		in
-		let stochasticity_absorption pl action (nexts,nextd) = match r with 
-			    RateInf -> action^nexts, nextd
-			  | Rate _ -> action^"if "^i_cid^" = 1 then ("^nexts^") else (%%)", nextd@[pl,ArgUpdate [cid,"-1"]]
-		in
-		let piprocs = 
-			if p1 = p2 then (
-				(* delay *)
-				let action = if r <> RateInf then "delay@"^cid^";" else ""
-				in
-				let pi = stochasticity_absorption p2 action next
-				in
-				add_pichoice piprocs p2 pi
-			) else (
-				let piprocs = add_pichoice piprocs p1 ("!"^cid^";%%", [p1,ArgUpdate []])
-				in
-				let pi = stochasticity_absorption p2 ("?"^cid^";") next
-				in
-				add_pichoice piprocs p2 pi
-			)
-		in
-		let c = (cid, r, sa, p2 <> p1)
-		in
-		(piprocs,c::channels,counter+1)
-	in
-	let piprocs,channels,counter = Hashtbl.fold register_hit hits (piprocs,[],0)
-	in
-	let extract_args (piproc, pi) =
-		let extract_args (_, d) = List.flatten 
-			(List.map (fun (pl,arg_action) -> match arg_action with ArgUpdate args -> List.map fst args | _ -> []) d)
-		in
-		piproc, List.flatten (List.map extract_args pi)
-	in
-	let piprocs_args = List.map extract_args piprocs
-	in
 
-	let string_of_picall (pl, arg_action) =
-		let args = List.assoc pl piprocs_args
-		in
-		(pi_name_level pl)^"("^(String.concat "," (match arg_action with
-		  ArgUpdate au -> List.map (fun arg ->
-		  	"i_"^arg^try List.assoc arg au with Not_found -> "") args
-		| ArgReset -> List.map (fun arg -> "sa_"^arg) args
-		))^")"
-	in
-
-	let string_of_pi piproc (pis, pid) =
-		Util.string_apply "%%" pis (List.map string_of_picall pid)
-	in
-		
-	let string_of_channel (cid, rate, _, ischan) = match ischan with
-		  true -> "new "^cid^(match rate with 
-		  				  Rate f -> "@("^Util.string_of_float0 f^"*float_of_int sa_"^cid^")"
-						| RateInf -> "")^":chan"
-		| false -> (match rate with
-						  Rate f -> "val "^cid^"="^Util.string_of_float0 f^"*float_of_int sa_"^cid
-						| RateInf -> "")
-	and string_of_piproc (piproc, choices) =
-		let args = List.assoc piproc piprocs_args
-		in
-
-		(pi_name_level piproc)^"("^(String.concat "," (List.map
-			(fun arg -> "i_"^arg^":int") args))^") = "
-		^ match choices with
-		  [] -> "!dead"
-		| [pi] -> string_of_pi piproc pi
-		| pis -> "do "^String.concat " or " (List.map (string_of_pi piproc) pis)
-	in
-
-	let def_level_channels = String.concat "\n"
-		(List.map (fun (p,l) -> "new "^chanl_of_process p^":chan(int)") ps)
-	and pl_to_plot = String.concat ";" (List.flatten
-		(List.map (fun (p,l) -> List.map (fun l -> p_level (p,l)) (Util.range 0 l)) ps))
-	and pl = "let "^String.concat "\nand "
-		(List.map (fun (p,l) -> p^"(level:int) = ?"^chanl_of_process p^"(level); "^p^"(level)") ps)
-	in
-	
-	let defs = "new dead:chan\n" ^ 
-		(String.concat "\n" (List.map string_of_channel channels))
-	and body = "let "^
-		String.concat "\nand " (List.map string_of_piproc piprocs)^
-		"\n\nlet w() = delay@0.5; w()"
-	*)
-
-	let string_of_module (a, (decls, actions)) =
-		"module "^(modname a)^"\n"^
-		"\t"^(String.concat "\n\t" decls)^"\n\n"^
-		"\t"^(String.concat "\n\t" actions)^"\n\n"^
-		"endmodule"
-	in
 
 	let header = "ctmc"
 	in
