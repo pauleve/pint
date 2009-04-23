@@ -9,7 +9,7 @@ clean:
 	make -f target/phc clean
 	make -f target/pinttop clean
 
-exportph: clean
+exportphc: clean
 	-rm -rf dist/phc
 	mkdir -p dist/phc
 	cp -rv commonlib phlib phc.ml dist/phc

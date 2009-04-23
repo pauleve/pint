@@ -6,9 +6,11 @@ type piproc_arg_action = ArgReset | ArgUpdate of (string * string) list;;
 
 (* spim_of_ph with stochasticity_absorption *)
 let spim_of_ph (ps,hits) init_state properties =
-	let chanl_of_process p = "l_"^p
-	and p_level (p,l) = p^"("^string_of_int l^")"
-	and pi_name_level (p,l) = p^string_of_int l
+	let chanl_of_process a = "l_"^a
+	and p_level (a,i) = a^"("^string_of_int i^")"
+	and p_name (a,i) = a^string_of_int i
+	and sa_value = function Some sa -> sa
+		| None -> int_of_string (List.assoc "stochasticity_absorption" properties)
 	in
 	let register_metaproc piprocs (p,l) =
 		piprocs @ List.map (fun l -> (p,l),[]) (Util.range 0 l)
@@ -21,54 +23,66 @@ let spim_of_ph (ps,hits) init_state properties =
 		(piproc,pi::pis)::List.remove_assoc piproc piprocs
 	in
 	let register_hit p2 ((p1,(r,sa)),l) (piprocs,channels,counter) =
-		let cid = "hit"^string_of_int counter
+		let hitid = "hit"^string_of_int counter
 		and p2' = (fst p2,l)
 		and notify_level = "!"^chanl_of_process (fst p2)^"("^string_of_int l^")"
+		and sa = sa_value sa
 		in
-		let i_cid = "i_"^cid
-		and next = notify_level^";%%", [p2',ArgReset]
+		let hitcounter = "c_"^hitid
+		and nexts, nextd = notify_level^";%%", [p2',ArgReset]
 		in
-		let stochasticity_absorption pl action (nexts,nextd) =
-			  action^"if "^i_cid^" = 1 then ("^nexts^") else (%%)", nextd@[pl,ArgUpdate [cid,"-1"]]
+		let stochasticity_absorption p action =
+			if sa = 1 then
+				(action^nexts, nextd)
+			else (
+				action^"if "^hitcounter^" = "^string_of_int sa^" then ("^
+					nexts^") else (%%)", nextd@[p,ArgUpdate [hitcounter,"+1"]]
+			)
 		in
 		let piprocs = 
 			if p1 = p2 then (
 				(* delay *)
-				let action = "delay@"^cid^";"
+				let action = "delay@"^hitid^";"
 				in
-				let pi = stochasticity_absorption p2 action next
+				let pi = stochasticity_absorption p1 action
 				in
 				add_pichoice piprocs p2 pi
 			) else (
-				let piprocs = add_pichoice piprocs p1 ("!"^cid^";%%", [p1,ArgUpdate []])
+				(* a_i *)
+				let pi = ("!"^hitid^";%%", [p1,ArgUpdate []])
 				in
-				let pi = stochasticity_absorption p2 ("?"^cid^";") next
+				let piprocs = add_pichoice piprocs p1 pi
+				in
+				(* b_j *)
+				let pi = stochasticity_absorption p2 ("?"^hitid^";")
 				in
 				add_pichoice piprocs p2 pi
 			)
 		in
-		let c = (cid, r, sa, p2 <> p1)
+		let c = (hitid, r, sa, p2 <> p1)
 		in
 		(piprocs,c::channels,counter+1)
 	in
 	let piprocs,channels,counter = Hashtbl.fold register_hit hits (piprocs,[],0)
 	in
-	let extract_args (piproc, pi) =
+	let extract_args (p, pis) =
 		let extract_args (_, d) = List.flatten 
-			(List.map (fun (pl,arg_action) -> match arg_action with ArgUpdate args -> List.map fst args | _ -> []) d)
+			(List.map (fun (p,arg_action) -> match arg_action with 
+				  ArgUpdate args -> List.map fst args
+				| _ -> []) d)
 		in
-		piproc, List.flatten (List.map extract_args pi)
+		p, List.flatten (List.map extract_args pis)
 	in
-	let piprocs_args = List.map extract_args piprocs
+	let p_args = List.map extract_args piprocs
 	in
 
-	let string_of_picall (pl, arg_action) =
-		let args = List.assoc pl piprocs_args
+	let string_of_picall (p, arg_action) =
+		let args = List.assoc p p_args
 		in
-		(pi_name_level pl)^"("^(String.concat "," (match arg_action with
+		(p_name p)^"("^(String.concat "," (match arg_action with
 		  ArgUpdate au -> List.map (fun arg ->
-		  	"i_"^arg^try List.assoc arg au with Not_found -> "") args
-		| ArgReset -> List.map (fun arg -> "sa_"^arg) args
+		  	arg^try List.assoc arg au with Not_found -> "") args
+		| ArgReset -> List.map (fun arg -> "1") args
 		))^")"
 	in
 
@@ -76,54 +90,66 @@ let spim_of_ph (ps,hits) init_state properties =
 		Util.string_apply "%%" pis (List.map string_of_picall pid)
 	in
 		
-	let string_of_channel (cid, rate, _, ischan) = match ischan with
-		  true -> "new "^cid^
-		  	("@("^Util.string_of_float0 rate^"*float_of_int sa_"^cid^")")^":chan"
-		| false -> 
-			("val "^cid^"="^Util.string_of_float0 rate^"*float_of_int sa_"^cid)
-
-	and string_of_piproc (piproc, choices) =
-		let args = List.assoc piproc piprocs_args
+	let string_of_channel (hitid, r, sa, ischan) =
+		let r = string_of_float0 (r *. float_of_int sa)
 		in
+		if ischan then ("new "^hitid^"@"^r^":chan") else ("val "^hitid^"="^r)
 
-		(pi_name_level piproc)^"("^(String.concat "," (List.map
-			(fun arg -> "i_"^arg^":int") args))^") = "
+	and string_of_piproc (p, choices) =
+		let args = List.assoc p p_args
+		in
+		(p_name p)^"("^(String.concat "," 
+				(List.map (fun arg -> arg^":int") args))^") = "
 		^ match choices with
 		  [] -> "!dead"
-		| [pi] -> string_of_pi piproc pi
-		| pis -> "do "^String.concat " or " (List.map (string_of_pi piproc) pis)
+		| [pi] -> string_of_pi p pi
+		| pis -> "do "^String.concat " or " (List.map (string_of_pi p) pis)
 	in
 
-	let def_level_channels = String.concat "\n"
-		(List.map (fun (p,l) -> "new "^chanl_of_process p^":chan(int)") ps)
-	and pl_to_plot = String.concat ";" (List.flatten
-		(List.map (fun (p,l) -> List.map (fun l -> p_level (p,l)) (Util.range 0 l)) ps))
-	and pl = "let "^String.concat "\nand "
-		(List.map (fun (p,l) -> p^"(level:int) = ?"^chanl_of_process p^"(level); "^p^"(level)") ps)
-	in
+	(* plot list *)
+	let plot_list = String.concat ";" (List.flatten
+		(List.map (fun (a,l_a) -> 
+			List.map (fun i -> p_level (a,i)) (Util.range 0 l_a)) ps))
 	
+
+	(* level changes notifiers *)
+	and def_notifiers = String.concat "\n"
+		(List.map (fun (a,l_a) -> "new "^chanl_of_process a^":chan(int)") ps)
+
+	and notifiers = "let "^String.concat "\nand "
+		(List.map (fun (a,l_a) -> 
+			a^"(level:int) = ?"^chanl_of_process a^"(level); "^a^"(level)") ps)
+	in
+
+	(* channels definitions *)
 	let defs = "new dead:chan\n" ^ 
 		(String.concat "\n" (List.map string_of_channel channels))
+	
+	(* processes definitions *)
 	and body = "let "^
 		String.concat "\nand " (List.map string_of_piproc piprocs)^
-		"\n\nlet w() = delay@0.5; w()"
+		"\n\nlet w() = delay@0.5; w()" (* wake-up process *)
 
-	and directives = String.concat "\n" [
-		"directive sample "^Util.string_of_float0 (float_of_string (List.assoc "sample" properties));
-		"directive plot w();"^pl_to_plot;
-		"\n(* stochasticity absorption *)";
-		String.concat "\n" (List.map (fun (cid,rate,sa,ischan) -> 
-			"val sa_"^cid^" = "^match sa with None -> List.assoc "stochasticity_absorption" properties | Some value -> string_of_int value) channels);
-		"\n(* level watchers *)";
-		def_level_channels; pl
-	]
-
-	and run = "run ("^(String.concat " | " 
-					(List.map (fun (n,l) -> string_of_picall ((n,l),ArgReset)
-						^ "|" ^ p_level (n,l))
-						init_state)) ^ "| w())\n"
+	(* initial state *)
+	and run = "run ("^(String.concat " | " (List.map (fun p -> 
+						string_of_picall (p,ArgReset)^ "|" ^ p_level p)
+						init_state)) ^
+					"| w())\n"
 	in
-	directives ^ "\n\n" ^ defs ^ "\n\n" ^ body ^ "\n\n" ^ run
+	String.concat "\n" [
+		"directive sample "^Util.string_of_float0 (float_of_string (List.assoc "sample" properties));
+		"directive plot w();"^plot_list;
+		"";
+		"(* level changes notifiers *)";
+		def_notifiers;
+		notifiers;
+		"";
+		defs;
+		"";
+		body;
+		"";
+		run
+	]
 ;;
 
 let prism_of_ph (ps,hits) init_state properties =
