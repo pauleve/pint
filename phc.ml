@@ -10,11 +10,11 @@ let _ =
 	in
 	let language, filename, output = match Array.length Sys.argv with
 		4 -> Sys.argv.(1), Sys.argv.(2), Sys.argv.(3)
-		| _ -> failwith "Usage: phc <-pint|-prism > <source.ph> <output>"
+		| _ -> failwith "Usage: phc <-spim|-prism > <source.ph> <output>"
 	in
 
 	let translator = match language with
-		  "-pint" -> Ph_translator.spim_of_ph
+		  "-spim" -> Ph_translator.spim_of_ph
 		| "-prism" -> Ph_translator.prism_of_ph
 		| _ -> failwith ("Unknown language "^language)
 	in
