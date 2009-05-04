@@ -22,3 +22,4 @@ docs/*.pdf
 playground/erlang-r.pts
 playground/erlang-sa.pts
 playground/r_plot_erlang
+playground/dsum
