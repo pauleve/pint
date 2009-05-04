@@ -15,5 +15,6 @@ exportphc: clean
 	cp -rv commonlib phlib phc.ml dist/phc
 	cp target/phc dist/phc/Makefile
 	cp OCamlMakefile dist/phc
+	cp README-PHC.txt disc/phc/README.txt
 	mkdir dist/phc/bin
 
