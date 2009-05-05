@@ -37,6 +37,12 @@ let merge_instr (ps,hits) (p1,p2,l,r,sa) =
 %token Directive Sample Stoch_abs Absorb
 %token Comma Initial
 
+%token <char> RegulationSign
+%token <string> RegulationGene
+%token <int> RegulationThreshold
+
+%token <Ph_types.regulation> MacroRegulation
+
 %start main
 %type <(string * string) list * Ph_types.ph * (string * int) list> main
 
@@ -55,6 +61,14 @@ content :
   content decl { merge_decl $1 $2 }
 | content instr { merge_instr $1 $2 }
 | decl		 { merge_decl ([], Hashtbl.create 0) $1 }
+;
+
+macro_call:
+  MacroRegulation regulation_def	{ macro_regulation $2 }
+;
+
+regulation_def :
+  RegulationGene RegulationThreshold RegulationSign RegulationGene	{ Regulation($1, $2, match $3 with '+' -> Ph_types.Positive | '-' -> Ph_types.Negative, $3) }
 ;
 
 header :

@@ -1,0 +1,33 @@
+#!/usr/bin/env python
+
+import sys
+
+from xml.dom.minidom import parse
+
+inputname = sys.argv[1]
+outputname = inputname.replace(".ginml","")+".ph"
+
+ginml = parse(inputname)
+
+ph = open(outputname, 'w')
+ph.write("directive sample 10000.\n\n")
+
+# process definitions
+nodes = ginml.getElementsByTagName("node")
+for node in nodes :
+	a = node.getAttribute("id")
+	la = int(node.getAttribute("maxvalue"))
+	ph.write("process %s %d\n" % (a, la))
+ph.write("\n")
+
+# interactions
+edges = ginml.getElementsByTagName("edge")
+for edge in edges :
+	a = edge.getAttribute("from")
+	t = int(edge.getAttribute("minvalue"))
+	b = edge.getAttribute("to")
+	sgn = edge.getAttribute("sign") == "positive" and "+" or "-"
+	ph.write("REGULATION(%s %d -> %s %s)\n" % (a,t,sgn,b))
+ph.write("\n")
+	
+
