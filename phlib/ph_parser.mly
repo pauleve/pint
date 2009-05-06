@@ -48,14 +48,19 @@ let macro_regulation regulation (ps,hits) = match regulation with
 			let make_hit j =
 				Hit((a,i), (b,j), if r = Positive then j+1 else j-1)
 			in
-			List.map make_hit
-				(Util.range (if r = Positive then 0 else 1)
-							(if r = Negative then lb else (lb-1)))
+			let range_j = Util.range (if r = Positive then 0 else 1)
+								(if r = Negative then lb else (lb-1))
+			in
+			let range_j = if a = b then 
+					if List.mem i range_j then [i] else []
+				else range_j
+			in
+			List.map make_hit range_j
 
 		in
 		List.flatten (List.map apply_regulation (Util.range 0 la))
 ;;
-let macro_grn ctx regulations =
+let macro_grn regulations ctx =
 	let folder (hits, genes, regulated) = function
 		Regulation (a,t,s,b) ->
 			let n_regulated = SSet.singleton b
@@ -81,6 +86,10 @@ let macro_grn ctx regulations =
 
 let precall_macro_regulation name regulation = match name with
 	  "REGULATION" -> macro_regulation regulation
+	| _ -> failwith ("Unkown macro '"^name^"'")
+;;
+let precall_macro_regulation_list name regulations = match name with
+	  "GRN" -> macro_grn regulations
 	| _ -> failwith ("Unkown macro '"^name^"'")
 ;;
 
@@ -118,11 +127,16 @@ instr :
 | process ARROW process Int At Float Absorb Int 	{ ($1, $3, $4, $6, Some $8) }
 ;
 macro:
-	  Name LPAREN regulation_def RPAREN	{ precall_macro_regulation $1 $3 }
+	  Name LPAREN regulation RPAREN	{ precall_macro_regulation $1 $3 }
+	| Name LPAREN LBRACKET regulation_list RBRACKET RPAREN { precall_macro_regulation_list $1 $4 }
 ;
 
-regulation_def :
+regulation:
 	  Name Int ARROW Sign Name	{ Regulation($1, $2, (if $4 = '+' then Positive else Negative), $5) }
+;
+regulation_list:
+	  regulation	{ [$1] }
+	| regulation SEMI regulation_list	{ $1::$3 }
 ;
 
 header :
