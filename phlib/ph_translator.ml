@@ -255,4 +255,23 @@ let prism_of_ph (ps,hits) init_state properties =
 			^ "\n\n"
 ;;
 
+let dump_of_ph (ps,hits) init_state properties =
+	(String.concat "\n" (List.map (fun (pname, pvalue) -> 
+	"directive "^pname^" "^pvalue) properties))
+	^"\n\n"^
+	(String.concat "\n" (List.map (fun (a,i) ->
+	"process "^a^" "^string_of_int i) ps))
+	^"\n\n"^
+	let string_of_hits (b,j) (((a,i),(r,sa)),k) str =
+		str^
+		a^" "^string_of_int i^" -> "^b^" "^string_of_int j^" "^string_of_int k
+		^" @ "^string_of_float r^
+		(match sa with None -> "" | Some v -> (" ~ "^string_of_int v))
+		^"\n"
+	in
+	Hashtbl.fold string_of_hits hits ""
+	^"\n\n"
+;;
+	
+
 
