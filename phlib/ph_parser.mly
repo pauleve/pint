@@ -136,6 +136,7 @@ regulation:
 ;
 regulation_list:
 	  regulation	{ [$1] }
+	| regulation SEMI	{ [$1] }
 	| regulation SEMI regulation_list	{ $1::$3 }
 ;
 
