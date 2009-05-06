@@ -1,4 +1,5 @@
 %{
+open Ph_types;;
 let merge_decl (ps,hits) p =
 	let merge_metaproc ps (p,l) =
 		try
@@ -28,47 +29,100 @@ let merge_instr (ps,hits) (p1,p2,l,r,sa) =
 	Hashtbl.add hits p2 ((p1, (r,sa)),l);
 	(ps,hits)
 ;;
+let ph_add_hits (ps, hits) hits' =
+	let iter = function
+		Hit (ai, bj, j') -> Hashtbl.add hits bj ((ai, (1.,None)), j')
+	in
+	List.iter iter hits';
+	(ps,hits)
+;;
+
+let macro_regulation regulation (ps,hits) = match regulation with
+	Regulation (a,t,s,b) ->
+		let la = List.assoc a ps and lb = List.assoc b ps
+		in
+		let apply_regulation i =
+			let r = if i >= t then s else match s with Positive -> Negative |
+												Negative -> Positive
+			in
+			let make_hit j =
+				Hit((a,i), (b,j), if r = Positive then j+1 else j-1)
+			in
+			List.map make_hit
+				(Util.range (if r = Positive then 0 else 1)
+							(if r = Negative then lb else (lb-1)))
+
+		in
+		List.flatten (List.map apply_regulation (Util.range 0 la))
+;;
+let macro_grn ctx regulations =
+	let folder (hits, genes, regulated) = function
+		Regulation (a,t,s,b) ->
+			let n_regulated = SSet.singleton b
+			in
+			let n_genes = SSet.add a n_regulated
+			in
+			hits @ macro_regulation (Regulation (a,t,s,b)) ctx,
+			SSet.union genes n_genes,
+			SSet.union regulated n_regulated
+	in
+	let init = ([], SSet.empty, SSet.empty)
+	in
+	let hits, genes, regulated = List.fold_left folder init regulations
+	in
+	let unregulateds = SSet.diff genes regulated
+	in
+	let folder a hits =
+		hits @ macro_regulation (Regulation (a,0,Negative,a)) ctx
+	in
+	SSet.fold folder unregulateds hits
+;;
+
+
+let precall_macro_regulation name regulation = match name with
+	  "REGULATION" -> macro_regulation regulation
+	| _ -> failwith ("Unkown macro '"^name^"'")
+;;
+
 %}
 
 %token <string> Name
 %token <float> Float
 %token <int> Int
-%token New Art Hit At Eof
+%token New Art At Eof Initial
 %token Directive Sample Stoch_abs Absorb
-%token Comma Initial
+%token ARROW
+%token COMMA LBRACKET LPAREN RBRACKET RPAREN SEMI
 
-%token <char> RegulationSign
-%token <string> RegulationGene
-%token <int> RegulationThreshold
-
-%token <Ph_types.regulation> MacroRegulation
+%token <char> Sign
 
 %start main
 %type <(string * string) list * Ph_types.ph * (string * int) list> main
 
 %%
-process :
-  Name Int	{ ($1, $2) }
+
+content :
+  content decl { merge_decl $1 $2 }
+| content instr { merge_instr $1 $2 }
+| content macro { let hits = $2 $1 in ph_add_hits $1 hits }
+| decl		 { merge_decl ([], Hashtbl.create 0) $1 }
 ;
 decl :
   New process	{ assert (snd $2 > 0); $2 }
 ;
+process :
+  Name Int	{ ($1, $2) }
+;
 instr : 
-  process Hit process Int At Float 				{ ($1, $3, $4, $6, None) }
-| process Hit process Int At Float Absorb Int 	{ ($1, $3, $4, $6, Some $8) }
+  process ARROW process Int At Float 				{ ($1, $3, $4, $6, None) }
+| process ARROW process Int At Float Absorb Int 	{ ($1, $3, $4, $6, Some $8) }
 ;
-content :
-  content decl { merge_decl $1 $2 }
-| content instr { merge_instr $1 $2 }
-| decl		 { merge_decl ([], Hashtbl.create 0) $1 }
-;
-
-macro_call:
-  MacroRegulation regulation_def	{ macro_regulation $2 }
+macro:
+	  Name LPAREN regulation_def RPAREN	{ precall_macro_regulation $1 $3 }
 ;
 
 regulation_def :
-  RegulationGene RegulationThreshold RegulationSign RegulationGene	{ Regulation($1, $2, match $3 with '+' -> Ph_types.Positive | '-' -> Ph_types.Negative, $3) }
+	  Name Int ARROW Sign Name	{ Regulation($1, $2, (if $4 = '+' then Positive else Negative), $5) }
 ;
 
 header :
@@ -83,7 +137,7 @@ headers :
 
 processlist :
   process { $1::[] }
-| process Comma processlist { $1::$3 }
+| process COMMA processlist { $1::$3 }
 ;
 initstate :
   Initial processlist { $2 }

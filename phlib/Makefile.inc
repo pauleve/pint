@@ -2,7 +2,7 @@
 SOURCES := \
 	../commonlib/util.ml\
 	\
-	ph_types.mli\
+	ph_types.ml\
 	ph_parser.mly\
 	ph_lexer.mll\
 	ph_translator.ml\

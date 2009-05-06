@@ -11,7 +11,7 @@ let line_incr lexbuf =
 }
 
 let digit = ['0'-'9']
-let name = ['A'-'z']['A'-'z' '0'-'9']*
+let name = ['A'-'Z' 'a'-'z' '_']['A'-'Z' 'a'-'z' '_' '0'-'9' '\'']*
 
 rule lexer = parse
   [' ' '\t' '\r']	{ lexer lexbuf }
@@ -20,11 +20,16 @@ rule lexer = parse
 | "directive" { Directive }
 | "sample" { Sample }
 | "stochasticity_absorption" { Stoch_abs }
-| "REGULATION(" { MacroREGULATION (regulation lexbuf) }
-| "->" { Hit }
+| "(" { LPAREN }
+| ")" { RPAREN }
+| "[" { LBRACKET }
+| "]" { RBRACKET }
+| "->" { ARROW }
 | "@" { At }
 | "~" { Absorb }
-| "," { Comma }
+| "," { COMMA }
+| ";" { SEMI }
+| ['+' '-'] as sign	{ Sign sign }
 | "initial_state" { Initial }
 | digit+ as value { Int (int_of_string value) }
 | name as n { Name n }
@@ -37,13 +42,4 @@ and comment n = parse
  | '\n' 		{ line_incr lexbuf; comment n lexbuf}
  | "*)" 		{ if (n-1) > 0 then comment (n-1) lexbuf else lexer lexbuf} 
  |  _ 			{ comment n lexbuf } 
-
-and regulation = parse
-  [' ' '\t' '\r']	{ regulation lexbuf }
- | '\n'			{line_incr lexbuf; regulation lexbuf}
- | ['+' '-'] as sign	{ RegulationSign sign }
- | name as n	{ RegulationGene n }
- | digit+ as v	{ RegulationThreshold v }
- | "->"			{ regulation lexbuf }
- | ")"			{ lexer lexbuf }
 
