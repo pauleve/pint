@@ -14,7 +14,8 @@ let _ =
 	in
 
 	let translator = match language with
-		  "-spim" -> Ph_translator.spim_of_ph
+		  "-dump" -> Ph_translator.dump_of_ph
+		| "-spim" -> Ph_translator.spim_of_ph
 		| "-prism" -> Ph_translator.prism_of_ph
 		| _ -> failwith ("Unknown language "^language)
 	in
