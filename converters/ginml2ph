@@ -20,14 +20,15 @@ for node in nodes :
 	ph.write("process %s %d\n" % (a, la))
 ph.write("\n")
 
-# interactions
+# gene regulatory network
+ph.write("GRN([\n")
 edges = ginml.getElementsByTagName("edge")
 for edge in edges :
 	a = edge.getAttribute("from")
 	t = int(edge.getAttribute("minvalue"))
 	b = edge.getAttribute("to")
 	sgn = edge.getAttribute("sign") == "positive" and "+" or "-"
-	ph.write("REGULATION(%s %d -> %s %s)\n" % (a,t,sgn,b))
-ph.write("\n")
+	ph.write("\t%s %d -> %s %s;\n" % (a,t,sgn,b))
+ph.write("])\n\n")
 	
 
