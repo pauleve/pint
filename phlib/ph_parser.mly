@@ -34,7 +34,7 @@ let ph_add_hits (ps, hits) hits' =
 		Hit (ai, bj, j') -> Hashtbl.add hits bj ((ai, (1.,None)), j')
 	in
 	List.iter iter hits';
-	(ps,hits)
+	hits
 ;;
 
 let macro_regulation regulation (ps,hits) = match regulation with
@@ -58,38 +58,84 @@ let macro_regulation regulation (ps,hits) = match regulation with
 			List.map make_hit range_j
 
 		in
-		List.flatten (List.map apply_regulation (Util.range 0 la))
+		ps, ph_add_hits (ps,hits) (List.flatten (List.map apply_regulation (Util.range 0 la)))
 ;;
 let macro_grn regulations ctx =
-	let folder (hits, genes, regulated) = function
+	let folder (regulations, genes, regulated) = function
 		Regulation (a,t,s,b) ->
 			let n_regulated = SSet.singleton b
 			in
 			let n_genes = SSet.add a n_regulated
 			in
-			hits @ macro_regulation (Regulation (a,t,s,b)) ctx,
+			Regulation (a,t,s,b)::regulations,
 			SSet.union genes n_genes,
 			SSet.union regulated n_regulated
 	in
 	let init = ([], SSet.empty, SSet.empty)
 	in
-	let hits, genes, regulated = List.fold_left folder init regulations
+	let regulations, genes, regulated = List.fold_left folder init regulations
 	in
 	let unregulateds = SSet.diff genes regulated
 	in
-	let folder a hits =
-		hits @ macro_regulation (Regulation (a,0,Negative,a)) ctx
+	let folder a regulations =
+		Regulation (a,0,Negative,a)::regulations
 	in
-	SSet.fold folder unregulateds hits
+	let regulations = SSet.fold folder unregulateds regulations
+	in
+	let folder ctx regulation =
+		macro_regulation regulation ctx
+	in
+	List.fold_left folder ctx regulations
+;;
+
+let macro_cooperativity sigma ak k' top (ps,hits) =
+
+	let sigma_len = List.length sigma
+	in
+	
+	let rec build_idx_sizes n prec_size =
+		let my_size = if n = sigma_len-1 then 1 else ((1+List.assoc (List.nth sigma (n+1)) ps) * prec_size)
+		and n' = n-1
+		in
+		(if n' < -1 then [] else build_idx_sizes (n-1) my_size)
+		@ [my_size]
+	in
+	let idx_sizes = build_idx_sizes (sigma_len-1) 1
+	in
+	let lsigma = List.hd idx_sizes - 1
+	and idx_sizes = List.tl idx_sizes
+	in
+	let sigma_name = String.concat "" sigma
+	in
+	let sigma_p = (sigma_name, lsigma)
+	in
+	let idx_from_state state =
+		let rec idx_from_state n = function
+			  [] -> 0
+			| i::tail -> i*(List.nth idx_sizes n) + idx_from_state (n+1) tail
+		in
+		idx_from_state 0 state
+	in
+	let h'coop = List.map (fun state ->
+		Hit ((sigma_name, idx_from_state state), ak, k'))
+			top
+	in
+	let ps = sigma_p::ps
+	in
+	ps, ph_add_hits (ps,hits) h'coop
 ;;
 
 
-let precall_macro_regulation name regulation = match name with
-	  "REGULATION" -> macro_regulation regulation
+let precall_macro_regulation name = match name with
+	  "REGULATION" -> macro_regulation 
 	| _ -> failwith ("Unkown macro '"^name^"'")
 ;;
-let precall_macro_regulation_list name regulations = match name with
-	  "GRN" -> macro_grn regulations
+let precall_macro_regulation_list name = match name with
+	  "GRN" -> macro_grn
+	| _ -> failwith ("Unkown macro '"^name^"'")
+;;
+let precall_macro_cooperativity name = match name with
+	  "COOPERATIVITY" -> macro_cooperativity 
 	| _ -> failwith ("Unkown macro '"^name^"'")
 ;;
 
@@ -113,7 +159,7 @@ let precall_macro_regulation_list name regulations = match name with
 content :
   content decl { merge_decl $1 $2 }
 | content instr { merge_instr $1 $2 }
-| content macro { let hits = $2 $1 in ph_add_hits $1 hits }
+| content macro { $2 $1 }
 | decl		 { merge_decl ([], Hashtbl.create 0) $1 }
 ;
 decl :
@@ -129,6 +175,8 @@ instr :
 macro:
 	  Name LPAREN regulation RPAREN	{ precall_macro_regulation $1 $3 }
 	| Name LPAREN LBRACKET regulation_list RBRACKET RPAREN { precall_macro_regulation_list $1 $4 }
+	| Name LPAREN LBRACKET name_list RBRACKET ARROW process Int COMMA
+				LBRACKET state_list RBRACKET RPAREN { precall_macro_cooperativity $1 $4 $7 $8 $11 }
 ;
 
 regulation:
@@ -138,6 +186,24 @@ regulation_list:
 	  regulation	{ [$1] }
 	| regulation SEMI	{ [$1] }
 	| regulation SEMI regulation_list	{ $1::$3 }
+;
+name_list:
+	  Name { [$1] }
+	| Name SEMI { [$1] }
+	| Name SEMI name_list { $1::$3 }
+;
+state_list:
+	  state { [$1] }
+	| state SEMI { [$1] }
+	| state SEMI state_list { $1::$3 }
+;
+state:
+	LBRACKET level_list RBRACKET { $2 }
+;
+level_list:
+	  Int { [$1] }
+	| Int SEMI { [$1] }
+	| Int SEMI level_list { $1::$3 }
 ;
 
 header :
