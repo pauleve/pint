@@ -126,7 +126,7 @@ let macro_cooperativity sigma ak k' top (ps,hits) =
 		idx_from_state 0 state
 	in
 
-	let _S = Util.cross_list (List.map (fun a -> Util.range 0 (List.assoc a ps)) sigma)
+	let _S = Util.cross_list (List.map (fun a -> Util.range 0 (List.assoc a ps)) (List.rev sigma))
 	in
 
 	let folder hsigma z =
