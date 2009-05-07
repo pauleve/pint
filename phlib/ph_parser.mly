@@ -36,6 +36,16 @@ let ph_add_hits (ps, hits) hits' =
 	List.iter iter hits';
 	hits
 ;;
+let filter_hits (ps, hits) pred =
+	let hits' = Hashtbl.create 0
+	in
+	let iter bj ((ai,param),j') =
+		if pred (Hit (ai,bj,j')) then
+			Hashtbl.add hits' bj ((ai,param),j')
+	in
+	Hashtbl.iter iter hits;
+	hits'
+;;
 
 let macro_regulation regulation (ps,hits) = match regulation with
 	Regulation (a,t,s,b) ->
@@ -92,7 +102,6 @@ let macro_cooperativity sigma ak k' top (ps,hits) =
 
 	let sigma_len = List.length sigma
 	in
-	
 	let rec build_idx_sizes n prec_size =
 		let my_size = if n = sigma_len-1 then 1 else ((1+List.assoc (List.nth sigma (n+1)) ps) * prec_size)
 		and n' = n-1
@@ -105,9 +114,9 @@ let macro_cooperativity sigma ak k' top (ps,hits) =
 	let lsigma = List.hd idx_sizes - 1
 	and idx_sizes = List.tl idx_sizes
 	in
-	let sigma_name = String.concat "" sigma
+	let sigma_n = String.concat "" sigma
 	in
-	let sigma_p = (sigma_name, lsigma)
+	let sigma_p = (sigma_n, lsigma)
 	in
 	let idx_from_state state =
 		let rec idx_from_state n = function
@@ -116,13 +125,40 @@ let macro_cooperativity sigma ak k' top (ps,hits) =
 		in
 		idx_from_state 0 state
 	in
-	let h'coop = List.map (fun state ->
-		Hit ((sigma_name, idx_from_state state), ak, k'))
+
+	let _S = Util.cross_list (List.map (fun a -> Util.range 0 (List.assoc a ps)) sigma)
+	in
+
+	let folder hsigma z =
+		let n = Util.index_of z sigma
+		in
+		let folder hsigma i =
+			let my_S = List.filter (fun state -> List.nth state n <> i) _S
+			in
+			let make_hit state =
+				let shift = (i - List.nth state n)*(List.nth idx_sizes n)
+				and state_id = idx_from_state state
+				in
+				let state'_id = state_id + shift
+				in
+				Hit ((z,i), (sigma_n,state_id), state'_id)
+			in
+			hsigma @ List.map make_hit my_S
+		in
+		List.fold_left folder hsigma (Util.range 0 (List.assoc z ps))
+	in
+	let hsigma = List.fold_left folder [] sigma
+
+	and hits = filter_hits (ps,hits) (fun h ->
+		match h with Hit (ai,bj,j') -> not (bj = ak && j' = k'))
+
+	and h'coop = List.map (fun state ->
+		Hit ((sigma_n, idx_from_state state), ak, k'))
 			top
 	in
 	let ps = sigma_p::ps
 	in
-	ps, ph_add_hits (ps,hits) h'coop
+	ps, ph_add_hits (ps,hits) (h'coop@hsigma)
 ;;
 
 

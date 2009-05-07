@@ -41,6 +41,14 @@ let list_separate pred =
 	List.fold_left folder ([], [])
 ;;
 
+let index_of v = 
+	let rec index_of n = function
+		  [] -> raise Not_found
+		| h::q -> if h = v then n else index_of (n+1) q
+	in
+	index_of 0
+;;
+
 let rec subset l = function [] -> true
 	| h::q -> (List.mem h l) && subset l q
 ;;
