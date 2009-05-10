@@ -24,7 +24,7 @@ struct
 
 	let rec simplify = function [] -> []
 		| (frac,vars)::q -> 
-			let r, q = Util.list_separate (fun (frac2,vars2) -> 
+			let r, q = List.partition (fun (frac2,vars2) -> 
 							VarSet.equal vars vars2) q
 			in
 			let frac = List.fold_left add_num frac (List.map fst r)

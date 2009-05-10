@@ -1,8 +1,11 @@
 all: top
 include Makefile.common
-SOURCES = $(PINTLIB_SOURCES)\
+include phlib/Makefile.inc
+SOURCES = \
+	$(PINTLIB_SOURCES)\
+	$(PHLIB_SOURCES)\
 	ui.ml
-LIBS = $(PINTLIB_LIBS)
+LIBS = $(PINTLIB_LIBS) $(PHLIB_LIBS)
 RESULT = pint
 include OCamlMakefile
 # vi:set syntax=make:
