@@ -24,7 +24,7 @@ let hitless_graph (ps, hits) =
 	let folder set c =
 		let (ai,bj) = List.nth c 0, List.nth c 1
 		in
-		if ai <> bj && not (has_hit ai bj || has_hit bj ai) then
+		if fst ai <> fst bj && not (has_hit ai bj || has_hit bj ai) then
 			PCSet.add (ai,bj) set
 		else
 			set
