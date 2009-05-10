@@ -29,7 +29,21 @@ let parse channel_in =
 ;;
 
 let subph (ps,hits) sigma' =
-	List.filter (fun (a,la) -> List.mem a sigma') ps, hits
+	List.filter (fun (a,la) -> List.mem a sigma') ps,
+	Hashtbl.copy hits
 ;;
 
+let knockdown (ps,hits) a =
+	let hits = Hashtbl.copy hits
+	and la = List.assoc a ps
+	in
+	let rec remove_all i =
+		if Hashtbl.mem hits (a,i) then (
+			Hashtbl.remove hits (a,i);
+			remove_all i
+		)
+	in
+	List.iter remove_all (Util.range 0 la);
+	(a,0)::List.remove_assoc a ps, hits
+;;
 

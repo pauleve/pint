@@ -24,6 +24,8 @@ rule lexer = parse
 | ")" { RPAREN }
 | "[" { LBRACKET }
 | "]" { RBRACKET }
+| "{" { LCURLY }
+| "}" { RCURLY }
 | "->" { ARROW }
 | "@" { At }
 | "~" { Absorb }

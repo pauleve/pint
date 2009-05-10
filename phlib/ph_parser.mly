@@ -161,7 +161,32 @@ let macro_cooperativity sigma ak k' top (ps,hits) =
 	ps, ph_add_hits (ps,hits) (h'coop@hsigma)
 ;;
 
+let macro_remove actions (ps,hits) =
+	let remove_action (ai,bj,j') =
+		let restore_stack stack =
+			List.iter (fun elt -> Hashtbl.add hits bj elt) stack
+		in
+		let rec remove_from_stack stack =
+			try 
+				let (ai',p),j'' = Hashtbl.find hits bj
+				in
+				Hashtbl.remove hits bj;
+				if ai' = ai && j'' = j' then
+					restore_stack stack
+				else
+					remove_from_stack (((ai',p),j'')::stack)
+			with Not_found -> restore_stack stack
+		in
+		remove_from_stack []
+	in
+	List.iter remove_action actions;
+	ps, hits
+;;
 
+let precall_macro_action_list name = match name with
+	  "RM" -> macro_remove
+	| _ -> failwith ("Unkown macro '"^name^"'")
+;;
 let precall_macro_regulation name = match name with
 	  "REGULATION" -> macro_regulation 
 	| _ -> failwith ("Unkown macro '"^name^"'")
@@ -183,7 +208,7 @@ let precall_macro_cooperativity name = match name with
 %token New Art At Eof Initial
 %token Directive Sample Stoch_abs Absorb
 %token ARROW
-%token COMMA LBRACKET LPAREN RBRACKET RPAREN SEMI
+%token COMMA LBRACKET LCURLY LPAREN RBRACKET RCURLY RPAREN SEMI
 
 %token <char> Sign
 
@@ -209,10 +234,19 @@ instr :
 | process ARROW process Int At Float Absorb Int 	{ ($1, $3, $4, $6, Some $8) }
 ;
 macro:
-	  Name LPAREN regulation RPAREN	{ precall_macro_regulation $1 $3 }
+	  Name LPAREN LCURLY action_list RCURLY RPAREN { precall_macro_action_list $1 $4 }
+	| Name LPAREN regulation RPAREN	{ precall_macro_regulation $1 $3 }
 	| Name LPAREN LBRACKET regulation_list RBRACKET RPAREN { precall_macro_regulation_list $1 $4 }
 	| Name LPAREN LBRACKET name_list RBRACKET ARROW process Int COMMA
 				LBRACKET state_list RBRACKET RPAREN { precall_macro_cooperativity $1 $4 $7 $8 $11 }
+;
+action_list:
+	  action { [$1] }
+	| action SEMI { [$1] }
+	| action SEMI action_list { $1::$3 }
+;
+action:
+	  process ARROW process Int { ($1,$3,$4) }
 ;
 
 regulation:

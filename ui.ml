@@ -175,6 +175,11 @@ let show_path_rates_mapped decisions rs =
 let ph_load filename = fst (Ph_util.parse (open_in filename));;
 let ph_stable_states = Ph_verif.stable_states;;
 let ph_extract = Ph_util.subph;;
+let ph_count_states (ps,hits) = 
+	let counter c (_,la) = c*(la+1)
+	in
+	List.fold_left counter 1 ps
+;;
 
 
 
