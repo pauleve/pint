@@ -174,6 +174,7 @@ let show_path_rates_mapped decisions rs =
  **)
 let ph_load filename = fst (Ph_util.parse (open_in filename));;
 let ph_stable_states = Ph_verif.stable_states;;
+let ph_extract = Ph_util.subph;;
 
 
 

@@ -28,4 +28,8 @@ let parse channel_in =
 						"Syntax error")
 ;;
 
+let subph (ps,hits) sigma' =
+	List.filter (fun (a,la) -> List.mem a sigma') ps, hits
+;;
+
 

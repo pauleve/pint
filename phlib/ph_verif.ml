@@ -36,9 +36,11 @@ module EMap = Map.Make (struct type t = process * string
 	let compare = compare end);;
 
 let stable_states (ps,hits) =
+	(*DEBUG*) print_endline ". hitless graph";
 	let v, e = hitless_graph (ps,hits)
 	and sigma = fst (List.split ps)
 	in
+	(*DEBUG*) print_endline " OK";
 	(* Fill E *)
 	let register_couple ((a,i),(b,j)) _E =
 		let register_couple _E ((a,i),(b,j)) =
@@ -52,8 +54,10 @@ let stable_states (ps,hits) =
 		in
 		register_couple _E ((b,j),(a,i))
 	in
+	(*DEBUG*) print_endline ". fill E";
 	let _E = PCSet.fold register_couple e (EMap.empty);
 	in
+	(*DEBUG*) print_endline " OK";
 	(* Prune E *)
 	let _E_remove _E ai =
 		(* remove E_ai *)
@@ -66,6 +70,7 @@ let stable_states (ps,hits) =
 		EMap.map (fun eb -> Util.list_remove ai eb) _E
 	in
 	let rec prune v _E =
+		(* DEBUG *) print_endline ". prune";
 		let has_empty (a,i) =
 			let check b =
 				if b <> a then
@@ -81,11 +86,14 @@ let stable_states (ps,hits) =
 		match to_rm with [] -> v,_E | _ -> (
 			let _E = List.fold_left _E_remove _E to_rm
 			in
+			(* DEBUG *) print_endline " OK (recur)";
 			prune v _E
 		)
 	in
 	let v,_E = prune v _E
 	in
+	(*DEBUG*) print_endline " DONE";
+
 	(* Choose the smallest E_a *)
 	let count ((a,i),b) eb cE =
 		let prev = try SMap.find a cE with Not_found -> 0
@@ -99,37 +107,36 @@ let stable_states (ps,hits) =
 	in
 	let a = fst (SMap.fold smaller cE ("",-1))
 	in
-(*	print_endline ("choosing part: "^a); 
-	let string_from_proclist pl =
-		String.concat "," (List.map (fun (a,i) -> a^string_of_int i) pl)
-	in
-*)
-	(* Cross product E_a and test for clique *)
-	let is_clique state = 
-(*		print_endline ("testing state "^string_from_proclist state); *)
-		let pairs = Util.cross_list [state;state]
-		in
-	(*	print_endline ("checkings pairs "^String.concat " " (List.map string_from_proclist pairs)); *)
-		let check pair =
-			let ai,bj = List.nth pair 0, List.nth pair 1
-			in
-			ai = bj || PCSet.mem (ai,bj) e
-		in
-		List.for_all check pairs
-	in
+	(*DEBUG*) print_endline (". using "^a); 
+
+	(* Cross product E_a and test for cliques *)
 	let folder stable_states ai =
 		let get_Eaib b = if b = a then [ai]
 			else EMap.find (ai,b) _E
 		in
 		let to_test = List.map get_Eaib sigma
 		in
-		stable_states @
-		List.filter is_clique (Util.cross_list to_test)
+		(*DEBUG*) print_endline (". testing "^string_of_int 
+				(List.fold_left (fun c l -> c*List.length l) 1
+						to_test)^" states");
+
+		let test_surclique clique bj =
+			List.for_all (fun ai -> PCSet.mem (ai,bj) e) clique
+		in
+		let rec build_cliques clique = function
+			  [] -> [clique]
+			| bjs::parts ->
+				let mapper bj =
+					if test_surclique clique bj then
+						build_cliques (bj::clique) parts
+					else []
+				in
+				List.flatten (List.map mapper bjs)
+		in
+		stable_states @ build_cliques [] to_test
 	in
 	let ais = List.filter (fun (b,j) -> a = b) v
 	in
 	List.fold_left folder [] ais
 ;;
-
-
 
