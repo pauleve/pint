@@ -36,11 +36,11 @@ module EMap = Map.Make (struct type t = process * string
 	let compare = compare end);;
 
 let stable_states (ps,hits) =
-	(*DEBUG*) print_endline ". hitless graph";
+	(*DEBUG) print_endline ". hitless graph";*)
 	let v, e = hitless_graph (ps,hits)
 	and sigma = fst (List.split ps)
 	in
-	(*DEBUG*) print_endline " OK";
+	(*DEBUG) print_endline " OK";*)
 	(* Fill E *)
 	let register_couple ((a,i),(b,j)) _E =
 		let register_couple _E ((a,i),(b,j)) =
@@ -54,10 +54,10 @@ let stable_states (ps,hits) =
 		in
 		register_couple _E ((b,j),(a,i))
 	in
-	(*DEBUG*) print_endline ". fill E";
+	(*DEBUG) print_endline ". fill E";*)
 	let _E = PCSet.fold register_couple e (EMap.empty);
 	in
-	(*DEBUG*) print_endline " OK";
+	(*DEBUG) print_endline " OK";*)
 	(* Prune E *)
 	let _E_remove _E ai =
 		(* remove E_ai *)
@@ -70,7 +70,7 @@ let stable_states (ps,hits) =
 		EMap.map (fun eb -> Util.list_remove ai eb) _E
 	in
 	let rec prune v _E =
-		(* DEBUG *) print_endline ". prune";
+		(* DEBUG ) print_endline ". prune"; *)
 		let has_empty (a,i) =
 			let check b =
 				if b <> a then
@@ -86,13 +86,13 @@ let stable_states (ps,hits) =
 		match to_rm with [] -> v,_E | _ -> (
 			let _E = List.fold_left _E_remove _E to_rm
 			in
-			(* DEBUG *) print_endline " OK (recur)";
+			(* DEBUG) print_endline " OK (recur)";*)
 			prune v _E
 		)
 	in
 	let v,_E = prune v _E
 	in
-	(*DEBUG*) print_endline " DONE";
+	(*DEBUG) print_endline " DONE"; *)
 
 	(* Choose the smallest E_a *)
 	let count ((a,i),b) eb cE =
