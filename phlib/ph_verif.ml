@@ -99,11 +99,23 @@ let stable_states (ps,hits) =
 	in
 	let a = fst (SMap.fold smaller cE ("",-1))
 	in
+(*	print_endline ("choosing part: "^a); 
+	let string_from_proclist pl =
+		String.concat "," (List.map (fun (a,i) -> a^string_of_int i) pl)
+	in
+*)
 	(* Cross product E_a and test for clique *)
 	let is_clique state = 
+(*		print_endline ("testing state "^string_from_proclist state); *)
 		let pairs = Util.cross_list [state;state]
 		in
-		List.for_all (fun pair -> PCSet.mem (List.nth pair 0,List.nth pair 1) e) pairs
+	(*	print_endline ("checkings pairs "^String.concat " " (List.map string_from_proclist pairs)); *)
+		let check pair =
+			let ai,bj = List.nth pair 0, List.nth pair 1
+			in
+			ai = bj || PCSet.mem (ai,bj) e
+		in
+		List.for_all check pairs
 	in
 	let folder stable_states ai =
 		let get_Eaib b = if b = a then [ai]
