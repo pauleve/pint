@@ -115,7 +115,7 @@ let remove_channels spig rnames =
 let remove_transitions spig trs = remove_channels spig trs;;
 
 let apply_constraints spig cs =
-	let null_channels, cs = Util.list_separate
+	let null_channels, cs = List.partition
 		(fun c -> match c with Constraint.Null _ -> true | _ -> false) cs
 	in
 	let null_channels = List.map 

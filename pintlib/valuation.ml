@@ -34,14 +34,14 @@ let equations_null_var var = List.map (equation_null_var var)
 ;;
 
 let prod_apply_var_value (var, value) (f, vars) =
-	let vars, a = Util.list_separate (fun v -> v <> var) vars
+	let vars, a = List.partition (fun v -> v <> var) vars
 	in
 	f *. (value ** (float_of_int (List.length a))), vars
 ;;
 let equation_apply_var_value (var,value) (sumprod, value) =
 	let sumprod = List.map (prod_apply_var_value (var, value)) sumprod
 	in
-	let sumprod, new_values = Util.list_separate (fun (f, vars) -> vars <> []) sumprod
+	let sumprod, new_values = List.partition (fun (f, vars) -> vars <> []) sumprod
 	in
 	let value = List.fold_left (fun value (f,vars) -> value-.f) value new_values
 	in
@@ -70,7 +70,7 @@ let rec free_equation_solve = function
 	| (f, [])::q, value -> free_equation_solve (q, value)
 
 	| [1.0, a::vars], value ->
-		let all_a, all_r = Util.list_separate (fun v -> v = a) (a::vars)
+		let all_a, all_r = List.partition (fun v -> v = a) (a::vars)
 		in
 		(match all_r with
 				(* a^n = value -> a = value^(1/n) *)
@@ -101,7 +101,7 @@ let equations_solve valuation eqs =
 			(fun eq -> [] <> Util.list_intersection vars (equation_vars eq))
 			equations)
 	in
-	let free_eqs, eqs = Util.list_separate (equation_is_free eqs) eqs
+	let free_eqs, eqs = List.partition (equation_is_free eqs) eqs
 	in
 	let vals, free_eqs = List.split (List.map free_equation_solve free_eqs)
 	in

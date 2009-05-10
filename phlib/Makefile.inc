@@ -6,6 +6,8 @@ SOURCES := \
 	ph_parser.mly\
 	ph_lexer.mll\
 	ph_translator.ml\
+	ph_verif.ml\
+	ph_util.ml\
 
 LIBS := str
 
