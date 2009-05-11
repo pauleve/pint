@@ -156,9 +156,11 @@ let macro_cooperativity sigma ak k' top (ps,hits) =
 		Hit ((sigma_n, idx_from_state state), ak, k'))
 			top
 	in
-	let ps = sigma_p::ps
+	let is_new = not (List.mem sigma_p ps)
 	in
-	ps, ph_add_hits (ps,hits) (h'coop@hsigma)
+	let ps = if is_new then sigma_p::ps else ps
+	in
+	ps, ph_add_hits (ps,hits) (if is_new then h'coop@hsigma else h'coop)
 ;;
 
 let macro_remove actions (ps,hits) =
