@@ -9,7 +9,7 @@ SOURCES := \
 	ph_verif.ml\
 	ph_util.ml\
 
-LIBS := str
+LIBS := str nums
 
 PHLIB_SOURCES := $(SOURCES:%=phlib/%) \
 export PHLIB_SOURCES
