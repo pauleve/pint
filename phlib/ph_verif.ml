@@ -114,7 +114,7 @@ let stable_states (ps,hits) =
 		let get_Eaib b = if b = a then [ai]
 			else EMap.find (ai,b) _E
 		in
-		let to_test = List.map get_Eaib sigma
+		let to_test = List.rev (List.map get_Eaib sigma)
 		in
 		(*DEBUG*) print_endline (". testing "^string_of_int 
 				(List.fold_left (fun c l -> c*List.length l) 1
