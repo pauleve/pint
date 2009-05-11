@@ -150,7 +150,7 @@ let macro_cooperativity sigma ak k' top (ps,hits) =
 	let hsigma = List.fold_left folder [] sigma
 
 	and hits = filter_hits (ps,hits) (fun h ->
-		match h with Hit (ai,bj,j') -> not (bj = ak && j' = k'))
+		match h with Hit ((a,i),bj,j') -> not (List.mem a sigma && bj = ak && j' = k'))
 
 	and h'coop = List.map (fun state ->
 		Hit ((sigma_n, idx_from_state state), ak, k'))
