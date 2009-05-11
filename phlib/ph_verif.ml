@@ -1,6 +1,8 @@
 
 open Ph_types;;
 
+open Big_int;;
+
 let hitless_graph (ps, hits) =
 	let has_hit ai bj =
 		let hs = Hashtbl.find_all hits bj
@@ -116,9 +118,9 @@ let stable_states (ps,hits) =
 		in
 		let to_test = List.rev (List.map get_Eaib sigma)
 		in
-		(*DEBUG*) print_endline (". testing "^string_of_int 
-				(List.fold_left (fun c l -> c*List.length l) 1
-						to_test)^" states");
+		(*DEBUG*) print_endline (". testing "^string_of_big_int 
+				(List.fold_left (fun c l -> mult_int_big_int (List.length l) c)
+					unit_big_int to_test)^" states");
 
 		let test_surclique clique bj =
 			List.for_all (fun ai -> PCSet.mem (ai,bj) e) clique

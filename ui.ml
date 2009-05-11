@@ -1,4 +1,6 @@
 
+open Big_int;;
+
 let build_brg brg_spec =
 	let brg = Brg.create 0 
 	in
@@ -176,9 +178,9 @@ let ph_load filename = fst (Ph_util.parse (open_in filename));;
 let ph_stable_states = Ph_verif.stable_states;;
 let ph_extract = Ph_util.subph;;
 let ph_count_states (ps,hits) = 
-	let counter c (_,la) = c*(la+1)
+	let counter c (_,la) = mult_int_big_int (la+1) c
 	in
-	List.fold_left counter 1 ps
+	List.fold_left counter unit_big_int ps
 ;;
 
 
