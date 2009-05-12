@@ -143,11 +143,13 @@ let reach_responsible_actions (ps,hits) zk =
 		let resp, actions = List.partition (matching map) actions
 		in
 		match resp with
-		  [] -> resp
+		  [] -> map, resp
 		| _ -> (
 			let map = List.fold_left update_map map resp
 			in
-			resp @ build map actions
+			let map, resp' = build map actions
+			in
+			map, resp@resp'
 		)
 	in
 	let map = update_map SMap.empty (Hit (zk,("",-1),-2))
