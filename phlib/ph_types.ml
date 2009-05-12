@@ -26,6 +26,8 @@ type regulation_t = Regulation of (string * int * regulation_sign * string)
 (* (a,i) * (b,j) * j' *)
 type hit_t = Hit of (process * process * int)
 
+type match_p = Any | ProcessLevel of process | Process of string | Matching of (process -> bool)
+
 (* Proc level couple set *)
 module PCSet = Set.Make (struct type t = (process * process) 
 		let compare (ai,bj) (ai',bj') = 

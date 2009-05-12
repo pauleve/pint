@@ -1,4 +1,6 @@
 
+open Ph_types;;
+
 let parse channel_in =
 	let default_properties = [
 		("sample", "1000.0");
@@ -28,22 +30,12 @@ let parse channel_in =
 						"Syntax error")
 ;;
 
-let subph (ps,hits) sigma' =
-	List.filter (fun (a,la) -> List.mem a sigma') ps,
-	Hashtbl.copy hits
-;;
-
-let knockdown (ps,hits) a =
-	let hits = Hashtbl.copy hits
-	and la = List.assoc a ps
+let matching (ps,hits) pred =
+	let folder bj ((ai,p),j') matches =
+		let action = Hit (ai,bj,j')
+		in
+		if pred action then action::matches else matches
 	in
-	let rec remove_all i =
-		if Hashtbl.mem hits (a,i) then (
-			Hashtbl.remove hits (a,i);
-			remove_all i
-		)
-	in
-	List.iter remove_all (Util.range 0 la);
-	(a,0)::List.remove_assoc a ps, hits
+	Hashtbl.fold folder hits []
 ;;
 
