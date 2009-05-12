@@ -1,38 +1,9 @@
 
-open Ph_types;;
-
 open Big_int;;
 
-let hitless_graph (ps, hits) =
-	let has_hit ai bj =
-		let hs = Hashtbl.find_all hits bj
-		in
-		let pred ((ai',p),j') = ai' = ai
-		in
-		List.exists pred hs
-	in
-	let folder v (a,la) = 
-		let folder v i =
-			let ai = (a,i)
-			in
-			if has_hit ai ai then v else (ai::v)
-		in
-		List.fold_left folder v (Util.range 0 la)
-	in
-	let v = List.fold_left folder [] ps
-	in
-	let v2 = Util.cross_list [v;v]
-	in
-	let folder set c =
-		let (ai,bj) = List.nth c 0, List.nth c 1
-		in
-		if fst ai <> fst bj && not (has_hit ai bj || has_hit bj ai) then
-			PCSet.add (ai,bj) set
-		else
-			set
-	in
-	v, List.fold_left folder PCSet.empty v2
-;;
+open Ph_types;;
+open Ph_op;;
+open Ph_util;;
 
 module EMap = Map.Make (struct type t = process * string
 	let compare = compare end);;
@@ -140,5 +111,48 @@ let stable_states (ps,hits) =
 	let ais = List.filter (fun (b,j) -> a = b) v
 	in
 	List.fold_left folder [] ais
+;;
+
+
+let reach_responsible_actions (ps,hits) zk =
+	let make_black i (black,white) =
+		i::black, Util.list_remove i white
+	in
+	let update_map map = function Hit((a,i),(b,j),j') ->
+		(* make bj black *)
+		let map = try
+			let bw = SMap.find b map
+			in
+			SMap.add b (make_black j bw) map
+			with Not_found -> map
+		in
+		(* make ai black *)
+		let bw = try SMap.find a map with Not_found ->
+						([], Util.range 0 (List.assoc a ps))
+		in
+		SMap.add a (make_black i bw) map
+	in
+	let matching map = function Hit(_,(b,j),j') ->
+		try
+			let black,white = SMap.find b map
+			in
+			List.mem j white && List.mem j' black
+		with Not_found -> false
+	in
+	let rec build map actions =
+		let resp, actions = List.partition (matching map) actions
+		in
+		match resp with
+		  [] -> resp
+		| _ -> (
+			let map = List.fold_left update_map map resp
+			in
+			resp @ build map actions
+		)
+	in
+	let map = update_map SMap.empty (Hit (zk,("",-1),-2))
+	and actions = ph_actions (ps,hits)
+	in
+	build map actions
 ;;
 
