@@ -158,3 +158,39 @@ let reach_responsible_actions (ps,hits) zk =
 	build map actions
 ;;
 
+let reach_decisive_process_levels ph zk =
+	let map, actions = reach_responsible_actions ph zk
+	in
+	let is_target_specific actions ai bj =
+		not (List.exists (function Hit ((a',_),bj',_) -> 
+				bj=bj' && fst ai <> a') actions)
+	in
+	let has_specific_targets actions ai =
+		let hits = List.filter (function Hit(ai',_,_) -> ai'=ai) actions
+		in
+		let targets = List.map (function Hit(_,bj,_) -> bj) hits
+		in
+		List.exists (is_target_specific actions ai) targets
+	in
+	let rec build actions hitters =
+		let hitters' = List.filter (has_specific_targets actions) hitters
+		in
+		if List.length hitters' = List.length hitters then
+			actions, hitters
+		else (
+			let hitters = hitters'
+			in
+			let procs = Util.list_uniq (fst (List.split hitters))
+			in
+			let actions = List.filter (function Hit ((a,_),(b,_),_) -> 
+				List.mem a procs && (List.mem b procs || b = fst zk))
+				actions
+			in
+			build actions hitters
+		)
+	and hitters = Util.list_uniq (List.map (function Hit (ai,_,_) -> ai)
+					actions)
+	in
+	build actions hitters
+;;
+
