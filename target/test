@@ -1,9 +1,0 @@
-include Makefile.common
-
-SOURCES = $(PINTLIB_SOURCES) \
-	test_pseudomonas.ml
-
-RESULT = test_pseudomonas
-
-include OCamlMakefile
-# vi:set syntax=make:
