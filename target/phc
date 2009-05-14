@@ -1,8 +1,10 @@
 all: nc
 
-include phlib/Makefile.inc
+include Makefile.common
 
-SOURCES = $(PHLIB_SOURCES) \
+SOURCES = \
+	$(COMMON_SOURCES) \
+	$(PHLIB_SOURCES) \
 	phc.ml
 
 RESULT = bin/phc

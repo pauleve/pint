@@ -1,7 +1,5 @@
 
 SOURCES := \
-	../commonlib/util.ml\
-	\
 	ph_types.ml\
 	ph_parser.mly\
 	ph_lexer.mll\
@@ -12,7 +10,7 @@ SOURCES := \
 
 LIBS := str nums
 
-PHLIB_SOURCES := $(SOURCES:%=phlib/%) \
+PHLIB_SOURCES := $(SOURCES:%=phlib/%)
 export PHLIB_SOURCES
 PHLIB_LIBS := $(LIBS)
 export PHLIB_LIBS
