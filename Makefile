@@ -1,4 +1,4 @@
-all: pint phc
+all: pint phc libpint
 
 phc:
 	make -f target/phc
