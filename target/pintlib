@@ -1,3 +1,4 @@
+#all: panc
 all: ncl
 include Makefile.common
 include phlib/Makefile.inc
