@@ -234,9 +234,9 @@ let prism_of_ph (ps,hits) init_state properties =
 						in
 						[hc ^": [1.."^string_of_int sa^"] init 1;"],
 						[sync^prism_is_state b j^" & "^hc^"<"^string_of_int sa^
-								" -> "^r^": ("^hc^"'="^hc^"+1);"
+								" -> ("^hc^"'="^hc^"+1);"
 						;sync^prism_is_state b j^" & "^hc^"="^string_of_int sa^
-								" -> "^r^": "^
+								" -> "^
 								prism_set_state b k^" & %%;"],
 						[hc]
 					)
