@@ -255,6 +255,109 @@ let prism_of_ph (ps,hits) init_state properties =
 			^ "\n\n"
 ;;
 
+let prism2_of_ph (ps,hits) init_state properties =
+	let modname p = "proc_"^p
+	and statemod p = p
+	and hitcounter hitid = "c_"^string_of_int hitid
+	and sa_value = function Some sa -> sa
+		| None -> int_of_string (List.assoc "stochasticity_absorption" properties)
+	in
+
+	let module_of_proc (a,l_a) =
+		let decl = (statemod a)^": [0.."^(string_of_int l_a)^"] init "^
+					(string_of_int (List.assoc a init_state))
+					^"; // state"
+		in
+		(a, ([decl],[],[]))
+	in
+	let modules = List.map module_of_proc ps
+	in
+
+	let module_update modules (id,(decls,actions,counters)) =
+		let _decls,_actions,_counters = List.assoc id modules
+		in
+		(id, (_decls@decls,_actions@actions,_counters@counters))
+		::List.remove_assoc id modules
+	in
+	let modules_update = List.fold_left module_update
+	in
+	let string_of_module (a, (decls, actions,counters)) =
+		let reset_counters = "("^(String.concat "'=1) & (" counters)^"'=1)"
+		in
+		let apply = Str.global_replace (Str.regexp_string "%%") reset_counters
+		in
+		"module "^(modname a)^"\n"^
+		"\t"^(String.concat "\n\t" decls)^"\n\n"^
+		"\t"^apply (String.concat "\n\t" actions)^"\n\n"^
+		"endmodule"
+	in
+
+	let prism_is_state a i = 
+		statemod a^"="^string_of_int i
+	and prism_set_state a i' =
+		"("^statemod a^"'="^string_of_int i'^")"
+	in
+
+	let register_hit (b,j) (((a,i),(r,sa)),k) (modules, hitid) =
+		let modules =
+			let sa = sa_value sa
+			in
+			let r = string_of_float0 (r *. float_of_int sa)
+			in
+			if (a,i) = (b,j) then (
+				let mod_a = 
+					if sa = 1 then (
+						[],
+						["[] "^prism_is_state a i^" -> "^r^": "^prism_set_state a k^";"],
+						[]
+					) else (
+						let hc = hitcounter hitid
+						in
+						[hc ^": [1.."^string_of_int sa^"] init 1;"],
+						["[] "^prism_is_state a i^" & "^hc^"<"^string_of_int sa^
+								" -> "^r^": ("^hc^"'="^hc^"+1);"
+						;"[] "^prism_is_state a i^" & "^hc^"="^string_of_int sa^
+								" -> "^r^": "^prism_set_state a k^" & %%;"],
+						[hc]
+					)
+				in
+				modules_update modules [a,mod_a]
+			) else (
+				let sync = "[h_"^string_of_int hitid^"] "
+				in
+				let action_a = sync^prism_is_state a i^" -> "^
+					r^": "^prism_set_state a i^";"
+				and mod_b =
+					if sa = 1 then (
+						[],
+						[sync^prism_is_state b j^" -> "^prism_set_state b k^";"],
+						[]
+					) else (
+						let hc = hitcounter hitid
+						in
+						[hc ^": [1.."^string_of_int sa^"] init 1;"],
+						[sync^prism_is_state b j^" & "^hc^"<"^string_of_int sa^
+								" -> ("^hc^"'="^hc^"+1);"
+						;sync^prism_is_state b j^" & "^hc^"="^string_of_int sa^
+								" -> "^
+								prism_set_state b k^" & %%;"],
+						[hc]
+					)
+				in
+				modules_update modules [a,([],[action_a],[]);b,mod_b]
+			)
+		in modules, hitid + 1
+	in
+	let modules, _ = Hashtbl.fold register_hit hits (modules,0)
+	in
+
+
+	let header = "ctmc"
+	in
+	header ^ "\n\n" ^ (String.concat "\n\n" (List.map string_of_module modules))
+			^ "\n\n"
+;;
+
 let dump_of_ph (ps,hits) init_state properties =
 	(String.concat "\n" (List.map (fun (pname, pvalue) -> 
 	"directive "^pname^" "^pvalue) properties))

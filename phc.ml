@@ -12,6 +12,7 @@ let _ =
 		  "-dump" -> Ph_translator.dump_of_ph
 		| "-spim" -> Ph_translator.spim_of_ph
 		| "-prism" -> Ph_translator.prism_of_ph
+		| "-prism2" -> Ph_translator.prism2_of_ph
 		| _ -> failwith ("Unknown language "^language)
 	in
 
