@@ -375,6 +375,48 @@ let dump_of_ph (ps,hits) init_state properties =
 	Hashtbl.fold string_of_hits hits ""
 	^"\n\n"
 ;;
-	
 
+let romeo_of_ph (ps,hits) init_state properties =
+	let sorts = List.map fst ps
+	in
+	let sort_id a = Util.index_of a sorts
+	in
+	let base_id = let folder acc (a,i) =
+			(i+1+List.hd acc)::acc
+		in List.rev (List.fold_left folder [1] ps)
+	in
+	let proc_id (a,i) = string_of_int (List.nth base_id (sort_id a) + i)
+	in
+
+	let string_of_proc (a,i) =
+		"<place id=\""^proc_id (a,i)^"\" label=\""^a^" "^string_of_int i^"\" "^
+			" initialMarking=\""^(if List.mem (a,i) init_state then "1" else "0")^"\">\n"^
+			"\t<graphics><position x=\""^string_of_int (i*100+100)^"\" y=\""^string_of_int (100*sort_id a+100)^"\"/></graphics>\n"^
+		"</place>"
+
+	and string_of_hit (b,j) (((a,i),(r,sa)),k) ((hid, pids), str) =
+		let pid = 1 + try List.assoc (b,j) pids with Not_found -> 0
+		in
+		(hid+1,	((b,j),pid)::List.remove_assoc (a,i) pids),
+		str ^
+		"<transition id=\""^string_of_int hid^"\" label=\"h"^string_of_int hid^"\"  eft=\"0\" lft=\"0\">\n"^
+			"\t<graphics><position x=\""^string_of_int (j*100+50+100)^"\" "^
+				"y=\""^string_of_int (100*sort_id b+pid*15-40+100)^"\"/>"^
+				"<deltaLabel deltax=\"5\" deltay=\"5\"/>"^
+			"</graphics>\n"^
+		"</transition>\n"^
+		"<arc place=\""^proc_id (b,j)^"\" transition=\""^string_of_int hid^"\" type=\"PlaceTransition\" weight=\"1\"/>\n"^
+		"<arc place=\""^proc_id (a,i)^"\" transition=\""^string_of_int hid^"\" type=\"read\" weight=\"1\"/>\n"^
+		"<arc place=\""^proc_id (b,k)^"\" transition=\""^string_of_int hid^"\" type=\"TransitionPlace\" weight=\"1\"/>"^
+		"\n\n"
+	in
+
+	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<TPN>\n"
+	(* places definitions *)
+	^ (String.concat "\n\n" (List.flatten (List.map (fun (a,i) -> List.map (fun j -> string_of_proc (a,j)) (Util.range 0 i)) ps)))
+	^"\n\n"
+	(* hits *)
+	^ snd (Hashtbl.fold string_of_hit hits ((1,[]), ""))
+	^ "\n</TPN>\n"
+;;
 
