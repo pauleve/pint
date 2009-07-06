@@ -13,6 +13,7 @@ let _ =
 		| "-spim" -> Ph_translator.spim_of_ph
 		| "-prism" -> Ph_translator.prism_of_ph
 		| "-prism2" -> Ph_translator.prism2_of_ph
+		| "-romeo" -> Ph_translator.romeo_of_ph
 		| _ -> failwith ("Unknown language "^language)
 	in
 
