@@ -392,6 +392,7 @@ let romeo_of_ph (ps,hits) init_state properties =
 		"<place id=\""^proc_id (a,i)^"\" label=\""^a^" "^string_of_int i^"\" "^
 			" initialMarking=\""^(if List.mem (a,i) init_state then "1" else "0")^"\">\n"^
 			"\t<graphics><position x=\""^string_of_int (i*100+100)^"\" y=\""^string_of_int (100*sort_id a+100)^"\"/></graphics>\n"^
+			"\t<scheduling gamma=\"0\" omega=\"0\"/>\n"^
 		"</place>"
 
 	and string_of_hit (b,j) (((a,i),(r,sa)),k) ((hid, pids), str) =
