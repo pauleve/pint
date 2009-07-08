@@ -1,4 +1,4 @@
 
 
-double qerlang( double area, int shape, double rate, int lower );
+double qerlang( double area, int shape, double rate, boolean lower );
 
