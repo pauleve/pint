@@ -1,5 +1,11 @@
 
 open Ph_types;;
+
+type opts = {
+	alpha: float; (* 1-confidence *)
+	round_fi: float * float -> int * int (* firing interval rounding *)
+}
+
 let string_of_float0 = Util.string_of_float0;;
 
 type piproc_arg_action = ArgReset | ArgUpdate of (string * string) list;;
@@ -376,7 +382,7 @@ let dump_of_ph (ps,hits) init_state properties =
 	^"\n\n"
 ;;
 
-let romeo_of_ph (ps,hits) init_state properties =
+let romeo_of_ph opts (ps,hits) init_state properties =
 	let sorts = List.map fst ps
 	in
 	let sort_id a = Util.index_of a sorts
@@ -388,6 +394,10 @@ let romeo_of_ph (ps,hits) init_state properties =
 	let proc_id (a,i) = string_of_int (List.nth base_id (sort_id a) + i)
 	in
 
+	let sa_value = function Some sa -> sa
+		| None -> int_of_string (List.assoc "stochasticity_absorption" properties)
+	in
+
 	let string_of_proc (a,i) =
 		"<place id=\""^proc_id (a,i)^"\" label=\""^a^" "^string_of_int i^"\" "^
 			" initialMarking=\""^(if List.mem (a,i) init_state then "1" else "0")^"\">\n"^
@@ -396,11 +406,19 @@ let romeo_of_ph (ps,hits) init_state properties =
 		"</place>"
 
 	and string_of_hit (b,j) (((a,i),(r,sa)),k) ((hid, pids), str) =
+		let fi = Param.firing_interval opts.alpha r (sa_value sa)
+		in
+		let dmin, dmax = opts.round_fi fi
+		in
+		let dmin, dmax = string_of_int dmin, string_of_int dmax
+		in
 		let pid = 1 + try List.assoc (b,j) pids with Not_found -> 0
+		and hlabel = a^" "^string_of_int i^"->"^b^" "^string_of_int j^" "^string_of_int k
 		in
 		(hid+1,	((b,j),pid)::List.remove_assoc (a,i) pids),
 		str ^
-		"<transition id=\""^string_of_int hid^"\" label=\"h"^string_of_int hid^"\"  eft=\"0\" lft=\"0\">\n"^
+		"<transition id=\""^string_of_int hid^"\" label=\""^hlabel^"\"  "^
+			"eft=\""^dmin^"\" lft=\""^dmax^"\">\n"^
 			"\t<graphics><position x=\""^string_of_int (j*100+50+100)^"\" "^
 				"y=\""^string_of_int (100*sort_id b+pid*15-40+100)^"\"/>"^
 				"<deltaLabel deltax=\"5\" deltay=\"5\"/>"^

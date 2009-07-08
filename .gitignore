@@ -24,3 +24,7 @@ playground/erlang-sa.pts
 playground/r_plot_erlang
 playground/dsum
 ./playground/r_gamma
+./bindings/r.h
+./bindings/r.ml
+./bindings/r.mli
+./bindings/r_stubs.c
