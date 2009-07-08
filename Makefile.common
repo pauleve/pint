@@ -1,5 +1,6 @@
 
 include commonlib/Makefile.inc
+include bindings/Makefile.inc
 include phlib/Makefile.inc
 include pintlib/Makefile.inc
 

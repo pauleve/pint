@@ -3,6 +3,7 @@ all: nc
 include Makefile.common
 
 SOURCES = \
+	$(BINDINGS_SOURCES) \
 	$(COMMON_SOURCES) \
 	$(PHLIB_SOURCES) \
 	phc.ml
