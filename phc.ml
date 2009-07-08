@@ -7,17 +7,14 @@ open Ph_translator;;
 let round_float v = (* assume v >= 0 *)
 	let f = floor v
 	in
-	int_of_float (if v -. f > 0.5 then ceil v else f)
+	if v -. f > 0.5 then ceil v else f
 ;;
 
-let round_fi_closest = function dmin,dmax -> round_float dmin, round_float dmax
-;;
-let round_fi_ex = function dmin,dmax ->
-	int_of_float (floor dmin), int_of_float (ceil dmax)
-;;
-let round_fi_in = function dmin,dmax ->
-	int_of_float (ceil dmin), int_of_float (floor dmax)
-;;
+let int_of_fi fi = int_of_float (fst fi), int_of_float (snd fi);;
+let round_fi_closest fi = int_of_fi (round_float (fst fi), round_float (snd fi));;
+let round_fi_ex fi = int_of_fi (floor (fst fi), ceil (snd fi));;
+let round_fi_in fi = int_of_fi (ceil (fst fi), floor (snd fi));;
+let zoom_fi factor fi = factor*.fst fi, factor*.snd fi;;
 
 let _ =
 	let language, filename, output = match Array.length Sys.argv with
