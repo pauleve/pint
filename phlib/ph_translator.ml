@@ -418,7 +418,8 @@ let romeo_of_ph opts (ps,hits) init_state properties =
 		(hid+1,	((b,j),pid)::List.remove_assoc (a,i) pids),
 		str ^
 		"<transition id=\""^string_of_int hid^"\" label=\""^hlabel^"\"  "^
-			"eft=\""^dmin^"\" lft=\""^dmax^"\">\n"^
+			"eft=\""^dmin^"\" lft=\""^dmax^"\" "^
+			"eft_param=\"a"^string_of_int hid^"\" lft_param=\"b"^string_of_int hid^"\" >\n"^
 			"\t<graphics><position x=\""^string_of_int (j*100+50+100)^"\" "^
 				"y=\""^string_of_int (100*sort_id b+pid*15-40+100)^"\"/>"^
 				"<deltaLabel deltax=\"5\" deltay=\"5\"/>"^
