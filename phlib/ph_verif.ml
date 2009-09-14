@@ -114,7 +114,7 @@ let stable_states (ps,hits) =
 ;;
 
 
-let reach_responsible_actions (ps,hits) zk =
+let key_actions (ps,hits) zk =
 	let make_black i (black,white) =
 		i::black, Util.list_remove i white
 	in
@@ -159,7 +159,7 @@ let reach_responsible_actions (ps,hits) zk =
 ;;
 
 let reach_decisive_process_levels ph zk =
-	let map, actions = reach_responsible_actions ph zk
+	let _, actions = key_actions ph zk
 	in
 	let is_target_specific actions ai bj =
 		not (List.exists (function Hit ((a',_),bj',_) -> 

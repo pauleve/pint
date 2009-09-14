@@ -38,6 +38,9 @@ let ph_actions (ps,hits) =
 	in
 	Hashtbl.fold folder hits []
 ;;
+let ph_count_actions (ps,hits) =
+	Hashtbl.length hits
+;;
 
 let subph (ps,hits) sigma' =
 	List.filter (fun (a,la) -> List.mem a sigma') ps,
