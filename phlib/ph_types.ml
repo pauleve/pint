@@ -44,5 +44,10 @@ module PCSet = Set.Make (struct type t = (process * process)
 ;;
 
 module PMap = Map.Make (struct type t = process let compare = compare end);;
+module PSet = Set.Make (struct type t = process let compare = compare end);;
+
+let ph_sigma = function (ps,_) -> List.map fst ps
+;;
+	
 
 
