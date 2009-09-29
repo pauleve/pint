@@ -1,6 +1,7 @@
 
 SOURCES := \
 	../commonlib/util.ml\
+	../commonlib/param.ml\
 	types.ml\
 	graph.ml\
 	polynome.ml\
