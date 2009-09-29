@@ -47,18 +47,23 @@ let subph (ps,hits) sigma' =
 	Hashtbl.copy hits
 ;;
 
-let knockdown (ps,hits) a =
-	let hits = Hashtbl.copy hits
-	and la = List.assoc a ps
+let ph_from_actions actions =
+	let hits = Hashtbl.create 0
 	in
-	let rec remove_all i =
-		if Hashtbl.mem hits (a,i) then (
-			Hashtbl.remove hits (a,i);
-			remove_all i
-		)
+	let update_ps ps (a,i) =
+		try
+			let i' = List.assoc a ps
+			in
+			if i > i' then (a,i)::List.remove_assoc a ps else ps
+		with Not_found -> (a,i)::ps
 	in
-	List.iter remove_all (Util.range 0 la);
-	(a,0)::List.remove_assoc a ps, hits
+	let folder ps = function Hit(ai,bj,k) ->
+		Hashtbl.add hits bj ((ai,None),k);
+		update_ps (update_ps (update_ps ps ai) bj) (fst bj,k)
+	in
+	let ps = List.fold_left folder [] actions
+	in
+	ps,hits
 ;;
 
 
