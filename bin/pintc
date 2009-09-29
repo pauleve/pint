@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-ocamlopt -I "$PINT_PATH" -I "$PINT_PATH/commonlib" -I "$PINT_PATH/pintlib" -I "$PINT_PATH/phlib" $*
+ocamlopt -I "$PINT_PATH" -I "$PINT_PATH/bindings" -I "$PINT_PATH/commonlib" -I "$PINT_PATH/pintlib" -I "$PINT_PATH/phlib" -cclib -lm -cclib -lRmath  -cclib -lcamlidl "$PINT_PATH/bindings/r_stubs.o" "$PINT_PATH/bindings/r_impl.o" $*

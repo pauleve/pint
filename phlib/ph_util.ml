@@ -7,11 +7,6 @@ let parse channel_in =
 	try 
 		let ph, init_state = Ph_parser.main Ph_lexer.lexer lexbuf
 		in
-		let init_state = List.map 
-			(fun (p,_) -> p, try List.assoc p init_state
-					with Not_found -> 0)
-			(fst ph)
-		in
 		ph, init_state
 	with Parsing.Parse_error ->
 		let show_position pos =
