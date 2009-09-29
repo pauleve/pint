@@ -20,6 +20,7 @@ rule lexer = parse
 | "directive" { Directive }
 | "sample" { Sample }
 | "stochasticity_absorption" { Stoch_abs }
+| "default_rate" { Default_rate }
 | "(" { LPAREN }
 | ")" { RPAREN }
 | "[" { LBRACKET }
@@ -31,6 +32,7 @@ rule lexer = parse
 | "~" { Absorb }
 | "," { COMMA }
 | ";" { SEMI }
+| "Inf" { INFTY }
 | ['+' '-'] as sign	{ Sign sign }
 | "initial_state" { Initial }
 | digit+ as value { Int (int_of_string value) }

@@ -31,16 +31,15 @@ let _ =
 		  "-dump" -> dump_of_ph
 		| "-spim" -> spim_of_ph
 		| "-prism" -> prism_of_ph
-		| "-prism2" -> prism2_of_ph
 		| "-romeo" -> romeo_of_ph opts
 		| _ -> failwith ("Unknown language "^language)
 	in
 
 	let channel_in = open_in filename
 	in
-	let ph, (properties,init_state) = Ph_util.parse channel_in
+	let ph, init_state = Ph_util.parse channel_in
 	in
-	let data = translator ph init_state properties
+	let data = translator ph init_state
 	in
 	let fd_out = match output with "-" -> stdout
 					| _ -> open_out output

@@ -12,10 +12,10 @@ module SMap = Map.Make (struct type t = string let compare = compare end);;
 
 type metaprocess = string * int (* name * level max *)
 type process = string * int (* name * level *)
-type sa = int option
-type rate = float
 
-type hits = (process, ((process * (rate*sa)) * int)) Hashtbl.t
+type rate = (float * int) option
+
+type hits = (process, ((process * rate) * int)) Hashtbl.t
 
 type ph = metaprocess list * hits
 
@@ -49,5 +49,17 @@ module PSet = Set.Make (struct type t = process let compare = compare end);;
 let ph_sigma = function (ps,_) -> List.map fst ps
 ;;
 	
+
+type t_directive = {
+	mutable default_rate : float option;
+	mutable default_sa : int;
+	mutable sample : float
+};;
+
+let directive = {
+	default_rate = None;
+	default_sa = 1;
+	sample = 1000.0
+};;
 
 

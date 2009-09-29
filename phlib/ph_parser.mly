@@ -1,5 +1,24 @@
 %{
 open Ph_types;;
+
+type t_directive = {
+	mutable default_rate : float option;
+	mutable default_sa : int;
+	mutable sample : float
+};;
+
+let directive = {
+	default_rate = None;
+	default_sa = 1;
+	sample = 1000.0
+};;
+
+let default_rsa () = 
+	match directive.default_rate with
+	  None -> None
+	| Some r -> Some (r, directive.default_sa)
+;;
+
 let merge_decl (ps,hits) p =
 	let merge_metaproc ps (p,l) =
 		try
@@ -12,7 +31,7 @@ let merge_decl (ps,hits) p =
 	in
 	merge_metaproc ps p, hits
 ;;
-let merge_instr (ps,hits) (p1,p2,l,r,sa) = 
+let merge_instr (ps,hits) (ai,bj,k,rsa_d) = 
 	let assert_p_exists (name,level) =
 		let errstr = "Invalid reference to process "^name^(string_of_int level)^": "
 		in
@@ -23,15 +42,24 @@ let merge_instr (ps,hits) (p1,p2,l,r,sa) =
 				failwith (errstr^"level out of bound (max is "^(string_of_int ml)^")")
 		with Not_found -> failwith (errstr^"undefined metaprocess")
 	in
-	assert_p_exists p1;
-	assert_p_exists p2;
-	assert_p_exists (fst p2, l);
-	Hashtbl.add hits p2 ((p1, (r,sa)),l);
+	assert_p_exists ai;
+	assert_p_exists bj;
+	assert_p_exists (fst bj, k);
+	let rsa = 
+		match rsa_d with
+		   None -> default_rsa ()
+		 | Some(rate_d) -> ( match rate_d with
+		 	   None -> None
+			 | Some(r, None) -> Some (r, directive.default_sa)
+			 | Some(r, Some sa) -> Some (r,sa)
+		)
+	in
+	Hashtbl.add hits bj ((ai, rsa),k);
 	(ps,hits)
 ;;
 let ph_add_hits (ps, hits) hits' =
 	let iter = function
-		Hit (ai, bj, j') -> Hashtbl.add hits bj ((ai, (1.,None)), j')
+		Hit (ai, bj, j') -> Hashtbl.add hits bj ((ai, default_rsa ()), j')
 	in
 	List.iter iter hits';
 	hits
@@ -208,14 +236,14 @@ let precall_macro_cooperativity name = match name with
 %token <float> Float
 %token <int> Int
 %token New Art At Eof Initial
-%token Directive Sample Stoch_abs Absorb
-%token ARROW
+%token Directive Sample Stoch_abs Absorb Default_rate
+%token ARROW INFTY
 %token COMMA LBRACKET LCURLY LPAREN RBRACKET RCURLY RPAREN SEMI
 
 %token <char> Sign
 
 %start main
-%type <(string * string) list * Ph_types.ph * (string * int) list> main
+%type <Ph_types.ph * (string * int) list> main
 
 %%
 
@@ -231,9 +259,14 @@ decl :
 process :
   Name Int	{ ($1, $2) }
 ;
+rate :
+  At INFTY { None }
+| At Float { Some ($2,None) }
+| At Float Absorb Int { Some ($2,Some $4) }
+;
 instr : 
-  process ARROW process Int At Float 				{ ($1, $3, $4, $6, None) }
-| process ARROW process Int At Float Absorb Int 	{ ($1, $3, $4, $6, Some $8) }
+  process ARROW process Int 		 				{ ($1, $3, $4, None) }
+| process ARROW process Int rate 					{ ($1, $3, $4, Some($5)) }
 ;
 macro:
 	  Name LPAREN LCURLY action_list RCURLY RPAREN { precall_macro_action_list $1 $4 }
@@ -279,8 +312,10 @@ level_list:
 ;
 
 header :
-  Sample Float { ("sample",string_of_float $2) }
-| Stoch_abs Int { assert ($2 > 0); ("stochasticity_absorption",string_of_int $2) }
+  Sample Float { directive.sample <- $2 }
+| Stoch_abs Int { assert ($2 > 0); directive.default_sa <- $2 }
+| Default_rate Float { assert ($2 >= 0.); directive.default_rate <- Some($2) }
+| Default_rate INFTY { directive.default_rate <- None }
 ;
 
 headers :
@@ -302,7 +337,7 @@ footer :
 ;
 
 main :
-  Directive headers content footer { ($2,$3,$4) }
-| content footer { ([],$1,$2) }
+  Directive headers content footer { ($3,$4) }
+| content footer { ($1,$2) }
 ;
 %%
