@@ -162,7 +162,7 @@ let prism_of_ph (ps,hits) init_state =
 	in
 
 	let module_of_proc (a,l_a) =
-		let decl = (statemod a)^": [0.."^(string_of_int l_a)^"] init "^
+		let decl = (statemod a)^": [0.."^(string_of_int (max 1 l_a))^"] init "^
 					(string_of_int (try List.assoc a init_state with Not_found -> 0))
 					^"; // state"
 		in
