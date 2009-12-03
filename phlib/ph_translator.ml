@@ -368,8 +368,8 @@ let dump_of_ph (ps,hits) init_state =
 	"process "^a^" "^string_of_int i) ps))
 	^"\n\n"^
 	let string_of_rsa = function
-		  None -> "@ Inf"
-		| Some(r,sa) -> "@ "^string_of_float r^" ~ "^string_of_int sa
+		  None -> " @ Inf"
+		| Some(r,sa) -> " @ "^string_of_float r^" ~ "^string_of_int sa
 	in
 	let string_of_hits (b,j) (((a,i),rsa),k) str =
 		str^
