@@ -10,8 +10,12 @@ module SMap = Map.Make (struct type t = string let compare = compare end);;
  Process Hitting types
 **)
 
+type sort = string
+type sortidx = int
 type metaprocess = string * int (* name * level max *)
-type process = string * int (* name * level *)
+type process = sort * sortidx (* name * level *)
+
+let string_of_process (a,i) = a^"_"^string_of_int i;;
 
 type rate = (float * int) option
 
@@ -49,7 +53,6 @@ module PSet = Set.Make (struct type t = process let compare = compare end);;
 let ph_sigma = function (ps,_) -> List.map fst ps
 ;;
 	
-
 type t_directive = {
 	mutable default_rate : float option;
 	mutable default_sa : int;
@@ -62,4 +65,13 @@ let directive = {
 	sample = 1000.0
 };;
 
+(* Order map *)
+type order = Bot | Order of int;;
+let omap_empty = PMap.empty;;
+let order omap ai =  try PMap.find ai omap with Not_found -> Bot;;
+let set_order omap ai n =
+	if not (PMap.mem ai omap) then
+		PMap.add ai (Order n) omap
+	else omap
+;;
 
