@@ -1,7 +1,8 @@
 
 SOURCES := \
-	util.ml\
+	bool.ml\
 	param.ml\
+	util.ml\
 
 LIBS := 
 
