@@ -4,7 +4,7 @@ include Makefile.common
 
 SOURCES = \
 	$(BINDINGS_SOURCES) \
-	$(COMMON_SOURCES) \
+	$(PINTLIB_SOURCES) \
 	$(PHLIB_SOURCES) \
 	phc.ml
 
