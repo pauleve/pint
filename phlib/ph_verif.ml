@@ -113,84 +113,141 @@ let stable_states (ps,hits) =
 	List.fold_left folder [] ais
 ;;
 
-
-let key_actions (ps,hits) zk =
-	let make_black i (black,white) =
-		i::black, Util.list_remove i white
-	in
-	let update_map map = function Hit((a,i),(b,j),j') ->
-		(* make bj black *)
-		let map = try
-			let bw = SMap.find b map
-			in
-			SMap.add b (make_black j bw) map
-			with Not_found -> map
-		in
-		(* make ai black *)
-		let bw = try SMap.find a map with Not_found ->
-						([], Util.range 0 (List.assoc a ps))
-		in
-		SMap.add a (make_black i bw) map
-	in
-	let matching map = function Hit(_,(b,j),j') ->
-		try
-			let black,white = SMap.find b map
-			in
-			List.mem j white && List.mem j' black
-		with Not_found -> false
-	in
-	let rec build map actions =
-		let resp, actions = List.partition (matching map) actions
-		in
-		match resp with
-		  [] -> map, resp
-		| _ -> (
-			let map = List.fold_left update_map map resp
-			in
-			let map, resp' = build map actions
-			in
-			map, resp@resp'
-		)
-	in
-	let map = update_map SMap.empty (Hit (zk,("",-1),-2))
-	and actions = ph_actions (ps,hits)
-	in
-	build map actions
+let string_of_sortdomain (z,lz') =
+		z^"{"^(String.concat "," (List.map string_of_int lz'))^"}"
+;;
+module BM = Bool.Manipulator (struct
+	type t = (sort * sortidx list)
+	let to_string = string_of_sortdomain end)
 ;;
 
-let reach_decisive_process_levels ph zk =
-	let _, actions = key_actions ph zk
+let harmless (ps,hits) (z,lz') = 
+	let register = Hashtbl.create (List.length ps)
 	in
-	let is_target_specific actions ai bj =
-		not (List.exists (function Hit ((a',_),bj',_) -> 
-				bj=bj' && fst ai <> a') actions)
-	in
-	let has_specific_targets actions ai =
-		let hits = List.filter (function Hit(ai',_,_) -> ai'=ai) actions
-		in
-		let targets = List.map (function Hit(_,bj,_) -> bj) hits
-		in
-		List.exists (is_target_specific actions ai) targets
-	in
-	let rec build actions hitters =
-		let hitters' = List.filter (has_specific_targets actions) hitters
-		in
-		if List.length hitters' = List.length hitters then
-			actions, hitters
-		else (
-			let hitters = hitters'
-			in
-			let procs = Util.list_uniq (fst (List.split hitters))
-			in
-			let actions = List.filter (function Hit ((a,_),(b,_),_) -> 
-				List.mem a procs && (List.mem b procs || b = fst zk))
-				actions
-			in
-			build actions hitters
+	let rec harmless arg = (* caching harmless results *)
+		try Hashtbl.find register arg with Not_found -> (
+			let value = _harmless arg
+			in Hashtbl.add register arg value
 		)
-	and hitters = Util.list_uniq (List.map (function Hit (ai,_,_) -> ai)
-					actions)
+
+	and _harmless (z,lz') =
+
+		(* DEBUG *) print_endline ("# computing harmless("^z^"_{"^
+							(String.concat "," (List.map string_of_int lz'))^"})");
+
+		(********************)
+		(* I. local key actions for reaching lz' *)
+
+		(* index actions on z by their bounce *)
+		(* zhits : (bounce idx, (hitter, target idx)) Hashtbl *)
+		let zhits = Hashtbl.create (List.assoc z ps + 1)
+		in
+		let reindex (b,j) ((ai,p),j') =
+			if b = z then Hashtbl.add zhits j' (ai,j)
+		in
+		Hashtbl.iter reindex hits;
+
+		(* compute local key actions *)
+		(* keyactions: (hitter, target idx, bounce idx) list list *)
+		let rec build_keyactions omap lz' cur_order =
+			(* set lz' order to cur_order *)
+			let omap = List.fold_left (fun omap i -> set_order omap (z,i) cur_order)
+						omap lz'
+			in
+			(* get actions making z bounce to a process in lz' *)
+			let actions = List.flatten (List.map (fun j' -> 
+					List.map (fun (ai,j) -> (ai,j,j'))
+						(Hashtbl.find_all zhits j')
+				) lz')
+			in 
+			(* keep actions having target with bottom order (key actions) *)
+			let actions = List.filter (function (_,j,_) -> order omap (z,j) = Bot) actions
+			in
+			(* extract concerned targets *)
+			let lz' = List.map (function (_,j,_) -> j) actions
+			in
+			match actions with [] -> omap, []
+				| _ -> let omap, keyactions = build_keyactions omap lz' (cur_order+1)
+					in omap, actions::keyactions
+		in
+		let omap, keyactions = build_keyactions omap_empty lz' 0
+		in
+		
+		(* DEBUG *)
+		print_endline "- keyactions";
+		let string_of_action (ai,j,j') = string_of_process ai^"->"^
+				string_of_process (z,j)^" "^string_of_int j'
+		in
+		let rec debug_keyactions n = function [] -> ()
+			| actions::keyactions -> (
+				print_endline ("K^"^string_of_int n^" : ["^
+					(String.concat "; " (List.map string_of_action actions))^"]");
+				debug_keyactions (n+1) keyactions )
+		in
+		debug_keyactions 0 keyactions;
+		(* END DEBUG *)
+
+		(********************)
+		(* II. compute p-harmless for each z_i \in L_z *)
+
+		(* p_harmless : (idx, (sort,idx list) Bool.expr) Hashtbl *)
+		let p_harmless = Hashtbl.create (List.assoc z ps+1)
+		in
+
+		(* sort z_is along their order *)
+		let lz = List.sort (fun i i' -> compare (order omap (z,i)) (order omap (z,i')))
+					(Util.range 0 (List.assoc z ps))
+		in
+		let compute_p_harmless i = 
+			let expr = match order omap (z,i) with
+				  Bot -> Bool.T
+				| Order 0 -> Bool.F
+				| Order n ->  
+					(* group hitters by sort*bounce *)
+					let group sg ((a,k),j,j') = if i <> j then sg else
+						let la' = try PMap.find (a,j') sg with Not_found -> []
+						in
+						PMap.add (a,j') (k::la') sg
+					in
+					let sg = List.fold_left group PMap.empty (List.nth keyactions (n-1))
+					in
+					let folder (a,j') la' expr =
+						Bool.And (expr, Bool.Or (Bool.Not (Bool.L (a,la')), Hashtbl.find p_harmless j'))
+					in
+					PMap.fold folder sg Bool.T
+			in
+			Hashtbl.add p_harmless i expr
+		in
+		List.iter compute_p_harmless lz;
+
+		(* DEBUG *) print_endline "## computing dnfs..."; (**)
+		(* compute dnf *)
+		let p_harmless_dnf = Hashtbl.create (List.assoc z ps+1)
+		in
+		let iterator key expr =
+			Hashtbl.add p_harmless_dnf key (BM.dnf expr)
+		in
+		Hashtbl.iter iterator p_harmless;
+		(* DEBUG *) print_endline "## computing dnfs...OK"; (**)
+
+		(* DEBUG *)
+		let iterator i =
+			let dnf = Hashtbl.find p_harmless_dnf i
+			in
+			print_endline ("p-harmless("^z^string_of_int i^") = " ^ BM.string_of_dnf dnf)
+		in
+		List.iter iterator lz;
+		(* END DEBUG *)
+
+		(********************)
+		(* III. compute harmless *)
+		()
 	in
-	build actions hitters
+
+	harmless (z,lz')
 ;;
+
+
+
+
 

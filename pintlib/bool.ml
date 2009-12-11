@@ -1,6 +1,6 @@
 
 type 'a expr = 
-	L of 'a | Not of 'a expr | And of ('a expr * 'a expr) | Or of ('a expr * 'a expr)
+	L of 'a | F | T | Not of 'a expr | And of ('a expr * 'a expr) | Or of ('a expr * 'a expr)
 ;;
 
 module type LitType = sig 
@@ -27,7 +27,7 @@ struct
 
 	let dnf expr =
 		let rec dnf = function 
-			  (Not _ | L _) as l -> l
+			  (Not _ | L _ | T | F) as l -> l
 			| Or (e1, e2) -> Or (dnf e1, dnf e2)
 			| And (e1, e2) -> distr (dnf e1, dnf e2) 
 		and distr = function 
@@ -35,24 +35,43 @@ struct
 			| (e, Or (e1, e2)) -> Or (distr (e, e1), distr (e, e2))
 			| c -> And c
 		and nnf = function (* forward negations to literals *)
-			  L _ as l -> l
+			  (L _ | T | F) as l -> l
 			| And (e1, e2) -> And (nnf e1, nnf e2)
 			| Or (e1, e2) -> Or (nnf e1, nnf e2)
 			| Not (And (e1, e2)) -> Or (nnf (Not e1), nnf (Not e2))
 			| Not (Or (e1, e2)) -> And (nnf (Not e1), nnf (Not e2))
 			| Not (Not e) -> nnf e
+			| Not T -> F | Not F -> T
 			| Not e -> Not (nnf e)
+		and noTF = function
+			  And (e, F) | And (F, e) -> F
+			| Or (e, T) | Or (T, e) -> T
+			| And (e, T) | And (T, e) | Or (F, e) | Or (e, F) -> noTF e
+			| And (e1, e2) -> (let e1', e2' = noTF e1, noTF e2
+				in let e' = And (e1', e2')
+				in match (e1',e2') with F,_ | _,F | T,_ | _,T -> noTF e'
+					| _ -> e')
+			| Or (e1, e2) -> (let e1', e2' = noTF e1, noTF e2
+				in let e' = Or (e1', e2')
+				in match (e1',e2') with F,_ | _,F | T,_ | _,T -> noTF e'
+					| _ -> e')
+			| e -> e
 		and to_list = function
 			  Or (e1, e2) -> to_list e1 @ to_list e2
 			| And (e1, e2) -> [LSet.union (List.hd (to_list e1)) (List.hd (to_list e2))]
 			| Not (L x) -> [LSet.singleton (false, x)]
 			| L x -> [LSet.singleton (true, x)]
+			| T -> []
 			| _ -> raise (Invalid_argument "dnf.to_list")
 		in
-		dnf_simplify (to_list (dnf (nnf expr)))
+		let to_list = function
+			  F -> None
+			| expr -> Some (dnf_simplify (to_list expr))
+		in
+		to_list (dnf (nnf (noTF expr)))
 	;;
 
-	let string_of_dnf dnf =
+	let string_of_dnf = function None -> "False" | Some [] -> "True" | Some dnf ->
 		let lset_to_string lset = LSet.fold (fun (p,x) s -> 
 				s^(if p then "" else "~")^Lit.to_string x^";"
 			) lset ""
