@@ -6,6 +6,8 @@ type 'a expr =
 module type LitType = sig 
 	type t
 	val to_string : t -> string
+	val tautology : (bool * t) -> (bool * t) -> bool (* returns true if both arguments 
+															are contrary *)
 end;;
 
 module Manipulator ( Lit : LitType ) =
@@ -85,8 +87,11 @@ struct
 		| Some lsets1, Some lsets2 -> Some (dnf_simplify (lsets1@lsets2))
 	;;
 
+
 	let lset_is_tautology lset =
-		let tautology (harm, x) = LSet.mem (not harm, x) lset
+		let tautology (harm, x) =
+			LSet.mem (not harm, x) lset ||
+				LSet.exists (fun (harm', x') -> Lit.tautology (harm,x) (harm',x')) lset
 		in
 		LSet.exists tautology lset
 	;;
