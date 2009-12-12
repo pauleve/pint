@@ -12,7 +12,16 @@ end;;
 
 module Manipulator ( Lit : LitType ) =
 struct
+	module Lit = Lit
+
 	module LSet = Set.Make (struct type t = (bool * Lit.t) let compare = compare end)
+
+	let rec to_string = function
+		  T -> "T" | F -> "F" | L x -> Lit.to_string x
+		| Not x -> "~"^to_string x
+		| And (x1, x2) -> "("^to_string x1^") AND ("^to_string x2^")"
+		| Or (x1, x2) -> "("^to_string x1^") OR ("^to_string x2^")"
+	;;
 
 	let dnf_simplify dnf =
 		let rec dnf_simplify = function [] -> [] |
@@ -25,6 +34,19 @@ struct
 		let dnf = List.sort (fun s1 s2 -> compare (LSet.cardinal s2) (LSet.cardinal s1)) dnf
 		in
 		dnf_simplify dnf
+	;;
+
+	let expr_of_dnf = function
+		  None -> F
+		| Some [] -> T
+		| Some lsets ->	
+			let disj expr lset =
+				let conj (pos,x) expr =
+					And (expr, if pos then L x else (Not (L x)))
+				in
+				Or (expr, LSet.fold conj lset T)
+			in
+			List.fold_left disj F lsets
 	;;
 
 	let dnf expr =
@@ -70,6 +92,17 @@ struct
 			  F -> None
 			| expr -> Some (dnf_simplify (to_list expr))
 		in
+		(*DEBUG*
+		let e = noTF expr
+		in print_endline ". noTF done";
+		let e = nnf e
+		in print_endline ". nnf done";
+		print_endline (to_string e);
+		let e = dnf e
+		in print_endline ". dnf done";
+		let e = to_list e
+		in print_endline ". to_list done";
+		e **)
 		to_list (dnf (nnf (noTF expr)))
 	;;
 
