@@ -114,7 +114,7 @@ let stable_states (ps,hits) =
 ;;
 
 let string_of_sortdomain (z,lz') =
-		z^"{"^(String.concat "," (List.map string_of_int lz'))^"}"
+		z^"_{"^(String.concat "," (List.map string_of_int lz'))^"}"
 ;;
 module BM = Bool.Manipulator (struct
 	type t = (sort * sortidx list)
@@ -172,7 +172,7 @@ let harmless (ps,hits) (z,lz') =
 			let actions = List.filter (function (_,j,_) -> order omap (z,j) = Bot) actions
 			in
 			(* extract concerned targets *)
-			let lz' = List.map (function (_,j,_) -> j) actions
+			let lz' = Util.list_uniq (List.map (function (_,j,_) -> j) actions)
 			in
 			match actions with [] -> omap, []
 				| _ -> let omap, keyactions = build_keyactions omap lz' (cur_order+1)
