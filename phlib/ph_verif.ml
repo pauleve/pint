@@ -118,18 +118,23 @@ let string_of_sortdomain (z,lz') =
 ;;
 module BM = Bool.Manipulator (struct
 	type t = (sort * sortidx list)
-	let to_string = string_of_sortdomain end)
-;;
+	let to_string = string_of_sortdomain
+	let tautology _ _ = false
+end);;
 module BS = Bool.Manipulator (struct
 	type t = process
-	let to_string = string_of_process end)
-;;
+	let to_string = string_of_process
+	let tautology (harm, (a,i)) (harm', (a',i')) =
+		a = a' && (harm = harm' && i<>i' || harm<> harm' && i=i')
+end);;
 
 let harmless (ps,hits) (z,lz') = 
 	let register = Hashtbl.create (List.length ps)
+	and computing = Hashtbl.create (List.length ps)
 	in
 	let rec harmless arg = (* caching harmless results *)
 		try Hashtbl.find register arg with Not_found -> (
+			Hashtbl.add computing arg true;
 			(* DEBUG *) print_endline ("# computing harmless("^
 							string_of_sortdomain arg^")");(**)
 			let value = _harmless arg
@@ -138,6 +143,7 @@ let harmless (ps,hits) (z,lz') =
 			(* DEBUG *) print_endline ("# harmless("^
 							string_of_sortdomain arg^") = "^
 							BS.string_of_dnf value);(**)
+			Hashtbl.remove computing arg;
 			value
 		)
 
@@ -181,7 +187,7 @@ let harmless (ps,hits) (z,lz') =
 		let omap, keyactions = build_keyactions omap_empty lz' 0
 		in
 		
-		(* DEBUG *)
+		(* DEBUG *
 		print_endline "- keyactions";
 		let string_of_action (ai,j,j') = string_of_process ai^"->"^
 				string_of_process (z,j)^" "^string_of_int j'
@@ -193,7 +199,7 @@ let harmless (ps,hits) (z,lz') =
 				debug_keyactions (n+1) keyactions )
 		in
 		debug_keyactions 0 keyactions;
-		(* END DEBUG *)
+		* END DEBUG *)
 
 		(********************)
 		(* II. compute p-harmless for each z_i \in L_z *)
@@ -228,7 +234,7 @@ let harmless (ps,hits) (z,lz') =
 		in
 		List.iter compute_p_harmless lz;
 
-		(* DEBUG *) print_endline "## computing dnfs..."; (**)
+		(* DEBUG * print_endline "## computing dnfs..."; **)
 		(* compute dnf *)
 		let p_harmless_dnf = Hashtbl.create (List.assoc z ps+1)
 		in
@@ -236,7 +242,7 @@ let harmless (ps,hits) (z,lz') =
 			Hashtbl.add p_harmless_dnf key (BM.dnf expr)
 		in
 		Hashtbl.iter iterator p_harmless;
-		(* DEBUG *) print_endline "## computing dnfs...OK"; (**)
+		(* DEBUG * print_endline "## computing dnfs...OK"; (**)
 		(* DEBUG *)
 		let iterator i =
 			let dnf = Hashtbl.find p_harmless_dnf i
@@ -244,18 +250,25 @@ let harmless (ps,hits) (z,lz') =
 			print_endline ("p-harmless("^z^string_of_int i^") = " ^ BM.string_of_dnf dnf)
 		in
 		List.iter iterator lz;
-		(* END DEBUG *)
+		* END DEBUG *)
 
-		(* DEBUG *) print_endline "## resolving harmless..."; (**)
+		(* DEBUG * print_endline "## resolving harmless..."; **)
 		(* resolve harmless *)
 		let p_harmless = Hashtbl.create (List.assoc z ps+1)
 		in
 		let iterator key dnf =
 			let dnf = match dnf with None -> None | Some [] -> Some [] | Some lsets -> (
 				let resolve lset = 
-					let folder (harm,(a,la')) dnf =
-						let dnf' = if harm then failwith "harmful not implemented!"
-									else harmless (a,la')
+					let folder (harm,arg) dnf =
+						let dnf' = match harm with
+							  true -> failwith "harmful not implemented!"
+							| false ->
+								if Hashtbl.mem computing arg then (
+									(* already computing, prevent infinite recursion!!
+										assume True ???? XXX TODO *)
+									(*DEBUG*) print_endline ("#! assume harmless("^string_of_sortdomain arg^")=True"); (**)
+									Some []
+								) else harmless arg
 						in
 						BS.dnf_conj dnf dnf'
 					in
@@ -270,15 +283,15 @@ let harmless (ps,hits) (z,lz') =
 			Hashtbl.add p_harmless key dnf
 		in
 		Hashtbl.iter iterator p_harmless_dnf;
-		(* DEBUG *) print_endline "## resolving harmless...OK"; (**)
-		(* DEBUG *)
+		(* DEBUG ) print_endline "## resolving harmless...OK"; **)
+		(* DEBUG )
 		let iterator i =
 			let dnf = Hashtbl.find p_harmless i
 			in
 			print_endline ("p-harmless("^z^string_of_int i^") = " ^ BS.string_of_dnf dnf)
 		in
 		List.iter iterator lz;
-		(* END DEBUG *)
+		* END DEBUG *)
 
 		(********************)
 		(* III. compute harmless *)

@@ -15,6 +15,7 @@ in
 test_model "simple" ("z", [1]);
 test_model "coop1" ("z", [1]);
 test_model "coop2" ("z", [1]);
+test_model "loop1" ("z", [1]);
 
 
 
