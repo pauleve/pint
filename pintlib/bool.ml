@@ -79,6 +79,35 @@ struct
 		"("^(String.concat ") V (" (List.map lset_to_string dnf))^")"
 	;;
 
+	let dnf_disj dnf1 dnf2 = match dnf1,dnf2 with
+		  dnf,None | None,dnf -> dnf
+		| Some [],_ | _,Some [] -> Some []
+		| Some lsets1, Some lsets2 -> Some (dnf_simplify (lsets1@lsets2))
+	;;
+
+	let lset_is_tautology lset =
+		let tautology (harm, x) = LSet.mem (not harm, x) lset
+		in
+		LSet.exists tautology lset
+	;;
+
+	let dnf_conj dnf1 dnf2 = match dnf1,dnf2 with
+		  _,None | None,_ -> None
+		| dnf,Some [] | Some [], dnf -> dnf
+		| Some lsets1, Some lsets2 ->
+			let cross1 dnf lset =
+				let cross2 dnf lset' =
+					let lset = LSet.union lset lset'
+					in
+					let dnf' = if lset_is_tautology lset then None else Some [lset]
+					in
+					dnf_disj dnf dnf'
+				in
+				List.fold_left cross2 dnf lsets2
+			in
+			List.fold_left cross1 None lsets1
+	;;
+
 end
 ;;
 

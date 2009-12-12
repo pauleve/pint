@@ -120,20 +120,28 @@ module BM = Bool.Manipulator (struct
 	type t = (sort * sortidx list)
 	let to_string = string_of_sortdomain end)
 ;;
+module BS = Bool.Manipulator (struct
+	type t = process
+	let to_string = string_of_process end)
+;;
 
 let harmless (ps,hits) (z,lz') = 
 	let register = Hashtbl.create (List.length ps)
 	in
 	let rec harmless arg = (* caching harmless results *)
 		try Hashtbl.find register arg with Not_found -> (
+			(* DEBUG *) print_endline ("# computing harmless("^
+							string_of_sortdomain arg^")");(**)
 			let value = _harmless arg
-			in Hashtbl.add register arg value
+			in
+			Hashtbl.add register arg value;
+			(* DEBUG *) print_endline ("# harmless("^
+							string_of_sortdomain arg^") = "^
+							BS.string_of_dnf value);(**)
+			value
 		)
 
 	and _harmless (z,lz') =
-
-		(* DEBUG *) print_endline ("# computing harmless("^z^"_{"^
-							(String.concat "," (List.map string_of_int lz'))^"})");
 
 		(********************)
 		(* I. local key actions for reaching lz' *)
@@ -229,7 +237,6 @@ let harmless (ps,hits) (z,lz') =
 		in
 		Hashtbl.iter iterator p_harmless;
 		(* DEBUG *) print_endline "## computing dnfs...OK"; (**)
-
 		(* DEBUG *)
 		let iterator i =
 			let dnf = Hashtbl.find p_harmless_dnf i
@@ -239,15 +246,51 @@ let harmless (ps,hits) (z,lz') =
 		List.iter iterator lz;
 		(* END DEBUG *)
 
+		(* DEBUG *) print_endline "## resolving harmless..."; (**)
+		(* resolve harmless *)
+		let p_harmless = Hashtbl.create (List.assoc z ps+1)
+		in
+		let iterator key dnf =
+			let dnf = match dnf with None -> None | Some [] -> Some [] | Some lsets -> (
+				let resolve lset = 
+					let folder (harm,(a,la')) dnf =
+						let dnf' = if harm then failwith "harmful not implemented!"
+									else harmless (a,la')
+						in
+						BS.dnf_conj dnf dnf'
+					in
+					BM.LSet.fold folder lset (Some [])
+				in
+				let folder dnf lset =
+					BS.dnf_disj dnf (resolve lset)
+				in
+				List.fold_left folder None lsets
+			)
+			in
+			Hashtbl.add p_harmless key dnf
+		in
+		Hashtbl.iter iterator p_harmless_dnf;
+		(* DEBUG *) print_endline "## resolving harmless...OK"; (**)
+		(* DEBUG *)
+		let iterator i =
+			let dnf = Hashtbl.find p_harmless i
+			in
+			print_endline ("p-harmless("^z^string_of_int i^") = " ^ BS.string_of_dnf dnf)
+		in
+		List.iter iterator lz;
+		(* END DEBUG *)
+
 		(********************)
 		(* III. compute harmless *)
-		()
+		
+		let harmless_i dnf i =
+			BS.dnf_disj dnf (BS.dnf_conj (Some [BS.LSet.singleton (true,(z,i))])
+								(Hashtbl.find p_harmless i))
+		in
+		List.fold_left harmless_i None lz
 	in
 
 	harmless (z,lz')
 ;;
-
-
-
 
 
