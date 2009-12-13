@@ -273,28 +273,38 @@ let solve_harmless (arg,harmless) state_contains = (* returns true if state is h
 	and solving = Hashtbl.create 10
 	in
 	let rec solve_harmless arg =
-		try Hashtbl.find register arg with Not_found -> (
+		try false, Hashtbl.find register arg with Not_found -> (
 			if Hashtbl.mem solving arg then (
 				(* TODO check that!!! *)
-				(*DEBUG*) print_endline ("#! assume solve("^string_of_sortdomain arg^")=True"); (**)
-				true
+				(*DEBUG* print_endline ("#! assume solve("^string_of_sortdomain arg^")=True"); **)
+				true, true
 			) else (
 				Hashtbl.add solving arg true;
-				let value = satisfy_dnf (Hashtbl.find harmless arg)
+				let has_loop, value = satisfy_dnf (Hashtbl.find harmless arg)
 				in
-				Hashtbl.add register arg value;
-				value
+				Hashtbl.remove solving arg;
+				if not has_loop then Hashtbl.add register arg value;
+				has_loop, value
 			)
 		)
-	and satisfy_lit = function
+	and satisfy_lit has_loop = function
 		  (pos, Proc ai) -> pos == state_contains ai
-		| (pos, Harmless arg) -> pos == solve_harmless arg
+		| (pos, Harmless arg) -> 
+			let has_loop', ret = solve_harmless arg
+			in
+			has_loop := has_loop';
+			pos == ret
 	and satisfy_dnf = function 
-		  None -> false
-		| Some [] -> true
-		| Some lsets -> List.exists (BHarmless.LSet.for_all satisfy_lit) lsets
+		  None -> false, false
+		| Some [] -> false, true
+		| Some lsets ->	 
+			let has_loop = ref false 
+			in
+			let ret = List.exists (BHarmless.LSet.for_all (satisfy_lit has_loop)) lsets
+			in
+			!has_loop, ret
 	in
-	solve_harmless arg
+	snd (solve_harmless arg)
 ;;
 
 (* DEAD CODE: resolve harmless *
