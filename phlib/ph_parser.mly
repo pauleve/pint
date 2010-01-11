@@ -213,6 +213,19 @@ let macro_remove actions (ps,hits) =
 	ps, hits
 ;;
 
+let macro_knockdown proc (ps,hits) =
+	let hits' = Hashtbl.create (List.length ps)
+	in
+	let knockdown target ((hitter,p),bounce_idx) =
+		let bounce = fst target, bounce_idx
+		in
+		if not (hitter = proc || target = proc || bounce = proc) then
+			Hashtbl.add hits' target ((hitter,p),bounce_idx)
+	in
+	Hashtbl.iter knockdown hits;
+	ps, hits' 
+;;
+
 let precall_macro_action_list name = match name with
 	  "RM" -> macro_remove
 	| _ -> failwith ("Unkown macro '"^name^"'")
@@ -228,6 +241,10 @@ let precall_macro_regulation_list name = match name with
 let precall_macro_cooperativity name = match name with
 	  "COOPERATIVITY" -> macro_cooperativity 
 	| _ -> failwith ("Unkown macro '"^name^"'")
+;;
+let precall_macro_process = function
+	  "KNOCKDOWN" -> macro_knockdown
+	| name -> failwith ("Unknown macro "^name^")")
 ;;
 
 %}
@@ -274,6 +291,7 @@ macro:
 	| Name LPAREN LBRACKET regulation_list RBRACKET RPAREN { precall_macro_regulation_list $1 $4 }
 	| Name LPAREN LBRACKET name_list RBRACKET ARROW process Int COMMA
 				LBRACKET state_list RBRACKET RPAREN { precall_macro_cooperativity $1 $4 $7 $8 $11 }
+	| Name LPAREN process RPAREN { precall_macro_process $1 $3 }
 ;
 action_list:
 	  action { [$1] }

@@ -30,6 +30,27 @@ type regulation_t = Regulation of (string * int * regulation_sign * string)
 (* (a,i) * (b,j) * j' *)
 type hit_t = Hit of (process * process * int)
 
+
+(* STATE *)
+let string_of_state s =
+	let folder a i str =
+		if i <> 0 then
+			str ^ (if str <> "" then ";" else "")
+			^ string_of_process (a,i)
+		else str
+	in
+	"["^(SMap.fold folder s "")^"]"
+;;
+let state0 (ps,_) = List.fold_left (fun s (a,_) -> SMap.add a 0 s) SMap.empty ps
+;;
+let merge_state state =
+	let apply state (a,i) =
+		SMap.add a i state
+	in
+	List.fold_left apply state
+;;
+
+
 type match_p = Any | ProcessLevel of process | Process of string | Matching of (process -> bool)
 
 (* Proc level couple set *)
