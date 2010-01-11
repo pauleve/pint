@@ -12,7 +12,6 @@ module SMap = Map.Make (struct type t = string let compare = compare end);;
 
 type sort = string
 type sortidx = int
-type metaprocess = string * int (* name * level max *)
 type process = sort * sortidx (* name * level *)
 
 let string_of_process (a,i) = a^"_"^string_of_int i;;
@@ -21,7 +20,7 @@ type rate = (float * int) option
 
 type hits = (process, ((process * rate) * int)) Hashtbl.t
 
-type ph = metaprocess list * hits
+type ph = process list * hits
 
 type regulation_sign = Positive | Negative
 (* gene_a * threshold * sign * gene_b *)
@@ -85,14 +84,4 @@ let directive = {
 	default_sa = 1;
 	sample = 1000.0
 };;
-
-(* Order map *)
-type order = Bot | Order of int;;
-let omap_empty = PMap.empty;;
-let order omap ai =  try PMap.find ai omap with Not_found -> Bot;;
-let set_order omap ai n =
-	if not (PMap.mem ai omap) then
-		PMap.add ai (Order n) omap
-	else omap
-;;
 
