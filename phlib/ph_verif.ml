@@ -113,6 +113,161 @@ let stable_states (ps,hits) =
 	List.fold_left folder [] ais
 ;;
 
+type pharmful_t = PTrue | PClauses of (process * sortidx) list;;
+let string_of_pclause (hitter,bounce_idx) =
+	"harmful("^string_of_process hitter^") & p_harmful("^string_of_int bounce_idx^")"
+;;
+let string_of_pharmful = function
+	  PTrue -> "True"
+	| PClauses c -> String.concat " | " (List.map string_of_pclause c)
+;;
+
+(*
+module HarmfulLiteral = 
+struct 
+	type t = Harmful of process
+	let to_string = function Harmful ai -> "harmful("^string_of_process ai^")"
+end;;
+*)
+module HarmfulLiteral = 
+struct 
+	type t = Harmful of process
+	let to_string = function Harmful ai -> "harmful("^string_of_process ai^")"
+end;;
+
+module HarmfulNF = Bool.NormalForm (HarmfulLiteral);;
+
+let string_of_harmful (a,nfs) =
+	String.concat " ; " (List.map (fun j -> 
+		(string_of_process (a,j)) ^ ": " ^ (HarmfulNF.to_string (List.nth nfs j))) (Util.range 0 (List.length nfs - 1)))
+;;
+
+let harmful (ps,hits) zl =
+	let computing = Hashtbl.create (List.length ps)
+	and register = Hashtbl.create (List.length ps)
+	in
+	let rec harmful arg = 
+		if not(Hashtbl.mem register arg) && not(Hashtbl.mem computing arg) then (
+			Hashtbl.add computing arg true;
+			let value = _harmful arg
+			in
+			Hashtbl.add register arg value;
+			(* DEBUG *) print_endline ("# harmful("^
+							string_of_process arg^") = "^string_of_harmful value);(**)
+			Hashtbl.remove computing arg
+		)
+	and _harmful (a,i) =
+		let la = Util.range 0 (List.assoc a ps)
+		in
+		(* I. compute p-harmless *)
+		(* I.a symbolic *)
+		let p_harmful j =
+			if i = j then PTrue
+			else (
+				let actions = Hashtbl.find_all hits (a,j)
+				in
+				let clause_of_action ((hitter,_),bounce_idx) = (hitter, bounce_idx)
+				in
+				PClauses (List.map clause_of_action actions)
+			)
+		in
+		let p_harmfuls = List.map p_harmful la
+		in
+		(*DEBUG* List.iter (fun j -> print_endline ("("^string_of_process (a,i)
+					^") p_harmful("^string_of_int j^") = "
+					^string_of_pharmful (List.nth p_harmfuls j))) la;**)
+		(* I.b resolve *)
+		let resolve j =
+			let p_register = Hashtbl.create (List.assoc a ps)
+			and p_computing = Hashtbl.create (List.assoc a ps)
+			in
+			let rec resolve_next j' =
+				if Hashtbl.mem p_computing j' then (
+					HarmfulNF.val_false
+				) else (
+					if not(Hashtbl.mem p_register j') then (
+						Hashtbl.add p_computing j' true;
+						let next = _resolve_next j'
+						in
+						Hashtbl.add p_register j' next;
+						Hashtbl.remove p_computing j';
+						next
+					) else (
+						Hashtbl.find p_register j'
+					)
+				)
+
+			and _resolve_next j' =
+				match List.nth p_harmfuls j' with
+				  PTrue -> HarmfulNF.val_true
+				| PClauses c ->
+					let folder nf (hitter,j'') =
+						let nf_j'' = resolve_next j''
+						in
+						let nf' = HarmfulNF.cross_literal (HarmfulLiteral.Harmful hitter) nf_j''
+						in
+						HarmfulNF.union nf nf'
+					in
+					List.fold_left folder HarmfulNF.val_false c
+			in
+			resolve_next j
+		in
+		let p_harmfuls' = List.map resolve la
+		in
+		(*DEBUG* List.iter (fun j -> print_endline ("("^string_of_process (a,i)
+					^") p_harmful'("^string_of_int j^") = "
+					^(HarmfulNF.to_string (List.nth p_harmfuls' j)))) la;**)
+		(* II. compute harmless *) 
+		let resolve_harmful = function HarmfulLiteral.Harmful hitter -> harmful hitter
+		in
+		List.iter (fun nf -> HarmfulNF.iter (fun clause -> HarmfulNF.Clause.iter resolve_harmful clause) nf)
+			p_harmfuls';
+		(a,p_harmfuls')
+	in
+	(harmful zl);
+	(zl,register)
+;;
+
+let solve_harmful (arg,harmfuls) state_value = (* returns true if state is harmful for arg *)
+	let register = Hashtbl.create 10
+	and solving = Hashtbl.create 10
+	in
+	let rec solve_harmful arg =
+		try false, Hashtbl.find register arg with Not_found -> (
+			if Hashtbl.mem solving arg then (
+				(*DEBUG* print_endline ("#! assume solve("^string_of_process arg^")=False"); **)
+				true, false
+			) else (
+				Hashtbl.add solving arg true;
+				let has_loop, value = satisfy_switch (Hashtbl.find harmfuls arg)
+				in
+				Hashtbl.remove solving arg;
+				if not has_loop then Hashtbl.add register arg value;
+				has_loop, value
+			)
+		)
+	and satisfy_lit has_loop = function
+		HarmfulLiteral.Harmful ai -> 
+			let has_loop', ret = solve_harmful ai
+			in
+			has_loop := has_loop';
+			ret
+	and satisfy_dnf = function
+		  HarmfulNF.True -> false, true
+		| HarmfulNF.Clauses [] -> false, false
+		| HarmfulNF.Clauses clauses ->
+			let has_loop = ref false 
+			in
+			let ret = List.exists (HarmfulNF.Clause.for_all (satisfy_lit has_loop)) clauses
+			in
+			!has_loop, ret
+	and satisfy_switch (a, nfs) =
+		satisfy_dnf (List.nth nfs (state_value a))
+	in
+	snd (solve_harmful arg)
+;;
+
+
 type sortdomain = sort * sortidx list
 type bsm_t =
 	  Proc of process 
