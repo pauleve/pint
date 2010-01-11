@@ -260,7 +260,7 @@ let precall_macro_process = function
 %token <char> Sign
 
 %start main
-%type <Ph_types.ph * (string * int) list> main
+%type <Ph_types.ph * Ph_types.sortidx Ph_types.SMap.t> main
 
 %%
 
@@ -355,7 +355,7 @@ footer :
 ;
 
 main :
-  Directive headers content footer { ($3,$4) }
-| content footer { ($1,$2) }
+  Directive headers content footer { ($3, merge_state (state0 $3) $4) }
+| content footer { ($1, merge_state (state0 $1) $2) }
 ;
 %%

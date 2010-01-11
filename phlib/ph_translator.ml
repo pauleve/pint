@@ -136,7 +136,7 @@ let spim_of_ph (ps,hits) init_state =
 	(* initial state *)
 	and run = "run ("^(String.concat " | " (List.map (fun p -> 
 						string_of_picall (p,ArgReset)^ "|" ^ p_level p)
-						init_state)) ^
+						(list_of_state init_state))) ^
 					"| w())\n"
 	in
 	String.concat "\n" [
@@ -163,7 +163,7 @@ let prism_mdp_of_ph (ps,hits) init_state =
 
 	let module_of_proc (a,l_a) =
 		let decl = (statemod a)^": [0.."^(string_of_int (max 1 l_a))^"] init "^
-					(string_of_int (try List.assoc a init_state with Not_found -> 0))
+					(string_of_int (state_value init_state a))
 					^"; // state"
 		in
 		(a, ([decl],[],[]))
@@ -239,7 +239,7 @@ let prism_of_ph (ps,hits) init_state =
 
 	let module_of_proc (a,l_a) =
 		let decl = (statemod a)^": [0.."^(string_of_int (max 1 l_a))^"] init "^
-					(string_of_int (try List.assoc a init_state with Not_found -> 0))
+					(string_of_int (state_value init_state a))
 					^"; // state"
 		in
 		(a, ([decl],[],[]))
@@ -478,7 +478,7 @@ let romeo_of_ph opts (ps,hits) init_state =
 	in
 	let string_of_proc (a,i) =
 		"<place id=\""^proc_id (a,i)^"\" label=\""^a^" "^string_of_int i^"\" "^
-			" initialMarking=\""^(if List.mem (a,i) init_state then "1" else "0")^"\">\n"^
+			" initialMarking=\""^(if state_value init_state a = i then "1" else "0")^"\">\n"^
 			"\t<graphics><position x=\""^string_of_int (i*100+100)^"\" y=\""^string_of_int (100*sort_id a+100)^"\"/></graphics>\n"^
 			"\t<scheduling gamma=\"0\" omega=\"0\"/>\n"^
 		"</place>"
@@ -520,4 +520,26 @@ let romeo_of_ph opts (ps,hits) init_state =
 	^ snd (Hashtbl.fold string_of_hit hits ((1,[]), ""))
 	^ "\n</TPN>\n"
 ;;
+
+let tina_of_ph (ps,hits) init_state =
+	let proc_id ai = string_of_process ai
+	and tr_id = ref (-1)
+	in
+	let string_of_proc (a,i) =
+		"pl "^proc_id (a,i)^" ("^(if state_value init_state a = i then "1" else "0")^")\n"
+	and string_of_hit bj ((ai,rsa),k) =
+		tr_id := !tr_id + 1;
+		"tr t"^string_of_int (!tr_id)^" [0,w[ "^proc_id ai^"?1 "^proc_id bj
+			^" -> "^proc_id (fst bj,k)^"\n"
+	in
+	let fold_hits key value buf =
+		buf ^ string_of_hit key value
+	in
+	(* transitions definitions *)
+	Hashtbl.fold fold_hits hits "";
+	^ 
+	(* places definitions *)
+	(String.concat "" (List.map (fun ai -> string_of_proc ai) (list_of_state init_state)))
+;;
+
 
