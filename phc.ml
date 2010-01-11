@@ -20,7 +20,8 @@ let _ =
 		("spim", spim_of_ph);
 		("prism", prism_of_ph);
 		("prism_mdp", prism_mdp_of_ph);
-		("romeo", romeo_of_ph opts)
+		("romeo", romeo_of_ph opts);
+		("tina", tina_of_ph);
 	]
 	in
 	let translator = List.assoc (Str.string_after language 1) languages

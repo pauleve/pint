@@ -48,6 +48,13 @@ let merge_state state =
 	in
 	List.fold_left apply state
 ;;
+let state_value state a = SMap.find a state
+;;
+let list_of_state state =
+	let folder a i ls = (a,i)::ls
+	in
+	SMap.fold folder state []
+;;
 
 
 type match_p = Any | ProcessLevel of process | Process of string | Matching of (process -> bool)
