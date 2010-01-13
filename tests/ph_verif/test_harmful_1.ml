@@ -16,5 +16,6 @@ in
 (**test_model "simple" zl;**)
 (**test_model "coop1" zl;**)
 (**test_model "coop2" zl;**)
-(**)test_model "loop1" zl;(**)
+(**test_model "loop1" zl;**)
+(**)test_model "incr" ("z",3);(**)
 

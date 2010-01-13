@@ -271,7 +271,7 @@ content :
 | decl		 { merge_decl ([], Hashtbl.create 0) $1 }
 ;
 decl :
-  New process	{ assert (snd $2 > 0); $2 }
+  New process	{ assert (snd $2 >= 0); $2 }
 ;
 process :
   Name Int	{ ($1, $2) }
