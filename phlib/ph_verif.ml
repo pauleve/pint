@@ -4,6 +4,7 @@ open Big_int;;
 open Ph_types;;
 open Ph_op;;
 open Ph_util;;
+open Ph_sortgraph;;
 
 module EMap = Map.Make (struct type t = process * string
 	let compare = compare end);;
@@ -112,6 +113,87 @@ let stable_states (ps,hits) =
 	in
 	List.fold_left folder [] ais
 ;;
+
+(* compute keyactions predicates (offline) *)
+let prepare_process_reachability_decision(ps,hits) zl =
+	(* TODO *)
+	()
+;;
+
+(*
+	Test if a set of action is schedulable in a given state.
+	Returns a ternary (True/False/Inconc).
+*)
+let actions_schedulability_in_state state actions =
+
+	(* build Sort-Graphs *)
+	let sortgraphs = sortgraphs_of_actions actions
+	in
+
+	(* prepare the check for action replay relevance (default answer) *)
+	let is_action_replay_relevant () =
+		(* TODO *)
+		true
+	in
+	let default_answer () =
+		if is_action_replay_relevant () then
+			Inconc
+		else
+			False
+	in
+
+	(* check for Eulerian paths *)
+	try
+		(* every Sort-Graph has to be Eulerian + the initial node of the
+			Eulerian path have to match with the state
+		*)
+		let test_sortgraph a sortgraph =
+			let first = fst (sortgraph_eulerian_extrem sortgraph)
+			in
+			match first with
+			  None -> ()
+			| Some (a,i) -> if SMap.find a state <> i then raise Non_eulerian
+		in
+		SMap.iter test_sortgraph sortgraphs;
+
+		(* 4. check for schedulability *)
+		if sortgraphs_schedulable sortgraphs then
+			True
+		else 
+			(default_answer ())
+
+	with Non_eulerian -> default_answer ()
+;;
+
+(* returns ternary (True/False/Inconc) *)
+(* TODO
+let process_reachability (ps,hits) zl keyactions state = 
+	let test_solution = actions_schedulability state
+	in
+	let walk_solutions inconc_answers
+		(* generate a new solution *)
+		try
+			let sol = []
+
+			in
+			match test_solution sol with
+			  True -> True
+			| False -> walk_solutions inconc_answers
+			| Inconc -> walk_solutions (sol::inconc_answers)
+
+		with Not_found -> 
+			if inconc_answers = [] then False else Inconc
+	in
+	walk_solutions
+;;
+*)
+
+
+
+
+(********************)
+(**** DEPRECATED ****)
+(********************)
 
 type pharmful_t = PTrue | PClauses of (process * sortidx) list;;
 let string_of_pclause (hitter,bounce_idx) =
