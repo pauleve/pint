@@ -28,3 +28,4 @@ playground/dsum
 ./bindings/r.ml
 ./bindings/r.mli
 ./bindings/r_stubs.c
+./ph-stable
