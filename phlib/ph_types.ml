@@ -10,6 +10,8 @@ module SMap = Map.Make (struct type t = string let compare = compare end);;
  Process Hitting types
 **)
 
+type ternary = True | False | Inconc;;
+
 type sort = string
 type sortidx = int
 type process = sort * sortidx (* name * level *)
