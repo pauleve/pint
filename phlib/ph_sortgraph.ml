@@ -83,4 +83,13 @@ let sortgraph_reeulerisable sortgraph =
 ;;
 
 
+(*
+	Check for Sort-Graphs schedulability.
+	Returns boolean.
+*)
+let sortgraphs_schedulable sortgraphs =
+	(* TODO *)
+	false
+;;
+
 
