@@ -1,0 +1,14 @@
+all: nc
+
+include Makefile.common
+
+SOURCES = \
+	$(BINDINGS_SOURCES)\
+	$(PINTLIB_SOURCES) \
+	$(PHLIB_SOURCES) \
+	phstable.ml
+
+RESULT = ph-stable
+
+include OCamlMakefile
+# vi:set syntax=make:

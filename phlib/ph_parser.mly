@@ -75,9 +75,16 @@ let filter_hits (ps, hits) pred =
 	hits'
 ;;
 
+let get_sort_card ps a =
+	try
+		List.assoc a ps
+	with Not_found -> 
+		failwith ("get_sort_card: unknown sort '"^a^"'")
+;;
+
 let macro_regulation regulation (ps,hits) = match regulation with
 	Regulation (a,t,s,b) ->
-		let la = List.assoc a ps and lb = List.assoc b ps
+		let la = get_sort_card ps a and lb = get_sort_card ps b
 		in
 		let apply_regulation i =
 			let r = if i >= t then s else match s with Positive -> Negative |
