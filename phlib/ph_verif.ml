@@ -133,6 +133,9 @@ let keyactions_predicates (ps,hits) zl =
 			else (
 				let actions = Hashtbl.find_all hits (a,j)
 				in
+				let actions = List.filter (function ((hitter,_),_) ->
+								hitter <> zl) actions
+				in
 				Some (List.map (function ((hitter,_),j') -> 
 						Hit (hitter,(a,j),j')) actions)
 			)
@@ -167,6 +170,7 @@ let keyactions_predicates (ps,hits) zl =
 
 		let preds = PMap.add (a,i) switch preds
 		in
+		(* Compute new predicates *)
 		let resolve_aj_keyactions preds = function
 			Hit (hitter,_,_) ->
 				if not(PMap.mem hitter preds) then 
@@ -279,7 +283,76 @@ let actions_schedulability_in_state state actions =
 	Check for process reachability from state.
 	Returns ternary (True/False/Inconc).
 *)
+
+module KeyActions = Map.Make (struct type t = (process * sortidx) let compare = compare end);;
+
 let process_reachability keyactions zl state = 
+
+	(* 1. Compute predicates hyper-graph *)
+	let rec register predgraph (ai,j) = 
+		(* register aj-keyactions(ai) *)
+		if not (KeyActions.mem (ai,j) predgraph) then
+			match List.nth (PMap.find ai keyactions) j with
+			  None -> KeyActions.add (ai,j) None predgraph
+			| Some actions -> 
+				let preds_of_action action = match action with
+					Hit (bk,_,j') ->
+						let pred1 = (bk,SMap.find (fst bk) state)
+						and pred2 = (ai,j')
+						in
+						action,pred1,pred2
+				in
+				let childs = List.map preds_of_action actions
+				in
+				let predgraph = KeyActions.add (ai,j) (Some childs) predgraph
+				in
+				let resolver predgraph (_,pred1,pred2) =
+					let predgraph = register predgraph pred1
+					in
+					register predgraph pred2
+				in
+				List.fold_left resolver predgraph childs
+		else predgraph
+	in
+	let predgraph = register KeyActions.empty (zl,SMap.find (fst zl) state)
+	in
+
+	(* 2. remove false leafs *)
+	let rec emptychilds pregraph =
+		let emptypreds pred dep acc = match dep with
+		      Some [] -> pred::acc
+			| _ -> acc
+		in
+		let todel = KeyActions.fold emptypreds predgraph []
+		in
+		if todel <> [] then
+			let delete predgraph pred =
+				KeyActions.remove pred predgraph
+			in
+			let predgraph = List.fold_left delete predgraph todel
+			in
+			(* filter childs without known pred *)
+			let clean = function
+				  None -> None
+				| Some childs ->
+					let childs  = List.filter (function (_,pred1,pred2) ->
+						KeyActions.mem pred1 predgraph && KeyActions.mem pred2 predgraph)
+							childs
+					in
+					Some childs
+
+			in
+			let predgraph = KeyActions.map clean predgraph
+			in
+			emptychilds predgraph
+		else 
+			predgraph
+	in
+	let predgraph = emptychilds predgraph
+	in
+
+
+
 	let test_solution = actions_schedulability_in_state state
 	in
 	Inconc
