@@ -114,11 +114,113 @@ let stable_states (ps,hits) =
 	List.fold_left folder [] ais
 ;;
 
-(* compute keyactions predicates (offline) *)
-let prepare_process_reachability_decision(ps,hits) zl =
-	(* TODO *)
-	()
+
+(****************************)
+(*      REACHABILITY        *)
+(****************************)
+
+(*
+	Computes keyactions predicates (offline operation).
+	Returns a (hit_t list option) PMap preds:
+		aj-keyactions(ai) = List.nth (PMap.find ai preds) j
+		Some([]) = False
+		None = True
+*)
+let keyactions_predicates (ps,hits) zl =
+	let rec build_keyactions (a,i) preds =
+		let build_aj_keyactions j =
+			if i = j then None
+			else (
+				let actions = Hashtbl.find_all hits (a,j)
+				in
+				Some (List.map (function ((hitter,_),j') -> 
+						Hit (hitter,(a,j),j')) actions)
+			)
+		in
+		let range = Util.range 0 (List.assoc a ps)
+		in
+		let switch = List.map build_aj_keyactions range
+		in
+
+		(* Propagate false predicates *)
+		let get_bots switch bots =
+			List.filter (fun i -> List.nth switch i = Some [] && 
+					not (List.mem i bots)) range
+		in
+		let rec propagate_bots switch bots = 
+			match get_bots switch bots with
+			  [] -> switch
+			| bots' -> 
+				let filter_bot = function None -> None
+					| Some actions ->
+						let actions' = List.filter (function Hit (ai,bj,j') ->
+								not(List.mem j' bots')) actions
+						in
+						Some actions'
+				in
+				let switch = List.map filter_bot switch
+				in
+				propagate_bots switch (bots@bots')
+		in
+		let switch = propagate_bots switch []
+		in
+
+		let preds = PMap.add (a,i) switch preds
+		in
+		let resolve_aj_keyactions preds = function
+			Hit (hitter,_,_) ->
+				if not(PMap.mem hitter preds) then 
+					build_keyactions hitter preds
+				else
+					preds
+		in
+		let resolve_keyactions preds = function
+			  None -> preds
+			| Some actions -> 
+				List.fold_left resolve_aj_keyactions preds actions
+		in
+		List.fold_left resolve_keyactions preds switch
+	in
+	build_keyactions zl (PMap.empty)
 ;;
+(**
+let keyactions (ps,hits) zl =
+	let actions = ph_actions (ps,hits)
+	in
+	(* remove actions involving zl *)
+	let actions = List.filter (function Hit (ai,bj,_) -> ai <> zl && bj <> zl) actions
+	in
+	let hactions = ph_index bounce actions
+	in
+	(* get all keyactions connected with zl *)
+	let rec fetch_keyactions known bk =
+		if not (PSet.mem bk known) then
+			let known = PSet.add bk known
+			in
+			let actions = Hashtbl.find_all hactions bk
+			in
+			let folder procs = function Hit (ai,bj,_) ->
+				PSet.add ai (PSet.add bj procs)
+			in
+			let procs = List.fold_left folder PSet.empty actions
+			in
+			let news = PSet.diff procs known
+			in
+			let folder ai (actions,known) =
+				let actions', known = fetch_keyactions known ai
+				in
+				actions@actions', known
+			in
+			PSet.fold folder news (actions,known)
+		else
+			([], known)
+	in
+	fst (fetch_keyactions PSet.empty zl)
+;;
+*)
+
+
+
 
 (*
 	Test if a set of action is schedulable in a given state.
@@ -130,10 +232,18 @@ let actions_schedulability_in_state state actions =
 	let sortgraphs = sortgraphs_of_actions actions
 	in
 
-	(* prepare the check for action replay relevance (default answer) *)
+	(* prepare the check for action replay relevance (default answer) 
+		simple algo: max sortgraph_reeulerisable 
+	*)
 	let is_action_replay_relevant () =
-		(* TODO *)
-		true
+		let folder a sortgraph = function 
+			  True -> True
+			| Inconc -> Inconc (* Inconc is the max for now *)
+			| False -> sortgraph_reeulerisable sortgraph
+		in
+		match SMap.fold folder sortgraphs False with
+		  True | Inconc -> true
+		| False -> false
 	in
 	let default_answer () =
 		if is_action_replay_relevant () then
@@ -156,7 +266,7 @@ let actions_schedulability_in_state state actions =
 		in
 		SMap.iter test_sortgraph sortgraphs;
 
-		(* 4. check for schedulability *)
+		(* check for schedulability *)
 		if sortgraphs_schedulable sortgraphs then
 			True
 		else 
@@ -165,18 +275,22 @@ let actions_schedulability_in_state state actions =
 	with Non_eulerian -> default_answer ()
 ;;
 
-(* returns ternary (True/False/Inconc) *)
-(* TODO
-let process_reachability (ps,hits) zl keyactions state = 
-	let test_solution = actions_schedulability state
+(* 
+	Check for process reachability from state.
+	Returns ternary (True/False/Inconc).
+*)
+let process_reachability keyactions zl state = 
+	let test_solution = actions_schedulability_in_state state
 	in
+	Inconc
+(*
 	let walk_solutions inconc_answers
 		(* generate a new solution *)
 		try
 			let sol = []
 
 			in
-			match test_solution sol with
+			match test_solution (uniqise_actions sol) with
 			  True -> True
 			| False -> walk_solutions inconc_answers
 			| Inconc -> walk_solutions (sol::inconc_answers)
@@ -185,9 +299,8 @@ let process_reachability (ps,hits) zl keyactions state =
 			if inconc_answers = [] then False else Inconc
 	in
 	walk_solutions
-;;
 *)
-
+;;
 
 
 
