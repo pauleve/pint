@@ -42,6 +42,17 @@ let ph_count_actions (ps,hits) =
 	Hashtbl.length hits
 ;;
 
+let ph_index index actions =
+	let hactions = Hashtbl.create 0
+	in
+	let register action = 
+		Hashtbl.add hactions (index action) action
+	in
+	List.iter register actions;
+	hactions
+;;
+		
+
 let subph (ps,hits) sigma' =
 	List.filter (fun (a,la) -> List.mem a sigma') ps,
 	Hashtbl.copy hits
