@@ -187,44 +187,6 @@ let keyactions_predicates (ps,hits) zl =
 	in
 	build_keyactions zl (PMap.empty)
 ;;
-(**
-let keyactions (ps,hits) zl =
-	let actions = ph_actions (ps,hits)
-	in
-	(* remove actions involving zl *)
-	let actions = List.filter (function Hit (ai,bj,_) -> ai <> zl && bj <> zl) actions
-	in
-	let hactions = ph_index bounce actions
-	in
-	(* get all keyactions connected with zl *)
-	let rec fetch_keyactions known bk =
-		if not (PSet.mem bk known) then
-			let known = PSet.add bk known
-			in
-			let actions = Hashtbl.find_all hactions bk
-			in
-			let folder procs = function Hit (ai,bj,_) ->
-				PSet.add ai (PSet.add bj procs)
-			in
-			let procs = List.fold_left folder PSet.empty actions
-			in
-			let news = PSet.diff procs known
-			in
-			let folder ai (actions,known) =
-				let actions', known = fetch_keyactions known ai
-				in
-				actions@actions', known
-			in
-			PSet.fold folder news (actions,known)
-		else
-			([], known)
-	in
-	fst (fetch_keyactions PSet.empty zl)
-;;
-*)
-
-
-
 
 (*
 	Test if a set of action is schedulable in a given state.
@@ -284,16 +246,128 @@ let actions_schedulability_in_state state actions =
 	Returns ternary (True/False/Inconc).
 *)
 
-module KeyActions = Map.Make (struct type t = (process * sortidx) let compare = compare end);;
+type pred_t = process * sortidx;;
+
+module KeyActions = Map.Make (struct type t = pred_t let compare = compare end);;
+module PredSet = Set.Make(struct type t = pred_t let compare = compare end);;
 
 let process_reachability keyactions zl state = 
+	let root_pred = (zl, SMap.find (fst zl) state)
+	in
 
-	(* 1. Compute predicates hyper-graph *)
-	let rec register predgraph (ai,j) = 
+	(* pre1.1. Compute predicates hyper-graph with reverse dependencies *)
+
+	let merge_rev pred =
+		let merge_rev revgraph predchild =
+			let current = try KeyActions.find predchild revgraph
+						with Not_found -> PredSet.empty
+			in
+			KeyActions.add predchild (PredSet.add pred current) revgraph
+		in
+		let folder revgraph (_,pred1,pred2) =
+			merge_rev (merge_rev revgraph pred2) pred1
+		in
+		List.fold_left folder
+	in
+
+	let rec register (predgraph, revgraph, coloured) (ai,j) = 
+		let pred = (ai,j)
+		in
+		(* register aj-keyactions(ai) *)
+		if not (KeyActions.mem pred predgraph) then
+			match List.nth (PMap.find ai keyactions) j with
+			  None -> KeyActions.add pred None predgraph, revgraph, PredSet.add pred coloured
+			| Some actions -> 
+				let preds_of_action action = match action with
+					Hit (bk,_,j') ->
+						let pred1 = (bk,SMap.find (fst bk) state)
+						and pred2 = (ai,j')
+						in
+						action,pred1,pred2
+				in
+				let childs = List.map preds_of_action actions
+				in
+				let predgraph = KeyActions.add pred (Some childs) predgraph
+				and revgraph = merge_rev pred revgraph childs
+				in
+				let resolver args (_,pred1,pred2) =
+					register (register args pred1) pred2
+				in
+				List.fold_left resolver (predgraph, revgraph, coloured) childs
+		else (predgraph, revgraph, coloured)
+	in
+	let predgraph, revgraph, coloured = register 
+			(KeyActions.empty, KeyActions.empty, PredSet.empty) root_pred
+	in
+
+	(* pre1.2. Predicates coloration *)
+	let child_coloured (_, pred1, pred2) =
+		PredSet.mem pred1 coloured && PredSet.mem pred2 coloured
+	in
+	let colour_parent parent (coloured, newcoloured) =
+		if not (PredSet.mem parent coloured) then 
+			match KeyActions.find parent predgraph with
+			  Some childs -> 
+					if List.exists child_coloured childs then
+						PredSet.add parent coloured, PredSet.add parent newcoloured
+					else
+						coloured, newcoloured
+			| _ -> invalid_arg "colour_parent"
+		else
+			coloured, newcoloured
+	in
+	let colour_parents pred (coloured, newcoloured) =
+		let parents = KeyActions.find pred revgraph
+		in
+		PredSet.fold colour_parent parents (coloured, newcoloured)
+	in
+	let rec colour_newcoloured (coloured, newcoloured) =
+		let coloured, newcoloured = PredSet.fold colour_parents newcoloured (coloured, PredSet.empty)
+		in
+		if not(PredSet.is_empty newcoloured) then
+			colour_newcoloured (coloured,newcoloured)
+		else
+			coloured
+	in
+	let coloured = colour_newcoloured (coloured, coloured)
+	in
+
+	(* 1. test if root predicate is coloured *)
+	if not(PredSet.mem root_pred coloured) then
+		False
+	else (
+		(* pre2. remove uncoloured predicated *)
+
+		(* 2. test solutions *)
+		(*
+		let test_solution = actions_schedulability_in_state state
+		in
+		let walk_solutions inconc_answers
+			(* generate a new solution *)
+			try
+				let sol = []
+
+				in
+				match test_solution (uniqise_actions sol) with
+				  True -> True
+				| False -> walk_solutions inconc_answers
+				| Inconc -> walk_solutions (sol::inconc_answers)
+
+			with Not_found -> 
+				if inconc_answers = [] then False else Inconc
+		in
+		walk_solutions
+		*)
+		Inconc
+	)
+;;
+
+(********** TRASH ***********
+	let rec register (predgraph, revgraph, falsepreds) (ai,j) = 
 		(* register aj-keyactions(ai) *)
 		if not (KeyActions.mem (ai,j) predgraph) then
 			match List.nth (PMap.find ai keyactions) j with
-			  None -> KeyActions.add (ai,j) None predgraph
+			  None -> KeyActions.add (ai,j) None predgraph, revgraph, falsepreds
 			| Some actions -> 
 				let preds_of_action action = match action with
 					Hit (bk,_,j') ->
@@ -305,76 +379,57 @@ let process_reachability keyactions zl state =
 				let childs = List.map preds_of_action actions
 				in
 				let predgraph = KeyActions.add (ai,j) (Some childs) predgraph
+				and falsepreds, revgraph = 
+					if childs = [] then
+						(PredSet.add (ai,j) falsepreds, revgraph)
+					else
+						(falsepreds, merge_rev (ai,j) revgraph childs)
 				in
-				let resolver predgraph (_,pred1,pred2) =
-					let predgraph = register predgraph pred1
-					in
-					register predgraph pred2
+				let resolver args (_,pred1,pred2) =
+					register (register args pred1) pred2
 				in
-				List.fold_left resolver predgraph childs
-		else predgraph
+				List.fold_left resolver (predgraph, revgraph, falsepreds) childs
+		else (predgraph, revgraph, falsepreds)
 	in
-	let predgraph = register KeyActions.empty (zl,SMap.find (fst zl) state)
+	let predgraph, revgraph, falsepreds = register 
+			(KeyActions.empty, KeyActions.empty, PredSet.empty) (zl,SMap.find (fst zl) state)
 	in
 
 	(* 2. remove false leafs *)
-	let rec emptychilds pregraph =
-		let emptypreds pred dep acc = match dep with
-		      Some [] -> pred::acc
-			| _ -> acc
-		in
-		let todel = KeyActions.fold emptypreds predgraph []
-		in
-		if todel <> [] then
-			let delete predgraph pred =
-				KeyActions.remove pred predgraph
+	let rec remove_falsepreds (predgraph, revgraph) falsepreds =
+		let remove_pred pred (predgraph, revgraph, falsepreds) =
+			let parents = KeyActions.find pred revgraph
+			and predgraph = KeyActions.remove pred predgraph
+			and revgraph = KeyActions.remove pred revgraph
 			in
-			let predgraph = List.fold_left delete predgraph todel
-			in
-			(* filter childs without known pred *)
-			let clean = function
-				  None -> None
-				| Some childs ->
-					let childs  = List.filter (function (_,pred1,pred2) ->
-						KeyActions.mem pred1 predgraph && KeyActions.mem pred2 predgraph)
-							childs
+			(* update parents, register if false *)
+			let update_parent parent (predgraph, falsepreds) =
+				match KeyActions.find parent predgraph with
+				  Some childs -> 
+				  	let childs = List.filter (function (_,pred1,pred2) -> pred1 <> pred && pred2 <> pred) childs
 					in
-					Some childs
-
+					KeyActions.add parent (Some childs) predgraph,
+						if childs = [] then PredSet.add parent falsepreds else falsepreds
+				| _ -> invalid_arg "update_parent"
 			in
-			let predgraph = KeyActions.map clean predgraph
+			let predgraph, falsepreds = PredSet.fold update_parent parents (predgraph, falsepreds)
 			in
-			emptychilds predgraph
-		else 
-			predgraph
+			predgraph, revgraph, falsepreds
+		in
+		let predgraph, revgraph, falsepreds = PredSet.fold remove_pred falsepreds
+												(predgraph, revgraph, PredSet.empty)
+		in
+		if not(PredSet.is_empty falsepreds) then
+			remove_falsepreds (predgraph, revgraph) falsepreds
+		else
+			predgraph, revgraph
 	in
-	let predgraph = emptychilds predgraph
+	let predgraph, revgraph = remove_falsepreds (predgraph, revgraph) falsepreds
 	in
+	ignore(predgraph);
 
 
-
-	let test_solution = actions_schedulability_in_state state
-	in
-	Inconc
-(*
-	let walk_solutions inconc_answers
-		(* generate a new solution *)
-		try
-			let sol = []
-
-			in
-			match test_solution (uniqise_actions sol) with
-			  True -> True
-			| False -> walk_solutions inconc_answers
-			| Inconc -> walk_solutions (sol::inconc_answers)
-
-		with Not_found -> 
-			if inconc_answers = [] then False else Inconc
-	in
-	walk_solutions
-*)
-;;
-
+***************************)
 
 
 (********************)
