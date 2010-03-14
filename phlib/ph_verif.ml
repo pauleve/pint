@@ -333,10 +333,36 @@ let process_reachability keyactions zl state =
 	in
 
 	(* 1. test if root predicate is coloured *)
-	if not(PredSet.mem root_pred coloured) then
+	if not(PredSet.mem root_pred coloured) then (
+		(*DEBUG*) print_endline "root predicate is not coloured => FALSE"; (**)
 		False
-	else (
+	) else (
+		(*DEBUG*) print_endline "root predicate is coloured => testing solutions"; (**)
+
 		(* pre2. remove uncoloured predicated *)
+		let remove_uncoloured pred assoc (predgraph,revgraph) =
+			if PredSet.mem pred coloured then 
+				(* remove uncolored childs *)
+				let predgraph = match assoc with
+					  None -> predgraph
+					| Some childs ->
+						let assoc = Some (List.filter child_coloured childs)
+						in
+						KeyActions.add pred assoc predgraph
+				in
+				predgraph, revgraph
+			else
+				(* remove node *)
+				let predgraph = KeyActions.remove pred predgraph
+				and revgraph = KeyActions.remove pred revgraph
+				in
+				predgraph, revgraph
+		in
+		let predgraph, revgraph = KeyActions.fold remove_uncoloured predgraph (predgraph,revgraph)
+		in
+		ignore(predgraph);
+		ignore(revgraph);
+				
 
 		(* 2. test solutions *)
 		(*
