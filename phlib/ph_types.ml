@@ -11,6 +11,7 @@ module SMap = Map.Make (struct type t = string let compare = compare end);;
 **)
 
 type ternary = True | False | Inconc;;
+let string_of_ternary = function True -> "True" | False -> "False" | Inconc -> "Inconc";;
 
 type sort = string
 type sortidx = int
@@ -34,6 +35,10 @@ type hit_t = Hit of (process * process * int)
 let hitter = function Hit (ai,_,_) -> ai;;
 let target = function Hit (_,bj,_) -> bj;;
 let bounce = function Hit (_,(b,_),k) -> (b,k);;
+
+let string_of_action = function
+	Hit (ai, bj, k) -> string_of_process ai ^"->"^string_of_process bj^" "^string_of_int k
+;;
 
 
 (* STATE *)
@@ -89,6 +94,13 @@ let uniqise_actions actions =
 				ActionSet.add action set) ActionSet.empty actions
 	in ActionSet.elements set
 ;;
+let string_of_actionset set =
+	let content = String.concat ", " 
+		(List.map string_of_action (ActionSet.elements set))
+	in
+	"{" ^ content ^" }"
+;;
+	
 
 let ph_sigma = function (ps,_) -> List.map fst ps
 ;;

@@ -248,8 +248,43 @@ let actions_schedulability_in_state state actions =
 
 type pred_t = process * sortidx;;
 
+let string_of_pred (ai, j) =
+	"P("^string_of_process ai^","^string_of_int j^")"
+;;
+
 module KeyActions = Map.Make (struct type t = pred_t let compare = compare end);;
+
 module PredSet = Set.Make(struct type t = pred_t let compare = compare end);;
+let string_of_predset predset =
+	let content = String.concat ", " 
+		(List.map string_of_pred (PredSet.elements predset))
+	in
+	"{" ^ content ^" }"
+;;
+
+let string_of_predgraph predgraph =
+	let string_of_child (action, pred1, pred2) =
+		"("^string_of_action action ^","^string_of_pred pred1^","^string_of_pred pred2^")"
+	in
+	let string_of_value = function
+		  None -> "T"
+		| Some [] -> "F"
+		| Some childs -> 
+			String.concat "; " (List.map string_of_child childs)
+	in
+	let folder pred value str =
+		str^"  ["^string_of_pred pred^"] = "^string_of_value value^"\n"
+	in
+	KeyActions.fold folder predgraph ""
+;;
+
+let string_of_revgraph revgraph =
+	let folder pred parents str =
+		str^"  ["^string_of_pred pred^"] is a child of "^string_of_predset parents^"\n"
+	in
+	KeyActions.fold folder revgraph ""
+;;
+
 
 let process_reachability keyactions zl state = 
 	let root_pred = (zl, SMap.find (fst zl) state)
@@ -301,14 +336,14 @@ let process_reachability keyactions zl state =
 	in
 
 	(* pre1.2. Predicates coloration *)
-	let child_coloured (_, pred1, pred2) =
+	let child_coloured coloured (_, pred1, pred2) =
 		PredSet.mem pred1 coloured && PredSet.mem pred2 coloured
 	in
 	let colour_parent parent (coloured, newcoloured) =
 		if not (PredSet.mem parent coloured) then 
 			match KeyActions.find parent predgraph with
 			  Some childs -> 
-					if List.exists child_coloured childs then
+					if List.exists (child_coloured coloured) childs then
 						PredSet.add parent coloured, PredSet.add parent newcoloured
 					else
 						coloured, newcoloured
@@ -332,6 +367,14 @@ let process_reachability keyactions zl state =
 	let coloured = colour_newcoloured (coloured, coloured)
 	in
 
+	(*DEBUG*) (
+		print_endline "=== PREDICATE HYPERGRAPH BEFORE COLOURATION PRUNING ===";
+		print_endline (string_of_predgraph predgraph);
+		print_endline (string_of_revgraph revgraph);
+		print_endline ("=== COLOURATION IS " ^ string_of_predset coloured)
+	); (**)
+
+
 	(* 1. test if root predicate is coloured *)
 	if not(PredSet.mem root_pred coloured) then (
 		(*DEBUG*) print_endline "root predicate is not coloured => FALSE"; (**)
@@ -346,7 +389,7 @@ let process_reachability keyactions zl state =
 				let predgraph = match assoc with
 					  None -> predgraph
 					| Some childs ->
-						let assoc = Some (List.filter child_coloured childs)
+						let assoc = Some (List.filter (child_coloured coloured) childs)
 						in
 						KeyActions.add pred assoc predgraph
 				in
@@ -360,252 +403,85 @@ let process_reachability keyactions zl state =
 		in
 		let predgraph, revgraph = KeyActions.fold remove_uncoloured predgraph (predgraph,revgraph)
 		in
-		ignore(predgraph);
-		ignore(revgraph);
-				
+
+		(*DEBUG*) (
+			print_endline "=== PREDICATES HYPERGRAPH ===";
+			print_endline (string_of_predgraph predgraph);
+			print_endline (string_of_revgraph revgraph);
+		); (**)
 
 		(* 2. test solutions *)
-		(*
-		let test_solution = actions_schedulability_in_state state
+
+		let rec cross_sat sat2 = function
+			  [] -> []
+			| h::t -> List.map (List.append h) sat2 @ cross_sat sat2 t
 		in
-		let walk_solutions inconc_answers
-			(* generate a new solution *)
-			try
-				let sol = []
-
-				in
-				match test_solution (uniqise_actions sol) with
-				  True -> True
-				| False -> walk_solutions inconc_answers
-				| Inconc -> walk_solutions (sol::inconc_answers)
-
-			with Not_found -> 
-				if inconc_answers = [] then False else Inconc
-		in
-		walk_solutions
-		*)
-		Inconc
-	)
-;;
-
-(********** TRASH ***********
-	let rec register (predgraph, revgraph, falsepreds) (ai,j) = 
-		(* register aj-keyactions(ai) *)
-		if not (KeyActions.mem (ai,j) predgraph) then
-			match List.nth (PMap.find ai keyactions) j with
-			  None -> KeyActions.add (ai,j) None predgraph, revgraph, falsepreds
-			| Some actions -> 
-				let preds_of_action action = match action with
-					Hit (bk,_,j') ->
-						let pred1 = (bk,SMap.find (fst bk) state)
-						and pred2 = (ai,j')
-						in
-						action,pred1,pred2
-				in
-				let childs = List.map preds_of_action actions
-				in
-				let predgraph = KeyActions.add (ai,j) (Some childs) predgraph
-				and falsepreds, revgraph = 
-					if childs = [] then
-						(PredSet.add (ai,j) falsepreds, revgraph)
+		let rec sat_flat pred (computing, computed) =
+			try KeyActions.find pred computed, (computing, computed) 
+			with Not_found ->
+			match KeyActions.find pred predgraph with
+			  None -> [[]], (computing, computed)
+			| Some [] -> [], (computing, computed)
+			| Some childs ->
+				let computing = 
+					if PredSet.mem pred computing then
+						raise Not_found
 					else
-						(falsepreds, merge_rev (ai,j) revgraph childs)
+						PredSet.add pred computing
 				in
-				let resolver args (_,pred1,pred2) =
-					register (register args pred1) pred2
-				in
-				List.fold_left resolver (predgraph, revgraph, falsepreds) childs
-		else (predgraph, revgraph, falsepreds)
-	in
-	let predgraph, revgraph, falsepreds = register 
-			(KeyActions.empty, KeyActions.empty, PredSet.empty) (zl,SMap.find (fst zl) state)
-	in
-
-	(* 2. remove false leafs *)
-	let rec remove_falsepreds (predgraph, revgraph) falsepreds =
-		let remove_pred pred (predgraph, revgraph, falsepreds) =
-			let parents = KeyActions.find pred revgraph
-			and predgraph = KeyActions.remove pred predgraph
-			and revgraph = KeyActions.remove pred revgraph
-			in
-			(* update parents, register if false *)
-			let update_parent parent (predgraph, falsepreds) =
-				match KeyActions.find parent predgraph with
-				  Some childs -> 
-				  	let childs = List.filter (function (_,pred1,pred2) -> pred1 <> pred && pred2 <> pred) childs
-					in
-					KeyActions.add parent (Some childs) predgraph,
-						if childs = [] then PredSet.add parent falsepreds else falsepreds
-				| _ -> invalid_arg "update_parent"
-			in
-			let predgraph, falsepreds = PredSet.fold update_parent parents (predgraph, falsepreds)
-			in
-			predgraph, revgraph, falsepreds
-		in
-		let predgraph, revgraph, falsepreds = PredSet.fold remove_pred falsepreds
-												(predgraph, revgraph, PredSet.empty)
-		in
-		if not(PredSet.is_empty falsepreds) then
-			remove_falsepreds (predgraph, revgraph) falsepreds
-		else
-			predgraph, revgraph
-	in
-	let predgraph, revgraph = remove_falsepreds (predgraph, revgraph) falsepreds
-	in
-	ignore(predgraph);
-
-
-***************************)
-
-
-(********************)
-(**** DEPRECATED ****)
-(********************)
-
-type pharmful_t = PTrue | PClauses of (process * sortidx) list;;
-let string_of_pclause (hitter,bounce_idx) =
-	"harmful("^string_of_process hitter^") & p_harmful("^string_of_int bounce_idx^")"
-;;
-let string_of_pharmful = function
-	  PTrue -> "True"
-	| PClauses c -> String.concat " | " (List.map string_of_pclause c)
-;;
-
-module HarmfulLiteral = 
-struct 
-	type t = Harmful of process
-	let to_string = function Harmful ai -> "harmful("^string_of_process ai^")"
-end;;
-
-module HarmfulNF = Bool.NormalForm (HarmfulLiteral);;
-
-let string_of_harmful (a,nfs) =
-	String.concat " ; " (List.map (fun j -> 
-		(string_of_process (a,j)) ^ ": " ^ (HarmfulNF.to_string (List.nth nfs j))) (Util.range 0 (List.length nfs - 1)))
-;;
-
-let harmful (ps,hits) zl =
-	let computing = Hashtbl.create (List.length ps)
-	and register = Hashtbl.create (List.length ps)
-	in
-	let rec harmful arg = 
-		if not(Hashtbl.mem register arg) && not(Hashtbl.mem computing arg) then (
-			Hashtbl.add computing arg true;
-			let value = _harmful arg
-			in
-			Hashtbl.add register arg value;
-			(* DEBUG *) print_endline ("# harmful("^
-							string_of_process arg^") = "^string_of_harmful value);(**)
-			Hashtbl.remove computing arg
-		)
-	and _harmful (a,i) =
-		let la = Util.range 0 (List.assoc a ps)
-		in
-		(* I. compute p-harmless *)
-		(* I.a symbolic *)
-		let p_harmful j =
-			if i = j then PTrue
-			else (
-				let actions = Hashtbl.find_all hits (a,j)
-				in
-				let clause_of_action ((hitter,_),bounce_idx) = (hitter, bounce_idx)
-				in
-				PClauses (List.map clause_of_action actions)
-			)
-		in
-		let p_harmfuls = List.map p_harmful la
-		in
-		(*DEBUG* List.iter (fun j -> print_endline ("("^string_of_process (a,i)
-					^") p_harmful("^string_of_int j^") = "
-					^string_of_pharmful (List.nth p_harmfuls j))) la;**)
-		(* I.b resolve *)
-		let resolve j =
-			let p_register = Hashtbl.create (List.assoc a ps)
-			and p_computing = Hashtbl.create (List.assoc a ps)
-			in
-			let rec resolve_next j' =
-				if Hashtbl.mem p_computing j' then (
-					HarmfulNF.val_false
-				) else (
-					if not(Hashtbl.mem p_register j') then (
-						Hashtbl.add p_computing j' true;
-						let next = _resolve_next j'
+				let folder (sat, stack) (action,pred1,pred2) =
+					try 
+						let sat1, stack = sat_flat pred1 stack
 						in
-						Hashtbl.add p_register j' next;
-						Hashtbl.remove p_computing j';
-						next
-					) else (
-						Hashtbl.find p_register j'
+						let sat2, stack = sat_flat pred2 stack
+						in
+						let sat_child = List.map (fun tree -> (pred,action)::tree) 
+											(cross_sat sat2 sat1)
+						in
+						sat_child @ sat, stack
+					with Not_found -> sat, stack
+				in
+				let sat, (computing, computed) = List.fold_left folder ([],(computing,computed)) childs
+				in
+				let computing = PredSet.remove pred computing
+				and computed = KeyActions.add pred sat computed
+				in
+				sat, (computing, computed)
+		in
+		let sat_flat pred = fst (sat_flat pred (PredSet.empty, KeyActions.empty))
+		in
+		try
+			let flat_trees = sat_flat root_pred
+			in
+			(*DEBUG*) (
+				let string_of_tree tree =
+					String.concat " - " (
+						List.map (fun (pred, action) -> string_of_pred pred^ " "^string_of_action action)
+							tree
 					)
-				)
-
-			and _resolve_next j' =
-				match List.nth p_harmfuls j' with
-				  PTrue -> HarmfulNF.val_true
-				| PClauses c ->
-					let folder nf (hitter,j'') =
-						let nf_j'' = resolve_next j''
-						in
-						let nf' = HarmfulNF.cross_literal (HarmfulLiteral.Harmful hitter) nf_j''
-						in
-						HarmfulNF.union nf nf'
-					in
-					List.fold_left folder HarmfulNF.val_false c
-			in
-			resolve_next j
-		in
-		let p_harmfuls' = List.map resolve la
-		in
-		(*DEBUG* List.iter (fun j -> print_endline ("("^string_of_process (a,i)
-					^") p_harmful'("^string_of_int j^") = "
-					^(HarmfulNF.to_string (List.nth p_harmfuls' j)))) la;**)
-		(* II. compute harmless *) 
-		let resolve_harmful = function HarmfulLiteral.Harmful hitter -> harmful hitter
-		in
-		List.iter (fun nf -> HarmfulNF.iter (fun clause -> HarmfulNF.Clause.iter resolve_harmful clause) nf)
-			p_harmfuls';
-		(a,p_harmfuls')
-	in
-	(harmful zl);
-	(zl,register)
-;;
-
-let solve_harmful (arg,harmfuls) state_value = (* returns true if state is harmful for arg *)
-	let register = Hashtbl.create 10
-	and solving = Hashtbl.create 10
-	in
-	let rec solve_harmful arg =
-		try false, Hashtbl.find register arg with Not_found -> (
-			if Hashtbl.mem solving arg then (
-				(*DEBUG* print_endline ("#! assume solve("^string_of_process arg^")=False"); **)
-				true, false
-			) else (
-				Hashtbl.add solving arg true;
-				let has_loop, value = satisfy_switch (Hashtbl.find harmfuls arg)
 				in
-				Hashtbl.remove solving arg;
-				if not has_loop then Hashtbl.add register arg value;
-				has_loop, value
-			)
-		)
-	and satisfy_lit has_loop = function
-		HarmfulLiteral.Harmful ai -> 
-			let has_loop', ret = solve_harmful ai
+				print_endline (String.concat "\n---\n" (List.map string_of_tree flat_trees));
+			); (**)
+			Inconc
+			(*
+			let test_solution set =
+				actions_schedulability_in_state state (ActionSet.elements set)
 			in
-			has_loop := has_loop';
-			ret
-	and satisfy_dnf = function
-		  HarmfulNF.True -> false, true
-		| HarmfulNF.Clauses [] -> false, false
-		| HarmfulNF.Clauses clauses ->
-			let has_loop = ref false 
-			in
-			let ret = List.exists (HarmfulNF.Clause.for_all (satisfy_lit has_loop)) clauses
-			in
-			!has_loop, ret
-	and satisfy_switch (a, nfs) =
-		satisfy_dnf (List.nth nfs (state_value a))
-	in
-	snd (solve_harmful arg)
+			let rec walk_solutions inconc_answers
+				(* generate a new solution *)
+				try
+					let sol = ActionSet.empty
+
+					in
+					match test_solution sol with
+					  True -> True
+					| False -> walk_solutions inconc_answers
+					| Inconc -> walk_solutions (sol::inconc_answers)
+
+				with Not_found -> 
+					if inconc_answers = [] then False else Inconc
+			*)
+		with Not_found -> False
+	)
 ;;
 
