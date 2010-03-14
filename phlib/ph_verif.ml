@@ -289,6 +289,7 @@ let string_of_revgraph revgraph =
 let process_reachability keyactions zl state = 
 	let root_pred = (zl, SMap.find (fst zl) state)
 	in
+	print_endline ("root_pred is "^string_of_pred root_pred);
 
 	(* pre1.1. Compute predicates hyper-graph with reverse dependencies *)
 
@@ -332,8 +333,15 @@ let process_reachability keyactions zl state =
 		else (predgraph, revgraph, coloured)
 	in
 	let predgraph, revgraph, coloured = register 
-			(KeyActions.empty, KeyActions.empty, PredSet.empty) root_pred
+			(KeyActions.empty, KeyActions.add root_pred PredSet.empty KeyActions.empty, PredSet.empty) root_pred
 	in
+
+	(*DEBUG*) (
+		print_endline "=== PREDICATE HYPERGRAPH BEFORE COLOURATION PRUNING ===";
+		print_endline (string_of_predgraph predgraph);
+		print_endline (string_of_revgraph revgraph);
+	); (**)
+	print_endline "computing colouration...";
 
 	(* pre1.2. Predicates coloration *)
 	let child_coloured coloured (_, pred1, pred2) =
@@ -368,9 +376,6 @@ let process_reachability keyactions zl state =
 	in
 
 	(*DEBUG*) (
-		print_endline "=== PREDICATE HYPERGRAPH BEFORE COLOURATION PRUNING ===";
-		print_endline (string_of_predgraph predgraph);
-		print_endline (string_of_revgraph revgraph);
 		print_endline ("=== COLOURATION IS " ^ string_of_predset coloured)
 	); (**)
 
