@@ -94,11 +94,10 @@ let uniqise_actions actions =
 				ActionSet.add action set) ActionSet.empty actions
 	in ActionSet.elements set
 ;;
-let string_of_actionset set =
-	let content = String.concat ", " 
-		(List.map string_of_action (ActionSet.elements set))
-	in
-	"{" ^ content ^" }"
+let string_of_actions actions =
+	"{ "^(String.concat ", " (List.map string_of_action actions))^" }"
+;;
+let string_of_actionset set = string_of_actions (ActionSet.elements set)
 ;;
 	
 
