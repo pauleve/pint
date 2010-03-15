@@ -534,3 +534,163 @@ let process_reachability keyactions zl state =
 	)
 ;;
 
+type proceq_t = sort * ISet.t;;
+let string_of_proceq (a,is) = a^"_"^string_of_iset is
+;;
+
+module ProcEqSet = Set.Make (struct type t = proceq_t let compare = compare end);;
+let string_of_proceqset = string_of_set string_of_proceq ProcEqSet.elements
+;;
+
+module TargetBounceSet = Set.Make (struct type t = process * sortidx let compare = compare end);;
+module TargetBounceMap = Map.Make (struct type t = process * sortidx let compare = compare end);;
+
+module S2Set = Set.Make (struct type t = sort * sort let compare = compare end);;
+module I2Set = Set.Make (struct type t = int * int let compare = compare end);;
+
+module EqMap = Map.Make (struct type t = sort * sort * sortidx let compare = compare end);;
+
+let processes_equivalences (ps, hits) =
+	let htbl = Hashtbl.create (List.length ps)
+	in
+	let folder (b,j) (((a,i),_),k) keys =
+		Hashtbl.add htbl (a,b) (i,j,k);
+		S2Set.add (a,b) keys
+	in
+	let keys = Hashtbl.fold folder hits S2Set.empty
+	in
+	let folder (a,b) equivalences =
+		let hits = Hashtbl.find_all htbl (a,b)
+		in
+		(* group by i *)
+		let group (groups,keys) (i,j,k) =
+			let g = try IMap.find i groups with Not_found -> I2Set.empty
+			in
+			IMap.add i (I2Set.add (j,k) g) groups, ISet.add i keys
+		in
+		let groups, keys = List.fold_left group (IMap.empty, ISet.empty) hits
+		in
+		(* check for groups equality *)
+		let rec check_eq keys equivalences =
+			if ISet.cardinal keys < 2 then
+				equivalences
+			else
+				let i = ISet.min_elt keys
+				in
+				let keys = ISet.remove i keys
+				and g = IMap.find i groups
+				in
+				let folder i' eqs =
+					let g' = IMap.find i' groups
+					in
+					if I2Set.equal g g' then ISet.add i' eqs else eqs
+				in
+				let eqs = ISet.fold folder keys (ISet.singleton i)
+				in
+				let equivalences = 
+					if ISet.cardinal eqs > 1 then (
+						(*DEBUG*) print_endline ("* process equivalence mod "^b^": "^a^"_"^string_of_iset eqs); (**)
+						let register i equivalences =
+							EqMap.add (b,a,i) eqs equivalences
+						in
+						ISet.fold register eqs equivalences
+					) else
+						equivalences
+				and keys = ISet.diff keys eqs
+				in
+				check_eq keys equivalences
+		in
+		check_eq keys equivalences
+	in
+	S2Set.fold folder keys EqMap.empty
+;;
+
+
+let get_process_equivalence equivalences b (a,i) =
+	try 
+		a, EqMap.find (b,a,i) equivalences
+	with Not_found ->
+		a, ISet.singleton i
+;;
+
+
+
+type result_t = (ActionSet.t * ProcEqSet.t * sortidx);;
+let string_of_result (actions, proceqs, l) =
+	"("^string_of_actionset actions^", "^string_of_proceqset proceqs^", "^string_of_int l^")"
+;;
+
+module ResultSet = Set.Make (struct type t = result_t let compare = compare end);;
+let string_of_resultset = string_of_set string_of_result ResultSet.elements
+;;
+
+let process_reachability2 (ps,hits) (z,l) state =
+
+	let equivalences = processes_equivalences (ps,hits)
+	in
+	let get_process_equivalence = get_process_equivalence equivalences
+	in
+
+	(* returns the set of action lists to make bounce s_a to a_i, i \in reachset
+		(without any cycle *)
+	let bounce_paths a j reachset =
+
+		let prepend_action action results =
+			(* add action and hitter to every choices *)
+			let target_sort = fst (target action)
+			in
+			let hittereq = get_process_equivalence target_sort (hitter action)
+			in
+			let folder (actions, proceqs, l) rs =
+				let actions = ActionSet.add action actions
+				and proceqs = ProcEqSet.add hittereq proceqs
+				in
+				ResultSet.add (actions, proceqs, l) rs
+			in
+			ResultSet.fold folder results ResultSet.empty
+		in
+		let push_results action k_results results =
+			let k_results = prepend_action action k_results
+			in
+			let results = ResultSet.union results k_results
+			in
+			let keep_result (_, proceqs, _) =
+				ResultSet.for_all (function (_, proceqs', _) -> 
+					ProcEqSet.equal proceqs proceqs' || not (ProcEqSet.subset proceqs' proceqs))
+						results
+			in
+			ResultSet.filter keep_result results
+		in
+
+		let rec walk j visited =
+			if ISet.mem j reachset then
+				ResultSet.singleton (ActionSet.empty, ProcEqSet.empty, j)
+			else
+				let visited = ISet.add j visited
+				and actions = Hashtbl.find_all hits (a,j)
+				in
+				let folder results = function (hitter,_),k ->
+					if ISet.mem k visited then
+						results
+					else
+						let k_results = walk k visited
+						in
+						push_results (Hit (hitter,(a,j),k)) k_results results
+				in
+				List.fold_left folder ResultSet.empty actions
+		in
+		(*DEBUG*)
+			print_endline ("- computing bounce paths from "^
+							string_of_process (a,j)^" to "^
+							string_of_iset reachset ^ "...");
+		(**)
+		let rs = walk j ISet.empty
+		in
+		(*DEBUG*) print_endline ("+ computation result: "^string_of_resultset rs); (**)
+		rs
+	in
+	ignore(bounce_paths z (SMap.find z state) (ISet.singleton l));
+	ignore(bounce_paths "CDK2CDK4CDK6" 0 (ISet.add 3 (ISet.singleton 7)))
+;;
+
+
