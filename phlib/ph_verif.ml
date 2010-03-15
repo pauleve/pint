@@ -619,10 +619,13 @@ type result_t = (ActionSet.t * ProcEqSet.t * sortidx);;
 let string_of_result (actions, proceqs, l) =
 	"("^string_of_actionset actions^", "^string_of_proceqset proceqs^", "^string_of_int l^")"
 ;;
+module ProcEqSetSet = Set.Make (struct type t = ProcEqSet.t let compare = compare end);;
 
 module ResultSet = Set.Make (struct type t = result_t let compare = compare end);;
 let string_of_resultset = string_of_set string_of_result ResultSet.elements
 ;;
+
+module IndexSet = Set.Make (struct type t = proceq_t * sortidx let compare = compare end);;
 
 let process_reachability2 (ps,hits) (z,l) state =
 
@@ -631,9 +634,13 @@ let process_reachability2 (ps,hits) (z,l) state =
 	let get_process_equivalence = get_process_equivalence equivalences
 	in
 
+	let hbounces = Hashtbl.create 1
+	and pred_index (a, reachset) j = (a,reachset), j
+	in
+
 	(* returns the set of action lists to make bounce s_a to a_i, i \in reachset
 		(without any cycle *)
-	let bounce_paths a j reachset =
+	let bounce_paths (a, reachset) j =
 
 		let prepend_action action results =
 			(* add action and hitter to every choices *)
@@ -687,10 +694,44 @@ let process_reachability2 (ps,hits) (z,l) state =
 		let rs = walk j ISet.empty
 		in
 		(*DEBUG*) print_endline ("+ computation result: "^string_of_resultset rs); (**)
+		Hashtbl.add hbounces (pred_index (a, reachset) j) rs;
 		rs
 	in
-	ignore(bounce_paths z (SMap.find z state) (ISet.singleton l));
-	ignore(bounce_paths "CDK2CDK4CDK6" 0 (ISet.add 3 (ISet.singleton 7)))
+	let get_bounce_paths ((a, reachset), j) =
+		try
+			Hashtbl.find hbounces ((a, reachset), j)
+		with Not_found ->
+			bounce_paths (a, reachset) j
+	in
+	let hdepend = Hashtbl.create 1
+	in
+	(* compute dependencies graph *)
+	let rec dependencies index =
+		if not (Hashtbl.mem hdepend index) then
+			let bounce_paths = get_bounce_paths index
+			in
+			let get_proceqs (_, proceqs, _) childs =
+				ProcEqSetSet.add proceqs childs
+			in
+			let childs = ResultSet.fold get_proceqs bounce_paths ProcEqSetSet.empty
+			in
+			let iter_child proceqs =
+				let fold_proceq proceq indexes =
+					let j = SMap.find (fst proceq) state
+					in
+					IndexSet.add (pred_index proceq j) indexes
+				in
+				let indexes = ProcEqSet.fold fold_proceq proceqs IndexSet.empty
+				in (
+					Hashtbl.add hdepend index indexes;
+					IndexSet.iter (fun index -> dependencies index) indexes
+				)
+			in
+			ProcEqSetSet.iter iter_child childs
+	in
+	let root_index = pred_index (z,(ISet.singleton l)) (SMap.find z state)
+	in
+	dependencies root_index
 ;;
 
 
