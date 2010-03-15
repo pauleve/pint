@@ -193,6 +193,9 @@ let keyactions_predicates (ps,hits) zl =
 	Returns a ternary (True/False/Inconc).
 *)
 let actions_schedulability_in_state state actions =
+	(*DEBUG*)
+		print_endline ("Testing solution "^string_of_actions actions);
+	(**)
 
 	(* build Sort-Graphs *)
 	let sortgraphs = sortgraphs_of_actions actions
@@ -232,13 +235,20 @@ let actions_schedulability_in_state state actions =
 		in
 		SMap.iter test_sortgraph sortgraphs;
 
+		(*DEBUG*)
+			print_endline "All Sort-Graphs are Eulerian.";
+		(**)
+
 		(* check for schedulability *)
 		if sortgraphs_schedulable sortgraphs then
 			True
 		else 
 			(default_answer ())
 
-	with Non_eulerian -> default_answer ()
+	with Non_eulerian -> (
+		print_endline "There exists a non-Eulerian Sort-Graph";
+		default_answer ()
+	)
 ;;
 
 (* 
@@ -259,7 +269,7 @@ let string_of_predset predset =
 	let content = String.concat ", " 
 		(List.map string_of_pred (PredSet.elements predset))
 	in
-	"{" ^ content ^" }"
+	"{ " ^ content ^" }"
 ;;
 
 let string_of_predgraph predgraph =
@@ -277,7 +287,6 @@ let string_of_predgraph predgraph =
 	in
 	KeyActions.fold folder predgraph ""
 ;;
-
 let string_of_revgraph revgraph =
 	let folder pred parents str =
 		str^"  ["^string_of_pred pred^"] is a child of "^string_of_predset parents^"\n"
@@ -285,6 +294,8 @@ let string_of_revgraph revgraph =
 	KeyActions.fold folder revgraph ""
 ;;
 
+module Tree = Set.Make (struct type t = pred_t * hit_t let compare = compare end);;
+module FlatSat = Set.Make (struct type t = Tree.t let compare = compare end);;
 
 let process_reachability keyactions zl state = 
 	let root_pred = (zl, SMap.find (fst zl) state)
@@ -336,11 +347,11 @@ let process_reachability keyactions zl state =
 			(KeyActions.empty, KeyActions.add root_pred PredSet.empty KeyActions.empty, PredSet.empty) root_pred
 	in
 
-	(*DEBUG*) (
+	(*DEBUG* (
 		print_endline "=== PREDICATE HYPERGRAPH BEFORE COLOURATION PRUNING ===";
 		print_endline (string_of_predgraph predgraph);
 		print_endline (string_of_revgraph revgraph);
-	); (**)
+	); **)
 	print_endline "computing colouration...";
 
 	(* pre1.2. Predicates coloration *)
@@ -417,16 +428,39 @@ let process_reachability keyactions zl state =
 
 		(* 2. test solutions *)
 
+		let cross_sat sat2 sat1 =
+			let folder tree2 crossed =
+				let folder1 tree1 crossed =
+					let tree12 = Tree.union tree1 tree2
+					in
+					FlatSat.add tree12 crossed
+				in
+				FlatSat.fold folder1 sat1 crossed
+			in
+			FlatSat.fold folder sat2 FlatSat.empty
+		and prepend_sat elt sat =
+			let folder tree sat =
+				let tree = Tree.add elt tree
+				in
+				FlatSat.add tree sat
+			in
+			FlatSat.fold folder sat FlatSat.empty
+		(*
 		let rec cross_sat sat2 = function
 			  [] -> []
 			| h::t -> List.map (List.append h) sat2 @ cross_sat sat2 t
+		*)
 		in
 		let rec sat_flat pred (computing, computed) =
+			(*
+			if KeyActions.mem pred computed then [[]], (computing, computed)
+			else
+			*)
 			try KeyActions.find pred computed, (computing, computed) 
-			with Not_found ->
+			with Not_found -> (
 			match KeyActions.find pred predgraph with
-			  None -> [[]], (computing, computed)
-			| Some [] -> [], (computing, computed)
+			  None -> FlatSat.singleton Tree.empty, (computing, computed)
+			| Some [] -> FlatSat.empty, (computing, computed)
 			| Some childs ->
 				let computing = 
 					if PredSet.mem pred computing then
@@ -436,29 +470,37 @@ let process_reachability keyactions zl state =
 				in
 				let folder (sat, stack) (action,pred1,pred2) =
 					try 
-						let sat1, stack = sat_flat pred1 stack
-						in
 						let sat2, stack = sat_flat pred2 stack
 						in
-						let sat_child = List.map (fun tree -> (pred,action)::tree) 
-											(cross_sat sat2 sat1)
+						let sat1, stack = sat_flat pred1 stack
 						in
-						sat_child @ sat, stack
+						print_endline ("  sat_flat "^string_of_pred pred);
+						print_endline ("    "^string_of_action action^" "^string_of_pred pred1^" x "^string_of_pred pred2);
+						print_endline ("    cross_sat "^string_of_int (FlatSat.cardinal sat1) ^" x "^string_of_int (FlatSat.cardinal sat2)^"...");
+						let sat12 = cross_sat sat2 sat1
+						in
+						print_endline "    done.";
+						(*let sat_child = List.map (fun tree -> (pred,action)::tree) sat12*)
+						let sat_child = prepend_sat (pred,action) sat12
+						in
+						FlatSat.union sat_child sat, stack
 					with Not_found -> sat, stack
 				in
-				let sat, (computing, computed) = List.fold_left folder ([],(computing,computed)) childs
+				let sat, (computing, computed) = List.fold_left folder (FlatSat.empty,(computing,computed)) childs
 				in
 				let computing = PredSet.remove pred computing
 				and computed = KeyActions.add pred sat computed
 				in
 				sat, (computing, computed)
+			)
 		in
 		let sat_flat pred = fst (sat_flat pred (PredSet.empty, KeyActions.empty))
 		in
 		try
 			let flat_trees = sat_flat root_pred
 			in
-			(*DEBUG*) (
+			print_endline (string_of_int (FlatSat.cardinal flat_trees)^" flat solutions");
+			(*DEBUG* (
 				let string_of_tree tree =
 					String.concat " - " (
 						List.map (fun (pred, action) -> string_of_pred pred^ " "^string_of_action action)
@@ -466,26 +508,28 @@ let process_reachability keyactions zl state =
 					)
 				in
 				print_endline (String.concat "\n---\n" (List.map string_of_tree flat_trees));
-			); (**)
-			Inconc
-			(*
-			let test_solution set =
-				actions_schedulability_in_state state (ActionSet.elements set)
-			in
-			let rec walk_solutions inconc_answers
-				(* generate a new solution *)
-				try
-					let sol = ActionSet.empty
+			); **)
 
+			let solution_of_tree tree =
+				let folder (_,action) actions =
+					action::actions
+				in
+				Tree.fold folder tree []
+			and test_solution = actions_schedulability_in_state state
+			in
+			let walk_solutions tree best_answer =
+				if best_answer = True then True
+				else 
+					let sol = solution_of_tree tree
 					in
 					match test_solution sol with
 					  True -> True
-					| False -> walk_solutions inconc_answers
-					| Inconc -> walk_solutions (sol::inconc_answers)
-
-				with Not_found -> 
-					if inconc_answers = [] then False else Inconc
-			*)
+					| False -> best_answer
+					| Inconc -> (
+						print_endline ("** INCONCLUSIVE SOLUTION "^string_of_actions sol);
+						Inconc)
+			in
+			FlatSat.fold walk_solutions flat_trees False
 		with Not_found -> False
 	)
 ;;
