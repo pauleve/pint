@@ -619,7 +619,7 @@ type result_t = (ActionSet.t * ProcEqSet.t * sortidx);;
 let string_of_result (actions, proceqs, l) =
 	"("^string_of_actionset actions^", "^string_of_proceqset proceqs^", "^string_of_int l^")"
 ;;
-module ProcEqSetSet = Set.Make (struct type t = ProcEqSet.t let compare = compare end);;
+module ProcEqSetSet = Set.Make (struct type t = ProcEqSet.t let compare = ProcEqSet.compare end);;
 
 module ResultSet = Set.Make (struct type t = result_t let compare = compare end);;
 let string_of_resultset = string_of_set string_of_result ResultSet.elements
@@ -627,7 +627,7 @@ let string_of_resultset = string_of_set string_of_result ResultSet.elements
 
 module IndexSet = Set.Make (struct type t = proceq_t * sortidx let compare = compare end);;
 
-let process_reachability2 (ps,hits) (z,l) state =
+let process_reachability_prepare (ps,hits) (z,l) state =
 
 	let equivalences = processes_equivalences (ps,hits)
 	in
@@ -731,7 +731,34 @@ let process_reachability2 (ps,hits) (z,l) state =
 	in
 	let root_index = pred_index (z,(ISet.singleton l)) (SMap.find z state)
 	in
-	dependencies root_index
+	dependencies root_index;
+	hdepend	
 ;;
+
+
+let dot_from_hdepend hdepend =
+	let id_from_index ((a,reachset),j) =
+		"\"" ^ a^" "^string_of_int j^"->"^string_of_iset reachset^"\""
+	in
+	let idx = ref 0
+	in
+	let folder index indexes str = (
+		idx := !idx + 1;
+		let child_id = "child"^string_of_int (!idx)
+		in
+		let fold_index index' str =
+			str ^
+			"  " ^ child_id ^" -> "^id_from_index index'^"\n"
+		in
+		str ^ 
+		"  " ^ child_id^"[label=AND shape=box]\n" ^
+		"  " ^ id_from_index index^ " -> "^child_id^"\n" ^
+		(IndexSet.fold fold_index indexes "")
+	) in
+	Hashtbl.fold folder hdepend "digraph hdepend {\n" ^ "}"
+;;
+
+
+
 
 
