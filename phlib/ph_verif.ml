@@ -751,14 +751,11 @@ let dot_from_hdepend hdepend =
 			"  " ^ child_id ^" -> "^id_from_index index'^"\n"
 		in
 		str ^ 
-		"  " ^ child_id^"[label=AND shape=box]\n" ^
+		"  " ^ child_id^"[label=ALL shape=box]\n" ^
 		"  " ^ id_from_index index^ " -> "^child_id^"\n" ^
 		(IndexSet.fold fold_index indexes "")
 	) in
 	Hashtbl.fold folder hdepend "digraph hdepend {\n" ^ "}"
 ;;
-
-
-
 
 
