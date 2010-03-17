@@ -627,17 +627,13 @@ let string_of_resultset = string_of_set string_of_result ResultSet.elements
 
 module IndexSet = Set.Make (struct type t = proceq_t * sortidx let compare = compare end);;
 
-let process_reachability_prepare (ps,hits) (z,l) state =
+let pred_index (a, reachset) j = (a,reachset), j
+;;
 
-	let equivalences = processes_equivalences (ps,hits)
-	in
+
+let dependencies (ps,hits) equivalences (hdepend, hbounces) state index =
 	let get_process_equivalence = get_process_equivalence equivalences
 	in
-
-	let hbounces = Hashtbl.create 1
-	and pred_index (a, reachset) j = (a,reachset), j
-	in
-
 	(* returns the set of action lists to make bounce s_a to a_i, i \in reachset
 		(without any cycle *)
 	let bounce_paths (a, reachset) j =
@@ -645,12 +641,14 @@ let process_reachability_prepare (ps,hits) (z,l) state =
 		let prepend_action action results =
 			(* add action and hitter to every choices *)
 			let target_sort = fst (target action)
+			and hitter_sort = fst (hitter action)
 			in
 			let hittereq = get_process_equivalence target_sort (hitter action)
 			in
 			let folder (actions, proceqs, l) rs =
 				let actions = ActionSet.add action actions
-				and proceqs = ProcEqSet.add hittereq proceqs
+				and proceqs =
+					if hitter_sort = a then proceqs else ProcEqSet.add hittereq proceqs
 				in
 				ResultSet.add (actions, proceqs, l) rs
 			in
@@ -703,9 +701,6 @@ let process_reachability_prepare (ps,hits) (z,l) state =
 		with Not_found ->
 			bounce_paths (a, reachset) j
 	in
-	let hdepend = Hashtbl.create 1
-	in
-	(* compute dependencies graph *)
 	let rec dependencies index =
 		if not (Hashtbl.mem hdepend index) then
 			let bounce_paths = get_bounce_paths index
@@ -729,10 +724,24 @@ let process_reachability_prepare (ps,hits) (z,l) state =
 			in
 			ProcEqSetSet.iter iter_child childs
 	in
+	dependencies index
+;;
+
+let process_reachability_prepare ph (z,l) state =
+
+	let equivalences = processes_equivalences ph
+	and hdepend = Hashtbl.create 1
+	and hbounces = Hashtbl.create 1
+	in
+	let dependencies = dependencies ph equivalences (hdepend, hbounces)
+	in
+
 	let root_index = pred_index (z,(ISet.singleton l)) (SMap.find z state)
 	in
-	dependencies root_index;
-	hdepend	
+	dependencies state root_index;
+
+	(* tmp: returns graph + dependencies function *)
+	hdepend, dependencies
 ;;
 
 
