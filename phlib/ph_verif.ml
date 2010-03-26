@@ -1,6 +1,8 @@
 
 open Big_int;;
 
+open Debug;;
+
 open Ph_types;;
 open Ph_op;;
 open Ph_util;;
@@ -10,11 +12,11 @@ module EMap = Map.Make (struct type t = process * string
 	let compare = compare end);;
 
 let stable_states (ps,hits) =
-	(*DEBUG*) print_endline ". hitless graph";
+	(*DEBUG*) dbg ". hitless graph";
 	let v, e = hitless_graph (ps,hits)
 	and sigma = fst (List.split ps)
 	in
-	(*DEBUG*) print_endline " OK";
+	(*DEBUG*) dbg " OK";
 	(* Fill E *)
 	let register_couple ((a,i),(b,j)) _E =
 		let register_couple _E ((a,i),(b,j)) =
@@ -28,10 +30,10 @@ let stable_states (ps,hits) =
 		in
 		register_couple _E ((b,j),(a,i))
 	in
-	(*DEBUG*) print_endline ". fill E";
+	(*DEBUG*) dbg ". fill E";
 	let _E = PCSet.fold register_couple e (EMap.empty);
 	in
-	(*DEBUG*) print_endline " OK";
+	(*DEBUG*) dbg " OK";
 	(* Prune E *)
 	let _E_remove _E ai =
 		(* remove E_ai *)
@@ -44,7 +46,7 @@ let stable_states (ps,hits) =
 		EMap.map (fun eb -> Util.list_remove ai eb) _E
 	in
 	let rec prune v _E =
-		(*DEBUG*) print_endline ". prune";
+		(*DEBUG*) dbg ". prune";
 		let has_empty (a,i) =
 			let check b =
 				if b <> a then
@@ -60,13 +62,13 @@ let stable_states (ps,hits) =
 		match to_rm with [] -> v,_E | _ -> (
 			let _E = List.fold_left _E_remove _E to_rm
 			in
-			(*DEBUG*) print_endline " OK (recur)";
+			(*DEBUG*) dbg " OK (recur)";
 			prune v _E
 		)
 	in
 	let v,_E = prune v _E
 	in
-	(*DEBUG*) print_endline " DONE";
+	(*DEBUG*) dbg " DONE";
 
 	(* Choose the smallest E_a *)
 	let count ((a,i),b) eb cE =
@@ -81,7 +83,7 @@ let stable_states (ps,hits) =
 	in
 	let a = fst (SMap.fold smaller cE ("",-1))
 	in
-	(*DEBUG*) print_endline (". using "^a); 
+	(*DEBUG*) dbg (". using "^a); 
 
 	(* Cross product E_a and test for cliques *)
 	let folder stable_states ai =
@@ -90,7 +92,7 @@ let stable_states (ps,hits) =
 		in
 		let to_test = List.rev (List.map get_Eaib sigma)
 		in
-		(*DEBUG*) print_endline (". testing "^string_of_big_int 
+		(*DEBUG*) dbg (". testing "^string_of_big_int 
 				(List.fold_left (fun c l -> mult_int_big_int (List.length l) c)
 					unit_big_int to_test)^" states");
 
