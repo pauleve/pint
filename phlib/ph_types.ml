@@ -43,7 +43,7 @@ type regulation_sign = Positive | Negative
 type regulation_t = Regulation of (string * int * regulation_sign * string)
 
 (* (a,i) * (b,j) * j' *)
-type hit_t = Hit of (process * process * int)
+type action = Hit of (process * process * int)
 
 let hitter = function Hit (ai,_,_) -> ai;;
 let target = function Hit (_,bj,_) -> bj;;
@@ -101,7 +101,7 @@ module PCSet = Set.Make (struct type t = (process * process)
 module PMap = Map.Make (struct type t = process let compare = compare end);;
 module PSet = Set.Make (struct type t = process let compare = compare end);;
 
-module ActionSet = Set.Make (struct type t = hit_t let compare = compare end);;
+module ActionSet = Set.Make (struct type t = action let compare = compare end);;
 let uniqise_actions actions = 
 	let set = List.fold_left (fun set action ->
 				ActionSet.add action set) ActionSet.empty actions
