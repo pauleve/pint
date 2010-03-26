@@ -1,16 +1,8 @@
 
-open Big_int;;
+open Ui;;
 
-let ph_load filename = fst (Ph_util.parse (open_in filename));;
-let ph_load2 filename = Ph_util.parse (open_in filename);;
-let ph_stable_states = Ph_verif.stable_states;;
-let ph_count_states (ps,hits) =
-	let counter c (_,la) = mult_int_big_int (la+1) c
-	in
-	List.fold_left counter unit_big_int ps
-;;
+open Ph_types;;
 
-let string_of_process (a,i) = a^"_"^string_of_int i;;
 let string_of_state state =
 	"[ "^
 	String.concat " " (List.sort compare (List.map string_of_process state))

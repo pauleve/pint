@@ -10,7 +10,6 @@ outputname = inputname.replace(".ginml","")+".ph"
 ginml = parse(inputname)
 
 ph = open(outputname, 'w')
-ph.write("directive sample 10000.\n\n")
 
 # process definitions
 nodes = ginml.getElementsByTagName("node")
@@ -30,5 +29,8 @@ for edge in edges :
 	sgn = edge.getAttribute("sign") == "positive" and "+" or "-"
 	ph.write("\t%s %d -> %s %s;\n" % (a,t,sgn,b))
 ph.write("])\n\n")
+
+# cooperativities
+#TODO
 	
 
