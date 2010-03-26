@@ -134,11 +134,14 @@ let macro_grn regulations ctx =
 ;;
 
 let macro_cooperativity sigma ak k' top (ps,hits) =
-
+	let get_sort_max a =
+		try List.assoc a ps
+		with Not_found -> failwith ("Unknown sort '"^a^"'")
+	in
 	let sigma_len = List.length sigma
 	in
 	let rec build_idx_sizes n prec_size =
-		let my_size = if n = sigma_len-1 then 1 else ((1+List.assoc (List.nth sigma (n+1)) ps) * prec_size)
+		let my_size = if n = sigma_len-1 then 1 else ((1+get_sort_max (List.nth sigma (n+1))) * prec_size)
 		and n' = n-1
 		in
 		(if n' < -1 then [] else build_idx_sizes (n-1) my_size)
@@ -161,7 +164,9 @@ let macro_cooperativity sigma ak k' top (ps,hits) =
 		idx_from_state 0 state
 	in
 
-	let _S = Util.cross_list (List.map (fun a -> Util.range 0 (List.assoc a ps)) (List.rev sigma))
+	let get_sort_processes a = Util.range 0 (get_sort_max a)
+	in
+	let _S = Util.cross_list (List.map get_sort_processes (List.rev sigma))
 	in
 
 	let folder hsigma z =
