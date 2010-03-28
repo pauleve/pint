@@ -19,7 +19,8 @@ let string_of_bounce_path (a, i, js) =
 	string_of_process (a,i) ^ " " ^ string_of_iset js
 ;;
 let string_of_bounce_sequence bs =
-	"["^(String.concat "; " (List.map string_of_action bs))^"]"
+	"["^(String.concat "; " (List.map (function action -> string_of_process (hitter action)) bs))^"]"
+	(*"["^(String.concat "; " (List.map string_of_action bs))^"]"*)
 ;;
 let string_of_BS = string_of_set string_of_bounce_sequence BS.elements;;
 
@@ -58,7 +59,7 @@ let compute_BS env bp =
 			in
 			let folder seqs = function (hitter,_),k ->
 				if ISet.mem k visited then
-					BS.empty
+					seqs
 				else
 					let k_seqs = walk k visited
 					in
@@ -153,26 +154,50 @@ let dep s aseq =
 	Ph_static.ProcEqSet.fold fold aseq BPSet.empty
 ;;
 
-module BPSS = Set.Make (struct type t = BPSet.t let compare = BPSet.compare end)
+(* TODO: get rid of s here (add dependency in compute_aBS) *)
+let directly_compute_aBS env s bp =
+	let a, i, reachset = bp
+	in
+	let rec walk history results j visited =
+		if ISet.mem j reachset then
+			history::List.filter (fun bps -> not(BPSet.subset history bps)) results
+		else
+			let visited = ISet.add j visited
+			and actions = Hashtbl.find_all env.t_hits (a,j)
+			in
+			let folder results = function ((b,j),_), k ->
+				if ISet.mem k visited then
+					results
+				else 
+					let history = 
+						if b <> a then 
+							let js = env.process_equivalence a (b,j)
+							in
+							let bp = (b, state_value s b, js)
+							in
+							BPSet.add bp history
+						else
+							history
+					in
+					if List.exists (fun bps -> BPSet.subset bps history) results then
+						results
+					else
+						walk history results k visited
+			in
+			List.fold_left folder results actions
+	in
+	walk BPSet.empty [] i ISet.empty
+;;
+
+let string_of_aBS bps_list = 
+	"[ "^ (String.concat "; " (List.map (string_of_set string_of_bounce_path BPSet.elements) bps_list))^" ]"
+;;
+
 let rec compute_aBS env s bp =
-	let a = bp_sort bp
-	and seqs = _BS env bp
+	(*DEBUG*) dbg_noendl ("- computing aBS("^string_of_bounce_path bp^")..."); (**)
+	let aBS = directly_compute_aBS env s bp
 	in
-	let fold seq aBS =
-		let aseq = abstr_seq env a seq 
-		in
-		BPSS.add (dep s aseq) aBS
-	in
-	let aBS = BS.fold fold seqs BPSS.empty
-	in
-	(* remove sur-sets *)
-	let keep_dep bps =
-		BPSS.for_all (function bps' -> 
-			BPSet.equal bps bps' || not (BPSet.subset bps' bps))
-				aBS
-	in
-	let aBS = BPSS.elements (BPSS.filter keep_dep aBS)
-	in
+	(*DEBUG*) dbg (" "^string_of_aBS aBS); (**)
 	Hashtbl.add env.aBS bp aBS;
 	(* resolv dependences *)
 	let resolv_bp bp =
