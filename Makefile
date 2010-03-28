@@ -1,4 +1,4 @@
-all: pint phstable phc libpint
+all: pint phstable phreach phc libpint
 
 phc:
 	make -f target/phc
@@ -8,8 +8,12 @@ libpint:
 	make -f target/pintlib
 phstable:
 	make -f target/phstable
+phreach:
+	make -f target/phreach
 
 clean:
+	make -f target/phreach clean
+	make -f target/phstable clean
 	make -f target/phc clean
 	make -f target/pinttop clean
 	make -f target/pintlib clean

@@ -7,9 +7,9 @@ SOURCES = \
 	$(PINTLIB_SOURCES) \
 	$(PHLIB_SOURCES) \
 	ui.ml \
-	phstable.ml
+	phreach.ml
 
-RESULT = ph-stable
+RESULT = ph-reach
 
 include OCamlMakefile
 # vi:set syntax=make:

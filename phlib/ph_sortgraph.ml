@@ -1,8 +1,8 @@
 
 open Ph_types;;
 
-type sortgraph_edge_t = E of (process * process * hit_t)
-                      | L of (process * hit_t);;
+type sortgraph_edge_t = E of (process * process * action)
+                      | L of (process * action);;
 
 let sortgraph smap a =
 	try SMap.find a smap with Not_found -> []
