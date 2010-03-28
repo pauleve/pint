@@ -187,13 +187,9 @@ let processes_equivalences (ps, hits) =
 	in
 	S2Set.fold folder keys EqMap.empty
 ;;
-
-
 let get_process_equivalence equivalences b (a,i) =
-	try 
-		a, EqMap.find (b,a,i) equivalences
-	with Not_found ->
-		a, ISet.singleton i
+	try EqMap.find (b,a,i) equivalences
+	with Not_found -> ISet.singleton i
 ;;
 
 
@@ -226,7 +222,7 @@ let dependencies (ps,hits) equivalences (hdepend, hbounces) state index =
 			let target_sort = fst (target action)
 			and hitter_sort = fst (hitter action)
 			in
-			let hittereq = get_process_equivalence target_sort (hitter action)
+			let hittereq = hitter_sort, get_process_equivalence target_sort (hitter action)
 			in
 			let folder (actions, proceqs, l) rs =
 				let actions = ActionSet.add action actions

@@ -25,13 +25,17 @@ type env = {
 	sorts : process list;
 	t_hits : hits;
 	_BS : (bounce_path, BS.t) Hashtbl.t;
+	process_equivalence : sort -> process -> ISet.t;
 }
 
 let create_env (ps,hits) = 
+	let equivalences = Ph_static.processes_equivalences (ps, hits)
+	in
 	{
 		sorts = ps;
 		t_hits = hits;
 		_BS = Hashtbl.create 50;
+		process_equivalence = Ph_static.get_process_equivalence equivalences;
 	}
 ;;
 
@@ -84,7 +88,9 @@ let rec execute env bp s stack =
 			in
 			let sb = state_value s b
 			in
-			let s = execute env (b, sb, ISet.singleton j) s stack
+			let reach = env.process_equivalence a (b,j)
+			in
+			let s = execute env (b, sb, reach) s stack
 			in
 			let sa = state_value s a
 			in
