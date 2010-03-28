@@ -8,6 +8,7 @@ type bounce_sequence = action list
 
 let bp_sort (a, _, _) = a;;
 let bp_bounce (_, _, aj) = aj;;
+let bp_reach s (z,l) = (z, state_value s z, ISet.singleton l);;
 
 module BounceSequenceOT = struct type t = bounce_sequence let compare = compare end
 module BS = Set.Make (BounceSequenceOT)
@@ -114,13 +115,7 @@ let rec execute env bp s stack =
 	with ExecuteNoCrash s -> s
 ;;
 
-let process_reachability env (z,l) s =
-	let bpzl = (z, state_value s z, ISet.singleton l)
-	in
-	dbg ("process_reachability "^string_of_bounce_path bpzl);
-
-	(* Can not statically conclude. *)
-	dbg "- can not statically conclude.";
+let process_reachability_using_execute env bpzl s =
 	dbg "+ running execute...";
 	try
 		let s = execute env bpzl s BPSet.empty
@@ -134,6 +129,15 @@ let process_reachability env (z,l) s =
 		dbg "execute failed.";
 		false
 	)
+;;
+
+let process_reachability env zl s =
+	let bpzl = bp_reach s zl
+	in
+
+	(* Can not statically conclude. *)
+	dbg "- can not statically conclude.";
+	process_reachability_using_execute env bpzl s
 ;;
 
 
