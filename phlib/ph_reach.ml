@@ -316,6 +316,27 @@ let concretion_has_cycle (_,_D) root =
 		true
 ;;
 
+let concretion_sort_independence (bps, _D) =
+	let fold bp sorts =
+		let a = bp_sort bp
+		in
+		if SSet.mem a sorts then
+			raise Not_found
+		else
+			SSet.add a sorts
+	in
+	try
+		ignore (BPSet.fold fold bps SSet.empty);
+		true
+	with Not_found ->
+		false
+;;
+
+let concretion_saturation_valid (bps, _D) root =
+	(* TODO *)
+	false
+;;
+
 let process_reachability env zl s =
 	let bpzl = bp_reach s zl
 	in
@@ -336,15 +357,21 @@ let process_reachability env zl s =
 		(* Over-approximate ExecuteCrash *)
 		dbg "+ over-approximating ExecuteCrash...";
 		let handler (bps,_D) =
-			dbg "  - handling a concretion...";
+			dbg_noendl "  - handling a concretion... ";
 			(* 1. check for cycle-free concretion *)
 			if concretion_has_cycle (bps,_D) bpzl then (
-				dbg "    => cycle";
+				dbg "cycle.";
 				false
-			) else (
 			(* 2. independence *)
+			) else if concretion_sort_independence (bps, _D) then (
+				dbg "sort independence.";
+				true
 			(* 3. scheduling saturation *)
-				dbg "    => inconclusive";
+			) else if concretion_saturation_valid (bps, _D) bpzl then (
+				dbg "valid saturation.";
+				true
+			) else (
+				dbg "inconclusive.";
 				false
 			)
 		and merger r l = r || l
