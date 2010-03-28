@@ -47,12 +47,14 @@ type action = Hit of (process * process * int)
 
 let hitter = function Hit (ai,_,_) -> ai;;
 let target = function Hit (_,bj,_) -> bj;;
-let bounce = function Hit (_,(b,_),k) -> (b,k);;
+let bounce = function Hit (_,_,k) -> k;;
+let bounce2 = function Hit (_,(b,_),k) -> (b,k);;
 
 let string_of_action = function
 	Hit (ai, bj, k) -> string_of_process ai ^"->"^string_of_process bj^" "^string_of_int k
 ;;
 
+type state = int SMap.t
 
 (* STATE *)
 let string_of_state s =
