@@ -8,6 +8,7 @@ type bounce_sequence = action list
 
 let bp_sort (a, _, _) = a;;
 let bp_bounce (_, _, js) = js;;
+let bp_target (_, i, _) = i;;
 let bp_reach s (z,l) = (z, state_value s z, ISet.singleton l);;
 
 module BounceSequenceOT = struct type t = bounce_sequence let compare = compare end
@@ -444,6 +445,9 @@ let concretion_saturation_valid (bps, _D) root =
 						let r = BPSet.min_elt top_a
 						in
 						(*TODO check ISet.min_elt *)
+						let new_orig = ISet.min_elt (bp_bounce r)
+						in
+						(if new_orig = bp_target r then raise Not_found);
 						let bp = (a, ISet.min_elt (bp_bounce r), bp_bounce root)
 						in 
 						bp::toadd
