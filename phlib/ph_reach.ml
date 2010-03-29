@@ -7,7 +7,7 @@ type bounce_path = sort * sortidx * ISet.t
 type bounce_sequence = action list
 
 let bp_sort (a, _, _) = a;;
-let bp_bounce (_, _, aj) = aj;;
+let bp_bounce (_, _, js) = js;;
 let bp_reach s (z,l) = (z, state_value s z, ISet.singleton l);;
 
 module BounceSequenceOT = struct type t = bounce_sequence let compare = compare end
@@ -18,9 +18,10 @@ module BPMap = Map.Make (struct type t = bounce_path let compare = compare end)
 let string_of_bounce_path (a, i, js) =
 	string_of_process (a,i) ^ " " ^ string_of_iset js
 ;;
+let string_of_bp_set = string_of_set string_of_bounce_path BPSet.elements;;
 let string_of_bounce_sequence bs =
-	"["^(String.concat "; " (List.map (function action -> string_of_process (hitter action)) bs))^"]"
-	(*"["^(String.concat "; " (List.map string_of_action bs))^"]"*)
+	(*"["^(String.concat "; " (List.map (function action -> string_of_process (hitter action)) bs))^"]"*)
+	"["^(String.concat "; " (List.map string_of_action bs))^"]"
 ;;
 let string_of_BS = string_of_set string_of_bounce_sequence BS.elements;;
 
@@ -270,10 +271,11 @@ let cleanup_aBS env =
 	List.iter cleanup keys
 ;;
 
+let dot_idx_from_bp (a,i,js) =
+	"\"" ^ a^" "^string_of_int i^"->"^string_of_iset js^"\""
+;;
+
 let dot_from_aBS env =
-	let id_from_bp (a,i,js) =
-		"\"" ^ a^" "^string_of_int i^"->"^string_of_iset js^"\""
-	in
 	let idx = ref 0
 	in
 	let folder bp bpss str =
@@ -283,17 +285,18 @@ let dot_from_aBS env =
 			in
 			let fold_bp bp' str =
 				str ^
-				"  " ^ child_id ^" -> "^id_from_bp bp'^"\n"
+				"  " ^ child_id ^" -> "^dot_idx_from_bp bp'^"\n"
 			in
 			str ^ 
 			"  " ^ child_id^"[label=ALL shape=box]\n" ^
-			"  " ^ id_from_bp bp^ " -> "^child_id^"\n" ^
+			"  " ^ dot_idx_from_bp bp^ " -> "^child_id^"\n" ^
 			(BPSet.fold fold_bp bps "")
 		) in
 		List.fold_left fold_bps str bpss
 	in
 	Hashtbl.fold folder env.aBS "digraph aBS {\n" ^ "}"
 ;;
+
 
 let fold_concretions (handler, merger, stopper) env root =
 	let rec link_choices _D = function _,[] | [],_ -> _D
@@ -323,6 +326,16 @@ let fold_concretions (handler, merger, stopper) env root =
 			Util.cross_forward (handler, merger, stopper) selectors
 	in
 	fold_concretions BPMap.empty BPSet.empty (BPSet.singleton root)
+;;
+
+let dot_from_concretion (bps,_D) =
+	let fold bp bps str = 
+		let fold_bp bp' str = str ^
+			"  " ^ dot_idx_from_bp bp ^" -> " ^dot_idx_from_bp bp'^"\n"
+		in
+		BPSet.fold fold_bp bps str
+	in
+	BPMap.fold fold _D "digraph concretion {\n" ^ "}"
 ;;
 
 let concretion_has_cycle (_,_D) root =
@@ -357,9 +370,117 @@ let concretion_sort_independence (bps, _D) =
 		false
 ;;
 
+let top a _D root =
+	let rec top root = match root with (b, j, js) ->
+		if b = a then 
+			BPSet.singleton root
+		else
+			let fold bp res =
+				BPSet.union res (top bp)
+			in
+			BPSet.fold fold (BPMap.find root _D) BPSet.empty
+	in
+	top root
+;;
 let concretion_saturation_valid (bps, _D) root =
-	(* TODO *)
-	false
+	(*
+	let string_of_topmap topmap =
+		let fold a top str = str 
+			^ a ^ ": " ^ string_of_bp_set top ^ "; "
+		in
+		SMap.fold fold topmap "{ " ^ "}"
+	in
+	let string_of_satured satured =
+		let fold bp topmap str = str
+			^ string_of_bounce_path bp ^ " = " ^ string_of_topmap topmap ^ "\n"
+		in
+		BPMap.fold fold satured ""
+	in
+	*)
+	let rec sature (bps, _D, satured) root =
+		if not (BPMap.mem root satured) then
+			let childs = BPMap.find root _D
+			in
+			let fold_child bp (arg, (curtopmap, toadd)) =
+				let fold_sort a top (curtopmap, toadd) =
+					let curtop = try SMap.find a curtopmap 
+						with Not_found -> BPSet.empty
+					in
+					let r1s = BPSet.diff curtop top
+					and r2s = BPSet.diff top curtop
+					in
+					let toadd = 
+						if not (BPSet.is_empty r1s) && not (BPSet.is_empty r2s) then
+							let r1 = BPSet.min_elt r1s
+							and r2 = BPSet.min_elt r2s
+							in
+							(*TODO: check min_elt *)
+							(*OPT? bp_bounce or union ?*)
+							let bp1 = (a, ISet.min_elt (bp_bounce r1), bp_bounce r2)
+							and bp2 = (a, ISet.min_elt (bp_bounce r2), bp_bounce r1)
+							in
+							bp1::bp2::[]
+						else
+							[]
+					in
+					SMap.add a (BPSet.union curtop top) curtopmap, toadd
+				in
+				let bps, _D, satured = sature arg bp
+				in
+				(bps, _D, satured), SMap.fold fold_sort (BPMap.find bp satured) (curtopmap, toadd)
+			in
+			let (bps, _D, satured), (curtopmap, toadd) = 
+				BPSet.fold fold_child childs ((bps, _D, satured), (SMap.empty, []))
+			in
+			let a = bp_sort root
+			in
+			let toadd = 
+				try
+					let top_a = SMap.find a curtopmap
+					in
+					if BPSet.exists (fun bp -> bp_bounce root = bp_bounce bp) top_a then
+						raise Not_found
+					else (
+						let r = BPSet.min_elt top_a
+						in
+						(*TODO check ISet.min_elt *)
+						let bp = (a, ISet.min_elt (bp_bounce r), bp_bounce root)
+						in 
+						bp::toadd
+					)
+				with Not_found -> toadd
+			in
+			let curtopmap = SMap.add a (BPSet.singleton root) curtopmap
+			in
+			if toadd <> [] then (
+				(*TODO:
+					- for each concretion:
+						- saturate
+				*)
+				dbg_noendl ("[adding "^(String.concat " + " (List.map string_of_bounce_path toadd))^"] ");
+				raise ExecuteCrash
+			) else 
+				(bps, _D, BPMap.add root curtopmap satured)
+		else
+			(bps, _D, satured)
+	in
+	let fold bp satured =
+		if not (BPMap.mem bp _D) || BPSet.is_empty (BPMap.find bp _D) then
+			let topmap = SMap.add (bp_sort bp) (BPSet.singleton bp) SMap.empty
+			in
+			BPMap.add bp topmap satured
+		else
+			satured
+	in
+	let satured = BPSet.fold fold bps BPMap.empty
+	in
+	try
+		let bps,_D,_ = sature (bps, _D, satured) root
+		in
+		Util.dump_to_file "dbg-concretion.dot" (dot_from_concretion (bps,_D));
+		true
+	with ExecuteCrash ->
+		false
 ;;
 
 let process_reachability env zl s =
