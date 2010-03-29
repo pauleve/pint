@@ -477,7 +477,7 @@ let romeo_of_ph opts (ps,hits) init_state =
 	let proc_id = romeo_pid (ps,hits)
 	in
 	let string_of_proc (a,i) =
-		"<place id=\""^proc_id (a,i)^"\" label=\""^a^" "^string_of_int i^"\" "^
+		"<place id=\""^proc_id (a,i)^"\" label=\""^string_of_process (a,i)^"\" "^
 			" initialMarking=\""^(if state_value init_state a = i then "1" else "0")^"\">\n"^
 			"\t<graphics><position x=\""^string_of_int (i*100+100)^"\" y=\""^string_of_int (100*sort_id a+100)^"\"/></graphics>\n"^
 			"\t<scheduling gamma=\"0\" omega=\"0\"/>\n"^
@@ -494,7 +494,7 @@ let romeo_of_ph opts (ps,hits) init_state =
 				string_of_int dmin, string_of_int dmax
 		in
 		let pid = 1 + try List.assoc (b,j) pids with Not_found -> 0
-		and hlabel = a^" "^string_of_int i^"->"^b^" "^string_of_int j^" "^string_of_int k
+		and hlabel = string_of_process (a,i)^"->"^string_of_process (b,j)^" "^string_of_int k
 		in
 		(hid+1,	((b,j),pid)::List.remove_assoc (a,i) pids),
 		str ^
