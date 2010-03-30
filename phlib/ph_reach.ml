@@ -577,7 +577,7 @@ let concretion_saturation_valid (bps, _D) env s bpzl =
 						and stopper (ret, _) = ret
 						and merger _ d2 = d2
 						in
-						try fold_concretions2 (bps,_D) (handler,merger,stopper) env s bp (* XXX: wrong s? *)
+						try fold_concretions2 (bps,_D) (handler,merger,stopper) env s bp
 						with Not_found -> (false, (bps,_D))
 				in
 				push_missing (bps, _D) (root::tosature) missing
