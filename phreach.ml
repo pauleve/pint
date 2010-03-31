@@ -42,6 +42,6 @@ match !opt_method with
 	| _ -> failwith "Unknown method."
 in
 match decision with
-true -> (dbg "# SUCCESS"; exit 0)
-| false -> (dbg "# FAILURE"; exit 1)
+true -> (print_endline "# SUCCESS"; exit 0)
+| false -> (print_endline "# FAILURE"; exit 1)
 
