@@ -629,8 +629,10 @@ let concretion_saturation_valid (bps, _D) env s bpzl =
 	in
 	let rec sature (bps, _D) satured = function [] -> true, (bps, _D)
 		| root::tosature ->
-			flip := 1 - !flip;
-			Util.dump_to_file ("dbg-current-concretion-"^string_of_int (!flip)^".dot") (dot_from_concretion (bps,_D));
+			if !Debug.dodebug then (
+				flip := 1 - !flip;
+				Util.dump_to_file ("dbg-current-concretion-"^string_of_int (!flip)^".dot") (dot_from_concretion (bps,_D))
+			);
 			let missing, topm = missing_bps (bps, _D) satured root
 			in
 			if missing = [] then (* saturation done *)
@@ -683,7 +685,7 @@ let concretion_saturation_valid (bps, _D) env s bpzl =
 	in
 	let success, concretion = sature (bps, _D) satured tosature
 	in
-	if success then Util.dump_to_file "dbg-concretion.dot" (dot_from_concretion concretion);
+	if success && !Debug.dodebug then Util.dump_to_file "dbg-concretion.dot" (dot_from_concretion concretion);
 	success
 ;;
 
@@ -693,7 +695,7 @@ let process_reachability env zl s =
 	(* Under-approximate ExecuteCrash *)
 	dbg "+ under-approximating ExecuteCrash...";
 	ignore (compute_aDep env s bpzl);
-	Util.dump_to_file "dbg-reach_aDep-init.dot" (dot_from_aDep env);
+	(if !Debug.dodebug then Util.dump_to_file "dbg-reach_aDep-init.dot" (dot_from_aDep env));
 	dbg "- cleanup...";
 	cleanup_aDep env;
 	if not (Hashtbl.mem env.aDep bpzl) then (
@@ -701,7 +703,7 @@ let process_reachability env zl s =
 		false
 	) else (
 		dbg "+ no conclusion.";
-		Util.dump_to_file "dbg-reach_aDep-clean.dot" (dot_from_aDep env);
+		(if !Debug.dodebug then Util.dump_to_file "dbg-reach_aDep-clean.dot" (dot_from_aDep env));
 
 		(* Over-approximate ExecuteCrash *)
 		dbg "+ over-approximating ExecuteCrash...";

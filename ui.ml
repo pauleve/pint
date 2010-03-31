@@ -15,5 +15,9 @@ let ph_count_states (ps,hits) =
 	List.fold_left counter unit_big_int ps
 ;;
 
+let common_cmdopts = [
+	("--no-debug", Arg.Clear Debug.dodebug, "Disable debugging");
+	("--debug", Arg.Set Debug.dodebug, "Enable debugging");
+];;
 
 

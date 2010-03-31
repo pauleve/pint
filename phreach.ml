@@ -5,7 +5,7 @@ open Ph_types;;
 let opt_method = ref "complete"
 and opt_args = ref []
 in
-let cmdopts = [
+let cmdopts = Ui.common_cmdopts @ [
 		("--method", Arg.Set_string opt_method, "Method of analysis (complete, execute)");
 	]
 and usage_msg = "ph-reach [opts] <model.ph> <z> <l>"
