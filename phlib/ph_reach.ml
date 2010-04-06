@@ -46,177 +46,6 @@ let create_env (ps,hits) =
 	}
 ;;
 
-let next_BS (handler, merger, stopper, init) env bp =
-	let a, i, reachset = bp
-	in
-	let actions_from_hits j = List.map (function (hitter,_),k -> Hit (hitter, (a,j), k))
-	in
-	let t_actions = List.map (fun j -> 
-					let hits = Hashtbl.find_all env.t_hits (a,j)
-					in
-					actions_from_hits j hits) (Util.range 0 (List.assoc a env.sorts))
-	in
-	let t_actions = Array.of_list t_actions
-	in
-	let rec handle_seqs response = function
-		  [] -> false, response
-		| seq::seqs ->
-			let r = handler seq
-			in
-			let response = merger response r
-			in
-			if stopper r then
-				true, response
-			else
-				handle_seqs response seqs
-	in
-
-	let hitters_of_seq = List.map hitter
-	in
-	let is_surseq seq hitters =
-		let hitters' = hitters_of_seq seq
-		in
-		let hitters' = List.filter (fun ai -> List.mem ai hitters) hitters'
-		in
-		hitters' = hitters
-		(*
-		let ret = hitters' = hitters
-		in
-		print_endline ("is_surseq "^string_of_bounce_sequence seq^" "^(String.concat ";" (List.map string_of_process hitters))^" = "^
-						string_of_bool ret);
-		ret *)
-	in
-	let seq_is_looping seq j =
-		List.exists (function Hit (_,(_,j'),_) -> j = j') seq
-	and seq_is_redundant done_seqs seq =
-		List.exists (function hitters -> is_surseq seq hitters) done_seqs
-	in
-	let step i seqs (steps', done_seqs, response) =
-		if ISet.mem i reachset then
-			(* handle each sequence in seqs *)
-			let success, response = handle_seqs response seqs
-			in
-			success, (steps', (List.map hitters_of_seq seqs)@done_seqs, response)
-		else (
-			(* actions on (a,i) *)
-			let actions = t_actions.(i)
-			in
-			(* cross actions to all paths ending in i, 
-				make them end to their respective bounce
-			*)
-			let push_seq steps' seq =
-				let push_action steps' action =
-					let j = bounce action
-					in
-					if seq_is_looping seq j then
-						steps'
-					else
-						let seq = seq @ [action]
-						in
-						if seq_is_redundant done_seqs seq then
-							steps'
-						else
-							let seqsj = try List.assoc j steps' with Not_found -> []
-							in
-							(j, seq::seqsj)::List.remove_assoc j steps'
-				in
-				List.fold_left push_action steps' actions
-			in
-			let steps' = List.fold_left push_seq steps' seqs
-			in
-			false, (steps', done_seqs, response)
-		)
-	in
-	let rec handle_steps args = function
-		  [] -> false, args
-		| (i, seqs)::steps ->
-			let success, args = step i seqs args
-			in
-			if success then
-				success, args
-			else
-				handle_steps args steps
-	in
-	let rec bfs response done_seqs = function
-		  [] -> response
-		| steps ->
-			let success, (steps, done_seqs, response) = handle_steps ([], done_seqs, response) steps
-			in
-			(* starts by handling winning steps *)
-			let steps = List.sort (fun (i,_) (i',_) -> 
-							let ri, ri' = ISet.mem i reachset, ISet.mem i' reachset
-							in
-							if ri = ri' then compare i i' else if ri then -1 else 1)
-						steps
-			in
-			if success then response else (bfs response done_seqs steps)
-	in
-
-	bfs init [] [i, [[]]]
-;;
-
-exception ExecuteCrash
-let rec execute env bp s stack =
-	(if BPSet.mem bp stack then raise ExecuteCrash);
-
-	let stack = BPSet.add bp stack
-	and a = bp_sort bp
-	in
-	let rec execute_seq s = function 
-		  [] -> s
-		| action::seq -> 
-			let b,j = hitter action
-			in
-			let sb = state_value s b
-			in
-			let reach = env.process_equivalence a (b,j)
-			in
-			let s = execute env (b, sb, reach) s stack
-			in
-			let sa = state_value s a
-			in
-			if sa <> snd (target action) then
-				execute env (a, sa, bp_bounce bp) s stack
-			else 
-				let s = SMap.add a (bounce action) s
-				in
-				execute_seq s seq
-	in
-	let handler seq =
-		(*print_endline ("? "^string_of_bounce_sequence seq^"...");*)
-		try
-			let s = execute_seq s seq
-			in
-			(*print_endline ("1 "^string_of_bounce_sequence seq);*)
-			(true, s)
-		with ExecuteCrash -> (
-			(*print_endline ("0 "^string_of_bounce_sequence seq);*)
-			(false, s)
-		)
-	and merger r l = l
-	and stopper (success, s) = success
-	in
-	let success, s = next_BS (handler, merger, stopper, (false, s)) env bp
-	in
-	if success then s else raise ExecuteCrash
-;;
-
-let process_reachability_using_execute env bpzl s =
-	dbg "+ running execute...";
-	try
-		let s = execute env bpzl s BPSet.empty
-		in
-		(*DEBUG*) 
-			dbg "execute successful.";
-			dbg (string_of_state s);
-		(**)
-		true
-	with ExecuteCrash -> (
-		dbg "execute failed.";
-		false
-	)
-;;
-
 let abstr_seq env a seq = 
 	let folder hitters action =
 		let (b,j) = hitter action
@@ -279,41 +108,6 @@ let compute_aBS env bp =
 let get_aBS env bp =
 	try Hashtbl.find env.aBS bp
 	with Not_found -> compute_aBS env bp
-;;
-
-(* TODO: get rid of s here (add dependency in compute_aBS) *)
-let directly_compute_aBS env s bp =
-	let a, i, reachset = bp
-	in
-	let rec walk history results j visited =
-		if ISet.mem j reachset then
-			history::List.filter (fun bps -> not(BPSet.subset history bps)) results
-		else
-			let visited = ISet.add j visited
-			and actions = Hashtbl.find_all env.t_hits (a,j)
-			in
-			let folder results = function ((b,j),_), k ->
-				if ISet.mem k visited then
-					results
-				else 
-					let history = 
-						if b <> a then 
-							let js = env.process_equivalence a (b,j)
-							in
-							let bp = (b, state_value s b, js)
-							in
-							BPSet.add bp history
-						else
-							history
-					in
-					if List.exists (fun bps -> BPSet.subset bps history) results then
-						results
-					else
-						walk history results k visited
-			in
-			List.fold_left folder results actions
-	in
-	walk BPSet.empty [] i ISet.empty
 ;;
 
 let string_of_aDep bps_list = 
@@ -481,6 +275,7 @@ let dot_from_concretion (bps,_D) =
 	BPMap.fold fold _D "digraph concretion {\n" ^ "}"
 ;;
 
+exception ExecuteCrash
 let concretion_has_cycle (_,_D) root =
 	let rec walk stack bp =
 		(if BPSet.mem bp stack then raise ExecuteCrash);
@@ -700,7 +495,7 @@ let process_reachability env zl s =
 	cleanup_aDep env;
 	if not (Hashtbl.mem env.aDep bpzl) then (
 		dbg "+ early decision: false";
-		false
+		False
 	) else (
 		dbg "+ no conclusion.";
 		(if !Debug.dodebug then Util.dump_to_file "dbg-reach_aDep-clean.dot" (dot_from_aDep env));
@@ -732,21 +527,16 @@ let process_reachability env zl s =
 		in
 		if valid ret then (
 			dbg "+ early decision: true";
-			true
+			True
 		) else (
 			(* Can not statically conclude. *)
 			dbg "+ can not statically decide.";
-			process_reachability_using_execute env bpzl s
+			Inconc
 		)
 	)
 ;;
 
-
 let test env bpzl s =
-	let handler seq =
-		print_endline ("handling sequence "^string_of_bounce_sequence seq)
-	in
-	ignore (next_BS (handler, (fun () () -> ()), (fun () -> false), ()) env bpzl);
 	raise Exit
 ;;
 
