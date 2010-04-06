@@ -1,0 +1,15 @@
+all: nc
+
+include Makefile.common
+
+SOURCES = \
+	$(BINDINGS_SOURCES)\
+	$(PINTLIB_SOURCES) \
+	$(PHLIB_SOURCES) \
+	ui.ml \
+	phstat.ml
+
+RESULT = ph-stat
+
+include OCamlMakefile
+# vi:set syntax=make:
