@@ -1,7 +1,6 @@
 
 SOURCES := \
 	ph_types.ml\
-	ph_sortgraph.ml\
 	ph_parser.mly\
 	ph_lexer.mll\
 	ph_translator.ml\

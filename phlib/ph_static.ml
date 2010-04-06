@@ -6,7 +6,6 @@ open Debug;;
 open Ph_types;;
 open Ph_op;;
 open Ph_util;;
-open Ph_sortgraph;;
 
 module EMap = Map.Make (struct type t = process * string
 	let compare = compare end);;
