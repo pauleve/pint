@@ -14,6 +14,14 @@ let ph_count_states (ps,hits) =
 	in
 	List.fold_left counter unit_big_int ps
 ;;
+let ph_count_sorts (ps, _) = List.length ps
+;;
+let ph_count_processes (ps, _) =
+	let c acc (_,l) = acc + l + 1
+	in
+	List.fold_left c 0 ps
+;;
+let ph_count_actions (_, hits) = Hashtbl.length hits;;
 
 let common_cmdopts = [
 	("--no-debug", Arg.Clear Debug.dodebug, "Disable debugging");
