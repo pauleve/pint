@@ -2,11 +2,11 @@
 open Debug;;
 open Ph_types;;
 
-let opt_method = ref "complete"
+let opt_method = ref "static"
 and opt_args = ref []
 in
 let cmdopts = Ui.common_cmdopts @ [
-		("--method", Arg.Set_string opt_method, "Method of analysis (complete, execute)");
+		("--method", Arg.Set_string opt_method, "Method of analysis (static, test)");
 	]
 and usage_msg = "ph-reach [opts] <model.ph> <z> <l>"
 and anon_fun arg =
@@ -36,12 +36,9 @@ let bpzl = Ph_reach.reach_bounce_path state zl
 in
 let decision = 
 match !opt_method with
-	  "complete" -> Ph_reach.process_reachability env zl state
-	| "execute" -> Ph_reach.process_reachability_using_execute env bpzl state
+	  "static" -> Ph_reach.process_reachability env zl state
 	| "test" -> Ph_reach.test env bpzl state
 	| _ -> failwith "Unknown method."
 in
-match decision with
-true -> (print_endline "# SUCCESS"; exit 0)
-| false -> (print_endline "# FAILURE"; exit 1)
+print_endline (string_of_ternary decision)
 
