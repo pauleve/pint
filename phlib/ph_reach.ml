@@ -331,7 +331,7 @@ let order_bps (bps,_D) ignore =
 		if BPMap.mem root ignore then
 			bps
 		else
-			let bps = if List.mem root bps then bps else root::bps
+			let bps = root::List.filter (fun bp -> bp <> root) bps
 			in
 			let childs = BPMap.find root _D
 			in
@@ -426,7 +426,7 @@ let concretion_saturation_valid (bps, _D) env s bpzl =
 		| root::tosature ->
 			if !Debug.dodebug then (
 				flip := 1 - !flip;
-				Util.dump_to_file ("dbg-current-concretion-"^string_of_int (!flip)^".dot") (dot_from_concretion (bps,_D))
+				Util.dump_to_file ("dbg-current-concretion-"^string_of_int (!flip)^".dot") (dot_from_concretion (bps,_D));
 			);
 			let missing, topm = missing_bps (bps, _D) satured root
 			in
@@ -504,6 +504,7 @@ let process_reachability env zl s =
 		dbg "+ over-approximating ExecuteCrash...";
 		let handler (bps,_D) =
 			dbg_noendl "  - handling a concretion... ";
+			if !Debug.dodebug then Util.dump_to_file "dbg-current-concretion.dot" (dot_from_concretion (bps,_D));
 			(* 1. check for cycle-free concretion *)
 			if concretion_has_cycle (bps,_D) bpzl then (
 				dbg "cycle.";
