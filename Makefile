@@ -1,4 +1,4 @@
-all: pint phstable phreach phc libpint phstat
+all: pint phstable phreach phc libpint phstat phexec
 
 phc:
 	make -f target/phc
@@ -12,21 +12,15 @@ phstable:
 	make -f target/phstable
 phreach:
 	make -f target/phreach
+phexec:
+	make -f target/phexec
 
 clean:
+	make -f target/phexec clean
 	make -f target/phreach clean
 	make -f target/phstable clean
 	make -f target/phstat clean
 	make -f target/phc clean
 	make -f target/pinttop clean
 	make -f target/pintlib clean
-
-exportphc: clean
-	-rm -rf dist/phc
-	mkdir -p dist/phc
-	cp -rv commonlib phlib phc.ml dist/phc
-	cp target/phc dist/phc/Makefile
-	cp OCamlMakefile dist/phc
-	cp README-PHC.txt disc/phc/README.txt
-	mkdir dist/phc/bin
 
