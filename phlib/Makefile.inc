@@ -8,6 +8,7 @@ SOURCES := \
 	ph_op.ml\
 	ph_static.ml\
 	ph_reach.ml\
+	#ph_machine.ml\
 
 LIBS := str nums
 
