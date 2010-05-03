@@ -122,22 +122,18 @@ let reduce env term =
 		term, (target,bounce)
 ;;
 
-let execute env state duration =
+let execute env state duration plotter =
 	let term = initial env state
 	in
-	let rec execute term =
+	let rec execute (t,s,r) =
 		try
-			let (t,s,r), (bj,bk) = reduce env term
+			let (t,s,r), (bj,bk) = reduce env (t,s,r)
 			in
 			(if t > duration then raise Halt);
-			(*
-			prerr_output (string_of_float t)^"\r";
-			prerr_flush();
-			*)
-			dbg ("["^string_of_float t^"]: "^string_of_process bj^" -> "^string_of_process bk);
+			prerr_string (string_of_float t^"\r"); flush stderr;
+			plotter t bk;
 			execute (t,s,r)
-		with Halt ->
-			dbg ("Halt.")
+		with Halt -> s
 	in
 	execute term
 ;;
