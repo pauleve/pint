@@ -6,6 +6,10 @@ let firing_interval alpha r sa =
 	R.qerlang alpha sa rate true, R.qerlang alpha sa rate false
 ;;
 
+let random_firing_time r sa =
+	R.rerlang sa (r*.float_of_int sa)
+;;
+
 let round_float v = (* assume v >= 0 *)
 	let f = floor v
 	in
