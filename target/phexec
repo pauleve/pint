@@ -9,6 +9,8 @@ SOURCES = \
 	ui.ml \
 	phexec.ml
 
+LIBS := $(PHLIB_LIBS) unix
+
 RESULT = ph-exec
 
 include OCamlMakefile
