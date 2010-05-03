@@ -1,4 +1,6 @@
 
+void set_seed( int a, int b );
+
 double qerlang( double area, int shape, double rate, boolean lower );
 
 double rerlang( int shape, double rate );

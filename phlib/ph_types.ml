@@ -103,6 +103,8 @@ module PCSet = Set.Make (struct type t = (process * process)
 module PMap = Map.Make (struct type t = process let compare = compare end);;
 module PSet = Set.Make (struct type t = process let compare = compare end);;
 
+let string_of_processes = string_of_set string_of_process PSet.elements;;
+
 module ActionSet = Set.Make (struct type t = action let compare = compare end);;
 let uniqise_actions actions = 
 	let set = List.fold_left (fun set action ->
