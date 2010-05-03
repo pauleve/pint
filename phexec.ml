@@ -23,8 +23,10 @@ let ph, state = Ui.ph_load2 phname
 in
 
 (** plot **)
-if not (Sys.is_directory outputdir) then
-	Unix.mkdir outputdir 0o750;
+if not (Sys.file_exists outputdir) then
+	Unix.mkdir outputdir 0o750
+else if not (Sys.is_directory outputdir) then
+	failwith ("Cannot create directory '"^outputdir^"'");
 
 let create_pts a i apts = 
 	let fd = open_out (outputdir^"/"^a^".pts")
