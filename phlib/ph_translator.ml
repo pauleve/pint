@@ -542,4 +542,18 @@ let tina_of_ph (ps,hits) init_state =
 	(String.concat "" (List.map (fun ai -> string_of_proc ai) (list_of_state init_state)))
 ;;
 
+let biocham_of_ph (ps,hits) state =
+	let string_of_hit (b,j) ((ai,rsa),k) =
+		string_of_process ai ^ " + " ^ string_of_process (b,j) ^" => "
+		^ string_of_process ai ^" + " ^ string_of_process (b,k) ^"\n"
+	in
+	let fold_hits key value buf =
+		buf ^ string_of_hit key value
+	in
+	Hashtbl.fold fold_hits hits ""
+	^ "present({"^
+		String.concat "," (List.map string_of_process (list_of_state state))
+	^ "})\nmake_absent_not_present.\n"
+;;
+
 
