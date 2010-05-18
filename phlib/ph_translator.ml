@@ -235,6 +235,7 @@ let prism_of_ph (ps,hits) init_state =
 	let modname p = "proc_"^p
 	and statemod p = p
 	and hitcounter hitid = "c_"^string_of_int hitid
+	and r_const hitid = "r_"^string_of_int hitid
 	and sa_const hitid = "sa_"^string_of_int hitid
 	in
 
@@ -273,13 +274,11 @@ let prism_of_ph (ps,hits) init_state =
 		"("^statemod a^"'="^string_of_int i'^")"
 	in
 
-	let register_hit (b,j) (((a,i),rsa),k) (modules, sa_consts, hitid) =
+	let register_hit (b,j) (((a,i),rsa),k) (modules, (r_consts, sa_consts), hitid) =
 		let modules =
-			let str_r, sa = match rsa with
-				None -> "", 1
-				| Some(r,sa) ->
-					string_of_float0 r ^ (if sa > 1 then "*"^sa_const hitid else "")
-					^ ": ", sa
+			let sa = match rsa with None -> 1 | Some (_,sa) -> sa
+			in
+			let str_r = r_const hitid ^ (if sa > 1 then "*"^sa_const hitid else "")^ ": "
 			in
 			if (a,i) = (b,j) then (
 				let mod_a = 
@@ -324,22 +323,28 @@ let prism_of_ph (ps,hits) init_state =
 				modules_update modules [a,([],[action_a],[]);b,mod_b]
 			)
 		in
-		let sa_consts = match rsa with
-		   	  None | Some (_, 1) -> sa_consts
-			| Some (_, sa) -> (hitid, sa)::sa_consts
+		let consts = match rsa with
+		   	  None -> (hitid, -1.)::r_consts, sa_consts
+			| Some (r, 1) -> (hitid, r)::r_consts, sa_consts
+			| Some (r, sa) -> (hitid, r)::r_consts, (hitid, sa)::sa_consts
 		in
-		modules, sa_consts, hitid + 1
+		modules, consts, hitid + 1
 	in
-	let modules, sa_consts, _ = Hashtbl.fold register_hit hits (modules, [], 0)
+	let modules, (r_consts, sa_consts), _ = Hashtbl.fold register_hit hits (modules, ([],[]), 0)
 	in
 
-	let string_of_sa_const (hitid, sa) =
-		"const int " ^ sa_const hitid ^ " = " ^ string_of_int sa ^ ";\n"
+	let string_of_r_const (hitid, r) =
+		"const double " ^ r_const hitid ^ " = "
+			^ (if r < 0. then "infty" else string_of_float0 r) ^ ";\n"
+	and string_of_sa_const (hitid, sa) =
+		"const int " ^ sa_const hitid ^ " = " 
+			^ string_of_int sa ^ ";\n"
 	in
 
 	let header = "ctmc"
 	in
 	header ^ "\n\n" 
+	^ (String.concat "" (List.map string_of_r_const r_consts)) ^ "\n"
 	^ (String.concat "" (List.map string_of_sa_const sa_consts)) ^ "\n"
 	^ (String.concat "\n\n" (List.map string_of_module modules))
 	^ "\n\n"
