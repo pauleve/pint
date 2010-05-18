@@ -235,6 +235,7 @@ let prism_of_ph (ps,hits) init_state =
 	let modname p = "proc_"^p
 	and statemod p = p
 	and hitcounter hitid = "c_"^string_of_int hitid
+	and sa_const hitid = "sa_"^string_of_int hitid
 	in
 
 	let module_of_proc (a,l_a) =
@@ -272,12 +273,13 @@ let prism_of_ph (ps,hits) init_state =
 		"("^statemod a^"'="^string_of_int i'^")"
 	in
 
-	let register_hit (b,j) (((a,i),rsa),k) (modules, hitid) =
+	let register_hit (b,j) (((a,i),rsa),k) (modules, sa_consts, hitid) =
 		let modules =
 			let str_r, sa = match rsa with
 				None -> "", 1
 				| Some(r,sa) ->
-					string_of_float0 (r *. float_of_int sa)^": ", sa
+					string_of_float0 r ^ (if sa > 1 then "*"^sa_const hitid else "")
+					^ ": ", sa
 			in
 			if (a,i) = (b,j) then (
 				let mod_a = 
@@ -288,10 +290,10 @@ let prism_of_ph (ps,hits) init_state =
 					) else (
 						let hc = hitcounter hitid
 						in
-						[hc ^": [1.."^string_of_int sa^"] init 1;"],
-						["[] "^prism_is_state a i^" & "^hc^"<"^string_of_int sa^
+						[hc ^": [1.."^sa_const hitid^"] init 1;"],
+						["[] "^prism_is_state a i^" & "^hc^"<"^sa_const hitid^
 								" -> "^str_r^"("^hc^"'="^hc^"+1);"
-						;"[] "^prism_is_state a i^" & "^hc^"="^string_of_int sa^
+						;"[] "^prism_is_state a i^" & "^hc^"="^sa_const hitid^
 								" -> "^str_r^prism_set_state a k^" & %%;"],
 						[hc]
 					)
@@ -310,10 +312,10 @@ let prism_of_ph (ps,hits) init_state =
 					) else (
 						let hc = hitcounter hitid
 						in
-						[hc ^": [1.."^string_of_int sa^"] init 1;"],
-						[sync^prism_is_state b j^" & "^hc^"<"^string_of_int sa^
+						[hc ^": [1.."^sa_const hitid^"] init 1;"],
+						[sync^prism_is_state b j^" & "^hc^"<"^sa_const hitid^
 								" -> ("^hc^"'="^hc^"+1);"
-						;sync^prism_is_state b j^" & "^hc^"="^string_of_int sa^
+						;sync^prism_is_state b j^" & "^hc^"="^sa_const hitid^
 								" -> "^
 								prism_set_state b k^" & %%;"],
 						[hc]
@@ -321,16 +323,26 @@ let prism_of_ph (ps,hits) init_state =
 				in
 				modules_update modules [a,([],[action_a],[]);b,mod_b]
 			)
-		in modules, hitid + 1
+		in
+		let sa_consts = match rsa with
+		   	  None | Some (_, 1) -> sa_consts
+			| Some (_, sa) -> (hitid, sa)::sa_consts
+		in
+		modules, sa_consts, hitid + 1
 	in
-	let modules, _ = Hashtbl.fold register_hit hits (modules,0)
+	let modules, sa_consts, _ = Hashtbl.fold register_hit hits (modules, [], 0)
 	in
 
+	let string_of_sa_const (hitid, sa) =
+		"const int " ^ sa_const hitid ^ " = " ^ string_of_int sa ^ ";\n"
+	in
 
 	let header = "ctmc"
 	in
-	header ^ "\n\n" ^ (String.concat "\n\n" (List.map string_of_module modules))
-			^ "\n\n"
+	header ^ "\n\n" 
+	^ (String.concat "" (List.map string_of_sa_const sa_consts)) ^ "\n"
+	^ (String.concat "\n\n" (List.map string_of_module modules))
+	^ "\n\n"
 ;;
 
 (*
