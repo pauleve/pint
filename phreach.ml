@@ -3,23 +3,33 @@ open Debug;;
 open Ph_types;;
 
 let opt_method = ref "static"
+and opt_input = ref ""
 and opt_args = ref []
 in
 let cmdopts = Ui.common_cmdopts @ [
-		("--method", Arg.Set_string opt_method, "Method of analysis (static, test)");
+		("--method", Arg.Symbol (["static"; "test"],
+				(fun x -> opt_method := x)),
+			"Method");
+		("-i", Arg.Set_string opt_input, "Input filename");
 	]
-and usage_msg = "ph-reach [opts] <model.ph> <z> <l>"
+and usage_msg = "ph-reach [opts] <z> <l>"
 and anon_fun arg =
 	opt_args := !opt_args@[arg]
 in
 Arg.parse cmdopts anon_fun usage_msg;
-let phname, zl = match !opt_args with
-	   [phname;z;l] -> phname, (z, int_of_string l)
+let zl = match !opt_args with
+	   [z;l] -> (z, int_of_string l)
 	 | _ -> (Arg.usage cmdopts usage_msg; raise Exit)
 in
-let ph, state = Ui.ph_load2 phname
+
+let channel_in = if !opt_input = "" then stdin else open_in !opt_input
+in
+let ph, state = Ph_util.parse channel_in
 in
 let nb_actions = Ph_op.ph_count_actions ph
+in
+
+let phname = if !opt_input = "" then "<stdin>" else !opt_input
 in
 dbg ("# "^phname^": "^(string_of_int nb_actions)^" actions");
 dbg ("# testing reachability of "^string_of_process zl^" from state "^string_of_state state);
