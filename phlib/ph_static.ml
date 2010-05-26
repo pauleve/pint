@@ -166,7 +166,7 @@ let processes_equivalences (ps, hits) =
 				in
 				let equivalences = 
 					if ISet.cardinal eqs > 1 then (
-						(*DEBUG*) print_endline ("* process equivalence mod "^b^": "^a^"_"^string_of_iset eqs); (**)
+						(*DEBUG*) dbg ("* process equivalence mod "^b^": "^a^"_"^string_of_iset eqs); (**)
 						let register i equivalences =
 							EqMap.add (b,a,i) eqs equivalences
 						in
