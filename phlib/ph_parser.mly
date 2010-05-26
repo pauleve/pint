@@ -1,4 +1,6 @@
 %{
+open Debug;;
+
 open Ph_types;;
 
 type t_directive = {
@@ -12,6 +14,8 @@ let directive = {
 	default_sa = 1;
 	sample = 1000.0
 };;
+
+let cooperativities = ref [];;
 
 let default_rsa () = 
 	match directive.default_rate with
@@ -200,6 +204,7 @@ let macro_cooperativity sigma ak k' top (ps,hits) =
 	in
 	let ps = if is_new then sigma_p::ps else ps
 	in
+	cooperativities := (sigma_n, sigma, idx_from_state)::!cooperativities;
 	ps, ph_add_hits (ps,hits) (if is_new then h'coop@hsigma else h'coop)
 ;;
 
@@ -257,6 +262,25 @@ let precall_macro_cooperativity name = match name with
 let precall_macro_process = function
 	  "KNOCKDOWN" -> macro_knockdown
 	| name -> failwith ("Unknown macro "^name^")")
+;;
+
+let compute_init_state ph defaults =
+	let state = merge_state (state0 ph) defaults
+	in
+	(* apply cooperativities *)
+	let fold state (c, sigma, idx) =
+		let state_c = List.map (fun a -> SMap.find a state) sigma
+		in
+		let i = idx state_c
+		in
+		dbg ("- init cooperativity: "^string_of_process (c,i));
+		SMap.add c i state
+	in
+	(*TODO: handle nested cooperativities *)
+	let state = List.fold_left fold state (List.rev !cooperativities)
+	in
+	(* re-apply default (force cooperative states) *)
+	merge_state state defaults
 ;;
 
 %}
@@ -367,7 +391,7 @@ footer :
 ;
 
 main :
-  Directive headers content footer { ($3, merge_state (state0 $3) $4) }
-| content footer { ($1, merge_state (state0 $1) $2) }
+  Directive headers content footer { ($3, compute_init_state $3 $4) }
+| content footer { ($1, compute_init_state $1 $2) }
 ;
 %%
