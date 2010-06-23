@@ -212,6 +212,9 @@ let dot_idx_from_bp (a,i,js) =
 let dot_from_aDep env =
 	let idx = ref 0
 	in
+	let string_of_bps =
+		string_of_set (fun (a,i,js) -> Ph_static.string_of_proceq (a,js)) BPSet.elements
+	in
 	let folder bp bpss str =
 		let fold_bps str bps = (
 			idx := !idx + 1;
@@ -221,8 +224,10 @@ let dot_from_aDep env =
 				str ^
 				"  " ^ child_id ^" -> "^dot_idx_from_bp bp'^"\n"
 			in
+			let label = string_of_bps bps
+			in
 			str ^ 
-			"  " ^ child_id^"[label=ALL shape=box]\n" ^
+			"  " ^ child_id^"[label=\""^label^"\" shape=box]\n" ^
 			"  " ^ dot_idx_from_bp bp^ " -> "^child_id^"\n" ^
 			(BPSet.fold fold_bp bps "")
 		) in
