@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+
+# NOTE: converts the 'reaction' file of CNA into a Process Hitting.
+#   http://www.mpi-magdeburg.mpg.de/projects/cna/manual/manual_cellnetanalyzer95.htm#_Toc261856171
+
+import os
+import sys
+
+reaction_file = sys.argv[1]
+assert (os.path.basename(reaction_file) == "reactions"), "Give the file 'reactions' as parameter"
+
+def explode_line( line ) :
+	row = {}
+	reqpart, parpart = line.replace("\t", " ").split("|")
+	# reqpart
+	reqpart = [f for f in reqpart.strip().split(" ") if f]
+	reqpart.pop(0)
+
+	reqpart = " ".join(reqpart)
+	left, right = reqpart.split("=")
+
+	def read_proc_presence( data ) :
+		level, sort = [f for f in data.strip().split(" ") if f]
+		level = int(level)
+		positive = True
+		if sort[0] == "!" :
+			sort = sort[1:]
+			positive = False
+		return (sort, level, positive)
+	
+	if not right.strip() :
+		return None
+
+	(target_sort, bounce_level, bounce_presence) = read_proc_presence(right)
+	assert bounce_presence
+
+	hitters = left.strip().split("+")
+	hitters = [read_proc_presence(h) for h in hitters if h.strip()]
+
+	row["Target"] = (target_sort, bounce_level)
+	row["Hitters"] = hitters
+
+	# parpart
+	parpart = [f for f in parpart.strip().split(" ") if f]
+	row["Default"], row["Par1"], row["Par2"], row["Par3"] = parpart[0:4]
+
+	return row
+
+
+sorts = {} # {sort -> (maxlevel, default_value)}
+interactions = {} # {target -> hitter_list list}
+
+def update_sorts( sort, level, default ) :
+	if default is not None :
+		try :
+			default = int(default)
+		except : 
+			default = None
+	if sort in sorts :
+		old_maxlevel, old_default = sorts[sort]
+	else :
+		old_maxlevel, old_default = 0, 0
+	maxlevel = max(level, old_maxlevel)
+	assert maxlevel <= 1
+	default = default if default is not None else old_default
+	sorts[sort] = (maxlevel, default)
+
+
+for line in open(reaction_file) :
+	row = explode_line(line)
+	if row is None :
+		#print("Ignoring %s" % line, file=sys.stderr)
+		continue
+	elif row["Par3"] == '1' :
+		print("Excluding %s" % row, file=sys.stderr)
+		continue
+	
+	target_sort, bounce_level = row["Target"]
+	assert bounce_level == 1
+
+	update_sorts(target_sort, bounce_level, row["Default"] if not row["Hitters"] else None)
+
+	assert row["Par1"] == '0'
+
+	OR = interactions[target_sort] if target_sort in interactions else []
+	OR.append(row["Hitters"])
+	interactions[target_sort] = OR
+
+#
+# processes definition
+#
+for sort, (maxlevel, default) in sorts.items() :
+	print("process %s %s" % (sort, maxlevel))
+print()
+
+
+#
+# actions
+#
+
+def valuate_ANDi( ANDi, value ) :
+	for (idx, level, positive) in ANDi :
+		v = value[idx]
+		if positive and v != level or \
+				not positive and v == level :
+			return 0
+	return 1
+	
+def valuate( ORi, value ) :
+	return sum([ valuate_ANDi(ANDi, value) for ANDi in ORi])
+
+def separate_values( names, values, OR ) :
+	falses, trues = [], []
+
+	ORi = [[(names.index(sort), level, positive) for (sort, level, positive) in o] for o in OR]
+
+	for value in values :
+		ret = valuate(ORi, value)
+		(trues if ret else falses).append(value)
+
+	return (falses, trues)
+
+for target_sort, OR in interactions.items() :
+	if [] in OR :
+		assert OR == [[]]
+		continue
+	elif len(OR) == 1 and len(OR[0]) == 1 :
+		(hitter_sort, hitter_level, hitter_positive) = OR[0][0]
+		if hitter_positive :
+			print("%s %s -> %s %s %s" % (hitter_sort, hitter_level, target_sort, 1 - hitter_level, hitter_level))
+			print("%s %s -> %s %s %s" % (hitter_sort, 1 - hitter_level, sort, hitter_level, 1 - hitter_level))
+		else :
+			print("%s %s -> %s %s %s" % (hitter_sort, hitter_level, target_sort, hitter_level, 1 - hitter_level))
+			print("%s %s -> %s %s %s" % (hitter_sort, 1 - hitter_level, sort, 1 - hitter_level, hitter_level))
+	else :
+		hitter_sorts = set()
+		for o in OR :
+			hitter_sorts.update([sort for (sort, _, _) in o])
+		hitter_sorts = list(hitter_sorts)
+
+		values = [[]]
+		for s in hitter_sorts :
+			values = [v + [0] for v in values] \
+					+ [v + [1] for v in values] 
+
+		falses, trues = separate_values(hitter_sorts, values, OR)
+
+		print(sort, OR, file=sys.stderr)
+
+		for (target_level, bounce_level, values) in [(0,1,trues),(1,0,falses)] :
+			print("COOPERATIVITY([%s] -> %s %d %d, [%s])" % (
+						";".join(hitter_sorts),
+						target_sort, target_level, bounce_level,
+						";".join(["[%s]" % ";".join(map(str, value)) for value in values])
+					))
+
+print()
+
+
+#
+# initial_state directive
+#
+init_values = [(sort, default) for (sort, (maxlevel, default)) in sorts.items() if default > 0]
+if init_values :
+	print("initial_state %s" % (", ".join(["%s %s" % iv for iv in init_values])))
+
+
