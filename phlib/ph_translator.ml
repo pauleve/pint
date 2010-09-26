@@ -609,4 +609,28 @@ let biocham_of_ph (ps,hits) state =
 	^ "})\nmake_absent_not_present.\n"
 ;;
 
+let kappa_of_ph (ps,hits) state =
+	let term_of_process (a,i) = a^"(s~"^string_of_int i^")"
+	in
+	let string_of_hit (b,j) ((ai,rsa),k) =
+		term_of_process (b,j) ^ ", " ^ term_of_process ai ^ " -> "
+		^ term_of_process (b,k) ^", "^ term_of_process ai
+	in
+	let fold_hits key value buf =
+		buf ^ (string_of_hit key value) ^ "\n"
+	in
+
+	let obj_of_process ai = "%obs: '" ^ string_of_process ai ^ "' " 
+				^ term_of_process ai
+	in
+
+	Hashtbl.fold fold_hits hits ""
+	^ "\n%init: ("^
+		String.concat "," (List.map term_of_process (list_of_state state))
+	^ ")\n\n"
+	^ (String.concat "\n" (List.flatten (List.map (fun (a,i) -> List.map (fun j -> 
+			obj_of_process (a,j)) (Util.range 0 i)) ps)))
+	^ "\n"
+;;
+
 
