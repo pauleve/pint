@@ -86,7 +86,59 @@ let get_sort_card ps a =
 		failwith ("get_sort_card: unknown sort '"^a^"'")
 ;;
 
-let macro_regulation regulation (ps,hits) = match regulation with
+
+let compute_init_state ph defaults =
+	let state = merge_state (state0 ph) defaults
+	in
+	(* apply cooperativities *)
+	let fold state (c, sigma, idx) =
+		let state_c = List.map (fun a -> SMap.find a state) sigma
+		in
+		let i = idx state_c
+		in
+		dbg ("- init cooperativity: "^string_of_process (c,i));
+		SMap.add c i state
+	in
+	(*TODO: handle nested cooperativities *)
+	let state = List.fold_left fold state (List.rev !cooperativities)
+	in
+	(* re-apply default (force cooperative states) *)
+	merge_state state defaults
+;;
+
+(***
+	MACROS
+***)
+
+type anostate = int list
+
+type state_matching_t =
+	  SM of (string list * anostate list)
+	| SM_And of (state_matching_t * state_matching_t)
+;;
+
+type macro_arg_t =
+	  Arg_Name of string
+	| Arg_Int of int
+	| Arg_Process of process
+	| Arg_Actions of (process * process * int) list
+	| Arg_Regulation of regulation_t
+	| Arg_Regulations of regulation_t list
+	| Arg_AnoStates of anostate list
+	| Arg_NamesHit of string list * process * int
+	| Arg_StateMatching of state_matching_t
+;;
+
+let macro_binary_cooperativity = function
+	  [Arg_StateMatching sm; Arg_Name sort; Arg_Int l_false; Arg_Int l_true] -> (
+	  	failwith "TO IMPLEMENT";
+	)
+	| _ -> failwith "macro_binary_cooperativity: wrong arguments"
+;;
+
+let macro_regulation = function
+	  [Arg_Regulation regulation] -> (fun (ps,hits) ->
+	  	match regulation with
 	Regulation (a,t,s,b) ->
 		let la = get_sort_card ps a and lb = get_sort_card ps b
 		in
@@ -108,8 +160,12 @@ let macro_regulation regulation (ps,hits) = match regulation with
 
 		in
 		ps, ph_add_hits (ps,hits) (List.flatten (List.map apply_regulation (Util.range 0 la)))
+	)
+	| _ -> failwith "macro_regulation: wrong arguments"
 ;;
-let macro_grn regulations ctx =
+let macro_grn = function
+	  [Arg_Regulations regulations] -> (fun ctx ->
+
 	let folder (regulations, genes, regulated) = function
 		Regulation (a,t,s,b) ->
 			let n_regulated = SSet.singleton b
@@ -132,12 +188,16 @@ let macro_grn regulations ctx =
 	let regulations = SSet.fold folder unregulateds regulations
 	in
 	let folder ctx regulation =
-		macro_regulation regulation ctx
+		macro_regulation [Arg_Regulation regulation] ctx
 	in
 	List.fold_left folder ctx regulations
+
+	)
+	| _ -> failwith "macro_grn: wrong arguments"
 ;;
 
-let macro_cooperativity sigma ak k' top (ps,hits) =
+let macro_cooperativity = function
+	  [Arg_NamesHit (sigma, ak, k'); Arg_AnoStates top] -> (fun (ps,hits) ->
 	let get_sort_max a =
 		try List.assoc a ps
 		with Not_found -> failwith ("Unknown sort '"^a^"'")
@@ -206,9 +266,12 @@ let macro_cooperativity sigma ak k' top (ps,hits) =
 	in
 	cooperativities := (sigma_n, sigma, idx_from_state)::!cooperativities;
 	ps, ph_add_hits (ps,hits) (if is_new then h'coop@hsigma else h'coop)
+)
+| _ -> failwith "macro_cooperativity: wrong arguments"
 ;;
 
-let macro_remove actions (ps,hits) =
+let macro_remove = function
+  [Arg_Actions actions] -> (fun (ps,hits) ->
 	let remove_action (ai,bj,j') =
 		let restore_stack stack =
 			List.iter (fun elt -> Hashtbl.add hits bj elt) stack
@@ -228,9 +291,12 @@ let macro_remove actions (ps,hits) =
 	in
 	List.iter remove_action actions;
 	ps, hits
+)
+| _ -> failwith "macro_remove: wrong arguments"
 ;;
 
-let macro_knockdown proc (ps,hits) =
+let macro_knockdown = function
+[Arg_Process proc] -> (fun (ps,hits) ->
 	let hits' = Hashtbl.create (List.length ps)
 	in
 	let knockdown target ((hitter,p),bounce_idx) =
@@ -241,46 +307,18 @@ let macro_knockdown proc (ps,hits) =
 	in
 	Hashtbl.iter knockdown hits;
 	ps, hits' 
+)
+| _ -> failwith "macro_knockdown: wrong arguments"
 ;;
 
-let precall_macro_action_list name = match name with
-	  "RM" -> macro_remove
-	| _ -> failwith ("Unkown macro '"^name^"'")
-;;
-let precall_macro_regulation name = match name with
-	  "REGULATION" -> macro_regulation 
-	| _ -> failwith ("Unkown macro '"^name^"'")
-;;
-let precall_macro_regulation_list name = match name with
-	  "GRN" -> macro_grn
-	| _ -> failwith ("Unkown macro '"^name^"'")
-;;
-let precall_macro_cooperativity name = match name with
-	  "COOPERATIVITY" -> macro_cooperativity 
-	| _ -> failwith ("Unkown macro '"^name^"'")
-;;
-let precall_macro_process = function
-	  "KNOCKDOWN" -> macro_knockdown
-	| name -> failwith ("Unknown macro "^name^")")
-;;
-
-let compute_init_state ph defaults =
-	let state = merge_state (state0 ph) defaults
-	in
-	(* apply cooperativities *)
-	let fold state (c, sigma, idx) =
-		let state_c = List.map (fun a -> SMap.find a state) sigma
-		in
-		let i = idx state_c
-		in
-		dbg ("- init cooperativity: "^string_of_process (c,i));
-		SMap.add c i state
-	in
-	(*TODO: handle nested cooperativities *)
-	let state = List.fold_left fold state (List.rev !cooperativities)
-	in
-	(* re-apply default (force cooperative states) *)
-	merge_state state defaults
+let precall_macro = function 
+	  "BINARY_COOPERATIVITY" -> macro_binary_cooperativity
+	| "COOPERATIVITY" -> macro_cooperativity
+	| "GRN" -> macro_grn
+	| "KNOCKDOWN" -> macro_knockdown
+	| "REGULATION" -> macro_regulation
+	| "RM" -> macro_remove
+	| name -> failwith ("Unknown macro '"^name^"'")
 ;;
 
 %}
@@ -290,10 +328,14 @@ let compute_init_state ph defaults =
 %token <int> Int
 %token New Art At Eof Initial
 %token Directive Sample Stoch_abs Absorb Default_rate
+%token AND IN
 %token ARROW INFTY
 %token COMMA LBRACKET LCURLY LPAREN RBRACKET RCURLY RPAREN SEMI
 
 %token <char> Sign
+
+%left IN
+%left AND
 
 %start main
 %type <Ph_types.ph * Ph_types.sortidx Ph_types.SMap.t> main
@@ -322,39 +364,61 @@ instr :
 | process ARROW process Int rate 					{ ($1, $3, $4, Some($5)) }
 ;
 macro:
-	  Name LPAREN LCURLY action_list RCURLY RPAREN { precall_macro_action_list $1 $4 }
-	| Name LPAREN regulation RPAREN	{ precall_macro_regulation $1 $3 }
-	| Name LPAREN LBRACKET regulation_list RBRACKET RPAREN { precall_macro_regulation_list $1 $4 }
-	| Name LPAREN LBRACKET name_list RBRACKET ARROW process Int COMMA
-				LBRACKET state_list RBRACKET RPAREN { precall_macro_cooperativity $1 $4 $7 $8 $11 }
-	| Name LPAREN process RPAREN { precall_macro_process $1 $3 }
+	Name LPAREN macro_args RPAREN { precall_macro $1 $3 }
 ;
-action_list:
+macro_args:
+	  macro_arg	{ [$1] }
+	| macro_arg COMMA macro_args { $1::$3 }
+;
+macro_arg:
+	  Name							{ Arg_Name $1 }
+	| Int							{ Arg_Int $1 }
+	| process						{ Arg_Process $1 }
+	| action_list					{ Arg_Actions $1 }
+	| regulation					{ Arg_Regulation $1 }
+	| regulation_list				{ Arg_Regulations $1 }
+	| state_list					{ Arg_AnoStates $1 }
+	| name_list ARROW process Int	{ Arg_NamesHit ($1,$3,$4) }
+	| state_matchings				{ Arg_StateMatching $1 }
+;
+
+action_list: LCURLY action_list_t RCURLY { $2 };
+action_list_t:
 	  action { [$1] }
 	| action SEMI { [$1] }
-	| action SEMI action_list { $1::$3 }
+	| action SEMI action_list_t { $1::$3 }
 ;
 action:
 	  process ARROW process Int { ($1,$3,$4) }
+;
+state_matchings:
+	  state_matching	{ $1 }
+	| state_matching AND state_matchings { SM_And ($1, $3) }
+;
+state_matching:
+	name_list IN state_list { SM ($1, $3) }
 ;
 
 regulation:
 	  Name Int ARROW Sign Name	{ Regulation($1, $2, (if $4 = '+' then Positive else Negative), $5) }
 ;
-regulation_list:
+regulation_list: LBRACKET regulation_list_t RBRACKET { $2 }
+regulation_list_t:
 	  regulation	{ [$1] }
 	| regulation SEMI	{ [$1] }
-	| regulation SEMI regulation_list	{ $1::$3 }
+	| regulation SEMI regulation_list_t	{ $1::$3 }
 ;
-name_list:
+name_list: LBRACKET name_list_t RBRACKET { $2 };
+name_list_t:
 	  Name { [$1] }
 	| Name SEMI { [$1] }
-	| Name SEMI name_list { $1::$3 }
+	| Name SEMI name_list_t { $1::$3 }
 ;
-state_list:
+state_list: LBRACKET state_list_t RBRACKET { $2 };
+state_list_t:
 	  state { [$1] }
 	| state SEMI { [$1] }
-	| state SEMI state_list { $1::$3 }
+	| state SEMI state_list_t { $1::$3 }
 ;
 state:
 	LBRACKET level_list RBRACKET { $2 }

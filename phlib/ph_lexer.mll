@@ -21,6 +21,8 @@ rule lexer = parse
 | "sample" { Sample }
 | "stochasticity_absorption" { Stoch_abs }
 | "default_rate" { Default_rate }
+| "and" { AND }
+| "in" { IN }
 | "(" { LPAREN }
 | ")" { RPAREN }
 | "[" { LBRACKET }
