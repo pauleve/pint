@@ -79,11 +79,11 @@ let filter_hits (ps, hits) pred =
 	hits'
 ;;
 
-let get_sort_card ps a =
+let get_sort_max ps a =
 	try
 		List.assoc a ps
 	with Not_found -> 
-		failwith ("get_sort_card: unknown sort '"^a^"'")
+		failwith ("get_sort_max: unknown sort '"^a^"'")
 ;;
 
 
@@ -91,7 +91,7 @@ let compute_init_state ph defaults =
 	let state = merge_state (state0 ph) defaults
 	in
 	(* apply cooperativities *)
-	let fold state (c, sigma, idx) =
+	let fold state (c, (sigma, idx)) =
 		let state_c = List.map (fun a -> SMap.find a state) sigma
 		in
 		let i = idx state_c
@@ -129,18 +129,86 @@ type macro_arg_t =
 	| Arg_StateMatching of state_matching_t
 ;;
 
-let macro_binary_cooperativity = function
-	  [Arg_StateMatching sm; Arg_Name sort; Arg_Int l_false; Arg_Int l_true] -> (
-	  	failwith "TO IMPLEMENT";
+let reflection_name sigma = String.concat "" sigma
+;;
+let build_reflection (ps,hits) sigma =
+	let sigma_n = reflection_name sigma
+	in
+	if List.mem_assoc sigma_n ps then
+		((sigma_n, List.assoc sigma_n !cooperativities), (ps,hits))
+	else (
+		let sigma_len = List.length sigma
+		in
+		let rec build_idx_sizes n prec_size =
+			let my_size = if n = sigma_len-1 then 1 else ((1+get_sort_max ps (List.nth sigma (n+1))) * prec_size)
+			and n' = n-1
+			in
+			(if n' < -1 then [] else build_idx_sizes (n-1) my_size)
+			@ [my_size]
+		in
+		let idx_sizes = build_idx_sizes (sigma_len-1) 1
+		in
+		let lsigma = List.hd idx_sizes - 1
+		and idx_sizes = List.tl idx_sizes
+		in
+		let sigma_p = (sigma_n, lsigma)
+		in
+		let idx_from_state state =
+			let rec idx_from_state n = function
+				  [] -> 0
+				| i::tail -> i*(List.nth idx_sizes n) + idx_from_state (n+1) tail
+			in
+			idx_from_state 0 state
+		in
+
+		let get_sort_processes a = Util.range 0 (get_sort_max ps a)
+		in
+		let _S = Util.cross_list (List.map get_sort_processes (List.rev sigma))
+		in
+
+		let folder hsigma z =
+			let n = Util.index_of z sigma
+			in
+			let folder hsigma i =
+				let my_S = List.filter (fun state -> List.nth state n <> i) _S
+				in
+				let make_hit state =
+					let shift = (i - List.nth state n)*(List.nth idx_sizes n)
+					and state_id = idx_from_state state
+					in
+					let state'_id = state_id + shift
+					in
+					Hit ((z,i), (sigma_n,state_id), state'_id)
+				in
+				hsigma @ List.map make_hit my_S
+			in
+			List.fold_left folder hsigma (Util.range 0 (List.assoc z ps))
+		in
+		let hsigma = List.fold_left folder [] sigma
+		in
+		let ps = sigma_p::ps
+		and hits = ph_add_hits (ps,hits) hsigma
+		in
+		let record = sigma_n, (sigma, idx_from_state)
+		in
+		cooperativities := record::!cooperativities;
+		(record, (ps,hits))
 	)
-	| _ -> failwith "macro_binary_cooperativity: wrong arguments"
+;;
+
+
+let macro_binary_cooperativity = function
+[Arg_StateMatching sm; Arg_Name sort; Arg_Int l_true; Arg_Int l_false] -> (fun ctx ->
+	  	failwith "TO IMPLEMENT";
+)
+| _ -> failwith "macro_binary_cooperativity: wrong arguments"
 ;;
 
 let macro_regulation = function
 	  [Arg_Regulation regulation] -> (fun (ps,hits) ->
 	  	match regulation with
 	Regulation (a,t,s,b) ->
-		let la = get_sort_card ps a and lb = get_sort_card ps b
+		let la = get_sort_max ps a and lb = get_sort_max ps b
 		in
 		let apply_regulation i =
 			let r = if i >= t then s else match s with Positive -> Negative |
@@ -197,75 +265,17 @@ let macro_grn = function
 ;;
 
 let macro_cooperativity = function
-	  [Arg_NamesHit (sigma, ak, k'); Arg_AnoStates top] -> (fun (ps,hits) ->
-	let get_sort_max a =
-		try List.assoc a ps
-		with Not_found -> failwith ("Unknown sort '"^a^"'")
+[Arg_NamesHit (sigma, ak, k'); Arg_AnoStates top] -> (fun (ps,hits) ->
+	let (sigma_n, (sigma, idx_from_state)), (ps,hits) = build_reflection (ps,hits) sigma
 	in
-	let sigma_len = List.length sigma
-	in
-	let rec build_idx_sizes n prec_size =
-		let my_size = if n = sigma_len-1 then 1 else ((1+get_sort_max (List.nth sigma (n+1))) * prec_size)
-		and n' = n-1
-		in
-		(if n' < -1 then [] else build_idx_sizes (n-1) my_size)
-		@ [my_size]
-	in
-	let idx_sizes = build_idx_sizes (sigma_len-1) 1
-	in
-	let lsigma = List.hd idx_sizes - 1
-	and idx_sizes = List.tl idx_sizes
-	in
-	let sigma_n = String.concat "" sigma
-	in
-	let sigma_p = (sigma_n, lsigma)
-	in
-	let idx_from_state state =
-		let rec idx_from_state n = function
-			  [] -> 0
-			| i::tail -> i*(List.nth idx_sizes n) + idx_from_state (n+1) tail
-		in
-		idx_from_state 0 state
-	in
-
-	let get_sort_processes a = Util.range 0 (get_sort_max a)
-	in
-	let _S = Util.cross_list (List.map get_sort_processes (List.rev sigma))
-	in
-
-	let folder hsigma z =
-		let n = Util.index_of z sigma
-		in
-		let folder hsigma i =
-			let my_S = List.filter (fun state -> List.nth state n <> i) _S
-			in
-			let make_hit state =
-				let shift = (i - List.nth state n)*(List.nth idx_sizes n)
-				and state_id = idx_from_state state
-				in
-				let state'_id = state_id + shift
-				in
-				Hit ((z,i), (sigma_n,state_id), state'_id)
-			in
-			hsigma @ List.map make_hit my_S
-		in
-		List.fold_left folder hsigma (Util.range 0 (List.assoc z ps))
-	in
-	let hsigma = List.fold_left folder [] sigma
-
-	and hits = filter_hits (ps,hits) (fun h ->
+	let hits = filter_hits (ps,hits) (fun h ->
 		match h with Hit ((a,i),bj,j') -> not (List.mem a sigma && bj = ak && j' = k'))
 
 	and h'coop = List.map (fun state ->
 		Hit ((sigma_n, idx_from_state state), ak, k'))
 			top
 	in
-	let is_new = not (List.mem sigma_p ps)
-	in
-	let ps = if is_new then sigma_p::ps else ps
-	in
-	cooperativities := (sigma_n, sigma, idx_from_state)::!cooperativities;
-	ps, ph_add_hits (ps,hits) (if is_new then h'coop@hsigma else h'coop)
+	ps, ph_add_hits (ps,hits) h'coop
 )
 | _ -> failwith "macro_cooperativity: wrong arguments"
 ;;
