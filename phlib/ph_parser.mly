@@ -16,6 +16,7 @@ let directive = {
 };;
 
 let cooperativities = ref [];;
+let __coop_counter = ref 0;;
 
 let default_rsa () = 
 	match directive.default_rate with
@@ -196,14 +197,6 @@ let build_reflection (ps,hits) sigma =
 	)
 ;;
 
-
-let macro_binary_cooperativity = function
-[Arg_StateMatching sm; Arg_Name sort; Arg_Int l_true; Arg_Int l_false] -> (fun ctx ->
-	  	failwith "TO IMPLEMENT";
-)
-| _ -> failwith "macro_binary_cooperativity: wrong arguments"
-;;
-
 let macro_regulation = function
 	  [Arg_Regulation regulation] -> (fun (ps,hits) ->
 	  	match regulation with
@@ -265,15 +258,82 @@ let macro_grn = function
 ;;
 
 let macro_cooperativity = function
-[Arg_NamesHit (sigma, ak, k'); Arg_AnoStates top] -> (fun (ps,hits) ->
+  [Arg_NamesHit (sigma, ak, k'); Arg_AnoStates top] -> (fun (ps,hits) ->
 	let (sigma_n, (sigma, idx_from_state)), (ps,hits) = build_reflection (ps,hits) sigma
 	in
-	let hits = filter_hits (ps,hits) (fun h ->
-		match h with Hit ((a,i),bj,j') -> not (List.mem a sigma && bj = ak && j' = k'))
+	let hits = filter_hits (ps,hits) (function Hit ((a,i),bj,j') -> 
+		not (List.mem a sigma && bj = ak && j' = k'))
 
 	and h'coop = List.map (fun state ->
 		Hit ((sigma_n, idx_from_state state), ak, k'))
 			top
+	in
+	ps, ph_add_hits (ps,hits) h'coop
+)
+
+| [Arg_StateMatching sm; Arg_Name sort; Arg_Int l_true; Arg_Int l_false] -> (fun ctx ->
+	
+	(* remove existing hits from sorts in sm to processes (sort,l_true|l_false) *)
+	let rec matching_names = function
+		  SM (sigma, _) -> sigma
+		| SM_And (sm1, sm2) -> matching_names sm1 @ matching_names sm2
+	in
+	let names = matching_names sm
+	in
+	let ctx = fst ctx, filter_hits ctx (function Hit((b,k), (a,i), j) ->
+		not (List.mem b names && a = sort &&
+			(i = l_true && j = l_false || i = l_false && j = l_true)))
+	in
+
+	let separate_levels (ps, hits) sigma_n idx_from_state top =
+		let idx_top = List.map idx_from_state top
+		in
+		let n = List.assoc sigma_n ps
+		in
+		let idx_bot = List.filter (fun i -> not (List.mem i idx_top)) (Util.range 0 n)
+		in
+		idx_top, idx_bot
+	in
+
+	(* build reflections *)
+	let rec cooperative_matching ctx = function
+		  SM (sigma, top) -> 
+		  	let (sigma_n, (sigma, idx_from_state)), ctx = build_reflection ctx sigma
+			in
+			sigma_n, separate_levels ctx sigma_n idx_from_state top, ctx
+
+		| SM_And (sm1, sm2) ->
+			let sig1, (top1,bot1), ctx = cooperative_matching ctx sm1
+			in
+			let sig2, (top2,bot2), ctx = cooperative_matching ctx sm2
+			in
+			let sigma_n = "__coop" ^ (string_of_int !__coop_counter)
+			in __coop_counter := !__coop_counter + 1;
+			
+			let h_coop = List.flatten (
+				  List.map (fun s -> [Hit ((sig1,s), (sigma_n,0), 2);
+									Hit ((sig1,s), (sigma_n,1), 3)]) top1
+				@ List.map (fun s -> [Hit ((sig1,s), (sigma_n,2), 0);
+									Hit ((sig1,s), (sigma_n,3), 1)]) bot1
+				@ List.map (fun s -> [Hit ((sig2,s), (sigma_n,0), 1);
+									Hit ((sig2,s), (sigma_n,2), 3)]) top2
+				@ List.map (fun s -> [Hit ((sig2,s), (sigma_n,1), 0);
+									Hit ((sig2,s), (sigma_n,3), 2)]) bot2
+			) in
+			let ctx = (sigma_n,3)::(fst ctx), ph_add_hits ctx h_coop
+			in
+			sigma_n, ([3], [0;1;2]), ctx
+	in
+	let sigma_n, (top, bot), ctx = cooperative_matching ctx sm
+	in
+
+	(* setup cooperativities *)
+	let coop_hits ai j = List.map (fun s -> Hit ((sigma_n, s), ai, j))
+	in
+	let h'coop = coop_hits (sort,l_false) l_true top
+				@ coop_hits (sort,l_true) l_false bot
+	in
+	let ps, hits = ctx
 	in
 	ps, ph_add_hits (ps,hits) h'coop
 )
@@ -322,8 +382,7 @@ let macro_knockdown = function
 ;;
 
 let precall_macro = function 
-	  "BINARY_COOPERATIVITY" -> macro_binary_cooperativity
-	| "COOPERATIVITY" -> macro_cooperativity
+	  "COOPERATIVITY" -> macro_cooperativity
 	| "GRN" -> macro_grn
 	| "KNOCKDOWN" -> macro_knockdown
 	| "REGULATION" -> macro_regulation
