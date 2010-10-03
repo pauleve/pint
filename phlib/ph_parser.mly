@@ -115,6 +115,7 @@ type anostate = int list
 
 type state_matching_t =
 	  SM of (string list * anostate list)
+	| SM_Not of state_matching_t
 	| SM_And of (state_matching_t * state_matching_t)
 ;;
 
@@ -132,7 +133,9 @@ type macro_arg_t =
 
 let reflection_name sigma = String.concat "" sigma
 ;;
-let build_reflection (ps,hits) sigma =
+let build_reflection (ps,hits) = function
+  [a] -> (a, ([a], (function [s] -> s | _ -> invalid_arg "idx_from_state singleton"))), (ps,hits)
+| sigma -> 
 	let sigma_n = reflection_name sigma
 	in
 	if List.mem_assoc sigma_n ps then
@@ -276,6 +279,7 @@ let macro_cooperativity = function
 	(* remove existing hits from sorts in sm to processes (sort,l_true|l_false) *)
 	let rec matching_names = function
 		  SM (sigma, _) -> sigma
+		| SM_Not sm -> matching_names sm
 		| SM_And (sm1, sm2) -> matching_names sm1 @ matching_names sm2
 	in
 	let names = matching_names sm
@@ -301,6 +305,11 @@ let macro_cooperativity = function
 		  	let (sigma_n, (sigma, idx_from_state)), ctx = build_reflection ctx sigma
 			in
 			sigma_n, separate_levels ctx sigma_n idx_from_state top, ctx
+
+		| SM_Not sm ->
+			let sigma_n, (top,bot), ctx = cooperative_matching ctx sm
+			in
+			sigma_n, (bot, top), ctx
 
 		| SM_And (sm1, sm2) ->
 			let sig1, (top1,bot1), ctx = cooperative_matching ctx sm1
@@ -404,7 +413,7 @@ let precall_macro = function
 %token <int> Int
 %token New Art At Eof Initial
 %token Directive Sample Stoch_abs Absorb Default_rate
-%token AND IN
+%token AND NOT IN
 %token ARROW INFTY
 %token COMMA LBRACKET LCURLY LPAREN RBRACKET RCURLY RPAREN SEMI
 
@@ -412,6 +421,7 @@ let precall_macro = function
 
 %left IN
 %left AND
+%left NOT
 
 %start main
 %type <Ph_types.ph * Ph_types.sortidx Ph_types.SMap.t> main
@@ -469,7 +479,9 @@ action:
 ;
 state_matchings:
 	  state_matching	{ $1 }
-	| state_matching AND state_matchings { SM_And ($1, $3) }
+	| NOT state_matchings { SM_Not $2 }
+	| LPAREN state_matchings RPAREN { $2 }
+	| state_matchings AND state_matchings { SM_And ($1, $3) }
 ;
 state_matching:
 	name_list IN state_list { SM ($1, $3) }
