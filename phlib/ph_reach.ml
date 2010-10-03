@@ -71,7 +71,8 @@ type env = {
 }
 
 let create_env (ps,hits) = 
-	let equivalences = Ph_static.processes_equivalences (ps, hits)
+	let equivalences = Ph_static.EqMap.empty
+	(*let equivalences = Ph_static.processes_equivalences (ps, hits)*)
 	in
 	{
 		sorts = ps;
