@@ -309,7 +309,7 @@ let macro_cooperativity = function
 			in
 			let sigma_n = "__coop" ^ (string_of_int !__coop_counter)
 			in __coop_counter := !__coop_counter + 1;
-			
+
 			let h_coop = List.flatten (
 				  List.map (fun s -> [Hit ((sig1,s), (sigma_n,0), 2);
 									Hit ((sig1,s), (sigma_n,1), 3)]) top1
@@ -322,6 +322,13 @@ let macro_cooperativity = function
 			) in
 			let ctx = (sigma_n,3)::(fst ctx), ph_add_hits ctx h_coop
 			in
+			cooperativities := (sigma_n, ([sig1;sig2], 
+				function [s1;s2] ->
+					let r1 = if List.mem s1 top1 then 2 else 0
+					and r2 = if List.mem s2 top2 then 1 else 0
+					in
+					r1 + r2
+				| _ -> invalid_arg "__coop idx_from_state"))::!cooperativities;
 			sigma_n, ([3], [0;1;2]), ctx
 	in
 	let sigma_n, (top, bot), ctx = cooperative_matching ctx sm
