@@ -558,7 +558,8 @@ let process_reachability env zl s =
 			(* 3. scheduling saturation *)
 			) else if concretion_saturation_valid (bps, _D) env s bpzl then (
 				dbg "valid saturation.";
-				true
+				dbg "WARNING: incomplete implementation!!!";
+				false
 			) else (
 				dbg "inconclusive.";
 				false
