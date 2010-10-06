@@ -605,6 +605,12 @@ let new_abstr_struct () = {
 	_Req_objs = ObjSet.empty;
 	_Sol = PMap.empty;
 }
+let copy_abstr_struct aS = {
+	_Req = aS._Req;
+	_Req_procs = aS._Req_procs;
+	_Req_objs = aS._Req_objs;
+	_Sol = aS._Sol;
+}
 
 type env_ng = {
 	sorts : process list;
@@ -903,7 +909,8 @@ let iter_concretions handler env =
 				(fun obj -> ObjMap.find obj env.a._Req) new_objs
 			in
 			let handler choices =
-				(* TODO: copy aS ? *)
+				let aS = copy_abstr_struct aS
+				in
 				let new_objs = bind_choices aS (new_objs, choices)
 				in
 				(* convert obj list into ObjSet *)
