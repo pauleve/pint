@@ -43,7 +43,7 @@ and opt_input = ref ""
 and opt_args = ref []
 in
 let cmdopts = Ui.common_cmdopts @ [
-		("--method", Arg.Symbol (["static"; "test"],
+		("--method", Arg.Symbol (["static"; "test";"static-ng"],
 				(fun x -> opt_method := x)),
 			"Method");
 		("-i", Arg.Set_string opt_input, "Input filename");
@@ -78,12 +78,10 @@ Util.dump_to_file (phname^"-hdepend.dot") (Ph_verif.dot_from_hdepend hdepend)
 
 let env = Ph_reach.create_env ph
 in
-let bpzl = Ph_reach.reach_bounce_path state zl
-in
 let decision = 
 match !opt_method with
-	  "static" -> Ph_reach.process_reachability env zl state
-	| "test" -> Ph_reach.test env bpzl state
+	  "static" -> Ph_reach.process_reachability ph zl state
+	| "static-ng" -> Ph_reach.process_reachability_ng ph zl state
 	| _ -> failwith "Unknown method."
 in
 print_endline (string_of_ternary decision)
