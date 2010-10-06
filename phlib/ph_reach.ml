@@ -526,8 +526,9 @@ let concretion_saturation_valid (bps, _D) env s bpzl =
 	success
 ;;
 
-let process_reachability env zl s =
-	let bpzl = bp_reach s zl
+let process_reachability ph zl s =
+	let env = create_env ph
+	and bpzl = bp_reach s zl
 	in
 	(* Under-approximate ExecuteCrash *)
 	dbg "+ under-approximating ExecuteCrash...";
@@ -580,7 +581,287 @@ let process_reachability env zl s =
 	)
 ;;
 
-let test env bpzl s =
-	raise Exit
+(*** NEW IMPLEMENTATION ***)
+
+type objective = sort * sortidx * sortidx
+module ObjOrd = struct 
+	type t = objective 
+	let compare = compare
+end
+
+module ObjSet = Set.Make (ObjOrd)
+module ObjMap = Map.Make (ObjOrd)
+
+type env_ng = {
+	sorts : process list;
+	t_hits : hits;
+	aBS : (objective, PSet.t list) Hashtbl.t;
+	mutable _Req : (PSet.t list) ObjMap.t;
+	mutable _Req_procs : PSet.t;
+	mutable _Req_objs : ObjSet.t;
+	mutable _Sol : (objective list) PMap.t;
+}
+
+let init_env (ps,hits) = 
+	{
+		sorts = ps;
+		t_hits = hits;
+		aBS = Hashtbl.create 50;
+		_Req = ObjMap.empty;
+		_Req_procs = PSet.empty;
+		_Req_objs = ObjSet.empty;
+		_Sol = PMap.empty;
+	}
 ;;
+
+(** Objectives **)
+
+let obj_sort (a, _, _) = a;;
+let obj_bounce (_, _, j) = j;;
+let obj_target (_, i, _) = i;;
+let obj_reach s (a,i) = (a, state_value s a, i);;
+let string_of_obj (a,i,j) =
+		a^" "^string_of_int i^" "^string_of_int j;;
+let string_of_objs = string_of_set string_of_obj ObjSet.elements;;
+
+(** BS **)
+
+let string_of_aBS aBS_obj = "[ "^(String.concat "; " 
+		(List.map string_of_procs' aBS_obj))^" ]"
+;;
+
+let compute_aBS env obj =
+	let a, i, __to_reach = obj
+	in
+	let rec walk history results i visited =
+		if i = __to_reach then
+			(* we reached our objective, remove larger results *)
+			history::List.filter 
+				(fun ps -> not(PSet.subset history ps)) results
+		else
+			let visited = ISet.add i visited
+			and actions = Hashtbl.find_all env.t_hits (a,i)
+			in
+			let folder results = function ((b,j),_), k ->
+				if ISet.mem k visited then (* ignore loops *)
+					results
+				else 
+					let history = 
+						(* register hitter iff has different sort *)
+						if b <> a then 
+							PSet.add (b,j) history
+						else
+							history
+					in
+					(* ensure we are the shortest known path *)
+					if List.exists (fun ps -> PSet.subset ps history) results then 
+						results
+					else
+						walk history results k visited
+			in
+			List.fold_left folder results actions
+	in
+	dbg_noendl ("- computing aBS("^string_of_obj obj^")...");
+	let aBS_obj = walk PSet.empty [] i ISet.empty
+	in  
+	dbg (" "^string_of_aBS aBS_obj); (**)
+	Hashtbl.add env.aBS obj aBS_obj;
+	aBS_obj
+;;
+let get_aBS env obj =
+	try Hashtbl.find env.aBS obj
+	with Not_found -> compute_aBS env obj
+;;
+
+(** Req, Sol **)
+
+let __all_ObjMap m obj = try ObjMap.find obj m with Not_found -> [];;
+let __all_PMap m p = try PMap.find p m with Not_found -> [];;
+
+let rec register_obj env s obj =
+	if not (ObjSet.mem obj env._Req_objs) then (
+		let register_req new_procs ps =
+			env._Req <- ObjMap.add obj (ps::__all_ObjMap env._Req obj) 
+							env._Req;
+			let new_procs' = PSet.diff ps env._Req_procs
+			in
+			env._Req_procs <- PSet.union env._Req_procs ps;
+			PSet.union new_procs new_procs'
+		in
+		let register_proc p new_objs = 
+			let obj' = obj_reach s p
+			in
+			env._Sol <- PMap.add p (obj'::__all_PMap env._Sol p)
+							env._Sol;
+			if ObjSet.mem obj' env._Req_objs then
+				new_objs
+			else
+				ObjSet.add obj' new_objs
+		in
+		env._Req_objs <- ObjSet.add obj env._Req_objs;
+		let aBS = get_aBS env obj
+		in
+		let new_procs = List.fold_left register_req PSet.empty aBS
+		in
+		let new_objs = PSet.fold register_proc new_procs ObjSet.empty
+		in
+		ObjSet.iter (register_obj env s) new_objs
+	)
+;;
+
+let dbg_Req env =
+	if !dodebug then
+		let fold obj ps_list buf =
+			buf^"\n"
+			^" - Req("^string_of_obj obj^") = [ "^
+				(String.concat "; " (List.map string_of_procs ps_list))
+			^" ]"
+		in
+		let buf = ObjMap.fold fold env._Req ""
+		in
+		dbg buf
+	else ()
+;;
+
+
+(* DEAD CODE
+let cleanup_abstr env =
+	let cleanup_sol obj remove_procs =
+		let p = obj_sort obj, obj_bounce obj
+		in
+		if PMap.mem p env._Sol then
+			let v' = List.filter (fun obj' -> obj' <> obj)
+						(__all_PMap env._Sol p)
+			in
+			if v' = [] then (
+				env._Sol <- PMap.remove p env._Sol;
+				PSet.add p remove_procs
+			) else (
+				env._Sol <- PMap.add p v' env._Sol;
+				remove_procs
+			)
+		else
+			remove_procs
+	in
+	let cleanup_req remove_procs obj ps_list remove_objs =
+		let ps_list' = List.filter (fun ps -> 
+		 		PSet.is_empty (PSet.inter ps remove_procs)) ps_list
+		in
+		if ps_list' = [] then (
+			env._Req <- ObjMap.remove obj env._Req;
+			ObjSet.add obj remove_objs
+		) else if (List.length ps_list <> List.length ps_list') then (
+			env._Req <- ObjMap.add obj ps_list' env._Req;
+			remove_objs
+		) else remove_objs
+	in
+	let rec cleanup_objs remove_objs =
+		dbg ("- cleanup_objs "^string_of_objs remove_objs);
+		if not (ObjSet.is_empty remove_objs) then (
+			env._Req_objs <- ObjSet.diff env._Req_objs remove_objs;
+			let remove_procs = ObjSet.fold cleanup_sol remove_objs PSet.empty
+			in
+			dbg (" - cleanup_procs "^string_of_procs remove_procs);
+			env._Req_procs <- PSet.diff env._Req_procs remove_procs;
+			let remove_objs = ObjMap.fold (cleanup_req remove_procs) env._Req ObjSet.empty
+			in
+			cleanup_objs remove_objs
+		)
+	in
+	let remove_objs = ObjSet.filter
+			(fun obj -> not(ObjMap.mem obj env._Req)) env._Req_objs
+	in
+	cleanup_objs remove_objs
+;;
+*)
+
+let cleanup_abstr env =
+(* colorise (eq. concretizable) procs and objs
+- a process is colorised <= a related objectif is colorised
+- an objective is colorised <= exists a procset fully colorised
+*)
+	let rec colorize keep_procs test_procs keep_objs test_objs =
+		if ObjSet.is_empty keep_objs then (
+			keep_procs, keep_objs
+		) else (
+			let keep_procs', test_procs = PSet.partition (fun p ->
+					ObjSet.exists (fun (a,i,j) -> (a,j) = p) keep_objs)
+						test_procs
+			in
+			if not (PSet.is_empty keep_procs') then (
+				let keep_procs = PSet.union keep_procs keep_procs'
+				in
+				let keep_objs', test_objs = ObjSet.partition 
+					(fun obj -> 
+					let ps_list = __all_ObjMap env._Req obj
+					in
+					List.exists (fun ps -> PSet.subset ps keep_procs)
+						ps_list)
+						test_objs
+				in
+				let keep_procs, keep_objs' = colorize 
+												keep_procs test_procs
+												keep_objs' test_objs
+				in
+				keep_procs, ObjSet.union keep_objs keep_objs'
+			) else (
+				keep_procs, keep_objs
+			)
+		)
+	in
+
+	(* start with trivial objectives *)
+	let keep_objs, test_objs = ObjSet.partition (fun (a,i,j) ->
+			i = j) env._Req_objs
+	in
+	let green_procs, green_objs = colorize PSet.empty env._Req_procs 
+										keep_objs test_objs
+	in
+
+	(* remove non-colorised elements *)
+	let remove_procs = PSet.diff env._Req_procs green_procs
+	and remove_objs = ObjSet.diff env._Req_objs green_objs
+	in
+	let cleanup_Sol_proc p =
+		env._Sol <- PMap.remove p env._Sol
+	and cleanup_Req_obj obj =
+		env._Req <- ObjMap.remove obj env._Req
+	in
+	PSet.iter cleanup_Sol_proc remove_procs;
+	ObjSet.iter cleanup_Req_obj remove_objs;
+	env._Req_procs <- green_procs;
+	env._Req_objs <- green_objs;
+
+	let cleanup_Req_proc obj ps_list =
+		let ps_list' = List.filter (fun ps -> 
+		 		PSet.is_empty (PSet.inter ps remove_procs)) ps_list
+		in
+		assert (ps_list' <> []);
+		if (List.length ps_list <> List.length ps_list') then (
+			env._Req <- ObjMap.add obj ps_list' env._Req
+		)
+	in
+	ObjMap.iter cleanup_Req_proc env._Req
+;;
+	
+
+let process_reachability_ng ph zl s =
+	let env = init_env ph
+	and r_obj = obj_reach s zl
+	in
+	(* fill Req and Sol *)
+	register_obj env s r_obj;
+	(* remove inconcretizable objectives *)
+	cleanup_abstr env;
+	dbg_Req env;
+	(* check if r_obj is still present *)
+	if not (ObjMap.mem r_obj env._Req) then (
+		dbg "+ over-approximation (1) failure";
+		False
+	) else (
+		dbg "+ over-approximation (1) success";
+		Inconc
+	)
+;;
+(*** ***)
 

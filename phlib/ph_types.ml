@@ -67,6 +67,7 @@ type sortidx = int
 type process = sort * sortidx (* name * level *)
 
 let string_of_process (a,i) = a^"_"^string_of_int i;;
+let string_of_process' (a,i) = a^" "^string_of_int i;;
 
 type rate = (float * int) option
 
@@ -140,6 +141,8 @@ module PMap = Map.Make (struct type t = process let compare = compare end);;
 module PSet = Set.Make (struct type t = process let compare = compare end);;
 
 let string_of_processes = string_of_set string_of_process PSet.elements;;
+let string_of_procs' = string_of_set string_of_process' PSet.elements;;
+let string_of_procs = string_of_procs';;
 
 module ActionSet = Set.Make (struct type t = action let compare = compare end);;
 let uniqise_actions actions = 
