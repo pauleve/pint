@@ -46,11 +46,14 @@ let fill_state =
 	List.fold_left folder
 ;;
 
+let opt_initial_procs = ref [];;
 let parse channel_in =
 	let lexbuf = Lexing.from_channel channel_in
 	in
 	try 
 		let ph, init_state = Ph_parser.main Ph_lexer.lexer lexbuf
+		in
+		let init_state = merge_state init_state !opt_initial_procs
 		in
 		ph, fill_state init_state (fst ph)
 	with Parsing.Parse_error ->
