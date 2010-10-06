@@ -696,6 +696,20 @@ let get_aBS env obj =
 let __all_ObjMap m obj = try ObjMap.find obj m with Not_found -> [];;
 let __all_PMap m p = try PMap.find p m with Not_found -> [];;
 
+let dbg_aS aS =
+	if !dodebug then
+		let fold obj ps_list buf =
+			buf
+			^" - Req("^string_of_obj obj^") = [ "^
+				(String.concat "; " (List.map string_of_procs ps_list))
+			^" ]\n"
+		in
+		let buf = ObjMap.fold fold aS._Req ""
+		in
+		dbg buf
+	else ()
+;;
+
 let rec register_obj env s obj =
 	if not (ObjSet.mem obj env.a._Req_objs) then (
 		let register_req new_procs ps =
@@ -725,20 +739,6 @@ let rec register_obj env s obj =
 		in
 		ObjSet.iter (register_obj env s) new_objs
 	)
-;;
-
-let dbg_aS aS =
-	if !dodebug then
-		let fold obj ps_list buf =
-			buf^"\n"
-			^" - Req("^string_of_obj obj^") = [ "^
-				(String.concat "; " (List.map string_of_procs ps_list))
-			^" ]"
-		in
-		let buf = ObjMap.fold fold aS._Req ""
-		in
-		dbg buf
-	else ()
 ;;
 
 let cleanup_abstr env =
@@ -846,6 +846,19 @@ let rec sature_loops env aS =
 		failwith "Not Implemented"
 ;;
 
+exception Found
+let has_inconcretizable_obj aS =
+	let test_req obj ps_list =
+		if ps_list = [] then raise Found
+	in
+	try 
+		ObjMap.iter test_req aS._Req;
+		false
+	with Found ->
+		true
+;;
+	
+
 exception HasCycle
 let is_cycle_free aS obj_root =
 	let rec walk_obj stacks obj =
@@ -946,26 +959,12 @@ let over_approximation_1 env =
 		dbg "+ over-approximation (1) success"
 ;;
 
-exception Found
-let has_inconcretizable_obj aS =
-	let test_req obj ps_list =
-		if ps_list = [] then raise Found
-	in
-	try 
-		ObjMap.iter test_req aS._Req;
-		false
-	with Found ->
-		true
-;;
-	
-
 let under_approximation_1 env =
 	let handle_concretion aS =
 		dbg "# handling concretion";
 		dbg_aS aS;
 		sature_loops env aS;
-		if not (has_inconcretizable_obj aS)
-		&& is_cycle_free aS env.r_obj then (
+		if not (has_inconcretizable_obj aS) && is_cycle_free aS env.r_obj then (
 			dbg "+ under-approximation (1) success";
 			raise (Decision True)
 		) else
