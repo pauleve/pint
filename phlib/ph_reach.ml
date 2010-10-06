@@ -594,21 +594,15 @@ module ObjMap = Map.Make (ObjOrd)
 
 type abstr_struct = {
 	mutable _Req : (PSet.t list) ObjMap.t;
-	mutable _Req_procs : PSet.t;
-	mutable _Req_objs : ObjSet.t;
+	mutable procs : PSet.t;
+	mutable objs : ObjSet.t;
 	mutable _Sol : (objective list) PMap.t;
 }
 
-let new_abstr_struct () = {
-	_Req = ObjMap.empty;
-	_Req_procs = PSet.empty;
-	_Req_objs = ObjSet.empty;
-	_Sol = PMap.empty;
-}
 let copy_abstr_struct aS = {
 	_Req = aS._Req;
-	_Req_procs = aS._Req_procs;
-	_Req_objs = aS._Req_objs;
+	procs = aS.procs;
+	objs = aS.objs;
 	_Sol = aS._Sol;
 }
 
@@ -616,21 +610,11 @@ type env_ng = {
 	sorts : process list;
 	t_hits : hits;
 	r_obj : objective;
+	zl : process;
 	s : state;
 	aBS : (objective, PSet.t list) Hashtbl.t;
 	a : abstr_struct;
 }
-
-let init_env (ps,hits) s r_obj = 
-	{
-		sorts = ps;
-		t_hits = hits;
-		r_obj = r_obj;
-		s = s;
-		aBS = Hashtbl.create 50;
-		a = new_abstr_struct ();
-	}
-;;
 
 (** Objectives **)
 
@@ -695,6 +679,24 @@ let get_aBS env obj =
 
 (** Req, Sol **)
 
+let new_abstr_struct s zl = {
+	_Sol = PMap.add zl [obj_reach s zl] PMap.empty;
+	_Req = ObjMap.empty;
+	procs = PSet.singleton zl;
+	objs = ObjSet.empty;
+}
+let init_env (ps,hits) s zl = 
+	{
+		sorts = ps;
+		t_hits = hits;
+		r_obj = obj_reach s zl;
+		zl = zl;
+		s = s;
+		aBS = Hashtbl.create 50;
+		a = new_abstr_struct s zl;
+	}
+;;
+
 let __all_ObjMap m obj = try ObjMap.find obj m with Not_found -> [];;
 let __all_PMap m p = try PMap.find p m with Not_found -> [];;
 
@@ -716,34 +718,34 @@ let dbg_aS aS =
 		in
 		let buf = PMap.fold fold aS._Sol buf
 		in
-		let buf = buf ^ " - procs = " ^ string_of_procs aS._Req_procs ^ "\n"
-				^ " - objs = " ^ string_of_objs aS._Req_objs ^ "\n"
+		let buf = buf ^ " - procs = " ^ string_of_procs aS.procs ^ "\n"
+				^ " - objs = " ^ string_of_objs aS.objs ^ "\n"
 		in
 		dbg buf
 	else ()
 ;;
 
 let rec register_obj env s obj =
-	if not (ObjSet.mem obj env.a._Req_objs) then (
+	if not (ObjSet.mem obj env.a.objs) then (
 		let register_proc p new_objs = 
 			let obj' = obj_reach s p
 			in
 			env.a._Sol <- PMap.add p (obj'::__all_PMap env.a._Sol p)
 							env.a._Sol;
-			if ObjSet.mem obj' env.a._Req_objs then
+			if ObjSet.mem obj' env.a.objs then
 				new_objs
 			else
 				ObjSet.add obj' new_objs
 		in
 		let aBS = get_aBS env obj
 		in
-		env.a._Req_objs <- ObjSet.add obj env.a._Req_objs;
+		env.a.objs <- ObjSet.add obj env.a.objs;
 		env.a._Req <- ObjMap.add obj aBS env.a._Req;
 		let procs = List.fold_left PSet.union PSet.empty aBS
 		in
-		let new_procs = PSet.diff procs env.a._Req_procs
+		let new_procs = PSet.diff procs env.a.procs
 		in
-		env.a._Req_procs <- PSet.union new_procs env.a._Req_procs;
+		env.a.procs <- PSet.union new_procs env.a.procs;
 		let new_objs = PSet.fold register_proc new_procs ObjSet.empty
 		in
 		ObjSet.iter (register_obj env s) new_objs
@@ -787,27 +789,27 @@ let cleanup_abstr env =
 
 	(* start with trivial objectives *)
 	let keep_objs, test_objs = ObjSet.partition (fun (a,i,j) ->
-			i = j) env.a._Req_objs
+			i = j) env.a.objs
 	in
-	let green_procs, green_objs = colorize PSet.empty env.a._Req_procs 
+	let green_procs, green_objs = colorize PSet.empty env.a.procs 
 										keep_objs test_objs
 	in
 
 	(* remove non-colorised elements *)
-	let remove_procs = PSet.diff env.a._Req_procs green_procs
-	and remove_objs = ObjSet.diff env.a._Req_objs green_objs
+	let remove_procs = PSet.diff env.a.procs green_procs
+	and remove_objs = ObjSet.diff env.a.objs green_objs
 	in
 	let cleanup_Sol_proc p =
 		env.a._Sol <- PMap.remove p env.a._Sol
-	and cleanup_Req_obj obj =
+	and cleanupobj obj =
 		env.a._Req <- ObjMap.remove obj env.a._Req
 	in
 	PSet.iter cleanup_Sol_proc remove_procs;
-	ObjSet.iter cleanup_Req_obj remove_objs;
-	env.a._Req_procs <- green_procs;
-	env.a._Req_objs <- green_objs;
+	ObjSet.iter cleanupobj remove_objs;
+	env.a.procs <- green_procs;
+	env.a.objs <- green_objs;
 
-	let cleanup_Req_proc obj ps_list =
+	let cleanupproc obj ps_list =
 		let ps_list' = List.filter (fun ps -> 
 		 		PSet.is_empty (PSet.inter ps remove_procs)) ps_list
 		in
@@ -816,7 +818,7 @@ let cleanup_abstr env =
 			env.a._Req <- ObjMap.add obj ps_list' env.a._Req
 		)
 	in
-	ObjMap.iter cleanup_Req_proc env.a._Req
+	ObjMap.iter cleanupproc env.a._Req
 ;;
 
 let sature_loops_Sol env aS =
@@ -824,7 +826,7 @@ let sature_loops_Sol env aS =
 		SMap.add a (i::(try SMap.find a groups with Not_found->[]))
 				groups
 	in
-	let groups = PSet.fold group_procs aS._Req_procs SMap.empty
+	let groups = PSet.fold group_procs aS.procs SMap.empty
 	in
 	let sature_group a levels new_objs =
 		new_objs @
@@ -834,7 +836,8 @@ let sature_loops_Sol env aS =
 			let known_targets = i::List.map obj_target cur_objs
 			in
 			let targets = List.filter (fun j -> 
-				not (List.mem j known_targets)) levels
+					not (List.mem j known_targets) && (a,j) <> env.zl
+				) levels
 			in
 			let new_objs = List.map (fun j -> (a,j,i)) targets
 			in
@@ -908,7 +911,7 @@ let over_approximation_1 env =
 	(* remove inconcretizable objectives *)
 	cleanup_abstr env;
 	dbg_aS env.a;
-	if not (ObjMap.mem env.r_obj env.a._Req) then (
+	if not (PMap.mem env.zl env.a._Sol) then (
 		dbg "+ over-approximation (1) failure";
 		raise (Decision False)
 	) else
@@ -922,9 +925,9 @@ let under_approximation_1 env =
 			| _,[] | [],_ -> invalid_arg "bind_choices"
 			| (obj::objs, ps::choices) -> (
 				aS._Req <- ObjMap.add obj [ps] aS._Req;
-				let new_procs = PSet.diff ps aS._Req_procs
+				let new_procs = PSet.diff ps aS.procs
 				in
-				aS._Req_procs <- PSet.union aS._Req_procs new_procs;
+				aS.procs <- PSet.union aS.procs new_procs;
 				let register_proc p objs =
 					let objs' = PMap.find p env.a._Sol
 					in
@@ -942,7 +945,7 @@ let under_approximation_1 env =
 			(* concretion is built, handle it *)
 			handle_concretion aS
 		else (
-			aS._Req_objs <- ObjSet.union aS._Req_objs new_objs;
+			aS.objs <- ObjSet.union aS.objs new_objs;
 			let new_objs = ObjSet.elements new_objs
 			in
 			let selectors = List.map 
@@ -958,7 +961,7 @@ let under_approximation_1 env =
 						(fun objs obj -> ObjSet.add obj objs)
 									ObjSet.empty new_objs
 				in
-				let new_objs = ObjSet.diff new_objs aS._Req_objs
+				let new_objs = ObjSet.diff new_objs aS.objs
 				in
 				make_concretions aS new_objs
 			in
@@ -967,9 +970,10 @@ let under_approximation_1 env =
 			in
 			try 
 			Util.cross_forward (handler, merger, stopper) selectors
-			with Not_found ->
+			with Not_found -> (
 				(* no choice available: do nothing *)
-				false
+				dbg "# aborting concretion";
+				false )
 			| x -> raise x
 		)
 
@@ -992,16 +996,14 @@ let under_approximation_1 env =
 		)
 	in
 
-	let aS = new_abstr_struct ()
+	let aS = new_abstr_struct env.s env.zl
 	in
 	if make_concretions aS (ObjSet.singleton env.r_obj) then
 		raise (Decision True);
 ;;
 	
 let process_reachability_ng ph zl s =
-	let r_obj = obj_reach s zl
-	in
-	let env = init_env ph s r_obj
+	let env = init_env ph s zl
 	in
 	(* fill Req and Sol *)
 	register_obj env env.s env.r_obj;
