@@ -59,9 +59,15 @@ let ph_count_processes (ps, _) =
 ;;
 let ph_count_actions (_, hits) = Hashtbl.length hits;;
 
+
+let setup_opt_initial_procs opt =
+	Ph_util.opt_initial_procs := Ph_parser.processlist Ph_lexer.lexer (Lexing.from_string opt)
+;;
+
 let common_cmdopts = [
 	("--no-debug", Arg.Clear Debug.dodebug, "Disable debugging");
 	("--debug", Arg.Set Debug.dodebug, "Enable debugging");
+	("--initial-state", Arg.String setup_opt_initial_procs, "Initial state");
 ];;
 
 
