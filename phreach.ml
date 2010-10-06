@@ -78,8 +78,8 @@ Util.dump_to_file (phname^"-hdepend.dot") (Ph_verif.dot_from_hdepend hdepend)
 
 let decision = 
 match !opt_method with
-	  "static" -> Ph_reach.process_reachability ph zl state
-	| "static-ng" -> Ph_reach.process_reachability_ng ph zl state
+	| "static" -> Ph_reach.process_reachability ph zl state
+	| "static-old" -> Ph_reach.process_reachability_old ph zl state
 	| _ -> failwith "Unknown method."
 in
 print_endline (string_of_ternary decision)
