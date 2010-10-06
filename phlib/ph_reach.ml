@@ -616,15 +616,17 @@ type env_ng = {
 	sorts : process list;
 	t_hits : hits;
 	r_obj : objective;
+	s : state;
 	aBS : (objective, PSet.t list) Hashtbl.t;
 	a : abstr_struct;
 }
 
-let init_env (ps,hits) r_obj = 
+let init_env (ps,hits) s r_obj = 
 	{
 		sorts = ps;
 		t_hits = hits;
 		r_obj = r_obj;
+		s = s;
 		aBS = Hashtbl.create 50;
 		a = new_abstr_struct ();
 	}
@@ -706,20 +708,23 @@ let dbg_aS aS =
 		in
 		let buf = ObjMap.fold fold aS._Req ""
 		in
+		let fold p obj_list buf =
+			buf
+			^" - Sol("^string_of_proc p^") = [ "^
+				(String.concat "; " (List.map string_of_obj obj_list))
+			^" ]\n"
+		in
+		let buf = PMap.fold fold aS._Sol buf
+		in
+		let buf = buf ^ " - procs = " ^ string_of_procs aS._Req_procs ^ "\n"
+				^ " - objs = " ^ string_of_objs aS._Req_objs ^ "\n"
+		in
 		dbg buf
 	else ()
 ;;
 
 let rec register_obj env s obj =
 	if not (ObjSet.mem obj env.a._Req_objs) then (
-		let register_req new_procs ps =
-			env.a._Req <- ObjMap.add obj (ps::__all_ObjMap env.a._Req obj) 
-							env.a._Req;
-			let new_procs' = PSet.diff ps env.a._Req_procs
-			in
-			env.a._Req_procs <- PSet.union env.a._Req_procs ps;
-			PSet.union new_procs new_procs'
-		in
 		let register_proc p new_objs = 
 			let obj' = obj_reach s p
 			in
@@ -730,11 +735,15 @@ let rec register_obj env s obj =
 			else
 				ObjSet.add obj' new_objs
 		in
-		env.a._Req_objs <- ObjSet.add obj env.a._Req_objs;
 		let aBS = get_aBS env obj
 		in
-		let new_procs = List.fold_left register_req PSet.empty aBS
+		env.a._Req_objs <- ObjSet.add obj env.a._Req_objs;
+		env.a._Req <- ObjMap.add obj aBS env.a._Req;
+		let procs = List.fold_left PSet.union PSet.empty aBS
 		in
+		let new_procs = PSet.diff procs env.a._Req_procs
+		in
+		env.a._Req_procs <- PSet.union new_procs env.a._Req_procs;
 		let new_objs = PSet.fold register_proc new_procs ObjSet.empty
 		in
 		ObjSet.iter (register_obj env s) new_objs
@@ -842,8 +851,11 @@ let rec sature_loops env aS =
 	in
 	if !dodebug then
 	dbg ("- sature_loops: new objectives "^string_of_obj_list new_objs);
-	if new_objs <> [] then
-		failwith "Not Implemented"
+	let register_new_obj objs obj =
+		register_obj env env.s obj;
+		ObjSet.add obj objs
+	in
+	List.fold_left register_new_obj ObjSet.empty new_objs;
 ;;
 
 exception Found
@@ -885,10 +897,25 @@ let is_cycle_free aS obj_root =
 	with HasCycle -> (
 		dbg "failure =(";
 		false
-	)
+	) | Not_found -> (dbg "error"; false)
 ;;
 
-let iter_concretions handler env =
+
+
+exception Decision of ternary
+
+let over_approximation_1 env =
+	(* remove inconcretizable objectives *)
+	cleanup_abstr env;
+	dbg_aS env.a;
+	if not (ObjMap.mem env.r_obj env.a._Req) then (
+		dbg "+ over-approximation (1) failure";
+		raise (Decision False)
+	) else
+		dbg "+ over-approximation (1) success"
+;;
+
+let under_approximation_1 env =
 	let bind_choices aS =
 		let rec bind_choices = function 
 			  [],[] -> []
@@ -913,8 +940,8 @@ let iter_concretions handler env =
 	let rec make_concretions aS new_objs =
 		if ObjSet.is_empty new_objs then
 			(* concretion is built, handle it *)
-			handler aS
-		else
+			handle_concretion aS
+		else (
 			aS._Req_objs <- ObjSet.union aS._Req_objs new_objs;
 			let new_objs = ObjSet.elements new_objs
 			in
@@ -935,56 +962,56 @@ let iter_concretions handler env =
 				in
 				make_concretions aS new_objs
 			in
-			let merger _ _ = ()
-			and stopper _ = false
+			let merger v1 v2 = v1 || v2
+			and stopper v = v
 			in
+			try 
 			Util.cross_forward (handler, merger, stopper) selectors
+			with Not_found ->
+				(* no choice available: do nothing *)
+				false
+			| x -> raise x
+		)
+
+	and handle_concretion aS =
+		dbg "# handling concretion";
+		let new_objs = sature_loops env aS
+		in
+		if not (ObjSet.is_empty new_objs) then (
+			dbg "# continue concretizing";
+			make_concretions aS new_objs
+		) else (
+			dbg_aS aS;
+			if not (has_inconcretizable_obj aS) && is_cycle_free aS env.r_obj then (
+				dbg "+ under-approximation (1) success";
+				true
+			) else (
+				dbg "+ under-approximation (1) failure";
+				false
+			)
+		)
 	in
+
 	let aS = new_abstr_struct ()
 	in
-	make_concretions aS (ObjSet.singleton env.r_obj)
-;;
-
-
-exception Decision of ternary
-
-let over_approximation_1 env =
-	(* remove inconcretizable objectives *)
-	cleanup_abstr env;
-	dbg_aS env.a;
-	if not (ObjMap.mem env.r_obj env.a._Req) then (
-		dbg "+ over-approximation (1) failure";
-		raise (Decision False)
-	) else
-		dbg "+ over-approximation (1) success"
-;;
-
-let under_approximation_1 env =
-	let handle_concretion aS =
-		dbg "# handling concretion";
-		dbg_aS aS;
-		sature_loops env aS;
-		if not (has_inconcretizable_obj aS) && is_cycle_free aS env.r_obj then (
-			dbg "+ under-approximation (1) success";
-			raise (Decision True)
-		) else
-			dbg "+ under-approximation (1) failure"
-	in
-	iter_concretions handle_concretion env
+	if make_concretions aS (ObjSet.singleton env.r_obj) then
+		raise (Decision True);
 ;;
 	
 let process_reachability_ng ph zl s =
 	let r_obj = obj_reach s zl
 	in
-	let env = init_env ph r_obj
+	let env = init_env ph s r_obj
 	in
 	(* fill Req and Sol *)
-	register_obj env s env.r_obj;
+	register_obj env env.s env.r_obj;
 	try
 		over_approximation_1 env;
 		under_approximation_1 env;
 		Inconc
-	with Decision d -> d
+	with 
+	  Decision d -> d
+	| x -> raise x
 ;;
 (*** ***)
 
