@@ -68,6 +68,7 @@ type process = sort * sortidx (* name * level *)
 
 let string_of_process (a,i) = a^"_"^string_of_int i;;
 let string_of_process' (a,i) = a^" "^string_of_int i;;
+let string_of_proc (a,i) = a^" "^string_of_int i;;
 
 type rate = (float * int) option
 

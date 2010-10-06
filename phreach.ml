@@ -76,8 +76,6 @@ in
 Util.dump_to_file (phname^"-hdepend.dot") (Ph_verif.dot_from_hdepend hdepend)
 *)
 
-let env = Ph_reach.create_env ph
-in
 let decision = 
 match !opt_method with
 	  "static" -> Ph_reach.process_reachability ph zl state
