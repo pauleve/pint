@@ -43,7 +43,7 @@ and opt_input = ref ""
 and opt_args = ref []
 in
 let cmdopts = Ui.common_cmdopts @ [
-		("--method", Arg.Symbol (["static"; "test";"static-ng"],
+		("--method", Arg.Symbol (["static"; "static-old"],
 				(fun x -> opt_method := x)),
 			"Method");
 		("-i", Arg.Set_string opt_input, "Input filename");
