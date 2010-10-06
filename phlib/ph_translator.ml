@@ -507,6 +507,14 @@ let dump_of_ph (ps,hits) init_state =
 		^"\n"
 	in
 	Hashtbl.fold string_of_hits hits ""
+	^"\n"
+	^
+		let istate = List.filter (fun (a,i) -> i <> 0) (list_of_state init_state)
+		in
+		if istate = [] then "" else 
+			("initial_state " ^ (String.concat ", " (List.map (fun (a,i) -> a^" "^string_of_int i) istate)))
+	
+				
 	^"\n\n"
 ;;
 
