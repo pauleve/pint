@@ -526,7 +526,7 @@ let concretion_saturation_valid (bps, _D) env s bpzl =
 	success
 ;;
 
-let process_reachability ph zl s =
+let process_reachability_old ph zl s =
 	let env = create_env ph
 	and bpzl = bp_reach s zl
 	in
@@ -1002,7 +1002,7 @@ let under_approximation_1 env =
 		raise (Decision True);
 ;;
 	
-let process_reachability_ng ph zl s =
+let process_reachability ph zl s =
 	let env = init_env ph s zl
 	in
 	(* fill Req and Sol *)
