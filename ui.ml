@@ -67,7 +67,17 @@ let setup_opt_initial_procs opt =
 let common_cmdopts = [
 	("--no-debug", Arg.Clear Debug.dodebug, "Disable debugging");
 	("--debug", Arg.Set Debug.dodebug, "Enable debugging");
-	("--initial-state", Arg.String setup_opt_initial_procs, "Initial state");
 ];;
+
+let opt_channel_in = ref stdin;;
+let opt_filename_in = ref "<stdin>";;
+let setup_opt_channel_in filename =
+	opt_filename_in := filename;
+	opt_channel_in := open_in filename
+;;
+let input_cmdopts = [
+	("-i", Arg.String setup_opt_channel_in, "Input filename");
+	("--initial-state", Arg.String setup_opt_initial_procs, "Initial state");
+]
 
 
