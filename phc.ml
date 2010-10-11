@@ -43,12 +43,10 @@ open Ph_translator;;
 let languages = ["dump"; "spim"; "prism"; "prism_mdp"; "romeo"; "tina"; "biocham"; "kappa"];;
 
 let opt_language = ref "dump"
-and opt_input = ref ""
 and opt_output = ref ""
 in
-let cmdopts = Ui.common_cmdopts @ [
+let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), "\tOutput language");
-		("-i", Arg.Set_string opt_input, "\tInput filename");
 		("-o", Arg.Set_string opt_output, "\tOutput filename");
 	]
 and usage_msg = "phc"
@@ -75,11 +73,8 @@ in
 let translator = List.assoc !opt_language languages
 in
 
-let channel_in = if !opt_input = "" then stdin else open_in !opt_input
+let ph, init_state = Ph_util.parse !Ui.opt_channel_in
 in
-let ph, init_state = Ph_util.parse channel_in
-in
-close_in channel_in;
 let data = translator ph init_state
 in
 let channel_out = if !opt_output = "" then stdout else open_out !opt_output

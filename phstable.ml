@@ -36,9 +36,6 @@ knowledge of the CeCILL license and that you accept its terms.
 *)
 
 open Big_int;;
-
-open Ui;;
-
 open Ph_types;;
 
 let string_of_state state =
@@ -50,20 +47,20 @@ let string_of_states states =
 	String.concat "\n" (List.sort compare (List.map string_of_state states))
 ;;
 
+let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts
+and usage_msg = "ph-stable"
+in
+let anon_fun _ = (Arg.usage cmdopts usage_msg; raise Exit)
+in
+Arg.parse cmdopts anon_fun usage_msg;
 
-let _ = 
-	let filename = match Array.length Sys.argv with
-		  2 -> Sys.argv.(1)
-		| _ -> failwith "Usage: ph-stable <source.ph>"
-	in
-	let ph = ph_load filename
-	in
-	let nb_states = ph_count_states ph
-	in
-	output_string stderr ("["^filename^"] total: "^string_of_big_int nb_states^" states\n"); flush stderr;
-	let stable_states = ph_stable_states ph
-	in
-	print_endline (string_of_states stable_states)
-;;
+let ph = fst (Ph_util.parse !Ui.opt_channel_in)
+in
+let nb_states = Ui.ph_count_states ph
+in
+output_string stderr ("["^(!Ui.opt_filename_in)^"] total: "^string_of_big_int nb_states^" states\n"); flush stderr;
+let stable_states = Ui.ph_stable_states ph
+in
+print_endline (string_of_states stable_states)
 
 

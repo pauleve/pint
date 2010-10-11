@@ -53,6 +53,7 @@ let parse channel_in =
 	try 
 		let ph, init_state = Ph_parser.main Ph_lexer.lexer lexbuf
 		in
+		close_in channel_in;
 		let init_state = merge_state init_state !opt_initial_procs
 		in
 		ph, fill_state init_state (fst ph)

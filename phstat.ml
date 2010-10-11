@@ -34,32 +34,34 @@ same conditions as regards security.
 The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 *)
+
 open Big_int;;
 
 open Ui;;
 
-let _ = 
-	let filename = match Array.length Sys.argv with
-		  2 -> Sys.argv.(1)
-		| _ -> failwith "Usage: ph-stable <source.ph>"
+let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts
+and usage_msg = "ph-stat"
+in
+let anon_fun _ = (Arg.usage cmdopts usage_msg; raise Exit)
+in
+Arg.parse cmdopts anon_fun usage_msg;
+
+let ph = fst (Ph_util.parse !Ui.opt_channel_in)
+in
+let nb_states = ph_count_states ph
+and nb_sorts = ph_count_sorts ph
+and nb_processes = ph_count_processes ph
+and nb_actions = ph_count_actions ph
+and larger_sort = 
+	let sps = List.sort (fun (_,l) (_,l') -> compare l' l) (fst ph)
 	in
-	let ph = ph_load filename
-	in
-	let nb_states = ph_count_states ph
-	and nb_sorts = ph_count_sorts ph
-	and nb_processes = ph_count_processes ph
-	and nb_actions = ph_count_actions ph
-	and larger_sort = 
-		let sps = List.sort (fun (_,l) (_,l') -> compare l' l) (fst ph)
-		in
-		snd (List.hd sps) + 1
-	in
-	print_endline filename;
-	print_endline (string_of_int nb_sorts^" sorts");
-	print_endline (string_of_int nb_processes^" processes");
-	print_endline ("largest sort: "^string_of_int larger_sort);
-	print_endline (string_of_int nb_actions^" actions");
-	print_endline (string_of_big_int nb_states^" states");
-;;
+	snd (List.hd sps) + 1
+in
+print_endline (!Ui.opt_filename_in);
+print_endline (string_of_int nb_sorts^" sorts");
+print_endline (string_of_int nb_processes^" processes");
+print_endline ("largest sort: "^string_of_int larger_sort);
+print_endline (string_of_int nb_actions^" actions");
+print_endline (string_of_big_int nb_states^" states");
 
 

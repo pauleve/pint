@@ -39,18 +39,15 @@ open Debug;;
 open Ph_types;;
 
 let opt_method = ref "static"
-and opt_input = ref ""
 and opt_args = ref []
 in
-let cmdopts = Ui.common_cmdopts @ [
+let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("--method", Arg.Symbol (["static"; "static-old"],
 				(fun x -> opt_method := x)),
 			"Method");
-		("-i", Arg.Set_string opt_input, "Input filename");
 	]
 and usage_msg = "ph-reach [opts] <z> <l>"
-and anon_fun arg =
-	opt_args := !opt_args@[arg]
+and anon_fun arg = opt_args := !opt_args@[arg]
 in
 Arg.parse cmdopts anon_fun usage_msg;
 let zl = match !opt_args with
@@ -58,14 +55,12 @@ let zl = match !opt_args with
 	 | _ -> (Arg.usage cmdopts usage_msg; raise Exit)
 in
 
-let channel_in = if !opt_input = "" then stdin else open_in !opt_input
-in
-let ph, state = Ph_util.parse channel_in
+let ph, state = Ph_util.parse !Ui.opt_channel_in
 in
 let nb_actions = Ph_op.ph_count_actions ph
 in
 
-let phname = if !opt_input = "" then "<stdin>" else !opt_input
+let phname = !Ui.opt_filename_in
 in
 dbg ("# "^phname^": "^(string_of_int nb_actions)^" actions");
 dbg ("# testing reachability of "^string_of_process zl^" from state "^string_of_state state);
