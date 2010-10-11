@@ -110,12 +110,13 @@ let string_of_float0 value =
 	s ^ if s.[String.length s - 1] = '.' then "0" else ""
 ;;
 
+exception No_choice;;
 let cross_forward (handler, merger, stopper) selectors =
 	let rec cross_forward choice = function
 	  [] -> handler choice
 	| select::rest ->
 		let rec foreach = function
-			  [] -> raise Not_found  (* no choice *)
+			  [] -> raise No_choice
 			| [h] -> cross_forward (h::choice) rest
 			| h::t -> 
 				let ret = cross_forward (h::choice) rest

@@ -597,13 +597,15 @@ type abstr_struct = {
 	mutable procs : PSet.t;
 	mutable objs : ObjSet.t;
 	mutable _Req : (objective list) PMap.t;
+	mutable maxCont : ObjSet.t ObjMap.t;
 }
 
 let copy_abstr_struct aS = {
-	_Sol = aS._Sol;
 	procs = aS.procs;
 	objs = aS.objs;
+	_Sol = aS._Sol;
 	_Req = aS._Req;
+	maxCont = aS.maxCont;
 }
 
 type env_ng = {
@@ -684,6 +686,7 @@ let new_abstr_struct s zl = {
 	_Sol = ObjMap.empty;
 	procs = PSet.singleton zl;
 	objs = ObjSet.empty;
+	maxCont = ObjMap.empty;
 }
 let init_env (ps,hits) s zl = 
 	{
@@ -720,6 +723,13 @@ let dbg_aS aS =
 		in
 		let buf = buf ^ " - procs = " ^ string_of_procs aS.procs ^ "\n"
 				^ " - objs = " ^ string_of_objs aS.objs ^ "\n"
+		in
+		let fold obj objs buf =
+			buf
+			^" - maxCont("^string_of_obj obj^") = "^string_of_objs objs
+			^"\n"
+		in
+		let buf = ObjMap.fold fold aS.maxCont buf
 		in
 		dbg buf
 	else ()
@@ -850,6 +860,7 @@ let sature_loops_Req env aS =
 ;;
 
 let rec sature_loops env aS =
+	dbg_aS aS;
 	let new_objs = sature_loops_Req env aS
 	in
 	if !dodebug then
@@ -859,6 +870,41 @@ let rec sature_loops env aS =
 		ObjSet.add obj objs
 	in
 	List.fold_left register_new_obj ObjSet.empty new_objs;
+;;
+
+let max_cont env aS obj =
+	let bounce = obj_bounce obj
+	and a = obj_sort obj
+	in
+	let rec max_cont_obj obj =
+		let fold_sol levels ps =
+			let fold_p p levels =
+				ISet.union levels (max_cont_p p)
+			in
+			PSet.fold fold_p ps levels
+		in
+		List.fold_left fold_sol ISet.empty (ObjMap.find obj aS._Sol)
+	and max_cont_p (b,j) =
+		if a = b then ISet.singleton j
+		else (
+			let fold_req levels obj =
+				ISet.union levels (max_cont_obj obj)
+			in
+			List.fold_left fold_req ISet.empty (PMap.find (b,j) aS._Req)
+		)
+	in
+	let folder i objs = ObjSet.add (a, i, bounce) objs
+	in
+	ISet.fold folder (max_cont_obj obj) ObjSet.empty
+;;
+
+let sature_cont env aS =
+	dbg_noendl "- computing maxCont...";
+	let sature_cont obj =
+		aS.maxCont <- ObjMap.add obj (max_cont env aS obj) aS.maxCont;
+	in
+	ObjSet.iter sature_cont aS.objs;
+	dbg " done.";
 ;;
 
 exception Found
@@ -880,9 +926,14 @@ let is_cycle_free aS obj_root =
 		(if ObjSet.mem obj (fst stacks) then raise HasCycle);
 		let stacks = (ObjSet.add obj (fst stacks)), snd stacks
 		in
+		try
+			let objs = ObjMap.find obj aS.maxCont
+			in
+			ObjSet.iter (walk_obj stacks) objs
+		with Not_found -> ();
 		let ps_list = ObjMap.find obj aS._Sol
 		in
-		List.iter (fun ps -> PSet.iter (walk_proc stacks) ps) ps_list
+		List.iter (fun ps -> PSet.iter (walk_proc stacks) ps) ps_list;
 
 	and walk_proc stacks p =
 		(if PSet.mem p (snd stacks) then raise HasCycle);
@@ -900,7 +951,7 @@ let is_cycle_free aS obj_root =
 	with HasCycle -> (
 		dbg "failure =(";
 		false
-	) | Not_found -> (dbg "error"; false)
+	) | x -> raise x
 ;;
 
 
@@ -970,7 +1021,7 @@ let under_approximation_1 env =
 			in
 			try 
 			Util.cross_forward (handler, merger, stopper) selectors
-			with Not_found -> (
+			with Util.No_choice -> (
 				(* no choice available: do nothing *)
 				dbg "# aborting concretion";
 				false )
@@ -985,6 +1036,7 @@ let under_approximation_1 env =
 			dbg "# continue concretizing";
 			make_concretions aS new_objs
 		) else (
+			sature_cont env aS;
 			dbg_aS aS;
 			if not (has_inconcretizable_obj aS) && is_cycle_free aS env.r_obj then (
 				dbg "+ under-approximation (1) success";
