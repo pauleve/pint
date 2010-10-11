@@ -895,7 +895,7 @@ let max_cont env aS obj =
 	in
 	let folder i objs = ObjSet.add (a, i, bounce) objs
 	in
-	ISet.fold folder (max_cont_obj obj) ObjSet.empty
+	ISet.fold folder (ISet.remove (obj_target obj) (max_cont_obj obj)) ObjSet.empty
 ;;
 
 let sature_cont env aS =
