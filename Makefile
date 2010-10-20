@@ -27,6 +27,6 @@ clean:
 apidoc:
 	rm -f docs/api/*
 	ocamldoc -html -d docs/api -I bindings -I pintlib -I phlib \
-		-hide Ph_lexer \
-		bindings/r.ml pintlib/*.ml phlib/*.ml
+		-t "Pint OCaml API - processhitting.wordpress.com" \
+		bindings/r.mli pintlib/*.mli phlib/*.mli
 
