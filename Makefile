@@ -24,3 +24,9 @@ clean:
 	make -f target/pinttop clean
 	make -f target/pintlib clean
 
+apidoc:
+	rm -f docs/api/*
+	ocamldoc -html -d docs/api -I bindings -I pintlib -I phlib \
+		-hide Ph_lexer \
+		bindings/r.ml pintlib/*.ml phlib/*.ml
+
