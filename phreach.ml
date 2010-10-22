@@ -42,7 +42,7 @@ let opt_method = ref "static"
 and opt_args = ref []
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
-		("--method", Arg.Symbol (["static"; "static-old"],
+		("--method", Arg.Symbol (["static"],
 				(fun x -> opt_method := x)),
 			"Method");
 	]
@@ -74,7 +74,6 @@ Util.dump_to_file (phname^"-hdepend.dot") (Ph_verif.dot_from_hdepend hdepend)
 let decision = 
 match !opt_method with
 	| "static" -> Ph_reach.process_reachability ph zl state
-	| "static-old" -> Ph_reach.process_reachability_old ph zl state
 	| _ -> failwith "Unknown method."
 in
 print_endline (string_of_ternary decision)
