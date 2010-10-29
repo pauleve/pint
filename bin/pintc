@@ -6,6 +6,4 @@ ocamlopt \
 	-I "$PINT_PATH/phlib" \
 	-cclib -lm -cclib -lRmath -cclib -lcamlidl\
 	nums.cmxa str.cmxa pint.cmxa \
-	$*
-
-#	"$PINT_PATH/bindings/r_stubs.o" "$PINT_PATH/bindings/r_impl.o" \
+"$@"

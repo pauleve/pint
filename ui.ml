@@ -61,7 +61,10 @@ let ph_count_actions (_, hits) = Hashtbl.length hits;;
 
 
 let setup_opt_initial_procs opt =
-	Ph_util.opt_initial_procs := Ph_parser.processlist Ph_lexer.lexer (Lexing.from_string opt)
+	try 
+		Ph_util.opt_initial_procs := Ph_parser.processlist Ph_lexer.lexer (Lexing.from_string opt)
+	with Parsing.Parse_error -> 
+		failwith ("Parsing error for initial_state '"^opt^"'")
 ;;
 
 let common_cmdopts = [
