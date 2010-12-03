@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+p=`dirname "$0"`
+PINT_PATH=`dirname "$p"`
 "$PINT_PATH/pint.top" \
 	-I "$PINT_PATH" \
 	-I "$PINT_PATH/bindings" \
