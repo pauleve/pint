@@ -18,7 +18,7 @@ val prism_of_ph :
    ((Ph_types.SMap.key * int) * (float * int) option) * int)
   Hashtbl.t -> int Ph_types.SMap.t -> string
 
-(** Return a Process Hitting source as a flat action list from the given Process Hitting. *)
+(** Returns a Process Hitting source as a flat action list from the given Process Hitting. *)
 val dump_of_ph : Ph_types.ph -> Ph_types.state -> string
 
 val romeo_pid : ('a * int) list * 'b -> 'a * int -> string
@@ -31,9 +31,13 @@ val romeo_of_ph :
 val tina_of_ph :
   'a * (string * int, ((string * int) * 'b) * int) Hashtbl.t ->
   int Ph_types.SMap.t -> string
-val biocham_of_ph :
-  'a * (string * int, ((string * int) * 'b) * int) Hashtbl.t ->
-  int Ph_types.SMap.t -> string
+
+(** Returns the biocham string representation of given process. *)
+val biocham_of_process : Ph_types.process -> string
+
+(** Returns the biocham translation of the given Process Hitting. *)
+val biocham_of_ph : Ph_types.ph -> Ph_types.state -> string
+
 val kappa_of_ph :
   (string * int) list * (string * int, ((string * int) * 'a) * int) Hashtbl.t ->
   int Ph_types.SMap.t -> string
