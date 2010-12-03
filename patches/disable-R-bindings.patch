@@ -1,0 +1,50 @@
+=== modified file 'bindings/Makefile.inc'
+--- bindings/Makefile.inc	2009-07-08 16:21:34 +0000
++++ bindings/Makefile.inc	2010-12-03 13:49:08 +0000
+@@ -1,9 +1,5 @@
+ 
+-SOURCES := \
+-	r_impl.c\
+-	r.idl\
+-
+-CLIBS := m Rmath
++SOURCES := 
+ 
+ BINDINGS_SOURCES := $(SOURCES:%=bindings/%)
+ export BINDINGS_SOURCES
+
+=== modified file 'phexec.ml'
+--- phexec.ml	2010-10-22 17:38:22 +0000
++++ phexec.ml	2010-12-03 13:50:49 +0000
+@@ -40,7 +40,6 @@
+ open Ph_types;;
+ 
+ Random.self_init ();;
+-R.set_seed (Random.bits ()) (Random.bits ());;
+ 
+ let opt_args = ref []
+ in
+
+=== modified file 'pintlib/param.ml'
+--- pintlib/param.ml	2010-09-20 22:52:01 +0000
++++ pintlib/param.ml	2010-12-03 13:50:32 +0000
+@@ -35,16 +35,9 @@
+ knowledge of the CeCILL license and that you accept its terms.
+ *)
+ 
+-let firing_interval alpha r sa =
+-	let rate = r*.float_of_int sa
+-	and alpha = alpha/.2.
+-	in
+-	R.qerlang alpha sa rate true, R.qerlang alpha sa rate false
+-;;
++let firing_interval alpha r sa = failwith "(firing_interval) R bindings missing!";;
+ 
+-let random_firing_time r sa =
+-	R.rerlang sa (r*.float_of_int sa)
+-;;
++let random_firing_time r sa = failwith "(random_firing_time) R bindings missing!";;
+ 
+ let round_float v = (* assume v >= 0 *)
+ 	let f = floor v
+
