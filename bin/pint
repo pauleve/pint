@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-p=`dirname "$0"`
-PINT_PATH=`dirname "$p"`
+if [ -z $PINT_PATH ]; then
+	p=`dirname "$0"`
+	PINT_PATH=`dirname "$p"`
+fi
 "$PINT_PATH/pint.top" \
 	-I "$PINT_PATH" \
 	-I "$PINT_PATH/bindings" \
