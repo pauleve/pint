@@ -49,11 +49,11 @@ module ObjSet = Set.Make (ObjOrd)
 module ObjMap = Map.Make (ObjOrd)
 
 type abstr_struct = {
-	mutable _Sol : (PSet.t list) ObjMap.t;
 	mutable procs : PSet.t;
 	mutable objs : ObjSet.t;
+	mutable _Sol : (PSet.t list) ObjMap.t;
 	mutable _Req : (objective list) PMap.t;
-	mutable maxCont : ObjSet.t ObjMap.t;
+	mutable _Cont : ObjSet.t ObjMap.t;
 }
 
 let copy_abstr_struct aS = {
@@ -61,7 +61,7 @@ let copy_abstr_struct aS = {
 	objs = aS.objs;
 	_Sol = aS._Sol;
 	_Req = aS._Req;
-	maxCont = aS.maxCont;
+	_Cont = aS._Cont;
 }
 
 type env_ng = {
@@ -142,7 +142,7 @@ let new_abstr_struct s zl = {
 	_Sol = ObjMap.empty;
 	procs = PSet.singleton zl;
 	objs = ObjSet.empty;
-	maxCont = ObjMap.empty;
+	_Cont = ObjMap.empty;
 }
 let init_env (ps,hits) s zl = 
 	{
@@ -177,15 +177,15 @@ let dbg_aS aS =
 		in
 		let buf = PMap.fold fold aS._Req buf
 		in
-		let buf = buf ^ " - procs = " ^ string_of_procs aS.procs ^ "\n"
-				^ " - objs = " ^ string_of_objs aS.objs ^ "\n"
-		in
 		let fold obj objs buf =
 			buf
-			^" - maxCont("^string_of_obj obj^") = "^string_of_objs objs
+			^" - Cont("^string_of_obj obj^") = "^string_of_objs objs
 			^"\n"
 		in
-		let buf = ObjMap.fold fold aS.maxCont buf
+		let buf = ObjMap.fold fold aS._Cont buf
+		in
+		let buf = buf ^ " - procs = " ^ string_of_procs aS.procs ^ "\n"
+				^ " - objs = " ^ string_of_objs aS.objs ^ "\n"
 		in
 		dbg buf
 	else ()
@@ -357,7 +357,7 @@ let max_cont env aS obj =
 let sature_cont env aS =
 	dbg_noendl "- computing maxCont...";
 	let sature_cont obj =
-		aS.maxCont <- ObjMap.add obj (max_cont env aS obj) aS.maxCont;
+		aS._Cont <- ObjMap.add obj (max_cont env aS obj) aS._Cont;
 	in
 	ObjSet.iter sature_cont aS.objs;
 	dbg " done.";
@@ -383,7 +383,7 @@ let is_cycle_free aS obj_root =
 		let stacks = (ObjSet.add obj (fst stacks)), snd stacks
 		in
 		try
-			let objs = ObjMap.find obj aS.maxCont
+			let objs = ObjMap.find obj aS._Cont
 			in
 			ObjSet.iter (walk_obj stacks) objs
 		with Not_found -> ();
