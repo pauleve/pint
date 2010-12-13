@@ -70,7 +70,9 @@ type env_ng = {
 	r_obj : objective;
 	zl : process;
 	s : state;
+	_BS : (objective, action list list) Hashtbl.t;
 	aBS : (objective, PSet.t list) Hashtbl.t;
+	tBS : (objective, (process * PSet.t)) Hashtbl.t;
 	a : abstr_struct;
 }
 
@@ -86,47 +88,89 @@ let string_of_objs = string_of_set string_of_obj ObjSet.elements;;
 let string_of_obj_list objs = "[ "^(String.concat "; "
 					(List.map string_of_obj objs))^" ]";;
 
-(** BS **)
+(** Bounce Sequences **)
 
-let string_of_aBS aBS_obj = "[ "^(String.concat "; " 
-		(List.map string_of_procs' aBS_obj))^" ]"
+let actions_target_sort env a =
+	let l = List.assoc a env.sorts
+	in
+	let register map i =
+		let actions = Hashtbl.find_all env.t_hits (a,i)
+		in
+		IMap.add i actions map
+	in
+	List.fold_left register IMap.empty (Util.range 0 l)
 ;;
 
-let compute_aBS env obj =
+let __compute_bounce_sequence push_path push_action longer_path init init_path env obj =
 	let a, i, __to_reach = obj
+	in
+	let sort_actions = actions_target_sort env a
 	in
 	let rec walk history results i visited =
 		if i = __to_reach then
 			(* we reached our objective, remove larger results *)
-			history::List.filter 
-				(fun ps -> not(PSet.subset history ps)) results
+			push_path results history
 		else
 			let visited = ISet.add i visited
-			and actions = Hashtbl.find_all env.t_hits (a,i)
+			and actions = IMap.find i sort_actions
 			in
-			let folder results = function ((b,j),_), k ->
+			let folder results = function (bj,_), k ->
 				if ISet.mem k visited then (* ignore loops *)
 					results
 				else 
-					let history = 
-						(* register hitter iff has different sort *)
-						if b <> a then 
-							PSet.add (b,j) history
-						else
-							history
+					let history = push_action history (Hit (bj,(a,i),k))
 					in
 					(* ensure we are the shortest known path *)
-					if List.exists (fun ps -> PSet.subset ps history) results then 
+					if longer_path results history then
 						results
 					else
 						walk history results k visited
 			in
 			List.fold_left folder results actions
 	in
+	walk init_path init i ISet.empty
+;;
+
+(** BS **)
+
+let string_of_BS _BS_obj = "[ "^(String.concat "; " 
+		(List.map string_of_actions _BS_obj))^" ]"
+;;
+let compute_BS env obj =
+	let push_path results ps = ps::results
+	and push_action ps action = ps@[action]
+	and longer_path results ps = false
+	in
+	dbg_noendl ("- computing BS("^string_of_obj obj^")...");
+	let _BS_obj = __compute_bounce_sequence push_path push_action longer_path [] [] env obj
+	in
+	(if !dodebug then dbg (" "^string_of_BS _BS_obj));
+	Hashtbl.add env._BS obj _BS_obj;
+	_BS_obj
+;;
+let get_BS env obj =
+	try Hashtbl.find env._BS obj
+	with Not_found -> compute_BS env obj
+;;
+
+(** BS^ **)
+
+let string_of_aBS aBS_obj = "[ "^(String.concat "; " 
+		(List.map string_of_procs' aBS_obj))^" ]"
+;;
+let compute_aBS env obj =
+	let push_path results ps =
+		ps::List.filter (fun ps' -> not(PSet.subset ps ps')) results
+	and push_action ps = function Hit ((a,i),_,_) ->
+		(* register hitter iff has different sort *)
+		if a <> obj_sort obj then (PSet.add (a,i) ps) else ps
+	and longer_path results ps =
+		List.exists (fun ps' -> PSet.subset ps' ps) results
+	in
 	dbg_noendl ("- computing aBS("^string_of_obj obj^")...");
-	let aBS_obj = walk PSet.empty [] i ISet.empty
-	in  
-	dbg (" "^string_of_aBS aBS_obj); (**)
+	let aBS_obj = __compute_bounce_sequence push_path push_action longer_path [] PSet.empty env obj
+	in
+	(if !dodebug then dbg (" "^string_of_aBS aBS_obj));
 	Hashtbl.add env.aBS obj aBS_obj;
 	aBS_obj
 ;;
@@ -134,6 +178,32 @@ let get_aBS env obj =
 	try Hashtbl.find env.aBS obj
 	with Not_found -> compute_aBS env obj
 ;;
+
+(** targets_ai **)
+
+(* @returns the targets that ai may hits when resolving obj *)
+let tBS env obj ai =
+	let full_tBS = Hashtbl.find_all env.tBS obj
+	in
+	try
+		List.assoc ai full_tBS
+	with Not_found -> (
+		dbg "tBS: exact (expensive) computation.";
+		let fold_actions ps actions =
+			let fold_action ps = function Hit (h,t,_) ->
+				if h = ai then PSet.add t ps else ps
+			in
+			List.fold_left fold_action ps actions
+		in
+		let _BS = get_BS env obj
+		in
+		let ps = List.fold_left fold_actions PSet.empty _BS
+		in
+		Hashtbl.add env.tBS obj (ai,ps);
+		ps
+	)
+;;
+
 
 (** Req, Sol **)
 
@@ -151,7 +221,9 @@ let init_env (ps,hits) s zl =
 		r_obj = obj_reach s zl;
 		zl = zl;
 		s = s;
+		_BS = Hashtbl.create 50;
 		aBS = Hashtbl.create 50;
+		tBS = Hashtbl.create 50;
 		a = new_abstr_struct s zl;
 	}
 ;;
@@ -315,22 +387,28 @@ let sature_loops_Req env aS =
 	SMap.fold sature_group groups []
 ;;
 
+let register_objs env objs =
+	if !dodebug then
+		dbg ("- new objectives "^string_of_obj_list objs);
+	let register_new_obj objs obj =
+		if not (ObjSet.mem obj env.a.objs) then (
+			register_obj env env.s obj;
+			ObjSet.add obj objs
+		) else objs
+	in
+	List.fold_left register_new_obj ObjSet.empty objs;
+;;
+
 let rec sature_loops env aS =
 	dbg_aS aS;
 	let new_objs = sature_loops_Req env aS
 	in
-	if !dodebug then
-	dbg ("- sature_loops: new objectives "^string_of_obj_list new_objs);
-	let register_new_obj objs obj =
-		register_obj env env.s obj;
-		ObjSet.add obj objs
-	in
-	List.fold_left register_new_obj ObjSet.empty new_objs;
+	register_objs env new_objs
 ;;
 
-let max_cont env aS obj =
-	let bounce = obj_bounce obj
-	and a = obj_sort obj
+(* returns map ai -> ISet where ai in Sol(obj) *)
+let max_contmap env aS obj =
+	let a = obj_sort obj
 	in
 	let rec max_cont_obj obj =
 		let fold_sol levels ps =
@@ -349,18 +427,74 @@ let max_cont env aS obj =
 			List.fold_left fold_req ISet.empty (PMap.find (b,j) aS._Req)
 		)
 	in
-	let folder i objs = ObjSet.add (a, i, bounce) objs
+	let fold_sol map ps =
+		let fold_p p map = 
+			let mc = max_cont_p p
+			in
+			if ISet.is_empty mc then
+				map
+			else
+				let levels = try PMap.find p map
+					with Not_found -> ISet.empty
+				in
+				PMap.add p (ISet.union levels mc) map
+		in
+		PSet.fold fold_p ps map
 	in
-	ISet.fold folder (ISet.remove (obj_target obj) (max_cont_obj obj)) ObjSet.empty
+	List.fold_left fold_sol PMap.empty (ObjMap.find obj aS._Sol)
 ;;
 
 let sature_cont env aS =
-	dbg_noendl "- computing maxCont...";
-	let sature_cont obj =
-		aS._Cont <- ObjMap.add obj (max_cont env aS obj) aS._Cont;
+	dbg "- continuity saturation...";
+	let sature_cont obj objs =
+		let b = obj_sort obj
+		in
+		let contmap = max_contmap env aS obj
+		in
+		let fold ai levels maxcont =
+			ISet.union maxcont (ISet.remove (obj_target obj) levels)
+		in
+		let levels = PMap.fold fold contmap ISet.empty
+		in
+		let fold i maxcont =
+			ObjSet.add (b, i, obj_bounce obj) maxcont
+		in
+		let maxcont = ISet.fold fold levels ObjSet.empty
+		in
+		aS._Cont <- ObjMap.add obj maxcont aS._Cont;
+
+		(* reversed cont *)
+		let fold ai levels objs =
+			let fold j objs =
+				let bj = (b,j)
+				in
+				let fold_target (b,k) objs =
+					let obj' = (b, k, j)
+					in
+					dbg ("reverse continuity from "
+						^ string_of_proc ai ^ ": "
+						^ string_of_obj obj');
+					let cur_req = PMap.find bj aS._Req
+					in
+					if not (List.mem obj' cur_req) then (
+						aS._Req <- PMap.add bj (obj'::cur_req) aS._Req;
+						ObjSet.add obj' objs
+					) else
+						objs
+				in
+				let targets = tBS env obj ai
+				in
+				PSet.fold fold_target targets objs
+			in
+			ISet.fold fold levels objs
+		in
+		PMap.fold fold contmap maxcont
 	in
-	ObjSet.iter sature_cont aS.objs;
-	dbg " done.";
+	let objs = ObjSet.fold sature_cont aS.objs ObjSet.empty
+	in
+	let new_objs = ObjSet.diff objs aS.objs
+	in
+	register_objs env (ObjSet.elements new_objs)
 ;;
 
 exception Found
@@ -486,13 +620,13 @@ let under_approximation_1 env =
 
 	and handle_concretion aS =
 		dbg "# handling concretion";
-		let new_objs = sature_loops env aS
+		let new_objs = ObjSet.union (sature_loops env aS)
+							(sature_cont env aS)
 		in
 		if not (ObjSet.is_empty new_objs) then (
 			dbg "# continue concretizing";
 			make_concretions aS new_objs
 		) else (
-			sature_cont env aS;
 			dbg_aS aS;
 			if not (has_inconcretizable_obj aS) && is_cycle_free aS env.r_obj then (
 				dbg "+ under-approximation (1) success";
