@@ -438,6 +438,59 @@ let rec sature_loops env aS =
 	register_objs env new_objs
 ;;
 
+(** returns ObjSet *)
+let min_cont env aS obj =
+	dbg_noendl ("- minCONT("^string_of_obj obj^") = ");
+	let a = obj_sort obj
+	in
+	let rec min_cont_obj obj =
+		let fold_p p levels =
+			ISet.union levels (min_cont_p p)
+		in
+		let make_sol ps =
+			PSet.fold fold_p ps ISet.empty
+		in
+		let fold_sol levels ps =
+			ISet.inter levels (make_sol ps)
+		in
+		let sols = ObjMap.find obj aS._Sol
+		in
+		match sols with
+		  [] -> ISet.empty
+		| ps::altps ->
+			let levels = make_sol ps
+			in
+			List.fold_left fold_sol levels altps
+	and min_cont_p (b,i) =
+		if a = b then ISet.singleton i
+		else (
+			let fold_req levels obj =
+				ISet.inter levels (min_cont_obj obj)
+			in
+			let reqs = PMap.find (b,i) aS._Req
+			in
+			match reqs with
+			  [] -> ISet.empty
+			| obj::objs ->
+				let levels = min_cont_obj obj
+				in
+				List.fold_left fold_req levels objs
+		)
+	in
+	let bounce = obj_bounce obj
+	in
+	let cont_levels = ISet.remove bounce (min_cont_obj obj)
+	in
+	let fold_level i objs = 
+		ObjSet.add (a, i, bounce) objs
+	in
+	let objs = ISet.fold fold_level cont_levels ObjSet.empty
+	in
+	dbg (string_of_objs objs);
+	objs
+;;
+	
+
 (* returns map ai -> ISet where ai in Sol(obj) *)
 let max_contmap env aS obj =
 	let a = obj_sort obj
@@ -540,7 +593,26 @@ let has_inconcretizable_obj aS =
 	with Found ->
 		true
 ;;
-	
+
+let fill_min_cont env =
+	let rec new_min_cont objs =
+		let fold_obj obj new_objs =
+			let cont_objs = min_cont env env.a obj
+			in (
+			env.a._Cont <- ObjMap.add obj cont_objs env.a._Cont;
+			ObjSet.union new_objs cont_objs 
+		) in
+		let new_objs = ObjSet.fold fold_obj objs ObjSet.empty
+		and cur_objs = env.a.objs
+		in
+		ObjSet.iter (register_obj env env.s) new_objs;
+		let objs = ObjSet.diff env.a.objs cur_objs
+		in
+		if not (ObjSet.is_empty objs) then
+			new_min_cont objs
+	in
+	new_min_cont env.a.objs
+;;
 
 exception HasCycle
 let is_cycle_free aS obj_root =
@@ -583,11 +655,17 @@ exception Decision of ternary
 let over_approximation_1 env =
 	(* inital abstract structure *)
 	ignore(register_objs env env.w);
+	(*fill_min_cont env;*)
 	(* remove inconcretizable objectives *)
 	cleanup_abstr env;
 	dbg_aS env.a;
-	let obj_ok obj = 
+	let rec obj_ok obj = 
 		ObjMap.mem obj env.a._Sol
+		&& (
+			let conts = ObjMap.find obj env.a._Cont
+			in
+			ObjSet.for_all obj_ok conts
+		)
 	in
 	if List.for_all obj_ok env.w then
 		dbg "+ over-approximation (1) success"
