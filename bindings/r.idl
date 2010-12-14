@@ -1,7 +1,11 @@
+quote(mli, "(** R bindings. *)")
 
+quote(mli, "(** Set seed for R random number generation. *)")
 void set_seed( int a, int b );
 
+quote(mli, "(** Quantile of Erlang. *)")
 double qerlang( double area, int shape, double rate, boolean lower );
 
+quote(mli, "(** Erlang number generation. *)")
 double rerlang( int shape, double rate );
 

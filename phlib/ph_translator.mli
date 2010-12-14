@@ -1,43 +1,39 @@
 (** Translation of Process Hitting into different formats. *)
 
-type opts = { alpha : float; round_fi : float * float -> int * int; }
-val string_of_float0 : float -> string
-type piproc_arg_action = ArgReset | ArgUpdate of (string * string) list
-val spim_of_ph :
-  (Ph_types.SMap.key * int) list *
-  (Ph_types.SMap.key * int,
-   ((Ph_types.SMap.key * int) * (float * int) option) * int)
-  Hashtbl.t -> int Ph_types.SMap.t -> string
-val prism_mdp_of_ph :
-  (Ph_types.SMap.key * int) list *
-  (Ph_types.SMap.key * int, ((Ph_types.SMap.key * int) * 'a) * int) Hashtbl.t ->
-  int Ph_types.SMap.t -> string
-val prism_of_ph :
-  (Ph_types.SMap.key * int) list *
-  (Ph_types.SMap.key * int,
-   ((Ph_types.SMap.key * int) * (float * int) option) * int)
-  Hashtbl.t -> int Ph_types.SMap.t -> string
+(** Returns the Biocham string representation of given process. *)
+val biocham_of_process : Ph_types.process -> string
+
+(** Returns the Biocham translation of the given Process Hitting. *)
+val biocham_of_ph : Ph_types.ph -> Ph_types.state -> string
 
 (** Returns a Process Hitting source as a flat action list from the given Process Hitting. *)
 val dump_of_ph : Ph_types.ph -> Ph_types.state -> string
 
-val romeo_pid : ('a * int) list * 'b -> 'a * int -> string
-val romeo_of_ph :
-  opts ->
-  (Ph_types.SMap.key * int) list *
-  (Ph_types.SMap.key * int,
-   ((Ph_types.SMap.key * int) * (float * int) option) * int)
-  Hashtbl.t -> int Ph_types.SMap.t -> string
-val tina_of_ph :
-  'a * (string * int, ((string * int) * 'b) * int) Hashtbl.t ->
-  int Ph_types.SMap.t -> string
+(** Returns the Kappa translation of the given Process Hitting. *)
+val kappa_of_ph : Ph_types.ph -> Ph_types.state -> string
 
-(** Returns the biocham string representation of given process. *)
-val biocham_of_process : Ph_types.process -> string
+(** Returns the PRISM (ctmc) translation of the given Process Hitting. *)
+val prism_of_ph : Ph_types.ph -> Ph_types.state -> string
 
-(** Returns the biocham translation of the given Process Hitting. *)
-val biocham_of_ph : Ph_types.ph -> Ph_types.state -> string
+(** Returns the PRISM (mdp) translation of the given Process Hitting. *)
+val prism_mdp_of_ph : Ph_types.ph -> Ph_types.state -> string
 
-val kappa_of_ph :
-  (string * int) list * (string * int, ((string * int) * 'a) * int) Hashtbl.t ->
-  int Ph_types.SMap.t -> string
+(** Returns the SPiM translation of the given Process Hitting. *)
+val spim_of_ph : Ph_types.ph -> Ph_types.state -> string
+
+(** Returns the Tina translation of the given Process Hitting. *)
+val tina_of_ph : Ph_types.ph -> Ph_types.state -> string
+
+
+(** Stochastic parameters to strict timed interval conversion options:
+	[alpha] is the confidence coefficient;
+	[round_fi (d,D)] converts a float interval into an integer interva;
+*)
+type opts = { alpha : float; round_fi : float * float -> int * int; }
+
+(** Returns the Romeo string representation of given process. *)
+val romeo_pid : Ph_types.ph -> Ph_types.process -> string
+
+(** Returns the Romeo translation of the given Process Hitting. *)
+val romeo_of_ph : opts -> Ph_types.ph -> Ph_types.state -> string
+
