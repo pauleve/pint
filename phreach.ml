@@ -46,13 +46,18 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 				(fun x -> opt_method := x)),
 			"Method");
 	]
-and usage_msg = "ph-reach [opts] <z> <l>"
+and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
 and anon_fun arg = opt_args := !opt_args@[arg]
 in
 Arg.parse cmdopts anon_fun usage_msg;
-let zl = match !opt_args with
-	   [z;l] -> (z, int_of_string l)
-	 | _ -> (Arg.usage cmdopts usage_msg; raise Exit)
+(if List.length !opt_args < 2 then
+	(Arg.usage cmdopts usage_msg; raise Exit)	
+);
+let rec make_procseq = function [] -> []
+	| a::i::tail -> (a, int_of_string i)::make_procseq tail
+	| _ -> (Arg.usage cmdopts usage_msg; raise Exit)
+in
+let pl = make_procseq !opt_args
 in
 
 let ph, state = Ph_util.parse !Ui.opt_channel_in
@@ -60,20 +65,17 @@ in
 let nb_actions = Ph_op.ph_count_actions ph
 in
 
+let w = Ph_reach.objseq_from_procseq state pl
+in
+
 let phname = !Ui.opt_filename_in
 in
 dbg ("# "^phname^": "^(string_of_int nb_actions)^" actions");
-dbg ("# testing reachability of "^string_of_process zl^" from state "^string_of_state state);
-
-(*
-let hdepend, _ = Ph_verif.process_reachability_prepare ph zl state
-in
-Util.dump_to_file (phname^"-hdepend.dot") (Ph_verif.dot_from_hdepend hdepend)
-*)
+dbg ("# testing concretizability of "^Ph_reach.string_of_objseq w^" from state "^string_of_state state);
 
 let decision = 
 match !opt_method with
-	| "static" -> Ph_reach.process_reachability ph zl state
+	| "static" -> Ph_reach.process_reachability ph state w
 	| _ -> failwith "Unknown method."
 in
 print_endline (string_of_ternary decision)
