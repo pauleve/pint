@@ -24,7 +24,17 @@ let default_rsa () =
 	| Some r -> Some (r, directive.default_sa)
 ;;
 
-let merge_decl (ps,hits) p =
+let init_content (ps, actions) =
+	let hits = Hashtbl.create 200
+	in
+	let register_action = function Hit (ai,bj,j'), rsa ->
+		Hashtbl.add hits bj ((ai,rsa),j')
+	in
+	List.iter register_action actions;
+	(ps, hits)
+;;
+
+let merge_decl (ps, actions) p =
 	let merge_metaproc ps (p,l) =
 		try
 			let ol = List.assoc p ps
@@ -34,9 +44,9 @@ let merge_decl (ps,hits) p =
 			else (p,l)::List.remove_assoc p ps
 		with Not_found -> (p,l)::ps
 	in
-	merge_metaproc ps p, hits
+	merge_metaproc ps p, actions
 ;;
-let merge_instr (ps,hits) (ai,bj,k,rsa_d) = 
+let merge_instr (ps, actions) (ai,bj,k,rsa_d) = 
 	let assert_p_exists (name,level) =
 		let errstr = "Invalid reference to process "^name^(string_of_int level)^": "
 		in
@@ -59,25 +69,12 @@ let merge_instr (ps,hits) (ai,bj,k,rsa_d) =
 			 | Some(r, Some sa) -> Some (r,sa)
 		)
 	in
-	Hashtbl.add hits bj ((ai, rsa),k);
-	(ps,hits)
+	(ps, (Hit (ai,bj,k),rsa)::actions)
 ;;
-let ph_add_hits (ps, hits) hits' =
-	let iter = function
-		Hit (ai, bj, j') -> Hashtbl.add hits bj ((ai, default_rsa ()), j')
+let ph_add_hits (ps, actions) actions' =
+	let rsa = default_rsa () (* TODO: optimise *)
 	in
-	List.iter iter hits';
-	hits
-;;
-let filter_hits (ps, hits) pred =
-	let hits' = Hashtbl.create 0
-	in
-	let iter bj ((ai,param),j') =
-		if pred (Hit (ai,bj,j')) then
-			Hashtbl.add hits' bj ((ai,param),j')
-	in
-	Hashtbl.iter iter hits;
-	hits'
+	actions @ (List.map (fun a -> (a, rsa)) actions')
 ;;
 
 let get_sort_max ps a =
@@ -133,13 +130,13 @@ type macro_arg_t =
 
 let reflection_name sigma = String.concat "" sigma
 ;;
-let build_reflection (ps,hits) = function
-  [a] -> (a, ([a], (function [s] -> s | _ -> invalid_arg "idx_from_state singleton"))), (ps,hits)
+let build_reflection (ps,actions) = function
+  [a] -> (a, ([a], (function [s] -> s | _ -> invalid_arg "idx_from_state singleton"))), (ps,actions)
 | sigma -> 
 	let sigma_n = reflection_name sigma
 	in
 	if List.mem_assoc sigma_n ps then
-		((sigma_n, List.assoc sigma_n !cooperativities), (ps,hits))
+		((sigma_n, List.assoc sigma_n !cooperativities), (ps,actions))
 	else (
 		let sigma_len = List.length sigma
 		in
@@ -191,17 +188,17 @@ let build_reflection (ps,hits) = function
 		let hsigma = List.fold_left folder [] sigma
 		in
 		let ps = sigma_p::ps
-		and hits = ph_add_hits (ps,hits) hsigma
+		and actions = ph_add_hits (ps,actions) hsigma
 		in
 		let record = sigma_n, (sigma, idx_from_state)
 		in
 		cooperativities := record::!cooperativities;
-		(record, (ps,hits))
+		(record, (ps,actions))
 	)
 ;;
 
 let macro_regulation = function
-	  [Arg_Regulation regulation] -> (fun (ps,hits) ->
+	  [Arg_Regulation regulation] -> (fun (ps,actions) ->
 	  	match regulation with
 	Regulation (a,t,s,b) ->
 		let la = get_sort_max ps a and lb = get_sort_max ps b
@@ -223,7 +220,7 @@ let macro_regulation = function
 			List.map make_hit range_j
 
 		in
-		ps, ph_add_hits (ps,hits) (List.flatten (List.map apply_regulation (Util.range 0 la)))
+		ps, ph_add_hits (ps,actions) (List.flatten (List.map apply_regulation (Util.range 0 la)))
 	)
 	| _ -> failwith "macro_regulation: wrong arguments"
 ;;
@@ -260,18 +257,21 @@ let macro_grn = function
 	| _ -> failwith "macro_grn: wrong arguments"
 ;;
 
-let macro_cooperativity = function
-  [Arg_NamesHit (sigma, ak, k'); Arg_AnoStates top] -> (fun (ps,hits) ->
-	let (sigma_n, (sigma, idx_from_state)), (ps,hits) = build_reflection (ps,hits) sigma
-	in
-	let hits = filter_hits (ps,hits) (function Hit ((a,i),bj,j') -> 
-		not (List.mem a sigma && bj = ak && j' = k'))
+let filter_hits (ps, actions) pred =
+	(ps, List.filter (fun (a,rsa) -> pred a) actions)
+;;
 
-	and h'coop = List.map (fun state ->
+let macro_cooperativity = function
+  [Arg_NamesHit (sigma, ak, k'); Arg_AnoStates top] -> (fun (ps,actions) ->
+	let (sigma_n, (sigma, idx_from_state)), (ps,actions) = build_reflection (ps,actions) sigma
+	in
+	let (ps, actions) = filter_hits (ps,actions) (function Hit ((a,i),bj,j') -> not (List.mem a sigma && bj = ak && j' = k'))
+	in
+	let h'coop = List.map (fun state ->
 		Hit ((sigma_n, idx_from_state state), ak, k'))
 			top
 	in
-	ps, ph_add_hits (ps,hits) h'coop
+	ps, ph_add_hits (ps,actions) h'coop
 )
 
 | [Arg_StateMatching sm; Arg_Name sort; Arg_Int l_true; Arg_Int l_false] -> (fun ctx ->
@@ -284,12 +284,11 @@ let macro_cooperativity = function
 	in
 	let names = matching_names sm
 	in
-	let ctx = fst ctx, filter_hits ctx (function Hit((b,k), (a,i), j) ->
+	let ctx = filter_hits ctx (function Hit((b,k), (a,i), j) ->
 		not (List.mem b names && a = sort &&
 			(i = l_true && j = l_false || i = l_false && j = l_true)))
 	in
-
-	let separate_levels (ps, hits) sigma_n idx_from_state top =
+	let separate_levels (ps, actions) sigma_n idx_from_state top =
 		let idx_top = List.map idx_from_state top
 		in
 		let n = List.assoc sigma_n ps
@@ -349,50 +348,24 @@ let macro_cooperativity = function
 	let h'coop = coop_hits (sort,l_false) l_true top
 				@ coop_hits (sort,l_true) l_false bot
 	in
-	let ps, hits = ctx
+	let ps, actions = ctx
 	in
-	ps, ph_add_hits (ps,hits) h'coop
+	ps, ph_add_hits (ps,actions) h'coop
 )
 | _ -> failwith "macro_cooperativity: wrong arguments"
 ;;
 
 let macro_remove = function
-  [Arg_Actions actions] -> (fun (ps,hits) ->
-	let remove_action (ai,bj,j') =
-		let restore_stack stack =
-			List.iter (fun elt -> Hashtbl.add hits bj elt) stack
-		in
-		let rec remove_from_stack stack =
-			try 
-				let (ai',p),j'' = Hashtbl.find hits bj
-				in
-				Hashtbl.remove hits bj;
-				if ai' = ai && j'' = j' then
-					restore_stack stack
-				else
-					remove_from_stack (((ai',p),j'')::stack)
-			with Not_found -> restore_stack stack
-		in
-		remove_from_stack []
-	in
-	List.iter remove_action actions;
-	ps, hits
+  [Arg_Actions ractions] -> (fun (ps,actions) ->
+  	(ps, List.filter (fun (Hit h, rsa) -> not (List.mem h ractions)) actions)
 )
 | _ -> failwith "macro_remove: wrong arguments"
 ;;
 
 let macro_knockdown = function
-[Arg_Process proc] -> (fun (ps,hits) ->
-	let hits' = Hashtbl.create (List.length ps)
-	in
-	let knockdown target ((hitter,p),bounce_idx) =
-		let bounce = fst target, bounce_idx
-		in
-		if not (hitter = proc || target = proc || bounce = proc) then
-			Hashtbl.add hits' target ((hitter,p),bounce_idx)
-	in
-	Hashtbl.iter knockdown hits;
-	ps, hits' 
+[Arg_Process proc] -> (fun (ps, actions) ->
+	(ps, List.filter (fun (Hit (ai,(b,j),j'),_) ->
+		proc <> ai && proc <> (b,j) && proc <> (b,j')) actions)
 )
 | _ -> failwith "macro_knockdown: wrong arguments"
 ;;
@@ -435,7 +408,7 @@ content :
   content decl { merge_decl $1 $2 }
 | content instr { merge_instr $1 $2 }
 | content macro { $2 $1 }
-| decl		 { merge_decl ([], Hashtbl.create 0) $1 }
+| decl		 { merge_decl ([], []) $1 }
 ;
 decl :
   New process	{ assert (snd $2 >= 0); $2 }
@@ -546,7 +519,7 @@ footer :
 ;
 
 main :
-  Directive headers content footer { ($3, compute_init_state $3 $4) }
-| content footer { ($1, compute_init_state $1 $2) }
+  Directive headers content footer { (init_content $3, compute_init_state $3 $4) }
+| content footer { (init_content $1, compute_init_state $1 $2) }
 ;
 %%
