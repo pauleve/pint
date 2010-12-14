@@ -26,7 +26,7 @@ val target : action -> process
 val bounce : action -> int
 val bounce2 : action -> sort * int
 val string_of_action : action -> string
-type state = int SMap.t
+type state = sortidx SMap.t
 val string_of_state : int SMap.t -> string
 val state0 : (SMap.key * 'a) list * 'b -> int SMap.t
 val merge_state : 'a SMap.t -> (SMap.key * 'a) list -> 'a SMap.t

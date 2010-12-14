@@ -40,6 +40,8 @@ open Debug;;
 open Ph_types;;
 
 type objective = sort * sortidx * sortidx
+type objective_seq = objective list
+
 module ObjOrd = struct 
 	type t = objective 
 	let compare = compare
@@ -67,9 +69,8 @@ let copy_abstr_struct aS = {
 type env_ng = {
 	sorts : process list;
 	t_hits : hits;
-	r_obj : objective;
-	zl : process;
 	s : state;
+	w : objective_seq;
 	_BS : (objective, action list list) Hashtbl.t;
 	aBS : (objective, PSet.t list) Hashtbl.t;
 	tBS : (objective, (process * PSet.t)) Hashtbl.t;
@@ -81,12 +82,23 @@ type env_ng = {
 let obj_sort (a, _, _) = a;;
 let obj_bounce (_, _, j) = j;;
 let obj_target (_, i, _) = i;;
+let obj_bounce_proc (a, _, j) = (a,j);;
+
 let obj_reach s (a,i) = (a, state_value s a, i);;
+
 let string_of_obj (a,i,j) =
 		a^" "^string_of_int i^" "^string_of_int j;;
 let string_of_objs = string_of_set string_of_obj ObjSet.elements;;
-let string_of_obj_list objs = "[ "^(String.concat "; "
+let string_of_objseq objs = "[ "^(String.concat "; "
 					(List.map string_of_obj objs))^" ]";;
+
+let rec objseq_from_procseq s = function
+	  [] -> []
+	| (a,i)::pl ->
+		let s' = SMap.add a i s
+		in
+		(obj_reach s (a,i))::objseq_from_procseq s' pl
+;;
 
 (** Bounce Sequences **)
 
@@ -207,24 +219,42 @@ let tBS env obj ai =
 
 (** Req, Sol **)
 
-let new_abstr_struct s zl = {
-	_Req = PMap.add zl [obj_reach s zl] PMap.empty;
-	_Sol = ObjMap.empty;
-	procs = PSet.singleton zl;
-	objs = ObjSet.empty;
-	_Cont = ObjMap.empty;
-}
-let init_env (ps,hits) s zl = 
+let new_abstr_struct s w = 
+	let aS = {
+		_Req = PMap.empty;
+		_Sol = ObjMap.empty;
+		_Cont = ObjMap.empty;
+		procs = PSet.empty;
+		objs = ObjSet.empty;
+	}
+	in
+	let register_obj obj =
+		let bounce = obj_bounce_proc obj
+		in (
+		let objs = try PMap.find bounce aS._Req
+			with Not_found -> []
+		in
+		let objs = if List.mem obj objs then objs
+			else (obj::objs)
+		in
+		aS._Req <- PMap.add bounce objs aS._Req;
+		aS.procs <- PSet.add bounce aS.procs;
+		)
+	in
+	List.iter register_obj w;
+	aS
+;;
+
+let init_env (ps,hits) s w = 
 	{
 		sorts = ps;
 		t_hits = hits;
-		r_obj = obj_reach s zl;
-		zl = zl;
+		w = w;
 		s = s;
 		_BS = Hashtbl.create 50;
 		aBS = Hashtbl.create 50;
 		tBS = Hashtbl.create 50;
-		a = new_abstr_struct s zl;
+		a = new_abstr_struct s w;
 	}
 ;;
 
@@ -374,8 +404,10 @@ let sature_loops_Req env aS =
 			let known_targets = i::List.map obj_target cur_objs
 			in
 			let targets = List.filter (fun j -> 
-					not (List.mem j known_targets) && (a,j) <> env.zl
-				) levels
+					not (List.mem j known_targets)
+					&& (List.length env.w > 1 
+						|| (a,j) <>	obj_bounce_proc (List.hd env.w))
+					) levels
 			in
 			let new_objs = List.map (fun j -> (a,j,i)) targets
 			in
@@ -389,7 +421,7 @@ let sature_loops_Req env aS =
 
 let register_objs env objs =
 	if !dodebug then
-		dbg ("- new objectives "^string_of_obj_list objs);
+		dbg ("- new objectives "^string_of_objseq objs);
 	let register_new_obj objs obj =
 		if not (ObjSet.mem obj env.a.objs) then (
 			register_obj env env.s obj;
@@ -549,14 +581,20 @@ let is_cycle_free aS obj_root =
 exception Decision of ternary
 
 let over_approximation_1 env =
+	(* inital abstract structure *)
+	ignore(register_objs env env.w);
 	(* remove inconcretizable objectives *)
 	cleanup_abstr env;
 	dbg_aS env.a;
-	if not (PMap.mem env.zl env.a._Req) then (
+	let obj_ok obj = 
+		ObjMap.mem obj env.a._Sol
+	in
+	if List.for_all obj_ok env.w then
+		dbg "+ over-approximation (1) success"
+	else (
 		dbg "+ over-approximation (1) failure";
 		raise (Decision False)
-	) else
-		dbg "+ over-approximation (1) success"
+	)
 ;;
 
 let under_approximation_1 env =
@@ -628,7 +666,8 @@ let under_approximation_1 env =
 			make_concretions aS new_objs
 		) else (
 			dbg_aS aS;
-			if not (has_inconcretizable_obj aS) && is_cycle_free aS env.r_obj then (
+			if not (has_inconcretizable_obj aS) && 
+					List.for_all (is_cycle_free aS) env.w then (
 				dbg "+ under-approximation (1) success";
 				true
 			) else (
@@ -638,17 +677,17 @@ let under_approximation_1 env =
 		)
 	in
 
-	let aS = new_abstr_struct env.s env.zl
+	let aS = new_abstr_struct env.s env.w
 	in
-	if make_concretions aS (ObjSet.singleton env.r_obj) then
+	let new_objs = List.fold_right ObjSet.add env.w ObjSet.empty
+	in
+	if make_concretions aS new_objs then
 		raise (Decision True);
 ;;
-	
-let process_reachability ph zl s =
-	let env = init_env ph s zl
+
+let process_reachability ph s w =
+	let env = init_env ph s w
 	in
-	(* fill Req and Sol *)
-	register_obj env env.s env.r_obj;
 	try
 		over_approximation_1 env;
 		under_approximation_1 env;
@@ -657,5 +696,4 @@ let process_reachability ph zl s =
 	  Decision d -> d
 	| x -> raise x
 ;;
-(*** ***)
 
