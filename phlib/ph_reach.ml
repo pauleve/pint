@@ -443,12 +443,12 @@ let min_cont env aS obj =
 	dbg_noendl ("- minCONT("^string_of_obj obj^") = ");
 	let a = obj_sort obj
 	in
-	let rec min_cont_obj obj =
+	let rec min_cont_obj knownps obj =
 		let fold_p p levels =
-			ISet.union levels (min_cont_p p)
+			ISet.union levels (min_cont_p (PSet.add p knownps) p)
 		in
 		let make_sol ps =
-			PSet.fold fold_p ps ISet.empty
+			PSet.fold fold_p (PSet.diff ps knownps) ISet.empty
 		in
 		let fold_sol levels ps =
 			ISet.inter levels (make_sol ps)
@@ -461,25 +461,25 @@ let min_cont env aS obj =
 			let levels = make_sol ps
 			in
 			List.fold_left fold_sol levels altps
-	and min_cont_p (b,i) =
+	and min_cont_p knownps (b,i) =
 		if a = b then ISet.singleton i
 		else (
 			let fold_req levels obj =
-				ISet.inter levels (min_cont_obj obj)
+				ISet.inter levels (min_cont_obj knownps obj)
 			in
 			let reqs = PMap.find (b,i) aS._Req
 			in
 			match reqs with
 			  [] -> ISet.empty
 			| obj::objs ->
-				let levels = min_cont_obj obj
+				let levels = min_cont_obj knownps obj
 				in
 				List.fold_left fold_req levels objs
 		)
 	in
 	let bounce = obj_bounce obj
 	in
-	let cont_levels = ISet.remove bounce (min_cont_obj obj)
+	let cont_levels = ISet.remove bounce (min_cont_obj PSet.empty obj)
 	in
 	let fold_level i objs = 
 		ObjSet.add (a, i, bounce) objs
@@ -655,8 +655,27 @@ exception Decision of ternary
 let over_approximation_1 env =
 	(* inital abstract structure *)
 	ignore(register_objs env env.w);
-	(*fill_min_cont env;*)
 	(* remove inconcretizable objectives *)
+	cleanup_abstr env;
+	dbg_aS env.a;
+	let obj_ok obj = 
+		ObjMap.mem obj env.a._Sol (*
+		&& (
+			let conts = ObjMap.find obj env.a._Cont
+			in
+			ObjSet.for_all obj_ok conts
+		)*)
+	in
+	if List.for_all obj_ok env.w then
+		dbg "+ over-approximation (1) success"
+	else (
+		dbg "+ over-approximation (1) failure";
+		raise (Decision False)
+	)
+;;
+
+let over_approximation_mincont env =
+	fill_min_cont env;
 	cleanup_abstr env;
 	dbg_aS env.a;
 	let rec obj_ok obj = 
@@ -668,9 +687,9 @@ let over_approximation_1 env =
 		)
 	in
 	if List.for_all obj_ok env.w then
-		dbg "+ over-approximation (1) success"
+		dbg "+ over-approximation (minCONT) success"
 	else (
-		dbg "+ over-approximation (1) failure";
+		dbg "+ over-approximation (minCONT) failure";
 		raise (Decision False)
 	)
 ;;
@@ -769,6 +788,7 @@ let process_reachability ph s w =
 	try
 		over_approximation_1 env;
 		under_approximation_1 env;
+		over_approximation_mincont env;
 		Inconc
 	with 
 	  Decision d -> d
