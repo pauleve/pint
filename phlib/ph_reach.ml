@@ -451,7 +451,8 @@ let min_cont env aS obj =
 			PSet.fold fold_p (PSet.diff ps knownps) ISet.empty
 		in
 		let fold_sol levels ps =
-			ISet.inter levels (make_sol ps)
+			if ISet.is_empty levels then levels
+			else (ISet.inter levels (make_sol ps))
 		in
 		let sols = ObjMap.find obj aS._Sol
 		in
@@ -465,7 +466,8 @@ let min_cont env aS obj =
 		if a = b then ISet.singleton i
 		else (
 			let fold_req levels obj =
-				ISet.inter levels (min_cont_obj knownps obj)
+				if ISet.is_empty levels then levels
+				else (ISet.inter levels (min_cont_obj knownps obj))
 			in
 			let reqs = PMap.find (b,i) aS._Req
 			in
