@@ -56,3 +56,11 @@ type t_directive = {
   mutable sample : float;
 }
 val directive : t_directive
+
+type objective = sort * sortidx * sortidx
+module ObjSet : Set.S with type elt = objective
+module ObjMap : Map.S with type key = objective
+
+(** String representation of the given objective *)
+val string_of_obj : objective -> string
+

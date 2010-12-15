@@ -173,3 +173,17 @@ let directive = {
 	sample = 1000.0
 };;
 
+(* Objectives *)
+
+type objective = sort * sortidx * sortidx
+
+module ObjOrd = struct 
+	type t = objective 
+	let compare = compare
+end
+
+module ObjSet = Set.Make (ObjOrd)
+module ObjMap = Map.Make (ObjOrd)
+
+let string_of_obj (a,i,j) = a^" "^string_of_int i^" "^string_of_int j;;
+
