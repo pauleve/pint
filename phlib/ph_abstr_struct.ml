@@ -14,70 +14,62 @@ module NodeMap = Map.Make (NodeOrd)
 
 class graph = 
 object(self)
-	val mutable edges = NodeMap.empty
-	val mutable rev_edges = NodeMap.empty
+	val edges = Hashtbl.create 50
+	val rev_edges = Hashtbl.create 50
 
 	method add_child n1 n2 =
-		let n1c = try NodeMap.find n1 edges
-				with Not_found -> []
-		and n2p = try NodeMap.find n2 rev_edges
-				with Not_found -> []
-		in
-		(edges <- NodeMap.add n1 (n2::n1c) edges;
-		rev_edges <- NodeMap.add n2 (n1::n2p) rev_edges)
+		Hashtbl.add edges n1 n2;
+		Hashtbl.add rev_edges n2 n1
 
 	method private _flood
-		: 'a. bool -> (NodeMap.key -> 'a) 
-			-> (NodeMap.key -> 'a -> NodeMap.key -> 'a -> 'a * bool)
-			-> NodeSet.t -> 'a NodeMap.t
+		: 'a. bool -> (node -> 'a) 
+			-> (node -> 'a -> node -> 'a -> 'a * bool)
+			-> NodeSet.t -> (node, 'a) Hashtbl.t
 		= fun desc init push ns ->
 		let edges = if desc then edges else rev_edges
+		and values = Hashtbl.create 50
 		in
-		let rec flood chgs values = 
-			let forward n (chgs, values) = 
+		let rec flood chgs = 
+			let forward n chgs = 
 				(* forward the new value v of n to its childs *)
-				let v = NodeMap.find n values
+				let v = Hashtbl.find values n
 				in
-				let forward_to (chgs, values) n' =
-					let n'v, isnew = try NodeMap.find n' values, false
+				let forward_to chgs n' =
+					let n'v, isnew = try Hashtbl.find values n', false
 						with Not_found -> (init n', true)
 					in
 					let n'v, changed = push n' n'v n v
 					in
-					let values = NodeMap.add n' n'v values
-					and chgs = if changed || isnew then
+					let chgs = if changed || isnew then
 							NodeSet.add n' chgs else chgs
 					in
-					chgs, values
+					Hashtbl.replace values n' n'v;
+					chgs
 				in
-				let childs = try NodeMap.find n edges
-						with Not_found -> []
+				let childs = Hashtbl.find_all edges n
 				in
-				List.fold_left forward_to (chgs, values) childs
+				List.fold_left forward_to chgs childs
 			in
-			let chgs, values = NodeSet.fold forward chgs (NodeSet.empty, values)
+			let chgs = NodeSet.fold forward chgs NodeSet.empty
 			in
-			if NodeSet.is_empty chgs then values else flood chgs values
+			if not (NodeSet.is_empty chgs) then flood chgs
 
-		and setup n values =
-			let v = init n
-			in
-			NodeMap.add n v values
-
+		and setup n =
+			Hashtbl.add values n (init n)
 		in
-		let values = NodeSet.fold setup ns NodeMap.empty
-		in
-		flood ns values
+		NodeSet.iter setup ns;
+		flood ns;
+		values
 	
 	method flood 
-		: 'a. (NodeMap.key -> 'a) 
-			-> (NodeMap.key -> 'a -> NodeMap.key -> 'a -> 'a * bool)
-			-> NodeSet.t -> 'a NodeMap.t
+		: 'a. (node -> 'a) 
+			-> (node -> 'a -> node -> 'a -> 'a * bool)
+			-> NodeSet.t -> (node, 'a) Hashtbl.t
 		= self#_flood true
 	method rflood 
-		: 'a. (NodeMap.key -> 'a) 
-			-> (NodeMap.key -> 'a -> NodeMap.key -> 'a -> 'a * bool)
-			-> NodeSet.t -> 'a NodeMap.t
+		: 'a. (node -> 'a) 
+			-> (node -> 'a -> node -> 'a -> 'a * bool)
+			-> NodeSet.t -> (node, 'a) Hashtbl.t
 		= self#_flood false
 
 end;;
@@ -102,7 +94,7 @@ let parents_sorts (gaS : #graph) objs =
 		  		^ SSet.fold (fun a buf -> buf^a^" ") v "")
 		| _ -> ()
 	in
-	NodeMap.iter dbg_val values
+	Hashtbl.iter dbg_val values
 ;;
 
 let min_cont (gaS : #graph) objs =
@@ -177,7 +169,7 @@ let min_cont (gaS : #graph) objs =
 			dbg ("minCONT("^string_of_obj (a,i,j)^")="^string_of_procs ps)
 		| _ -> ()
 	in
-	if !dodebug then NodeMap.iter dbg_val values
+	if !dodebug then Hashtbl.iter dbg_val values
 ;;
 
 
