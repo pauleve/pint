@@ -110,6 +110,7 @@ object(self)
 
 end;;
 
+(* example of flood usage: 
 let parents_sorts (gaS : #graph) objs =
 	let init = function
 		  NodeSol ((a,_,_),_) -> SSet.singleton a
@@ -132,80 +133,5 @@ let parents_sorts (gaS : #graph) objs =
 	in
 	Hashtbl.iter dbg_val values
 ;;
-
-let min_cont (gaS : #graph) objs =
-	let init = function
-		  NodeProc (a,i) -> SMap.add a (PSet.singleton (a,i), NodeMap.empty) SMap.empty
-		| _ -> SMap.empty
-	and push n v n' v' = if SMap.is_empty v' then (v, false) else
-		match n, n' with
-		  NodeSol _, NodeProc _ ->
-		  	(* union between childs *)
-			let merge a (ps,_) my_v =
-				let ps' = try fst (SMap.find a my_v) with Not_found -> PSet.empty
-				in
-				SMap.add a (PSet.union ps ps', NodeMap.empty) my_v
-			in
-			let my_v = SMap.fold merge v' v
-			in
-			my_v, my_v <> v
-
-		| NodeObj _, NodeSol _ | NodeProc _, NodeObj _ ->
-			(* intersection between childs *)
-			let ignored = match n with NodeProc (b,_) -> b | _ -> ""
-			in
-			let merge a (ps,_) (my_v, changed) =
-				if a = ignored then (my_v, changed) else (
-				let my_ps, cache = try SMap.find a my_v
-					with Not_found -> PSet.empty, NodeMap.empty
-				in
-				let cache = NodeMap.add n' ps cache
-				in
-				let build_ps _ ps = function
-					  None -> Some ps
-					| Some my_ps' -> Some (PSet.inter my_ps' ps)
-				in
-				let my_ps' = match NodeMap.fold build_ps cache None with
-					  None -> PSet.empty
-					| Some x -> x
-				in
-				let my_v = SMap.add a (my_ps',cache) my_v
-				and changed = my_ps <> my_ps'
-				in
-				my_v, changed )
-			in
-			SMap.fold merge v' (v,false)
-
-		| NodeObj _, NodeObj _ -> v, false (* ignore Cont rels *)
-		| _ -> failwith "wrong abstract structure graph."
-	in
-	let fold_obj obj ns = NodeSet.add (NodeObj obj) ns
-	in
-	let ns = ObjSet.fold fold_obj objs NodeSet.empty
-	in
-	let values = gaS#rflood init push ns
-	in
-	(*
-	let string_of_map v =
-		let folder a (ps,_) buf =
-			buf^"{"^a^" : "^string_of_procs ps^"} "
-		in
-		SMap.fold folder v ""
-	in
-	let dbg_val n v = match n with
-		  NodeObj obj -> dbg ("minCONT^Obj("^string_of_obj obj^")="^string_of_map v)
-		| NodeProc p -> dbg ("minCONT^Proc("^string_of_proc p^")="^string_of_map v)
-		| _ -> ()
-	in
-	NodeMap.iter dbg_val values;*)
-	let dbg_val n v = match n with
-		  NodeObj (a,i,j) -> 
-		  	let ps = try fst (SMap.find a v) with Not_found -> PSet.empty
-			in
-			dbg ("minCONT("^string_of_obj (a,i,j)^")="^string_of_procs ps)
-		| _ -> ()
-	in
-	if !dodebug then Hashtbl.iter dbg_val values
-;;
-
+*)
 
