@@ -7,6 +7,7 @@ SOURCES := \
 	ph_util.ml\
 	ph_op.ml\
 	ph_static.ml\
+	ph_abstr_struct.ml\
 	ph_reach.ml\
 	ph_machine.ml\
 
