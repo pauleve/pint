@@ -39,16 +39,7 @@ open Debug;;
 
 open Ph_types;;
 
-type objective = sort * sortidx * sortidx
 type objective_seq = objective list
-
-module ObjOrd = struct 
-	type t = objective 
-	let compare = compare
-end
-
-module ObjSet = Set.Make (ObjOrd)
-module ObjMap = Map.Make (ObjOrd)
 
 type abstr_struct = {
 	mutable procs : PSet.t;
@@ -86,8 +77,6 @@ let obj_bounce_proc (a, _, j) = (a,j);;
 
 let obj_reach s (a,i) = (a, state_value s a, i);;
 
-let string_of_obj (a,i,j) =
-		a^" "^string_of_int i^" "^string_of_int j;;
 let string_of_objs = string_of_set string_of_obj ObjSet.elements;;
 let string_of_objseq objs = "[ "^(String.concat "; "
 					(List.map string_of_obj objs))^" ]";;
@@ -488,7 +477,7 @@ let min_cont env aS obj =
 	in
 	let objs = ISet.fold fold_level cont_levels ObjSet.empty
 	in
-	dbg (string_of_objs objs);
+	if !dodebug then dbg (string_of_objs objs);
 	objs
 ;;
 	
@@ -793,6 +782,67 @@ let process_reachability ph s w =
 		over_approximation_mincont env;
 		Inconc
 	with 
+	  Decision d -> d
+	| x -> raise x
+;;
+
+open Ph_abstr_struct;;
+
+let convert_aS aS =
+	let gaS = new graph
+	in
+	let link_obj n obj =
+		let nobj = NodeObj obj
+		in
+		gaS#add_child n nobj
+	in
+	let register_sol obj ps_l =
+		let nobj = NodeObj obj
+		in
+		let register_ps ps =
+			let nsol = NodeSol (obj, ps)
+			in
+			let register_p p =
+				let nproc = NodeProc p
+				in
+				gaS#add_child nsol nproc
+			in 
+			(PSet.iter register_p ps;
+			gaS#add_child nobj nsol)
+		in 
+		List.iter register_ps ps_l;
+	and register_req p obj_l =
+		let nproc = NodeProc p
+		in
+		List.iter (link_obj nproc) obj_l
+	and register_cont obj objs =
+		let nobj = NodeObj obj
+		in
+		ObjSet.iter (link_obj nobj) objs
+	in (
+	ObjMap.iter register_sol aS._Sol;
+	PMap.iter register_req aS._Req;
+	ObjMap.iter register_cont aS._Cont;
+	gaS )
+;;
+
+let test_gaS env =
+	(*fill_min_cont env*)
+	let gaS = convert_aS env.a
+	in
+	min_cont gaS env.a.objs
+;;
+
+let test ph s w =
+	let env = init_env ph s w
+	in
+	(* inital abstract structure *)
+	ignore(register_objs env env.w);
+	dbg_aS env.a;
+	try
+		test_gaS env;
+		Inconc
+	with
 	  Decision d -> d
 	| x -> raise x
 ;;

@@ -42,7 +42,7 @@ let opt_method = ref "static"
 and opt_args = ref []
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
-		("--method", Arg.Symbol (["static"],
+		("--method", Arg.Symbol (["static";"test"],
 				(fun x -> opt_method := x)),
 			"Method");
 	]
@@ -76,6 +76,7 @@ dbg ("# testing concretizability of "^Ph_reach.string_of_objseq w^" from state "
 let decision = 
 match !opt_method with
 	| "static" -> Ph_reach.process_reachability ph state w
+	| "test" -> Ph_reach.test ph state w
 	| _ -> failwith "Unknown method."
 in
 print_endline (string_of_ternary decision)
