@@ -46,7 +46,7 @@ let get_key ai bj = if ai < bj then (ai,bj) else (bj,ai)
 ;;
 
 (*
-let string_of_reaction (j,f,j') = string_of_processes j^ " -> "^string_of_processes j;;
+let string_of_reaction (j,f,j') = string_of_procs j^ " -> "^string_of_procs j;;
 let string_of_reactions l = "{ "^String.concat ", " (List.map string_of_reaction l)^"}";;
 *)
 
@@ -60,7 +60,7 @@ let create_env (ps,hits) =
 		and j' = PSet.add (fst bj, k) (PSet.singleton ai)
 		in
 		(*
-		dbg (string_of_process (fst i)^","^string_of_process (snd i)^": adding reaction "^
+		dbg (string_of_proc (fst i)^","^string_of_proc (snd i)^": adding reaction "^
 			string_of_reaction (j,f,j'));
 		*)
 		let reactions = (j,f,j')::reactions
