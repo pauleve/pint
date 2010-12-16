@@ -5,7 +5,8 @@ SOURCES = \
 	$(BINDINGS_SOURCES)\
 	$(PINTLIB_SOURCES)\
 	$(PHLIB_SOURCES)\
-	ui.ml
+	$(UI_SOURCES)
+
 LIBS = $(PINTLIB_LIBS) $(PHLIB_LIBS)
 RESULT = pint
 include OCamlMakefile

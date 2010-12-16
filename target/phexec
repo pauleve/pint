@@ -6,7 +6,7 @@ SOURCES = \
 	$(BINDINGS_SOURCES)\
 	$(PINTLIB_SOURCES) \
 	$(PHLIB_SOURCES) \
-	ui.ml \
+	$(UI_SOURCES) \
 	phexec.ml
 
 LIBS := $(PHLIB_LIBS) unix
