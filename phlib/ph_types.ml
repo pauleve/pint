@@ -65,18 +65,18 @@ let string_of_ternary = function True -> "True" | False -> "False" | Inconc -> "
 type sort = string
 type sortidx = int
 type process = sort * sortidx (* name * level *)
+module PMap = Map.Make (struct type t = process let compare = compare end);;
+module PSet = Set.Make (struct type t = process let compare = compare end);;
 
 let string_of_proc (a,i) = a^"_"^string_of_int i;;
+
+let string_of_procs = string_of_set string_of_proc PSet.elements;;
 
 type rate = (float * int) option
 
 type hits = (process, ((process * rate) * int)) Hashtbl.t
 
 type ph = process list * hits
-
-type regulation_sign = Positive | Negative
-(* gene_a * threshold * sign * gene_b *)
-type regulation_t = Regulation of (string * int * regulation_sign * string)
 
 (* (a,i) * (b,j) * j' *)
 type action = Hit of (process * process * int)
@@ -90,9 +90,14 @@ let string_of_action = function
 	Hit (ai, bj, k) -> string_of_proc ai ^"->"^string_of_proc bj^" "^string_of_int k
 ;;
 
-type state = int SMap.t
+let string_of_actions actions =
+	"{ "^(String.concat ", " (List.map string_of_action actions))^" }"
+;;
+
 
 (* STATE *)
+type state = int SMap.t
+
 let string_of_state s =
 	let folder a i str =
 		if i <> 0 then
@@ -102,7 +107,7 @@ let string_of_state s =
 	in
 	"["^(SMap.fold folder s "")^"]"
 ;;
-let state0 (ps,_) = List.fold_left (fun s (a,_) -> SMap.add a 0 s) SMap.empty ps
+let state0 ps = List.fold_left (fun s (a,_) -> SMap.add a 0 s) SMap.empty ps
 ;;
 let merge_state state =
 	let apply state (a,i) =
@@ -119,8 +124,6 @@ let list_of_state state =
 ;;
 
 
-type match_p = Any | ProcessLevel of process | Process of string | Matching of (process -> bool)
-
 (* Proc level couple set *)
 module PCSet = Set.Make (struct type t = (process * process) 
 		let compare (ai,bj) (ai',bj') = 
@@ -135,24 +138,6 @@ module PCSet = Set.Make (struct type t = (process * process)
 			if c = 0 then compare bj bj' else c
 		end)
 ;;
-
-module PMap = Map.Make (struct type t = process let compare = compare end);;
-module PSet = Set.Make (struct type t = process let compare = compare end);;
-
-let string_of_procs = string_of_set string_of_proc PSet.elements;;
-
-module ActionSet = Set.Make (struct type t = action let compare = compare end);;
-let uniqise_actions actions = 
-	let set = List.fold_left (fun set action ->
-				ActionSet.add action set) ActionSet.empty actions
-	in ActionSet.elements set
-;;
-let string_of_actions actions =
-	"{ "^(String.concat ", " (List.map string_of_action actions))^" }"
-;;
-let string_of_actionset set = string_of_actions (ActionSet.elements set)
-;;
-	
 
 let ph_sigma = function (ps,_) -> List.map fst ps
 ;;
