@@ -66,9 +66,7 @@ type sort = string
 type sortidx = int
 type process = sort * sortidx (* name * level *)
 
-let string_of_process (a,i) = a^"_"^string_of_int i;;
-let string_of_process' (a,i) = a^" "^string_of_int i;;
-let string_of_proc (a,i) = a^" "^string_of_int i;;
+let string_of_proc (a,i) = a^"_"^string_of_int i;;
 
 type rate = (float * int) option
 
@@ -89,7 +87,7 @@ let bounce = function Hit (_,_,k) -> k;;
 let bounce2 = function Hit (_,(b,_),k) -> (b,k);;
 
 let string_of_action = function
-	Hit (ai, bj, k) -> string_of_process ai ^"->"^string_of_process bj^" "^string_of_int k
+	Hit (ai, bj, k) -> string_of_proc ai ^"->"^string_of_proc bj^" "^string_of_int k
 ;;
 
 type state = int SMap.t
@@ -99,7 +97,7 @@ let string_of_state s =
 	let folder a i str =
 		if i <> 0 then
 			str ^ (if str <> "" then ";" else "")
-			^ string_of_process (a,i)
+			^ string_of_proc (a,i)
 		else str
 	in
 	"["^(SMap.fold folder s "")^"]"
@@ -141,9 +139,7 @@ module PCSet = Set.Make (struct type t = (process * process)
 module PMap = Map.Make (struct type t = process let compare = compare end);;
 module PSet = Set.Make (struct type t = process let compare = compare end);;
 
-let string_of_processes = string_of_set string_of_process PSet.elements;;
-let string_of_procs' = string_of_set string_of_process' PSet.elements;;
-let string_of_procs = string_of_procs';;
+let string_of_procs = string_of_set string_of_proc PSet.elements;;
 
 module ActionSet = Set.Make (struct type t = action let compare = compare end);;
 let uniqise_actions actions = 
@@ -181,7 +177,6 @@ module ObjOrd = struct
 	type t = objective 
 	let compare = compare
 end
-
 module ObjSet = Set.Make (ObjOrd)
 module ObjMap = Map.Make (ObjOrd)
 

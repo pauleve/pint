@@ -157,7 +157,7 @@ let get_BS env obj =
 (** BS^ **)
 
 let string_of_aBS aBS_obj = "[ "^(String.concat "; " 
-		(List.map string_of_procs' aBS_obj))^" ]"
+		(List.map string_of_procs aBS_obj))^" ]"
 ;;
 let compute_aBS env obj =
 	let push_path results ps =

@@ -40,7 +40,7 @@ open Ph_types;;
 
 let string_of_state state =
 	"[ "^
-	String.concat " " (List.sort compare (List.map string_of_process state))
+	String.concat " " (List.sort compare (List.map string_of_proc state))
 	^" ]"
 ;;
 let string_of_states states =
