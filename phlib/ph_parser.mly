@@ -3,17 +3,8 @@ open Debug;;
 
 open Ph_types;;
 
-type t_directive = {
-	mutable default_rate : float option;
-	mutable default_sa : int;
-	mutable sample : float
-};;
-
-let directive = {
-	default_rate = None;
-	default_sa = 1;
-	sample = 1000.0
-};;
+type regulation_sign = Positive | Negative
+type regulation_t = Regulation of (string * int * regulation_sign * string)
 
 let cooperativities = ref [];;
 let __coop_counter = ref 0;;
@@ -86,7 +77,7 @@ let get_sort_max ps a =
 
 
 let compute_init_state ph defaults =
-	let state = merge_state (state0 ph) defaults
+	let state = merge_state (state0 (fst ph)) defaults
 	in
 	(* apply cooperativities *)
 	let fold state (c, (sigma, idx)) =
@@ -94,7 +85,7 @@ let compute_init_state ph defaults =
 		in
 		let i = idx state_c
 		in
-		dbg ("- init cooperativity: "^string_of_process (c,i));
+		dbg ("- init cooperativity: "^string_of_proc (c,i));
 		SMap.add c i state
 	in
 	(*TODO: handle nested cooperativities *)
@@ -396,8 +387,9 @@ let precall_macro = function
 %left AND
 %left NOT
 
+/* test */
 %start main
-%type <Ph_types.ph * Ph_types.sortidx Ph_types.SMap.t> main
+%type <Ph_types.ph * Ph_types.state> main
 
 %start processlist
 %type <Ph_types.process list> processlist

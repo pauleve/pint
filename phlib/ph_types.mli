@@ -7,12 +7,12 @@ module IMap : Map.S with type key = int
 
 val string_of_set : ('a -> string) -> ('b -> 'a list) -> 'b -> string
 
-(** String representation of an int Set *)
+(** String representation of an int Set. *)
 val string_of_iset : ISet.t -> string
 
 type ternary = True | False | Inconc
 
-(** String representation of ternary *)
+(** String representation of ternary. *)
 val string_of_ternary : ternary -> string
 
 type sort = string
@@ -20,67 +20,68 @@ type sortidx = int
 type process = sort * sortidx
 module PSet : Set.S with type elt = process
 module PMap : Map.S with type key = process
+module PCSet : Set.S with type elt = process * process
 
-(** Retruns string representation of a process *)
+(** Retruns string representation of a process. *)
 val string_of_proc : process -> string
 
-(** Returns string representation of a process Set *)
+(** Returns string representation of a process Set. *)
 val string_of_procs : PSet.t -> string
 
+
 type rate = (float * int) option
-type hits = (process, (process * rate) * int) Hashtbl.t
+type hits = (process, (process * rate) * sortidx) Hashtbl.t
 type ph = process list * hits
 
 type action = Hit of (process * process * int)
 
-(** String representation of an action *)
+(** String representation of an action. *)
 val string_of_action : action -> string
-
+(** String representation of a list of actions. *)
+val string_of_actions : action list -> string
+(** Returns the hitter process involved in the given action. *)
 val hitter : action -> process
+(** Returns the target process involved in the given action. *)
 val target : action -> process
+(** Returns the bounce process index involved in the given action. *)
 val bounce : action -> int
-val bounce2 : action -> sort * int
+(** Returns the bounce process involved in the given action. *)
+val bounce2 : action -> process
+
 
 type state = sortidx SMap.t
 
-(** String representation of a state *)
+(** String representation of a state. *)
 val string_of_state : int SMap.t -> string
 
-val state0 : (SMap.key * 'a) list * 'b -> int SMap.t
-val merge_state : 'a SMap.t -> (SMap.key * 'a) list -> 'a SMap.t
+(** Returns the state where all sorts have the process of index 0 present. *)
+val state0 : process list -> state
 
-(** [state_value s a] returns the process index of sort a present in s *)
+(** Sets the processes in the given process list present in the given state. *)
+val merge_state : state -> process list -> state
+
+(** [state_value s a] returns the process index of sort a present in s. *)
 val state_value : state -> sort -> sortidx
 
-(** Converts a set into a list of processes *)
+(** Converts a set into a list of processes. *)
 val list_of_state : state -> process list
 
-type regulation_sign = Positive | Negative
-type regulation_t = Regulation of (string * int * regulation_sign * string)
-type match_p =
-    Any
-  | ProcessLevel of process
-  | Process of string
-  | Matching of (process -> bool)
+(** Returns the list of sorts defined in the given Process Hitting.*)
+val ph_sigma : ph -> sort list
 
-module PCSet : Set.S with type elt = process * process
-module ActionSet : Set.S with type elt = action
-
-val uniqise_actions : ActionSet.elt list -> ActionSet.elt list
-val string_of_actions : action list -> string
-val string_of_actionset : ActionSet.t -> string
-val ph_sigma : ('a * 'b) list * 'c -> 'a list
+(** Directives of a Process Hitting model *)
 type t_directive = {
   mutable default_rate : float option;
   mutable default_sa : int;
   mutable sample : float;
 }
+(** Default directives *)
 val directive : t_directive
 
 type objective = sort * sortidx * sortidx
 module ObjSet : Set.S with type elt = objective
 module ObjMap : Map.S with type key = objective
 
-(** String representation of the given objective *)
+(** String representation of the given objective. *)
 val string_of_obj : objective -> string
 
