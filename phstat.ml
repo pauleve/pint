@@ -37,8 +37,6 @@ knowledge of the CeCILL license and that you accept its terms.
 
 open Big_int;;
 
-open Ui;;
-
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts
 and usage_msg = "ph-stat"
 in
@@ -48,10 +46,10 @@ Arg.parse cmdopts anon_fun usage_msg;
 
 let ph = fst (Ph_util.parse !Ui.opt_channel_in)
 in
-let nb_states = ph_count_states ph
-and nb_sorts = ph_count_sorts ph
-and nb_processes = ph_count_processes ph
-and nb_actions = ph_count_actions ph
+let nb_states = Ph_util.count_states ph
+and nb_sorts = Ph_util.count_sorts ph
+and nb_processes = Ph_util.count_processes ph
+and nb_actions = Ph_util.count_actions ph
 and larger_sort = 
 	let sps = List.sort (fun (_,l) (_,l') -> compare l' l) (fst ph)
 	in

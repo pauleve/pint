@@ -56,10 +56,10 @@ Arg.parse cmdopts anon_fun usage_msg;
 
 let ph = fst (Ph_util.parse !Ui.opt_channel_in)
 in
-let nb_states = Ui.ph_count_states ph
+let nb_states = Ph_util.count_states ph
 in
 output_string stderr ("["^(!Ui.opt_filename_in)^"] total: "^string_of_big_int nb_states^" states\n"); flush stderr;
-let stable_states = Ui.ph_stable_states ph
+let stable_states = Ph_static.stable_states ph
 in
 print_endline (string_of_states stable_states)
 
