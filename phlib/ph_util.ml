@@ -74,12 +74,3 @@ let parse channel_in =
 						"Syntax error")
 ;;
 
-let matching (ps,hits) pred =
-	let folder bj ((ai,p),j') matches =
-		let action = Hit (ai,bj,j')
-		in
-		if pred action then action::matches else matches
-	in
-	Hashtbl.fold folder hits []
-;;
-
