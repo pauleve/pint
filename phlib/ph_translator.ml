@@ -42,8 +42,6 @@ type opts = {
 	round_fi: float * float -> int * int (* firing interval rounding *)
 }
 
-let string_of_float0 = Util.string_of_float0;;
-
 type piproc_arg_action = ArgReset | ArgUpdate of (string * string) list;;
 
 (* spim_of_ph with stochasticity_absorption *)
@@ -131,7 +129,7 @@ let spim_of_ph (ps,hits) init_state =
 		match rsa with
 			  None -> assert ischan; ("new "^hitid^":chan")
 			| Some (r,sa) ->
-				let r = string_of_float0 (r *. float_of_int sa)
+				let r = Util.string_of_float0 (r *. float_of_int sa)
 				in
 				if ischan then ("new "^hitid^"@"^r^":chan") else ("val "^hitid^"="^r)
 	and string_of_piproc (p, choices) =
@@ -371,7 +369,7 @@ let prism_of_ph (ps,hits) init_state =
 
 	let string_of_r_const (hitid, r) =
 		"const double " ^ r_const hitid ^ " = "
-			^ (if r < 0. then "infty" else string_of_float0 r) ^ ";\n"
+			^ (if r < 0. then "infty" else Util.string_of_float0 r) ^ ";\n"
 	and string_of_sa_const (hitid, sa) =
 		"const int " ^ sa_const hitid ^ " = " 
 			^ string_of_int sa ^ ";\n"

@@ -9,10 +9,13 @@ val parse : in_channel -> Ph_types.ph * Ph_types.state
 
 (** Returns the total number of states of the given Process Hitting. *)
 val count_states : Ph_types.ph -> Big_int.big_int
+
 (** Returns the  number of sorts in the given Process Hitting. *)
 val count_sorts : Ph_types.ph -> int
+
 (** Returns the  number of processes in the given Process Hitting. *)
 val count_processes : Ph_types.ph -> int
+
 (** Returns the  number of actions in the given Process Hitting. *)
 val count_actions : Ph_types.ph -> int
 

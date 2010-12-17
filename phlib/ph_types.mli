@@ -37,14 +37,19 @@ type action = Hit of (process * process * int)
 
 (** String representation of an action. *)
 val string_of_action : action -> string
+
 (** String representation of a list of actions. *)
 val string_of_actions : action list -> string
+
 (** Returns the hitter process involved in the given action. *)
 val hitter : action -> process
+
 (** Returns the target process involved in the given action. *)
 val target : action -> process
+
 (** Returns the bounce process index involved in the given action. *)
 val bounce : action -> int
+
 (** Returns the bounce process involved in the given action. *)
 val bounce2 : action -> process
 
