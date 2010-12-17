@@ -16,7 +16,7 @@ val range : int -> int -> int list
 (** Same as [range] but in the reverse order. *)
 val rrange : int -> int -> int list
 
-(** [string_apply match data values] replaces successively the n-th match [match] in data with the n-th elements of [values]. *)
+(** [string_apply match data values] replaces successively the n-th match of [match] in data with the n-th elements of [values]. *)
 val string_apply : string -> string -> string list -> string
 
 (** [cross [l1;..;ln] [e1;..;ek]] returns [e1::l1;..;ek::l1;..;e1::ln;..;ek::ln]. *)
@@ -27,6 +27,9 @@ val cross_list : 'a list list -> 'a list list
 
 exception Empty
 (** [cross_forward (handler, merger, stopper) [l1;..;ln]]
-	Raises [Empty] if the cartesian product gives an empty set. *)
+	applies on-the-fly [handler] to each list in the cartesian product [l1 x .. x ln].
+	All [handler] results are aggregated using [merger].
+	Computation stops as soon as [stopper] evaluates the result to [False].
+	Raises [Empty] if the cartesian product gives no element. *)
 val cross_forward : ('a list -> 'b) * ('b -> 'b -> 'b) * ('b -> bool) -> 'a list list -> 'b
 
