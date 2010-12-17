@@ -1,4 +1,4 @@
-(** Process Hitting related types. *)
+(** Process Hitting related types and associated operations. *)
 
 module SSet : Set.S with type elt = string
 module SMap : Map.S with type key  = string
@@ -57,8 +57,11 @@ val string_of_state : int SMap.t -> string
 (** Returns the state where all sorts have the process of index 0 present. *)
 val state0 : process list -> state
 
+(** [merge_states dest orig] sets the processes in the state [orig] in the state [dest]. *)
+val merge_states : state -> state -> state
+
 (** Sets the processes in the given process list present in the given state. *)
-val merge_state : state -> process list -> state
+val merge_state_with_ps : state -> process list -> state
 
 (** [state_value s a] returns the process index of sort a present in s. *)
 val state_value : state -> sort -> sortidx

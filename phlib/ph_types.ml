@@ -107,9 +107,17 @@ let string_of_state s =
 	in
 	"["^(SMap.fold folder s "")^"]"
 ;;
-let state0 ps = List.fold_left (fun s (a,_) -> SMap.add a 0 s) SMap.empty ps
+let state0 = List.fold_left (fun s (a,_) -> SMap.add a 0 s) SMap.empty
 ;;
-let merge_state state =
+
+let merge_states dest orig =
+	let apply a i dest =
+		SMap.add a i dest
+	in
+	SMap.fold apply orig dest
+;;
+	
+let merge_state_with_ps state =
 	let apply state (a,i) =
 		SMap.add a i state
 	in
