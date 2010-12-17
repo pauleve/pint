@@ -77,7 +77,7 @@ let get_sort_max ps a =
 
 
 let compute_init_state ph defaults =
-	let state = merge_state (state0 (fst ph)) defaults
+	let state = merge_state_with_ps (state0 (fst ph)) defaults
 	in
 	(* apply cooperativities *)
 	let fold state (c, (sigma, idx)) =
@@ -92,7 +92,7 @@ let compute_init_state ph defaults =
 	let state = List.fold_left fold state (List.rev !cooperativities)
 	in
 	(* re-apply default (force cooperative states) *)
-	merge_state state defaults
+	merge_state_with_ps state defaults
 ;;
 
 (***

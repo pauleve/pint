@@ -53,26 +53,17 @@ let count_processes (ps, _) =
 ;;
 let count_actions (_, hits) = Hashtbl.length hits;;
 
-let fill_state =
-	let folder state (a,_) =
-		if not(SMap.mem a state) then
-			SMap.add a 0 state
-		else state
-	in
-	List.fold_left folder
-;;
-
 let opt_initial_procs = ref [];;
 let parse channel_in =
 	let lexbuf = Lexing.from_channel channel_in
 	in
 	try 
-		let ph, init_state = Ph_parser.main Ph_lexer.lexer lexbuf
+		let ph, s = Ph_parser.main Ph_lexer.lexer lexbuf
 		in
 		close_in channel_in;
-		let init_state = merge_state init_state !opt_initial_procs
+		let s = merge_state_with_ps s !opt_initial_procs
 		in
-		ph, fill_state init_state (fst ph)
+		ph, s
 	with Parsing.Parse_error ->
 		let show_position pos =
 			  "Line " ^ string_of_int pos.Lexing.pos_lnum ^
