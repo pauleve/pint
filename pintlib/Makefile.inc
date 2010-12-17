@@ -1,7 +1,10 @@
 
 SOURCES := \
+	debug.mli\
 	debug.ml\
+	param.mli\
 	param.ml\
+	util.mli\
 	util.ml\
 
 LIBS := 

@@ -737,7 +737,7 @@ let under_approximation_1 env =
 			in
 			try 
 			Util.cross_forward (handler, merger, stopper) selectors
-			with Util.No_choice -> (
+			with Util.Empty -> (
 				(* no choice available: do nothing *)
 				dbg "# aborting concretion";
 				false )
