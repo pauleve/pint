@@ -64,7 +64,7 @@ let rec string_apply substring data = function [] -> data
 let prepend_all s = List.map (fun e -> s::e);;
 let rec cross l = function [] -> [] | h::q -> (prepend_all h l) @ (cross l q);;
 
-let cross_list x = List.fold_left cross [List.hd x] (List.tl x);;
+let cross_list (x:'a list list) : 'a list list = List.fold_left cross [[]] x;;
 
 exception Empty;;
 let cross_forward (handler, merger, stopper) selectors =
