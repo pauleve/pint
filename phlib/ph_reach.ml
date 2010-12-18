@@ -64,7 +64,7 @@ type env_ng = {
 	w : objective_seq;
 	_BS : (objective, action list list) Hashtbl.t;
 	aBS : (objective, PSet.t list) Hashtbl.t;
-	tBS : (objective, (process * PSet.t)) Hashtbl.t;
+	tBS : (objective * PSet.t, process * PSet.t) Hashtbl.t;
 	a : abstr_struct;
 }
 
@@ -183,24 +183,36 @@ let get_aBS env obj =
 (** targets_ai **)
 
 (* @returns the targets that ai may hits when resolving obj *)
-let tBS env obj ai =
-	let full_tBS = Hashtbl.find_all env.tBS obj
+let tBS env aS obj ai =
+	let choices = ObjMap.find obj aS._Sol
+	in
+	dbg ("restricted choices: "^(String.concat ";" (List.map string_of_procs choices)));
+	let restr_procs = List.fold_left PSet.union PSet.empty choices
+	in
+	let full_tBS = Hashtbl.find_all env.tBS (obj,restr_procs)
 	in
 	try
 		List.assoc ai full_tBS
 	with Not_found -> (
 		dbg "tBS: exact (expensive) computation.";
-		let fold_actions ps actions =
+		let a = obj_sort obj
+		in
+		let fold_actions ps bs =
+			if List.exists (fun h -> let (b,i) = hitter h
+					in
+					b <> a && not (PSet.mem (b,i) restr_procs)) bs then
+				ps
+			else 
 			let fold_action ps = function Hit (h,t,_) ->
 				if h = ai then PSet.add t ps else ps
 			in
-			List.fold_left fold_action ps actions
+			List.fold_left fold_action ps bs
 		in
 		let _BS = get_BS env obj
 		in
 		let ps = List.fold_left fold_actions PSet.empty _BS
 		in
-		Hashtbl.add env.tBS obj (ai,ps);
+		Hashtbl.add env.tBS (obj,restr_procs) (ai,ps);
 		ps
 	)
 ;;
@@ -500,7 +512,7 @@ let max_contmap env aS obj =
 			let fold_req levels obj =
 				ISet.union levels (max_cont_obj knownps obj)
 			in
-			List.fold_left fold_req ISet.empty (try PMap.find (b,j) aS._Req with Not_found -> failwith "2")
+			List.fold_left fold_req ISet.empty (PMap.find (b,j) aS._Req)
 		)
 	in
 	let fold_sol map ps =
@@ -563,7 +575,7 @@ let sature_cont env aS =
 					) else
 						objs
 				in
-				let targets = tBS env obj ai
+				let targets = tBS env aS obj ai
 				in
 				PSet.fold fold_target targets objs
 			in
