@@ -40,11 +40,41 @@ open Big_int;;
 open Debug;;
 
 open Ph_types;;
-open Ph_op;;
 open Ph_util;;
 
 module EMap = Map.Make (struct type t = process * string
 	let compare = compare end);;
+
+let hitless_graph (ps, hits) =
+	let has_hit ai bj =
+		let hs = Hashtbl.find_all hits bj
+		in
+		let pred ((ai',p),j') = ai' = ai
+		in
+		List.exists pred hs
+	in
+	let folder v (a,la) = 
+		let folder v i =
+			let ai = (a,i)
+			in
+			if has_hit ai ai then v else (ai::v)
+		in
+		List.fold_left folder v (Util.range 0 la)
+	in
+	let v = List.fold_left folder [] ps
+	in
+	let v2 = Util.cross_list [v;v]
+	in
+	let folder set c =
+		let (ai,bj) = List.nth c 0, List.nth c 1
+		in
+		if fst ai <> fst bj && not (has_hit ai bj || has_hit bj ai) then
+			PCSet.add (ai,bj) set
+		else
+			set
+	in
+	v, List.fold_left folder PCSet.empty v2
+;;
 
 let stable_states (ps,hits) =
 	(*DEBUG*) dbg ". hitless graph";
