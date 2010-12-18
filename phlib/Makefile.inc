@@ -8,7 +8,6 @@ SOURCES := \
 	ph_translator.ml\
 	ph_util.mli\
 	ph_util.ml\
-	ph_op.ml\
 	ph_static.mli\
 	ph_static.ml\
 	ph_abstr_struct.ml\
