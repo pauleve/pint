@@ -486,26 +486,26 @@ let min_cont env aS obj =
 let max_contmap env aS obj =
 	let a = obj_sort obj
 	in
-	let rec max_cont_obj obj =
+	let rec max_cont_obj knownps obj =
 		let fold_sol levels ps =
 			let fold_p p levels =
-				ISet.union levels (max_cont_p p)
+				ISet.union levels (max_cont_p (PSet.add p knownps) p)
 			in
-			PSet.fold fold_p ps levels
+			PSet.fold fold_p (PSet.diff ps knownps) levels
 		in
-		List.fold_left fold_sol ISet.empty (ObjMap.find obj aS._Sol)
-	and max_cont_p (b,j) =
+		List.fold_left fold_sol ISet.empty (try ObjMap.find obj aS._Sol with Not_found -> [])
+	and max_cont_p knownps (b,j) =
 		if a = b then ISet.singleton j
 		else (
 			let fold_req levels obj =
-				ISet.union levels (max_cont_obj obj)
+				ISet.union levels (max_cont_obj knownps obj)
 			in
-			List.fold_left fold_req ISet.empty (PMap.find (b,j) aS._Req)
+			List.fold_left fold_req ISet.empty (try PMap.find (b,j) aS._Req with Not_found -> failwith "2")
 		)
 	in
 	let fold_sol map ps =
 		let fold_p p map = 
-			let mc = max_cont_p p
+			let mc = max_cont_p PSet.empty p
 			in
 			if ISet.is_empty mc then
 				map
@@ -517,10 +517,15 @@ let max_contmap env aS obj =
 		in
 		PSet.fold fold_p ps map
 	in
-	List.fold_left fold_sol PMap.empty (ObjMap.find obj aS._Sol)
+	dbg ("maxCont for "^string_of_obj obj);
+	let r = List.fold_left fold_sol PMap.empty (ObjMap.find obj aS._Sol)
+	in
+	dbg "done.";
+	r
 ;;
 
 let sature_cont env aS =
+	dbg_aS aS;
 	dbg "- continuity saturation...";
 	let sature_cont obj objs =
 		let b = obj_sort obj
@@ -778,8 +783,8 @@ let process_reachability ph s w =
 	in
 	try
 		over_approximation_1 env;
-		under_approximation_1 env;
 		over_approximation_mincont env;
+		under_approximation_1 env;
 		Inconc
 	with 
 	  Decision d -> d
