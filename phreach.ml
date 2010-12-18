@@ -62,7 +62,7 @@ in
 
 let ph, state = Ph_util.parse !Ui.opt_channel_in
 in
-let nb_actions = Ph_op.ph_count_actions ph
+let nb_actions = Ph_util.count_actions ph
 in
 
 let w = Ph_reach.objseq_from_procseq state pl
