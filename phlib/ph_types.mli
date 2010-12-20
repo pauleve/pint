@@ -93,3 +93,19 @@ module ObjMap : Map.S with type key = objective
 (** String representation of the given objective. *)
 val string_of_obj : objective -> string
 
+(** Sort of the objective. *)
+val obj_sort : objective -> sort
+
+(** Process index of the objective target. *)
+val obj_target : objective -> sortidx
+
+(** Process index of the objective bounce. *)
+val obj_bounce : objective -> sortidx
+
+(** Bounce process of the objective. *)
+val obj_bounce_proc : objective -> process
+
+(** [obj_reach s p] returns the objective of the reachability of process [p] from the state [s]. *)
+val obj_reach : state -> process -> objective
+
+

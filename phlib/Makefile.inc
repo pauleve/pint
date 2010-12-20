@@ -10,6 +10,7 @@ SOURCES := \
 	ph_util.ml\
 	ph_static.mli\
 	ph_static.ml\
+	ph_bounce_seq.ml\
 	ph_abstr_struct.ml\
 	ph_reach.mli\
 	ph_reach.ml\

@@ -175,3 +175,11 @@ module ObjMap = Map.Make (ObjOrd)
 
 let string_of_obj (a,i,j) = a^" "^string_of_int i^" "^string_of_int j;;
 
+let obj_sort (a, _, _) = a;;
+let obj_bounce (_, _, j) = j;;
+let obj_target (_, i, _) = i;;
+let obj_bounce_proc (a, _, j) = (a,j);;
+
+let obj_reach s (a,i) = (a, state_value s a, i);;
+
+
