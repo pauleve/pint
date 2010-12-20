@@ -68,8 +68,7 @@ type env = {
 (** Objectives **)
 
 let string_of_objs = string_of_set string_of_obj ObjSet.elements;;
-let string_of_objseq objs = "[ "^(String.concat "; "
-					(List.map string_of_obj objs))^" ]";;
+let string_of_objseq = Util.string_of_list string_of_obj;;
 
 let rec objseq_from_procseq s = function
 	  [] -> []
@@ -107,11 +106,11 @@ let new_abstr_struct s w =
 	aS
 ;;
 
-let init_env (ps,hits) s w = 
+let init_env ph s w = 
 	{
-		ph = (ps,hits);
-		w = w;
+		ph = ph;
 		s = s;
+		w = w;
 		bs_cache = Ph_bounce_seq.new_bs_cache ();
 		a = new_abstr_struct s w;
 	}
@@ -260,7 +259,7 @@ let sature_loops_Req env aS =
 		let sature_bounce i =
 			let cur_objs = PMap.find (a,i) aS._Req
 			in
-			let known_targets = i::List.map obj_target cur_objs
+			let known_targets = List.map obj_target cur_objs
 			in
 			let targets = List.filter (fun j -> 
 					not (List.mem j known_targets)
@@ -291,7 +290,6 @@ let register_objs env objs =
 ;;
 
 let rec sature_loops env aS =
-	dbg_aS aS;
 	let new_objs = sature_loops_Req env aS
 	in
 	register_objs env new_objs
@@ -608,9 +606,7 @@ let under_approximation_1 env =
 				let new_objs = bind_choices aS (new_objs, choices)
 				in
 				(* convert obj list into ObjSet *)
-				let new_objs = List.fold_left 
-						(fun objs obj -> ObjSet.add obj objs)
-									ObjSet.empty new_objs
+				let new_objs = List.fold_right ObjSet.add new_objs ObjSet.empty
 				in
 				let new_objs = ObjSet.diff new_objs aS.objs
 				in
@@ -657,6 +653,27 @@ let under_approximation_1 env =
 		raise (Decision True);
 ;;
 
+let overapprox_order env =
+	(* 1. Compute full saturation *)
+	let rec full_saturation () = 
+		let new_objs = ObjSet.union (sature_loops env env.a) (sature_cont env env.a)
+		in
+		if not (ObjSet.is_empty new_objs) then (
+			env.a.objs <- ObjSet.union env.a.objs new_objs;
+			full_saturation ()
+		)
+	in
+	full_saturation ();
+
+	(* 2. Compute pre-order *)
+	let fetch_impossible obj sol stack =
+		if sol == [] then obj::stack else stack
+	in
+	let iobjs = ObjMap.fold fetch_impossible env.a._Sol []
+	in
+	dbg ("Impossible objectives: "^(String.concat "; " (List.map string_of_obj iobjs)))
+;;
+
 let process_reachability ph s w =
 	let env = init_env ph s w
 	in
@@ -664,6 +681,7 @@ let process_reachability ph s w =
 		over_approximation_1 env;
 		under_approximation_1 env;
 		over_approximation_mincont env;
+		overapprox_order env;
 		Inconc
 	with 
 	  Decision d -> d
