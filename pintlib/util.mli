@@ -3,6 +3,9 @@
 (** String representation of the given float, ensuring there is always a number after the dot (e..g, 1. is represented as "1.0"). *)
 val string_of_float0 : float -> string
 
+(** [string_of_list str_of_el l] returns string representation of the given list [l] using the element to string function [str_of_el]. *)
+val string_of_list : ('a -> string) -> 'a list -> string
+
 (** [list_remove a l] removes all [a] occurences in [l]. *)
 val list_remove : 'a -> 'a list -> 'a list
 

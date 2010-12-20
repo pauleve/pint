@@ -40,6 +40,9 @@ let string_of_float0 value =
 	in
 	s ^ if s.[String.length s - 1] = '.' then "0" else ""
 ;;
+let string_of_list string_of_element l =
+	"["^(String.concat "; " (List.map string_of_element l))^"]"
+;;
 
 let list_remove v = List.filter (fun x -> x <> v);;
 
