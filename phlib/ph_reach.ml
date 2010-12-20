@@ -57,25 +57,17 @@ let copy_abstr_struct aS = {
 	_Cont = aS._Cont;
 }
 
-type env_ng = {
+type env = {
+	ph : ph;
 	sorts : process list;
 	t_hits : hits;
 	s : state;
 	w : objective_seq;
-	_BS : (objective, action list list) Hashtbl.t;
-	aBS : (objective, PSet.t list) Hashtbl.t;
-	tBS : (objective * PSet.t, process * PSet.t) Hashtbl.t;
+	bs_cache : Ph_bounce_seq.bs_cache;
 	a : abstr_struct;
 }
 
 (** Objectives **)
-
-let obj_sort (a, _, _) = a;;
-let obj_bounce (_, _, j) = j;;
-let obj_target (_, i, _) = i;;
-let obj_bounce_proc (a, _, j) = (a,j);;
-
-let obj_reach s (a,i) = (a, state_value s a, i);;
 
 let string_of_objs = string_of_set string_of_obj ObjSet.elements;;
 let string_of_objseq objs = "[ "^(String.concat "; "
@@ -88,135 +80,6 @@ let rec objseq_from_procseq s = function
 		in
 		(obj_reach s (a,i))::objseq_from_procseq s' pl
 ;;
-
-(** Bounce Sequences **)
-
-let actions_target_sort env a =
-	let l = List.assoc a env.sorts
-	in
-	let register map i =
-		let actions = Hashtbl.find_all env.t_hits (a,i)
-		in
-		IMap.add i actions map
-	in
-	List.fold_left register IMap.empty (Util.range 0 l)
-;;
-
-let __compute_bounce_sequence push_path push_action longer_path init init_path env obj =
-	let a, i, __to_reach = obj
-	in
-	let sort_actions = actions_target_sort env a
-	in
-	let rec walk history results i visited =
-		if i = __to_reach then
-			(* we reached our objective, remove larger results *)
-			push_path results history
-		else
-			let visited = ISet.add i visited
-			and actions = IMap.find i sort_actions
-			in
-			let folder results = function (bj,_), k ->
-				if ISet.mem k visited then (* ignore loops *)
-					results
-				else 
-					let history = push_action history (Hit (bj,(a,i),k))
-					in
-					(* ensure we are the shortest known path *)
-					if longer_path results history then
-						results
-					else
-						walk history results k visited
-			in
-			List.fold_left folder results actions
-	in
-	walk init_path init i ISet.empty
-;;
-
-(** BS **)
-
-let string_of_BS _BS_obj = "[ "^(String.concat "; " 
-		(List.map string_of_actions _BS_obj))^" ]"
-;;
-let compute_BS env obj =
-	let push_path results ps = ps::results
-	and push_action ps action = ps@[action]
-	and longer_path results ps = false
-	in
-	dbg_noendl ("- computing BS("^string_of_obj obj^")...");
-	let _BS_obj = __compute_bounce_sequence push_path push_action longer_path [] [] env obj
-	in
-	(if !dodebug then dbg (" "^string_of_BS _BS_obj));
-	Hashtbl.add env._BS obj _BS_obj;
-	_BS_obj
-;;
-let get_BS env obj =
-	try Hashtbl.find env._BS obj
-	with Not_found -> compute_BS env obj
-;;
-
-(** BS^ **)
-
-let string_of_aBS aBS_obj = "[ "^(String.concat "; " 
-		(List.map string_of_procs aBS_obj))^" ]"
-;;
-let compute_aBS env obj =
-	let push_path results ps =
-		ps::List.filter (fun ps' -> not(PSet.subset ps ps')) results
-	and push_action ps = function Hit ((a,i),_,_) ->
-		(* register hitter iff has different sort *)
-		if a <> obj_sort obj then (PSet.add (a,i) ps) else ps
-	and longer_path results ps =
-		List.exists (fun ps' -> PSet.subset ps' ps) results
-	in
-	dbg_noendl ("- computing aBS("^string_of_obj obj^")...");
-	let aBS_obj = __compute_bounce_sequence push_path push_action longer_path [] PSet.empty env obj
-	in
-	(if !dodebug then dbg (" "^string_of_aBS aBS_obj));
-	Hashtbl.add env.aBS obj aBS_obj;
-	aBS_obj
-;;
-let get_aBS env obj =
-	try Hashtbl.find env.aBS obj
-	with Not_found -> compute_aBS env obj
-;;
-
-(** targets_ai **)
-
-(* @returns the targets that ai may hits when resolving obj *)
-let tBS env aS obj ai =
-	let choices = ObjMap.find obj aS._Sol
-	in
-	dbg ("restricted choices: "^(String.concat ";" (List.map string_of_procs choices)));
-	let restr_procs = List.fold_left PSet.union PSet.empty choices
-	in
-	let full_tBS = Hashtbl.find_all env.tBS (obj,restr_procs)
-	in
-	try
-		List.assoc ai full_tBS
-	with Not_found -> (
-		dbg "tBS: exact (expensive) computation.";
-		let a = obj_sort obj
-		in
-		let fold_actions ps bs =
-			if List.exists (fun h -> let (b,i) = hitter h
-					in
-					b <> a && not (PSet.mem (b,i) restr_procs)) bs then
-				ps
-			else 
-			let fold_action ps = function Hit (h,t,_) ->
-				if h = ai then PSet.add t ps else ps
-			in
-			List.fold_left fold_action ps bs
-		in
-		let _BS = get_BS env obj
-		in
-		let ps = List.fold_left fold_actions PSet.empty _BS
-		in
-		Hashtbl.add env.tBS (obj,restr_procs) (ai,ps);
-		ps
-	)
-;;
-
 
 (** Req, Sol **)
 
@@ -248,13 +111,12 @@ let new_abstr_struct s w =
 
 let init_env (ps,hits) s w = 
 	{
+		ph = (ps,hits);
 		sorts = ps;
 		t_hits = hits;
 		w = w;
 		s = s;
-		_BS = Hashtbl.create 50;
-		aBS = Hashtbl.create 50;
-		tBS = Hashtbl.create 50;
+		bs_cache = Ph_bounce_seq.new_bs_cache ();
 		a = new_abstr_struct s w;
 	}
 ;;
@@ -306,7 +168,7 @@ let rec register_obj env s obj =
 			else
 				ObjSet.add obj' new_objs
 		in
-		let aBS = get_aBS env obj
+		let aBS = Ph_bounce_seq.get_aBS env.ph env.bs_cache obj
 		in
 		env.a.objs <- ObjSet.add obj env.a.objs;
 		env.a._Sol <- ObjMap.add obj aBS env.a._Sol;
@@ -536,6 +398,15 @@ let max_contmap env aS obj =
 	r
 ;;
 
+let get_tBS env aS obj =
+	let choices = ObjMap.find obj aS._Sol
+	in
+	dbg ("restricted choices: "^(String.concat ";" (List.map string_of_procs choices)));
+	let restr_procs = List.fold_left PSet.union PSet.empty choices
+	in
+	Ph_bounce_seq.tBS env.ph env.bs_cache obj restr_procs
+;;
+
 let sature_cont env aS =
 	dbg_aS aS;
 	dbg "- continuity saturation...";
@@ -575,7 +446,7 @@ let sature_cont env aS =
 					) else
 						objs
 				in
-				let targets = tBS env aS obj ai
+				let targets = get_tBS env aS obj ai
 				in
 				PSet.fold fold_target targets objs
 			in
