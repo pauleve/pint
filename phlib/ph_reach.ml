@@ -795,8 +795,8 @@ let process_reachability ph s w =
 	in
 	try
 		over_approximation_1 env;
-		over_approximation_mincont env;
 		under_approximation_1 env;
+		over_approximation_mincont env;
 		Inconc
 	with 
 	  Decision d -> d
