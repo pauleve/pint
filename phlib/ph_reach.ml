@@ -59,8 +59,6 @@ let copy_abstr_struct aS = {
 
 type env = {
 	ph : ph;
-	sorts : process list;
-	t_hits : hits;
 	s : state;
 	w : objective_seq;
 	bs_cache : Ph_bounce_seq.bs_cache;
@@ -112,8 +110,6 @@ let new_abstr_struct s w =
 let init_env (ps,hits) s w = 
 	{
 		ph = (ps,hits);
-		sorts = ps;
-		t_hits = hits;
 		w = w;
 		s = s;
 		bs_cache = Ph_bounce_seq.new_bs_cache ();
