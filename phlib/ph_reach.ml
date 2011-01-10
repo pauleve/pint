@@ -653,8 +653,26 @@ let under_approximation_1 env =
 		raise (Decision True);
 ;;
 
+let process_reachability ph s w =
+	let env = init_env ph s w
+	in
+	try
+		over_approximation_1 env;
+		under_approximation_1 env;
+		over_approximation_mincont env;
+		Inconc
+	with 
+	  Decision d -> d
+	| x -> raise x
+;;
+
+(**
+  EXPERIMENTATIONS
+*)
+
 let overapprox_order env =
 	(* 1. Compute full saturation *)
+	dbg "\nComputing saturated structure";
 	let rec full_saturation () = 
 		let new_objs = ObjSet.union (sature_loops env env.a) (sature_cont env env.a)
 		in
@@ -664,6 +682,8 @@ let overapprox_order env =
 		)
 	in
 	full_saturation ();
+	dbg "Fully saturated structure:";
+	dbg_aS env.a;
 
 	(* 2. Compute pre-order *)
 	let fetch_impossible obj sol stack =
@@ -674,7 +694,7 @@ let overapprox_order env =
 	dbg ("Impossible objectives: "^(String.concat "; " (List.map string_of_obj iobjs)))
 ;;
 
-let process_reachability ph s w =
+let test_order ph s w =
 	let env = init_env ph s w
 	in
 	try
@@ -687,10 +707,6 @@ let process_reachability ph s w =
 	  Decision d -> d
 	| x -> raise x
 ;;
-
-(**
-  EXPERIMENTATIONS
-*)
 
 open Ph_abstr_struct;;
 
@@ -814,24 +830,27 @@ let min_cont (gaS : #graph) objs =
 ;;
 
 
-let test_gaS env =
+let test_gaS env gaS =
 	(*fill_min_cont env*)
-	let gaS = convert_aS env.a
-	in
 	min_cont gaS env.a.objs
 ;;
 
-let test ph s w =
+let test_new_abstr ph s w =
 	let env = init_env ph s w
 	in
 	(* inital abstract structure *)
 	ignore(register_objs env env.w);
 	dbg_aS env.a;
+	let gaS = convert_aS env.a
+	in
+	gaS#debug ();
 	try
-		test_gaS env;
+		test_gaS env gaS;
 		Inconc
 	with
 	  Decision d -> d
 	| x -> raise x
 ;;
+
+let test = test_new_abstr;;
 

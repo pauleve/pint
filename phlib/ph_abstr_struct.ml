@@ -53,7 +53,60 @@ object(self)
 	val edges = Hashtbl.create 50
 	val rev_edges = Hashtbl.create 50
 
+	val mutable procs = PSet.empty
+	val mutable objs = ObjSet.empty
+
+	method debug () = if !Debug.dodebug then (
+		let sol = "#aS# "
+		and eol = "\n"
+		in
+		let register_proc p = 
+			let rels = Hashtbl.find_all edges (NodeProc p)
+			in
+			sol^"Req("^string_of_proc p^") = [ "^
+				(String.concat "; " (List.map (function NodeObj obj -> string_of_obj obj
+													| _ -> failwith "invalid graph") rels))^" ]"^eol
+		and register_obj (sols,conts) obj =
+			let rels = Hashtbl.find_all edges (NodeObj obj)
+			in
+			let solrels, contrels = List.partition (function NodeSol _ -> true |
+								NodeObj _ -> false | _ -> failwith "invalid graph") rels
+			in
+			let sols = if solrels == [] then sols else 
+				(sol^"Sol("^string_of_obj obj^") = [ "^
+					(String.concat "; " (List.map (function NodeSol (_,ps) -> string_of_procs ps
+												| _ -> failwith "error") rels))^" ]"^eol)::sols
+			and conts = if contrels == [] then conts else
+				(sol^"Cont("^string_of_obj obj^") = [ "^
+					(String.concat "; " (List.map (function NodeObj obj -> string_of_obj obj
+												| _ -> failwith "error") rels))^" ]"^eol)::conts
+			in
+			sols, conts
+		in
+		let reqs = List.map register_proc (PSet.elements procs)
+		and sols, conts = List.fold_left register_obj ([],[]) (ObjSet.elements objs)
+		in
+		let sols, conts = List.rev sols, List.rev conts
+		in
+		let buf =
+			 sol^"procs = "^string_of_procs procs^eol
+			^sol^"objs = "^(string_of_set string_of_obj ObjSet.elements objs)^eol
+			^(String.concat "" reqs)
+			^(String.concat "" sols)
+			^(String.concat "" conts)
+		in
+		dbg buf)
+
+	method register_node = function
+		  NodeProc p -> (procs <- PSet.add p procs)
+		| NodeObj (a,i,j) -> 
+				(procs <- PSet.add (a,j) procs;
+				objs <- ObjSet.add (a,i,j) objs)
+		| _ -> ()
+
 	method add_child n1 n2 =
+		self#register_node n1;
+		self#register_node n2;
 		Hashtbl.add edges n1 n2;
 		Hashtbl.add rev_edges n2 n1
 
