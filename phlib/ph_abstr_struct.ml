@@ -56,8 +56,12 @@ object(self)
 	val mutable procs = PSet.empty
 	val mutable objs = ObjSet.empty
 
+	method procs = procs
+	method objs = objs
 	method has_proc p = PSet.mem p procs
 	method has_obj obj = ObjSet.mem obj objs
+	method count_procs () = PSet.cardinal procs
+	method count_objs () = ObjSet.cardinal objs
 
 	method debug () = if !Debug.dodebug then (
 		let sol = "#aS# "
@@ -107,6 +111,8 @@ object(self)
 				objs <- ObjSet.add (a,i,j) objs)
 		| _ -> ()
 
+	method childs n1 =
+		Hashtbl.find_all edges n1
 	method add_child n1 n2 =
 		self#register_node n1;
 		self#register_node n2;
@@ -138,7 +144,7 @@ object(self)
 					Hashtbl.replace values n' n'v;
 					chgs
 				in
-				let childs = Hashtbl.find_all edges n
+				let childs = Hashtbl.find_all edges n (* warning: edges is not self#edges! *)
 				in
 				List.fold_left forward_to chgs childs
 			in
