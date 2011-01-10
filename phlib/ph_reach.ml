@@ -858,6 +858,7 @@ let min_cont (gaS : #graph) objs =
 		match n, n' with
 		  NodeSol _, NodeProc _ ->
 		  	(* union between childs *)
+			(* TODO: fix (or use min_proc *)
 			let merge a (ps,_) my_v =
 				let ps' = try fst (SMap.find a my_v) 
 						with Not_found -> PSet.empty
@@ -926,6 +927,81 @@ let min_cont (gaS : #graph) objs =
 			dbg ("minCONT("^string_of_obj (a,i,j)^")="
 					^string_of_procs ps)
 		| _ -> ()
+	in
+	if !dodebug then Hashtbl.iter dbg_val values
+;;
+
+let min_proc (gaS : #graph) ctx objs =
+
+	let union_values (ps,nm) n' (ps',_) =
+		(* union between childs *)
+		(* 1. update cache map *)
+		let nm = NodeMap.add n' ps' nm
+		in
+		if PSet.is_empty ps' then
+			((ps,nm), false)
+		else 
+			(* 2. compute union *)
+			let new_ps = NodeMap.fold (fun _ -> PSet.union) nm PSet.empty
+			in
+			((new_ps,nm), new_ps <> ps)
+
+	and inter_values (ps,nm) n' (ps',_) =
+		(* intersection between childs *)
+		(* 1. update cache map *)
+		let nm = NodeMap.add n' ps' nm
+		in
+		(* 2. compute intersection *)
+		let inter_ps _ ps = function None -> Some ps
+				| Some ps' -> Some (PSet.inter ps ps')
+		in
+		let new_ps = match NodeMap.fold inter_ps nm None with
+			  None -> PSet.empty
+			| Some x -> x
+		in
+		(new_ps,nm), new_ps <> ps
+	in
+
+	let init = function
+		  NodeObj obj -> (PSet.singleton (obj_bounce_proc obj), NodeMap.empty)
+		| _ -> (PSet.empty, NodeMap.empty)
+	and push n v n' v' =
+		match n, n' with
+		  NodeSol _, NodeProc _ -> union_values v n' v'
+
+		| NodeProc _, NodeObj obj ->
+			(* ignore if not in context *)
+			if not (List.mem (obj_target obj) (SMap.find (obj_sort obj) ctx)) then
+				(v,false)
+			else 
+				(inter_values v n' v')
+
+		| NodeObj obj, NodeSol _  ->
+			if SMap.find (obj_sort obj) ctx = [obj_target obj] then
+				inter_values v n' v'
+			else
+				failwith "TODO"
+				(* inter_values v n' v' + apply new context *)
+
+		| NodeObj _, NodeObj _ -> inter_values v n' v'
+
+		| _ -> failwith "wrong abstract structure graph."
+	in
+	let fold_obj obj ns = NodeSet.add (NodeObj obj) ns
+	in
+	let ns = ObjSet.fold fold_obj objs NodeSet.empty
+	in
+	let values = gaS#rflood init push ns
+	in
+	let string_of_value (ps,_) = string_of_procs ps
+	in
+	let dbg_val n v = match n with
+		  NodeObj obj -> dbg ("minPROC^Obj("^string_of_obj obj^")="
+		  		^string_of_value v)
+		| NodeProc p -> dbg ("minPROC^Proc("^string_of_proc p^")="
+				^string_of_value v)
+		| NodeSol (obj,ps) -> dbg ("minPROC^Sol("^string_of_procs ps^")="
+				^string_of_value v)
 	in
 	if !dodebug then Hashtbl.iter dbg_val values
 ;;
