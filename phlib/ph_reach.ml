@@ -710,42 +710,31 @@ let test_order ph s w =
 
 open Ph_abstr_struct;;
 
-let convert_aS aS =
-	let gaS = new graph
-	in
-	let link_obj n obj =
-		let nobj = NodeObj obj
-		in
-		gaS#add_child n nobj
-	in
-	let register_sol obj ps_l =
-		let nobj = NodeObj obj
-		in
-		let register_ps ps =
-			let nsol = NodeSol (obj, ps)
+let init_obj env gaS obj = 
+	let rec init_obj obj =
+		if not (gaS#has_obj obj) then (
+			let nobj = NodeObj obj
+			and aBS = Ph_bounce_seq.get_aBS env.ph env.bs_cache obj
 			in
-			let register_p p =
-				let nproc = NodeProc p
-				in
-				gaS#add_child nsol nproc
-			in 
-			(PSet.iter register_p ps;
-			gaS#add_child nobj nsol)
-		in 
-		List.iter register_ps ps_l;
-	and register_req p obj_l =
-		let nproc = NodeProc p
-		in
-		List.iter (link_obj nproc) obj_l
-	and register_cont obj objs =
-		let nobj = NodeObj obj
-		in
-		ObjSet.iter (link_obj nobj) objs
-	in (
-	ObjMap.iter register_sol aS._Sol;
-	PMap.iter register_req aS._Req;
-	ObjMap.iter register_cont aS._Cont;
-	gaS )
+			let register_sol allps ps =
+				gaS#add_child nobj (NodeSol (obj, ps));
+				PSet.union allps ps
+			in
+			let allps = List.fold_left register_sol PSet.empty aBS
+			in
+			PSet.iter init_proc allps
+		)
+	and init_proc p =
+		if not (gaS#has_proc p) then (
+			let np = NodeProc p
+			in
+			let obj = obj_reach env.s p
+			in
+			init_obj obj;
+			gaS#add_child np (NodeObj obj)
+		)
+	in
+	init_obj obj
 ;;
 
 let min_cont (gaS : #graph) objs =
@@ -837,12 +826,10 @@ let test_gaS env gaS =
 
 let test_new_abstr ph s w =
 	let env = init_env ph s w
+	and gaS = new graph
 	in
 	(* inital abstract structure *)
-	ignore(register_objs env env.w);
-	dbg_aS env.a;
-	let gaS = convert_aS env.a
-	in
+	List.iter (init_obj env gaS) env.w;
 	gaS#debug ();
 	try
 		test_gaS env gaS;

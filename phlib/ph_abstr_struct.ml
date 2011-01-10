@@ -56,6 +56,9 @@ object(self)
 	val mutable procs = PSet.empty
 	val mutable objs = ObjSet.empty
 
+	method has_proc p = PSet.mem p procs
+	method has_obj obj = ObjSet.mem obj objs
+
 	method debug () = if !Debug.dodebug then (
 		let sol = "#aS# "
 		and eol = "\n"
