@@ -834,6 +834,7 @@ let sature_gaS env gaS =
 						)
 				in
 				PSet.iter register_target ps
+				(* TODO: reversed continuity *)
 			| _ -> ()
 		in
 		Hashtbl.iter register_cont maxCont
