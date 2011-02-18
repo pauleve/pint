@@ -57,7 +57,7 @@ val bounce2 : action -> process
 type state = sortidx SMap.t
 
 (** String representation of a state. *)
-val string_of_state : int SMap.t -> string
+val string_of_state : state -> string
 
 (** Returns the state where all sorts have the process of index 0 present. *)
 val state0 : process list -> state
@@ -73,6 +73,20 @@ val state_value : state -> sort -> sortidx
 
 (** Converts a set into a list of processes. *)
 val list_of_state : state -> process list
+
+
+(** Context type *)
+type ctx = ISet.t SMap.t
+
+(** String representation of a context. *)
+val string_of_ctx : ctx -> string
+
+(** Converts a set of processes to a context. *)
+val procs_to_ctx : PSet.t -> ctx
+
+(** Context overriding. *)
+val ctx_override : ctx -> PSet.t -> ctx
+
 
 (** Returns the list of sorts defined in the given Process Hitting.*)
 val ph_sigma : ph -> sort list

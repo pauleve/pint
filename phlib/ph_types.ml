@@ -131,6 +131,34 @@ let list_of_state state =
 	SMap.fold folder state []
 ;;
 
+(** Context *)
+type ctx = ISet.t SMap.t
+
+let string_of_ctx ctx = 
+	let folder a is str =
+		str ^ (if str = "" then "" else "; ")
+		^ a ^ "="^ string_of_iset is
+	in
+	"<"^(SMap.fold folder ctx "")^">"
+;;
+
+let procs_to_ctx ps =
+	let group (a,i) ctx =
+		let is = try SMap.find a ctx with Not_found -> ISet.empty
+		in
+		let is = ISet.add i is
+		in
+		SMap.add a is ctx
+	in
+	PSet.fold group ps SMap.empty
+;;
+
+let ctx_override ctx ps =
+	let ctx' = procs_to_ctx ps
+	in
+	SMap.fold SMap.add ctx' ctx
+;;
+
 
 (* Proc level couple set *)
 module PCSet = Set.Make (struct type t = (process * process) 
