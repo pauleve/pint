@@ -87,6 +87,12 @@ val procs_to_ctx : PSet.t -> ctx
 (** Context overriding. *)
 val ctx_override : ctx -> PSet.t -> ctx
 
+(** Union between contexts. *)
+val ctx_union : ctx -> ctx -> ctx
+
+(** State to context. *)
+val ctx_of_state : state -> ctx
+
 
 (** Returns the list of sorts defined in the given Process Hitting.*)
 val ph_sigma : ph -> sort list
