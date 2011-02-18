@@ -159,6 +159,19 @@ let ctx_override ctx ps =
 	SMap.fold SMap.add ctx' ctx
 ;;
 
+let ctx_union ctx1 ctx2 =
+	let register a is2 ctx1 =
+		let is1 = try SMap.find a ctx1 with Not_found -> ISet.empty
+		in
+		SMap.add a (ISet.union is1 is2) ctx1
+	in
+	SMap.fold register ctx2 ctx1
+;;
+
+let ctx_of_state state =
+	SMap.map ISet.singleton state
+;;
+
 
 (* Proc level couple set *)
 module PCSet = Set.Make (struct type t = (process * process) 
