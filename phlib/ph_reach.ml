@@ -667,75 +667,10 @@ let process_reachability ph s w =
 ;;
 
 (**
-  EXPERIMENTATIONS
+  NEW IMPLEMENTATION
 *)
 
-let overapprox_order env =
-	(* 1. Compute full saturation *)
-	dbg "\nComputing saturated structure";
-	let rec full_saturation () = 
-		let new_objs = ObjSet.union (sature_loops env env.a) (sature_cont env env.a)
-		in
-		if not (ObjSet.is_empty new_objs) then (
-			env.a.objs <- ObjSet.union env.a.objs new_objs;
-			full_saturation ()
-		)
-	in
-	full_saturation ();
-	dbg "Fully saturated structure:";
-	dbg_aS env.a;
-
-	(* 2. Compute pre-order *)
-	let fetch_impossible obj sol stack =
-		if sol == [] then obj::stack else stack
-	in
-	let iobjs = ObjMap.fold fetch_impossible env.a._Sol []
-	in
-	dbg ("Impossible objectives: "^(String.concat "; " (List.map string_of_obj iobjs)))
-;;
-
-let test_order ph s w =
-	let env = init_env ph s w
-	in
-	try
-		over_approximation_1 env;
-		under_approximation_1 env;
-		over_approximation_mincont env;
-		overapprox_order env;
-		Inconc
-	with 
-	  Decision d -> d
-	| x -> raise x
-;;
-
 open Ph_abstr_struct;;
-
-let init_obj env gaS obj = 
-	let rec init_obj obj =
-		if not (gaS#has_obj obj) then (
-			let nobj = NodeObj obj
-			and aBS = Ph_bounce_seq.get_aBS env.ph env.bs_cache obj
-			in
-			let register_sol allps ps =
-				gaS#add_child nobj (NodeSol (obj, ps));
-				PSet.union allps ps
-			in
-			let allps = List.fold_left register_sol PSet.empty aBS
-			in
-			PSet.iter init_proc allps
-		)
-	and init_proc p =
-		if not (gaS#has_proc p) then (
-			let np = NodeProc p
-			in
-			let obj = obj_reach env.s p
-			in
-			init_obj obj;
-			gaS#add_child np (NodeObj obj)
-		)
-	in
-	init_obj obj
-;;
 
 
 let max_cont (gaS : #graph) objs =
@@ -779,176 +714,24 @@ let max_cont (gaS : #graph) objs =
 	values
 ;;
 
-let sature_gaS env gaS =
-	let sature_req () =
-		let group_procs (a,i) groups =
-			SMap.add a (i::(try SMap.find a groups with Not_found->[]))
-					groups
-		in
-		let groups = PSet.fold group_procs gaS#procs SMap.empty
-		in
-		let sature_group a levels =
-			let sature_bounce i =
-				let cur_objs = gaS#childs (NodeProc (a,i))
-				in
-				let known_targets = List.map (function NodeObj obj -> obj_target obj
-									| _ -> failwith "invalid graph") cur_objs
-				in
-				let new_targets = List.filter (fun j -> 
-						not (List.mem j known_targets)
-						&& (List.length env.w > 1 
-							|| (a,j) <>	obj_bounce_proc (List.hd env.w))
-						) levels
-				in
-				let register_target j =
-					let obj = (a,j,i)
-					in
-					init_obj env gaS obj;
-					gaS#add_child (NodeProc (a,i)) (NodeObj obj)
-				in
-				List.iter register_target new_targets
-			in
-			List.iter sature_bounce levels
-		in
-		SMap.iter sature_group groups
-
-	and sature_cont () =
-		let maxCont = max_cont gaS gaS#objs
-		in
-		let register_cont n v = match n with
-			  NodeObj (a,i,j) -> 
-				let ps = try SMap.find a v with Not_found -> PSet.empty
-				in
-				let known_conts = List.filter (function NodeObj _ -> true | _ -> false)
-									(gaS#childs n)
-				in
-				let register_target (a,k) =
-					if k <> i then
-						let obj' = (a,k,j) 
-						in
-						let nobj' = NodeObj obj'
-						in
-						if not (List.mem nobj' known_conts) then (
-							init_obj env gaS obj';
-							gaS#add_child n nobj'
-						)
-				in
-				PSet.iter register_target ps
-				(* TODO: reversed continuity *)
-			| _ -> ()
-		in
-		Hashtbl.iter register_cont maxCont
-
-	in
-	let rec sature () =
-		let nb_procs = gaS#count_procs ()
-		in
-		sature_req ();
-		sature_cont ();
-		if gaS#count_procs () <> nb_procs then
-			sature ()
-	in
-	sature ()
-;;
-
-let min_proc (gaS : #graph) ctx objs =
-
-	let union_values (ps,nm) n' (ps',_) =
-		(* union between childs *)
-		(* 1. update cache map *)
-		let nm = NodeMap.add n' ps' nm
-		in
-		if PSet.is_empty ps' then
-			((ps,nm), false)
-		else 
-			(* 2. compute union *)
-			let new_ps = NodeMap.fold (fun _ -> PSet.union) nm PSet.empty
-			in
-			((new_ps,nm), new_ps <> ps)
-
-	and inter_values (ps,nm) n' (ps',_) =
-		(* intersection between childs *)
-		(* 1. update cache map *)
-		let nm = NodeMap.add n' ps' nm
-		in
-		(* 2. compute intersection *)
-		let inter_ps _ ps = function None -> Some ps
-				| Some ps' -> Some (PSet.inter ps ps')
-		in
-		let new_ps = match NodeMap.fold inter_ps nm None with
-			  None -> PSet.empty
-			| Some x -> x
-		in
-		(new_ps,nm), new_ps <> ps
-	in
-
-	let init = function
-		  NodeObj obj -> (PSet.singleton (obj_bounce_proc obj), NodeMap.empty)
-		| _ -> (PSet.empty, NodeMap.empty)
-	and push n v n' v' =
-		match n, n' with
-		  NodeSol _, NodeProc _ -> union_values v n' v'
-
-		| NodeProc _, NodeObj obj ->
-			(* ignore if not in context *)
-			if not (List.mem (obj_target obj) (SMap.find (obj_sort obj) ctx)) then
-				(v,false)
-			else 
-				(inter_values v n' v')
-
-		| NodeObj obj, NodeSol _  ->
-			if SMap.find (obj_sort obj) ctx = [obj_target obj] then
-				inter_values v n' v'
-			else
-				failwith "TODO"
-				(* inter_values v n' v' + apply new context *)
-
-		| NodeObj _, NodeObj _ -> inter_values v n' v'
-
-		| _ -> failwith "wrong abstract structure graph."
-	in
-	let fold_obj obj ns = NodeSet.add (NodeObj obj) ns
-	in
-	let ns = ObjSet.fold fold_obj objs NodeSet.empty
-	in
-	let values = gaS#rflood init push ns
-	in
-	let string_of_value (ps,_) = string_of_procs ps
-	in
-	let dbg_val n v = match n with
-		  NodeObj obj -> dbg ("minPROC^Obj("^string_of_obj obj^")="
-		  		^string_of_value v)
-		| NodeProc p -> dbg ("minPROC^Proc("^string_of_proc p^")="
-				^string_of_value v)
-		| NodeSol (obj,ps) -> dbg ("minPROC^Sol("^string_of_procs ps^")="
-				^string_of_value v)
-	in
-	if !dodebug then Hashtbl.iter dbg_val values
-;;
-
-(*
-let test_gaS env gaS =
-	(*fill_min_cont env*)
-	min_cont gaS env.a.objs;
-
-	(* test saturation *)
-	sature_gaS env gaS;
-	gaS#debug ();
-;;
-*)
-
 let min_conts (gA : #graph) objs =
 
-	let union_value (ctx,nm) =
-		NodeMap.fold (fun _ -> ctx_union) nm ctx
-	and inter_value (ctx,nm) =
-		NodeMap.fold (fun _ -> ctx_inter) nm ctx
+	let union_value nm =
+		NodeMap.fold (fun _ -> ctx_union) nm ctx_empty
+	and inter_value nm =
+		let r = NodeMap.fold (fun _ c1 -> function
+			None -> Some c1
+			| Some c2 -> Some (ctx_inter c1 c2)) nm None
+		in
+		match r with
+		  None -> ctx_empty
+		| Some c -> c
 	in
 	let update_value n (ctx,nm) = match n with
-		  NodeSol _ -> union_value (ctx,nm)
-		| NodeObj _ -> inter_value (ctx,nm)
+		  NodeSol _ -> union_value nm
+		| NodeObj _ -> inter_value nm
 		| NodeProc (a,i) -> 
-			let ctx' = inter_value (ctx,nm)
+			let ctx' = inter_value nm
 			in
 			SMap.add a (ISet.singleton i) ctx'
 	in
@@ -965,14 +748,18 @@ let min_conts (gA : #graph) objs =
 	(** each node is associated to a couple
 			(ctx, nm) 
 		where nm is the cached value of childs *)
-	
-	let init n =
-		let nm = NodeMap.empty 
-		in
-		update_value n (SMap.empty, nm), nm
+	(*
+	let string_of_node = function
+		  NodeSol (obj,_) -> "Sol("^string_of_obj obj^"]"
+		| NodeObj obj -> "Obj["^string_of_obj obj^"]"
+		| NodeProc p -> "Proc["^string_of_proc p^"]"
+	in
+	*)
+
+	let init n = update_value n (ctx_empty, NodeMap.empty), NodeMap.empty
 
 	(* the node n with value v receive update from node n' with value v' *)
-	and push n v n' v' = if SMap.is_empty (fst v') then (v, false) else
+	and push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
 		match n, n' with
 		  NodeSol _, NodeProc _
 		| NodeObj _, NodeSol _
@@ -992,7 +779,7 @@ let min_conts (gA : #graph) objs =
 				let ais = try SMap.find a v with Not_found -> ISet.empty
 				in
 				dbg ("minCONT("^string_of_obj (a,i,j)^")="
-						^a^"_{"^string_of_iset ais^ "} ("^string_of_ctx v^")")
+						^a^"_"^string_of_iset ais^ " ("^string_of_ctx v^")")
 			| _ -> ()
 		in
 		Hashtbl.iter dbg_val values;
@@ -1001,37 +788,41 @@ let min_conts (gA : #graph) objs =
 ;;
 
 
-class cwA ctx w get_Sols =
-object(self) inherit graph
+class cwA ctx w get_Sols = object(self) inherit graph
 
 	val mutable new_objs = []
-
-	method start_mod () = 
-		new_objs <- []
 	
-	method end_mod () =
+	method commit () =
+		self#debug ();
 		(* update min_cont for new objects *)
 		let cont = min_conts self new_objs
 		in
-		ignore(cont)
+		ignore(cont);
+		new_objs <- []
 
 	method init_obj obj nobj =
 		let aBS = get_Sols obj
 		in
-		let register_sol allps ps =
-			self#add_child nobj (NodeSol (obj, ps));
-			PSet.union allps ps
+		let register_sol ps =
+			let nsol = NodeSol (obj, ps)
+			in
+			self#add_child nobj nsol;
+			let register_proc p =
+				let np = NodeProc p
+				in
+				self#init_proc p;
+				self#add_child nsol np
+			in
+			PSet.iter register_proc ps
 		in
-		let allps = List.fold_left register_sol PSet.empty aBS
-		in
-		PSet.iter self#init_proc allps;
+		List.iter register_sol aBS;
 		new_objs <- obj::new_objs
 
 	method init_proc (a,i) =
 		if not (self#has_proc (a,i)) then (
 			let np = NodeProc (a,i)
 			in
-			let objs = ISet.fold (fun j objs -> (a,j,i)::objs) (SMap.find a ctx) []
+			let objs = ISet.fold (fun j objs -> (a,j,i)::objs) (ctx_get a ctx) []
 			in
 			List.iter (fun obj ->
 				let nobj = NodeObj obj
@@ -1041,14 +832,11 @@ object(self) inherit graph
 		)
 end;;
 
-
-
 let gA_init env ctx w =
 	let gA = new cwA ctx w (Ph_bounce_seq.get_aBS env.ph env.bs_cache)
 	in
-	gA#start_mod ();
-	List.iter (fun (a,j,i) -> gA#init_proc (a,j)) w;
-	gA#end_mod ();
+	List.iter (fun (a,j,i) -> gA#init_proc (a,i)) w;
+	gA#commit ();
 	gA
 ;;
 
@@ -1061,7 +849,6 @@ let test_new_abstr ph s w =
 	in
 	gA#debug ();
 	try
-(*		test_gaS env gaS; *)
 		Inconc
 	with
 	  Decision d -> d
