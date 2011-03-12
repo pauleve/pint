@@ -136,6 +136,8 @@ type ctx = ISet.t SMap.t
 
 let ctx_empty = SMap.empty;;
 
+let ctx_get = SMap.find;;
+
 let string_of_ctx ctx = 
 	let folder a is str =
 		str ^ (if str = "" then "" else "; ")

@@ -131,6 +131,7 @@ object(self)
 			let forward n chgs = 
 				(* forward the new value v of n to its childs *)
 				let v = Hashtbl.find values n
+				and childs = Hashtbl.find_all edges n (* warning: edges is not self#edges! *)
 				in
 				let forward_to chgs n' =
 					let n'v, isnew = try Hashtbl.find values n', false
@@ -144,8 +145,6 @@ object(self)
 					Hashtbl.replace values n' n'v;
 					chgs
 				in
-				let childs = Hashtbl.find_all edges n (* warning: edges is not self#edges! *)
-				in
 				List.fold_left forward_to chgs childs
 			in
 			let chgs = NodeSet.fold forward chgs NodeSet.empty
@@ -158,7 +157,7 @@ object(self)
 		NodeSet.iter setup ns;
 		flood ns;
 		values
-	
+
 	method flood 
 		: 'a. (node -> 'a) 
 			-> (node -> 'a -> node -> 'a -> 'a * bool)

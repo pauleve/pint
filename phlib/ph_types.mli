@@ -81,6 +81,9 @@ type ctx = ISet.t SMap.t
 (** Empty context *)
 val ctx_empty : ctx
 
+(** Get indexes of the given sort in the given context. *)
+val ctx_get : sort -> ctx -> ISet.t
+
 (** String representation of a context. *)
 val string_of_ctx : ctx -> string
 
