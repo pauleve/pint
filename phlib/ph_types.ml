@@ -134,12 +134,24 @@ let list_of_state state =
 (** Context *)
 type ctx = ISet.t SMap.t
 
+let ctx_empty = SMap.empty;;
+
 let string_of_ctx ctx = 
 	let folder a is str =
 		str ^ (if str = "" then "" else "; ")
 		^ a ^ "="^ string_of_iset is
 	in
 	"<"^(SMap.fold folder ctx "")^">"
+;;
+
+let procs_of_ctx ctx =
+	let register a is ps =
+		let register i ps =
+			PSet.add (a,i) ps
+		in
+		ISet.fold register is ps
+	in
+	SMap.fold register ctx PSet.empty
 ;;
 
 let procs_to_ctx ps =
@@ -166,6 +178,17 @@ let ctx_union ctx1 ctx2 =
 		SMap.add a (ISet.union is1 is2) ctx1
 	in
 	SMap.fold register ctx2 ctx1
+;;
+
+let ctx_inter ctx1 ctx2 =
+	let register a is2 ctx =
+		try 
+			let is1 = SMap.find a ctx1
+			in
+			SMap.add a (ISet.inter is1 is2) ctx
+		with Not_found -> ctx
+	in
+	SMap.fold register ctx2 SMap.empty
 ;;
 
 let ctx_of_state state =

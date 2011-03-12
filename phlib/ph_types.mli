@@ -78,8 +78,14 @@ val list_of_state : state -> process list
 (** Context type *)
 type ctx = ISet.t SMap.t
 
+(** Empty context *)
+val ctx_empty : ctx
+
 (** String representation of a context. *)
 val string_of_ctx : ctx -> string
+
+(** Converts a context to a set of processes. *)
+val procs_of_ctx : ctx -> PSet.t
 
 (** Converts a set of processes to a context. *)
 val procs_to_ctx : PSet.t -> ctx
@@ -89,6 +95,9 @@ val ctx_override : ctx -> PSet.t -> ctx
 
 (** Union between contexts. *)
 val ctx_union : ctx -> ctx -> ctx
+
+(** Intersection between contexts. *)
+val ctx_inter : ctx -> ctx -> ctx
 
 (** State to context. *)
 val ctx_of_state : state -> ctx
