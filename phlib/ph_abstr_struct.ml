@@ -75,7 +75,7 @@ object(self)
 				(String.concat "; " (List.map (function NodeObj obj -> string_of_obj obj
 													| _ -> failwith "invalid graph") rels))^" ]"^eol
 		and register_obj (sols,conts) obj =
-			let rels = Hashtbl.find_all edges (NodeObj obj)
+			let rels = self#childs (NodeObj obj)
 			in
 			let solrels, contrels = List.partition (function NodeSol _ -> true |
 								NodeObj _ -> false | _ -> failwith "invalid graph") rels
@@ -83,11 +83,11 @@ object(self)
 			let sols = if solrels == [] then sols else 
 				(sol^"Sol("^string_of_obj obj^") = [ "^
 					(String.concat "; " (List.map (function NodeSol (_,ps) -> string_of_procs ps
-												| _ -> failwith "error") rels))^" ]"^eol)::sols
+												| _ -> failwith "invalid solrels") solrels))^" ]"^eol)::sols
 			and conts = if contrels == [] then conts else
 				(sol^"Cont("^string_of_obj obj^") = [ "^
 					(String.concat "; " (List.map (function NodeObj obj -> string_of_obj obj
-												| _ -> failwith "error") rels))^" ]"^eol)::conts
+												| _ -> failwith "invalid contrels") contrels))^" ]"^eol)::conts
 			in
 			sols, conts
 		in
