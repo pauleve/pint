@@ -60,6 +60,7 @@ object(self)
 	method objs = objs
 	method has_proc p = PSet.mem p procs
 	method has_obj obj = ObjSet.mem obj objs
+	method has_child c n = List.mem c (self#childs n)
 	method count_procs () = PSet.cardinal procs
 	method count_objs () = ObjSet.cardinal objs
 
@@ -113,11 +114,11 @@ object(self)
 
 	method childs n1 =
 		Hashtbl.find_all edges n1
-	method add_child n1 n2 =
-		self#register_node n1;
-		self#register_node n2;
-		Hashtbl.add edges n1 n2;
-		Hashtbl.add rev_edges n2 n1
+	method add_child n c =
+		self#register_node n;
+		self#register_node c;
+		Hashtbl.add edges n c;
+		Hashtbl.add rev_edges c n
 
 	method private _flood
 		: 'a. bool -> (node -> 'a) 
