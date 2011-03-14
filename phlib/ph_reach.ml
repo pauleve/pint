@@ -771,20 +771,7 @@ let min_conts (gA : #graph) objs =
 	in
 	let ns = List.fold_left fold_obj NodeSet.empty objs
 	in
-	let values = gA#rflood init push ns
-	in
-	if !dodebug then (
-		let dbg_val n (v,_) = match n with
-			  NodeObj (a,i,j) -> 
-				let ais = try SMap.find a v with Not_found -> ISet.empty
-				in
-				dbg ("minCONT("^string_of_obj (a,i,j)^")="
-						^a^"_"^string_of_iset ais^ " ("^string_of_ctx v^")")
-			| _ -> ()
-		in
-		Hashtbl.iter dbg_val values;
-	);
-	values
+	gA#rflood init push ns
 ;;
 
 
@@ -797,8 +784,33 @@ class cwA ctx w get_Sols = object(self) inherit graph
 		(* update min_cont for new objects *)
 		let cont = min_conts self new_objs
 		in
-		ignore(cont);
-		new_objs <- []
+		let register_cont n (ctx, _) = match n with
+			  NodeObj (a,i,j) ->
+				let ais = try ctx_get a ctx with Not_found -> ISet.empty
+				in
+				let ais = ISet.remove i ais
+				in
+				dbg ("minCONT("^string_of_obj (a,i,j)^")="
+						^a^"_"^string_of_iset ais^ " ("^string_of_ctx ctx^")");
+				let obj = (a,i,j)
+				in
+				let nfrom = NodeObj obj
+				in
+				let make_cont i' =
+					let obj' = (a,i',j)
+					in
+					let nto = NodeObj obj'
+					in
+					(if not (self#has_obj obj') then self#init_obj obj' nto);
+					if not (self#has_child nto nfrom) then
+						self#add_child nfrom nto
+				in
+				ISet.iter make_cont ais
+			| _ -> ()
+		in
+		new_objs <- [];
+		Hashtbl.iter register_cont cont;
+		if new_objs <> [] then self#commit ()
 
 	method init_obj obj nobj =
 		let aBS = get_Sols obj
