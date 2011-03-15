@@ -44,6 +44,12 @@ type node =
 	| NodeProc of process
 	| NodeSol of (objective * PSet.t)
 
+let string_of_node = function                                         
+	  NodeSol (obj,_) -> "Sol("^string_of_obj obj^"]"
+	| NodeObj obj -> "Obj["^string_of_obj obj^"]"
+	| NodeProc p -> "Proc["^string_of_proc p^"]"
+;;
+
 module NodeOrd = struct type t = node let compare = compare end
 module NodeSet = Set.Make (NodeOrd)
 module NodeMap = Map.Make (NodeOrd)
