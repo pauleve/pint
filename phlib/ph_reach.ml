@@ -707,13 +707,6 @@ let min_conts (gA : #graph) flood_values from_objs =
 	(** each node is associated to a couple
 			(ctx, nm) 
 		where nm is the cached value of childs *)
-	(*
-	let string_of_node = function
-		  NodeSol (obj,_) -> "Sol("^string_of_obj obj^"]"
-		| NodeObj obj -> "Obj["^string_of_obj obj^"]"
-		| NodeProc p -> "Proc["^string_of_proc p^"]"
-	in
-	*)
 
 	let init n = update_value n (ctx_empty, NodeMap.empty), NodeMap.empty
 
@@ -737,6 +730,11 @@ let min_conts (gA : #graph) flood_values from_objs =
 class cwA ctx w get_Sols = object(self) inherit graph
 
 	val mutable new_objs = []
+	val mutable trivial_nsols = NodeSet.empty
+	val mutable impossible_nobjs = NodeSet.empty
+	method get_trivial_nsols () = trivial_nsols
+	method get_leafs () = NodeSet.union trivial_nsols impossible_nobjs
+
 	val mutable min_conts_flood = Hashtbl.create 50
 	
 	method commit () =
@@ -775,17 +773,19 @@ class cwA ctx w get_Sols = object(self) inherit graph
 	method init_obj obj nobj =
 		let aBS = get_Sols obj
 		in
+		if aBS == [] then impossible_nobjs <- NodeSet.add nobj impossible_nobjs;
 		let register_sol ps =
 			let nsol = NodeSol (obj, ps)
 			in
 			self#add_child nsol nobj;
+			if PSet.is_empty ps then (trivial_nsols <- NodeSet.add nsol trivial_nsols);
 			let register_proc p =
 				let np = NodeProc p
 				in
 				self#init_proc p;
 				self#add_child np nsol
 			in
-			PSet.iter register_proc ps
+			PSet.iter register_proc ps;
 		in
 		List.iter register_sol aBS;
 		new_objs <- obj::new_objs
@@ -812,6 +812,61 @@ let gA_init env ctx w =
 	gA
 ;;
 
+
+let unordered_over_approx env (gA:#cwA) =
+	(** each node is associated to a couple
+			(green, nm) 
+		where nm is the cached value of childs *)
+
+	let init = function
+		  NodeSol (obj, ps) -> (PSet.is_empty ps, NodeMap.empty)
+		| _ -> (false, NodeMap.empty)
+
+	(* the node n with value v receives update from node n' with value v' *)
+	and push n (v,nm) n' (v',_) = 
+		(* 1. update cache map *)
+		let nm = NodeMap.add n' v' nm
+		in
+		(* 2. update value *)
+		let new_v = match n with
+		  NodeProc _ -> (* at least one child is green *)
+		  	let exists_green n' g r = r || g
+			in
+			NodeMap.fold exists_green nm false
+		| NodeSol (obj, ps) -> (* all childs are green *)
+			let proc_is_green p =
+				try NodeMap.find (NodeProc p) nm
+				with Not_found -> false
+			in
+			PSet.for_all proc_is_green ps
+		| NodeObj _ -> (* all NodeObj childs are green; at least one NodeSol is green *)
+			let exists_sol_green = function
+				  NodeSol _ -> fun g r -> r || g
+				| _ -> fun _ r -> r
+			and all_obj_green = function
+				| NodeObj _ -> fun g r -> g && r
+				| _ -> fun _ r -> r
+			in
+			let r = NodeMap.fold exists_sol_green nm false
+			in
+			if r then NodeMap.fold all_obj_green nm true else false
+		in
+		(new_v, nm), v<>new_v
+	in
+
+	let values = Hashtbl.create 50
+	in
+	dbg ("Leafs: "^(String.concat ";" (List.map string_of_node (NodeSet.elements (gA#get_leafs ())))));
+	gA#rflood init push values (gA#get_leafs ());
+	let dbg_value n (g,_) =
+		dbg ("Green("^string_of_node n^") = "^string_of_bool g)
+	in
+	Hashtbl.iter dbg_value values;
+	List.for_all (fun obj -> try fst (Hashtbl.find values (NodeObj obj)) with Not_found -> false) 
+		env.w
+;;
+	
+
 let test_new_abstr ph s w =
 	let ctx = ctx_of_state s
 	in
@@ -820,11 +875,10 @@ let test_new_abstr ph s w =
 	let gA = gA_init env ctx w
 	in
 	gA#debug ();
-	try
+	if not (unordered_over_approx env gA) then
+		False
+	else
 		Inconc
-	with
-	  Decision d -> d
-	| x -> raise x
 ;;
 
 let test = test_new_abstr;;
