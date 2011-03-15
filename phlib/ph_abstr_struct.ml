@@ -1,5 +1,5 @@
 (*
-Copyright or © or Copr. Loïc Paulevé, Morgan Magnin, Olivier Roux (2010)
+Copyright or © or Copr. Loïc Paulevé, Morgan Magnin, Olivier Roux (2010-2011)
 
 loic.pauleve@irccyn.ec-nantes.fr
 morgan.magnin@irccyn.ec-nantes.fr
