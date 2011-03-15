@@ -673,16 +673,6 @@ let process_reachability ph s w =
 open Ph_abstr_struct;;
 
 
-
-let cwA_init env ctx w =
-	let gA = new cwA ctx w (Ph_bounce_seq.get_aBS env.ph env.bs_cache)
-	in
-	List.iter (fun (a,j,i) -> gA#init_proc (a,i)) w;
-	gA#commit ();
-	gA
-;;
-
-
 let unordered_over_approx env (gA:#cwA) =
 	(** each node is associated to a couple
 			(green, nm) 
@@ -726,16 +716,24 @@ let unordered_over_approx env (gA:#cwA) =
 
 	let values = Hashtbl.create 50
 	in
-	dbg ("Leafs: "^(String.concat ";" (List.map string_of_node (NodeSet.elements (gA#get_leafs ())))));
+	(*dbg ("Leafs: "^(String.concat ";" (List.map string_of_node (NodeSet.elements (gA#get_leafs ())))));*)
 	gA#rflood init push values (gA#get_leafs ());
-	let dbg_value n (g,_) =
+	(*let dbg_value n (g,_) =
 		dbg ("Green("^string_of_node n^") = "^string_of_bool g)
 	in
-	Hashtbl.iter dbg_value values;
+	Hashtbl.iter dbg_value values;*)
 	List.for_all (fun obj -> try fst (Hashtbl.find values (NodeObj obj)) with Not_found -> false) 
 		env.w
 ;;
-	
+
+
+let cwA_init env ctx w =
+	let gA = new cwA ctx w (Ph_bounce_seq.get_aBS env.ph env.bs_cache)
+	in
+	List.iter (fun (a,j,i) -> gA#init_proc (a,i)) w;
+	gA#commit ();
+	gA
+;;
 
 let test_new_abstr ph s w =
 	let ctx = ctx_of_state s
