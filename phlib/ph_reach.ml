@@ -673,138 +673,8 @@ let process_reachability ph s w =
 open Ph_abstr_struct;;
 
 
-let min_conts (gA : #graph) flood_values from_objs =
 
-	let union_value nm =
-		NodeMap.fold (fun _ -> ctx_union) nm ctx_empty
-	and inter_value nm =
-		let r = NodeMap.fold (fun _ c1 -> function
-			None -> Some c1
-			| Some c2 -> Some (ctx_inter c1 c2)) nm None
-		in
-		match r with
-		  None -> ctx_empty
-		| Some c -> c
-	in
-	let update_value n (ctx,nm) = match n with
-		  NodeSol _ -> union_value nm
-		| NodeObj _ -> inter_value nm
-		| NodeProc (a,i) -> 
-			let ctx' = inter_value nm
-			in
-			SMap.add a (ISet.singleton i) ctx'
-	in
-	let update n (v,nm) n' (v',_) =
-		(* 1. update cache map *)
-		let nm = NodeMap.add n' v' nm
-		in
-		(* 2. update value *)
-		let v' = update_value n (v,nm)
-		in
-		(v',nm), v<>v'
-	in
-
-	(** each node is associated to a couple
-			(ctx, nm) 
-		where nm is the cached value of childs *)
-
-	let init n = update_value n (ctx_empty, NodeMap.empty), NodeMap.empty
-
-	(* the node n with value v receive update from node n' with value v' *)
-	and push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
-		match n, n' with
-		  NodeSol _, NodeProc _
-		| NodeObj _, NodeSol _
-		| NodeProc _, NodeObj _ -> (update n v n' v')
-		| NodeObj _, NodeObj _ -> (v, false) (* ignore Cont rels *)
-		| _ -> failwith "wrong abstract structure graph."
-	in
-	let fold_obj ns obj = NodeSet.add (NodeObj obj) ns
-	in
-	let ns = List.fold_left fold_obj NodeSet.empty from_objs
-	in
-	gA#rflood init push flood_values ns
-;;
-
-
-class cwA ctx w get_Sols = object(self) inherit graph
-
-	val mutable new_objs = []
-	val mutable trivial_nsols = NodeSet.empty
-	val mutable impossible_nobjs = NodeSet.empty
-	method get_trivial_nsols () = trivial_nsols
-	method get_leafs () = NodeSet.union trivial_nsols impossible_nobjs
-
-	val mutable min_conts_flood = Hashtbl.create 50
-	
-	method commit () =
-		self#debug ();
-		(* update min_conts_flood with new objectives *)
-		min_conts self min_conts_flood new_objs;
-		(* we assume the minCont grows *)
-		let register_cont obj = 
-			let nobj = NodeObj obj
-			in
-			let ctx = fst (Hashtbl.find min_conts_flood nobj)
-			and a,i,j = obj
-			in
-			let make_cont i' =
-				let obj' = (a,i',j)
-				in
-				let nto = NodeObj obj'
-				in
-				(if not (self#has_obj obj') then self#init_obj obj' nto);
-				if not (self#has_child nto nobj) then
-					self#add_child nto nobj
-			in
-			let ais = try ISet.remove i (ctx_get a ctx) 
-				with Not_found -> ISet.empty
-			in
-			dbg ("minCONT("^string_of_obj (a,i,j)^")="
-					^a^"_"^string_of_iset ais^ " ("^string_of_ctx ctx^")");
-			ISet.iter make_cont ais
-		in
-		let my_objs = new_objs
-		in
-		new_objs <- [];
-		List.iter register_cont my_objs;
-		if new_objs <> [] then self#commit ()
-
-	method init_obj obj nobj =
-		let aBS = get_Sols obj
-		in
-		if aBS == [] then impossible_nobjs <- NodeSet.add nobj impossible_nobjs;
-		let register_sol ps =
-			let nsol = NodeSol (obj, ps)
-			in
-			self#add_child nsol nobj;
-			if PSet.is_empty ps then (trivial_nsols <- NodeSet.add nsol trivial_nsols);
-			let register_proc p =
-				let np = NodeProc p
-				in
-				self#init_proc p;
-				self#add_child np nsol
-			in
-			PSet.iter register_proc ps;
-		in
-		List.iter register_sol aBS;
-		new_objs <- obj::new_objs
-
-	method init_proc (a,i) =
-		if not (self#has_proc (a,i)) then (
-			let np = NodeProc (a,i)
-			in
-			let objs = ISet.fold (fun j objs -> (a,j,i)::objs) (ctx_get a ctx) []
-			in
-			List.iter (fun obj ->
-				let nobj = NodeObj obj
-				in
-				self#add_child nobj np;
-				self#init_obj obj nobj) objs
-		)
-end;;
-
-let gA_init env ctx w =
+let cwA_init env ctx w =
 	let gA = new cwA ctx w (Ph_bounce_seq.get_aBS env.ph env.bs_cache)
 	in
 	List.iter (fun (a,j,i) -> gA#init_proc (a,i)) w;
@@ -872,7 +742,7 @@ let test_new_abstr ph s w =
 	in
 	let env = init_env ph s w
 	in
-	let gA = gA_init env ctx w
+	let gA = cwA_init env ctx w
 	in
 	gA#debug ();
 	if not (unordered_over_approx env gA) then
