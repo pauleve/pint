@@ -112,9 +112,12 @@ object(self)
 				objs <- ObjSet.add (a,i,j) objs)
 		| _ -> ()
 
-	method childs n1 =
-		Hashtbl.find_all edges n1
-	method add_child n c =
+	method childs n =
+		Hashtbl.find_all edges n
+	method parents n = 
+		Hashtbl.find_all rev_edges n
+
+	method add_child c n =
 		self#register_node n;
 		self#register_node c;
 		Hashtbl.add edges n c;
@@ -123,16 +126,16 @@ object(self)
 	method private _flood
 		: 'a. bool -> (node -> 'a) 
 			-> (node -> 'a -> node -> 'a -> 'a * bool)
-			-> NodeSet.t -> (node, 'a) Hashtbl.t
-		= fun desc init push ns ->
-		let edges = if desc then edges else rev_edges
-		and values = Hashtbl.create 50
+			-> (node, 'a) Hashtbl.t -> NodeSet.t -> unit
+		= fun desc init push values ns ->
+		let _childs, _parents = if desc then (self#childs, self#parents)
+										else (self#parents, self#childs)
 		in
 		let rec flood chgs = 
 			let forward n chgs = 
 				(* forward the new value v of n to its childs *)
 				let v = Hashtbl.find values n
-				and childs = Hashtbl.find_all edges n (* warning: edges is not self#edges! *)
+				and nexts = _childs n
 				in
 				let forward_to chgs n' =
 					let n'v, isnew = try Hashtbl.find values n', false
@@ -146,28 +149,37 @@ object(self)
 					Hashtbl.replace values n' n'v;
 					chgs
 				in
-				List.fold_left forward_to chgs childs
+				List.fold_left forward_to chgs nexts
 			in
 			let chgs = NodeSet.fold forward chgs NodeSet.empty
 			in
 			if not (NodeSet.is_empty chgs) then flood chgs
 
 		and setup n =
-			Hashtbl.add values n (init n)
+			let forward v p =
+				try 
+					let pv = Hashtbl.find values p
+					in
+					fst (push n v p pv)
+				with Not_found -> v
+			in
+			let v = List.fold_left forward (init n) (_parents n)
+			in
+			Hashtbl.add values n v
+
 		in
 		NodeSet.iter setup ns;
-		flood ns;
-		values
+		flood ns
 
 	method flood 
 		: 'a. (node -> 'a) 
 			-> (node -> 'a -> node -> 'a -> 'a * bool)
-			-> NodeSet.t -> (node, 'a) Hashtbl.t
+			-> (node, 'a) Hashtbl.t -> NodeSet.t -> unit
 		= self#_flood true
 	method rflood 
 		: 'a. (node -> 'a) 
 			-> (node -> 'a -> node -> 'a -> 'a * bool)
-			-> NodeSet.t -> (node, 'a) Hashtbl.t
+			-> (node, 'a) Hashtbl.t -> NodeSet.t -> unit
 		= self#_flood false
 
 end;;

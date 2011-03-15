@@ -673,48 +673,7 @@ let process_reachability ph s w =
 open Ph_abstr_struct;;
 
 
-let max_cont (gaS : #graph) objs =
-	let init = function
-		  NodeProc (a,i) -> SMap.add a (PSet.singleton (a,i)) SMap.empty
-		| _ -> SMap.empty
-	and push n v n' v' = if SMap.is_empty v' then (v, false) else
-		match n, n' with
-		  NodeSol _, NodeProc _ 
-		| NodeObj _, NodeSol _ | NodeProc _, NodeObj _ ->
-		  	(* union between childs *)
-			let merge a ps my_v =
-				let ps' = try SMap.find a my_v
-						with Not_found -> PSet.empty
-				in
-				SMap.add a (PSet.union ps ps') my_v
-			in
-			let my_v = SMap.fold merge v' v
-			in
-			my_v, my_v <> v
-
-		| NodeObj _, NodeObj _ -> v, false (* ignore Cont rels *)
-		| _ -> failwith "invalid graph"
-	in
-	let fold_obj obj ns = NodeSet.add (NodeObj obj) ns
-	in
-	let ns = ObjSet.fold fold_obj objs NodeSet.empty
-	in
-	let values = gaS#rflood init push ns
-	in
-	let dbg_val n v = match n with
-		  NodeObj (a,i,j) -> 
-		  	let ps = try SMap.find a v
-				with Not_found -> PSet.empty
-			in
-			dbg ("maxCONT("^string_of_obj (a,i,j)^")="
-					^string_of_procs ps)
-		| _ -> ()
-	in
-	if !dodebug then Hashtbl.iter dbg_val values;
-	values
-;;
-
-let min_conts (gA : #graph) objs =
+let min_conts (gA : #graph) flood_values from_objs =
 
 	let union_value nm =
 		NodeMap.fold (fun _ -> ctx_union) nm ctx_empty
@@ -769,47 +728,48 @@ let min_conts (gA : #graph) objs =
 	in
 	let fold_obj ns obj = NodeSet.add (NodeObj obj) ns
 	in
-	let ns = List.fold_left fold_obj NodeSet.empty objs
+	let ns = List.fold_left fold_obj NodeSet.empty from_objs
 	in
-	gA#rflood init push ns
+	gA#rflood init push flood_values ns
 ;;
 
 
 class cwA ctx w get_Sols = object(self) inherit graph
 
 	val mutable new_objs = []
+	val mutable min_conts_flood = Hashtbl.create 50
 	
 	method commit () =
 		self#debug ();
-		(* update min_cont for new objects *)
-		let cont = min_conts self new_objs
+		(* update min_conts_flood with new objectives *)
+		min_conts self min_conts_flood new_objs;
+		(* we assume the minCont grows *)
+		let register_cont obj = 
+			let nobj = NodeObj obj
+			in
+			let ctx = fst (Hashtbl.find min_conts_flood nobj)
+			and a,i,j = obj
+			in
+			let make_cont i' =
+				let obj' = (a,i',j)
+				in
+				let nto = NodeObj obj'
+				in
+				(if not (self#has_obj obj') then self#init_obj obj' nto);
+				if not (self#has_child nto nobj) then
+					self#add_child nto nobj
+			in
+			let ais = try ISet.remove i (ctx_get a ctx) 
+				with Not_found -> ISet.empty
+			in
+			dbg ("minCONT("^string_of_obj (a,i,j)^")="
+					^a^"_"^string_of_iset ais^ " ("^string_of_ctx ctx^")");
+			ISet.iter make_cont ais
 		in
-		let register_cont n (ctx, _) = match n with
-			  NodeObj (a,i,j) ->
-				let ais = try ctx_get a ctx with Not_found -> ISet.empty
-				in
-				let ais = ISet.remove i ais
-				in
-				dbg ("minCONT("^string_of_obj (a,i,j)^")="
-						^a^"_"^string_of_iset ais^ " ("^string_of_ctx ctx^")");
-				let obj = (a,i,j)
-				in
-				let nfrom = NodeObj obj
-				in
-				let make_cont i' =
-					let obj' = (a,i',j)
-					in
-					let nto = NodeObj obj'
-					in
-					(if not (self#has_obj obj') then self#init_obj obj' nto);
-					if not (self#has_child nto nfrom) then
-						self#add_child nfrom nto
-				in
-				ISet.iter make_cont ais
-			| _ -> ()
+		let my_objs = new_objs
 		in
 		new_objs <- [];
-		Hashtbl.iter register_cont cont;
+		List.iter register_cont my_objs;
 		if new_objs <> [] then self#commit ()
 
 	method init_obj obj nobj =
@@ -818,12 +778,12 @@ class cwA ctx w get_Sols = object(self) inherit graph
 		let register_sol ps =
 			let nsol = NodeSol (obj, ps)
 			in
-			self#add_child nobj nsol;
+			self#add_child nsol nobj;
 			let register_proc p =
 				let np = NodeProc p
 				in
 				self#init_proc p;
-				self#add_child nsol np
+				self#add_child np nsol
 			in
 			PSet.iter register_proc ps
 		in
@@ -839,7 +799,7 @@ class cwA ctx w get_Sols = object(self) inherit graph
 			List.iter (fun obj ->
 				let nobj = NodeObj obj
 				in
-				self#add_child np nobj;
+				self#add_child nobj np;
 				self#init_obj obj nobj) objs
 		)
 end;;
