@@ -42,6 +42,10 @@ open Ph_types;;
 
 module P2Map = Map.Make (struct type t = process * process let compare = compare end);;
 
+type env = (Ph_types.PSet.t * Ph_types.rate * Ph_types.PSet.t) list P2Map.t
+
+type plotter = (float -> Ph_types.process -> unit)
+
 let get_key ai bj = if ai < bj then (ai,bj) else (bj,ai)
 ;;
 
@@ -51,13 +55,15 @@ let string_of_reactions l = "{ "^String.concat ", " (List.map string_of_reaction
 *)
 
 let create_env (ps,hits) =
-	let index bj ((ai,f),k) idx =
+	let index bj ((ai,stoch),k) idx =
 		let i = get_key ai bj
 		in
 		let reactions = try P2Map.find i idx with Not_found -> []
 		in
 		let j = PSet.add bj (PSet.singleton ai)
 		and j' = PSet.add (fst bj, k) (PSet.singleton ai)
+		in
+		let f = rsa_of_stochatime stoch
 		in
 		(*
 		dbg (string_of_proc (fst i)^","^string_of_proc (snd i)^": adding reaction "^

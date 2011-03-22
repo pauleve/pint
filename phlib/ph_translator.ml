@@ -60,7 +60,9 @@ let spim_of_ph (ps,hits) init_state =
 		in
 		(piproc,pi::pis)::List.remove_assoc piproc piprocs
 	in
-	let register_hit p2 ((p1,rsa),l) (piprocs,channels,counter) =
+	let register_hit p2 ((p1,stoch),l) (piprocs,channels,counter) =
+		let rsa = rsa_of_stochatime stoch
+		in
 		let hitid = "hit"^string_of_int counter
 		and p2' = (fst p2,l)
 		and notify_level = "!"^chanl_of_process (fst p2)^"("^string_of_int l^")"
@@ -230,7 +232,7 @@ let prism_mdp_of_ph (ps,hits) init_state =
 		"("^statemod a^"'="^string_of_int i'^")"
 	in
 
-	let register_hit (b,j) (((a,i),rsa),k) (modules, hitid) =
+	let register_hit (b,j) (((a,i),_),k) (modules, hitid) =
 		let modules =
 			if (a,i) = (b,j) then (
 				let mod_a = (
@@ -308,7 +310,9 @@ let prism_of_ph (ps,hits) init_state =
 		"("^statemod a^"'="^string_of_int i'^")"
 	in
 
-	let register_hit (b,j) (((a,i),rsa),k) (modules, (r_consts, sa_consts), hitid) =
+	let register_hit (b,j) (((a,i),stoch),k) (modules, (r_consts, sa_consts), hitid) =
+		let rsa = rsa_of_stochatime stoch
+		in
 		let modules =
 			let sa = match rsa with None -> 1 | Some (_,sa) -> sa
 			in
@@ -495,8 +499,9 @@ let dump_of_ph (ps,hits) init_state =
 	"process "^a^" "^string_of_int i) ps))
 	^"\n\n"^
 	let string_of_rsa = function
-		  None -> " @ Inf"
-		| Some(r,sa) -> " @ "^string_of_float r^" ~ "^string_of_int sa
+		  Instantaneous -> " @ Inf"
+		| RateSA (r,sa) -> " @ "^string_of_float r^" ~ "^string_of_int sa
+		| FiringInterval (d1, d2, cc) -> " @ ["^string_of_float d1^";"^string_of_float d2^"]#"^string_of_float cc
 	in
 	let string_of_hits (b,j) (((a,i),rsa),k) str =
 		str^
@@ -542,13 +547,17 @@ let romeo_of_ph opts (ps,hits) init_state =
 			"\t<scheduling gamma=\"0\" omega=\"0\"/>\n"^
 		"</place>"
 
-	and string_of_hit (b,j) (((a,i),rsa),k) ((hid, pids), str) =
-		let dmin, dmax = match rsa with
-			  None -> "0", "0"
-			| Some(r,sa) -> 
+	and string_of_hit (b,j) (((a,i),stoch),k) ((hid, pids), str) =
+		let dmin, dmax = match stoch with
+			  Instantaneous -> "0", "0"
+			| RateSA (r,sa) -> 
 				let fi = Param.firing_interval opts.alpha r sa
 				in
 				let dmin, dmax = opts.round_fi fi
+				in
+				string_of_int dmin, string_of_int dmax
+			| FiringInterval (d1, d2, _) ->
+				let dmin, dmax = opts.round_fi (d1,d2)
 				in
 				string_of_int dmin, string_of_int dmax
 		in
@@ -586,7 +595,7 @@ let tina_of_ph (ps,hits) init_state =
 	in
 	let string_of_proc (a,i) =
 		"pl "^proc_id (a,i)^" ("^(if state_value init_state a = i then "1" else "0")^")\n"
-	and string_of_hit bj ((ai,rsa),k) =
+	and string_of_hit bj ((ai,_),k) =
 		tr_id := !tr_id + 1;
 		"tr t"^string_of_int (!tr_id)^" [0,w[ "^proc_id ai^"?1 "^proc_id bj
 			^" -> "^proc_id (fst bj,k)^"\n"
@@ -609,7 +618,7 @@ let biocham_of_process (a,i) =
 let biocham_of_ph (ps,hits) state =
 	let bc_of_process = biocham_of_process
 	in
-	let bc_of_hit (b,j) ((ai,rsa),k) =
+	let bc_of_hit (b,j) ((ai,_),k) =
 		bc_of_process (b,j) ^ " =[" ^ bc_of_process ai ^ "] => "
 		^ bc_of_process (b,k) ^".\n"
 	in
@@ -626,7 +635,7 @@ let biocham_of_ph (ps,hits) state =
 let kappa_of_ph (ps,hits) state =
 	let term_of_process (a,i) = a^"(s~"^string_of_int i^")"
 	in
-	let string_of_hit (b,j) ((ai,rsa),k) =
+	let string_of_hit (b,j) ((ai,_),k) =
 		term_of_process (b,j) ^ ", " ^ term_of_process ai ^ " -> "
 		^ term_of_process (b,k) ^", "^ term_of_process ai
 	in

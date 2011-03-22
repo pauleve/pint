@@ -23,3 +23,8 @@ val round_fi_in : float * float -> int * int
 
 (** [zoom_fi factor fi] multiplies the bounds of [fi] by [factor]. *)
 val zoom_fi : float -> float * float -> float * float
+
+(** Estimes the rate and stochasticity absorption factor corresponding to the given firing interval at the given confidence coefficient *)
+val rsa_of_firinginterval : float * float -> float -> float * int
+
+

@@ -72,9 +72,21 @@ let string_of_proc (a,i) = a^"_"^string_of_int i;;
 
 let string_of_procs = string_of_set string_of_proc PSet.elements;;
 
+type stochatime = 
+	  Instantaneous
+	| RateSA of (float * int)
+	| FiringInterval of (float*float*float) 
+
 type rate = (float * int) option
 
-type hits = (process, ((process * rate) * int)) Hashtbl.t
+let rsa_of_stochatime = function
+	  Instantaneous -> None
+	| RateSA (r, sa) -> Some (r,sa)
+	| FiringInterval (d1, d2, cc) ->
+		Some (Param.rsa_of_firinginterval (d1,d2) cc)
+;;
+
+type hits = (process, ((process * stochatime) * int)) Hashtbl.t
 
 type ph = process list * hits
 

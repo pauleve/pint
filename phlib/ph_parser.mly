@@ -11,8 +11,8 @@ let __coop_counter = ref 0;;
 
 let default_rsa () = 
 	match directive.default_rate with
-	  None -> None
-	| Some r -> Some (r, directive.default_sa)
+	  None -> Instantaneous
+	| Some r -> RateSA (r, directive.default_sa)
 ;;
 
 let init_content (ps, actions) =
@@ -37,7 +37,7 @@ let merge_decl (ps, actions) p =
 	in
 	merge_metaproc ps p, actions
 ;;
-let merge_instr (ps, actions) (ai,bj,k,rsa_d) = 
+let merge_instr (ps, actions) (ai,bj,k,stoch) = 
 	let assert_p_exists (name,level) =
 		let errstr = "Invalid reference to process "^name^(string_of_int level)^": "
 		in
@@ -51,21 +51,12 @@ let merge_instr (ps, actions) (ai,bj,k,rsa_d) =
 	assert_p_exists ai;
 	assert_p_exists bj;
 	assert_p_exists (fst bj, k);
-	let rsa = 
-		match rsa_d with
-		   None -> default_rsa ()
-		 | Some(rate_d) -> ( match rate_d with
-		 	   None -> None
-			 | Some(r, None) -> Some (r, directive.default_sa)
-			 | Some(r, Some sa) -> Some (r,sa)
-		)
-	in
-	(ps, (Hit (ai,bj,k),rsa)::actions)
+	(ps, (Hit (ai,bj,k),stoch)::actions)
 ;;
 let ph_add_hits (ps, actions) actions' =
-	let rsa = default_rsa () (* TODO: optimise *)
+	let stoch = default_rsa () (* TODO: optimise *)
 	in
-	actions @ (List.map (fun a -> (a, rsa)) actions')
+	actions @ (List.map (fun a -> (a, stoch)) actions')
 ;;
 
 let get_sort_max ps a =
@@ -376,10 +367,10 @@ let precall_macro = function
 %token <float> Float
 %token <int> Int
 %token New Art At Eof Initial
-%token Directive Sample Stoch_abs Absorb Default_rate
+%token Directive Sample Stoch_abs Absorb Default_rate Within 
 %token AND NOT IN
 %token ARROW INFTY
-%token COMMA LBRACKET LCURLY LPAREN RBRACKET RCURLY RPAREN SEMI
+%token COMMA LBRACKET LCURLY LPAREN RBRACKET RCURLY RPAREN SEMI SHARP
 
 %token <char> Sign
 
@@ -398,7 +389,7 @@ let precall_macro = function
 
 content :
   content decl { merge_decl $1 $2 }
-| content instr { merge_instr $1 $2 }
+| content hit { merge_instr $1 $2 }
 | content macro { $2 $1 }
 | decl		 { merge_decl ([], []) $1 }
 ;
@@ -409,13 +400,15 @@ process :
   Name Int	{ ($1, $2) }
 ;
 rate :
-  At INFTY { None }
-| At Float { Some ($2,None) }
-| At Float Absorb Int { Some ($2,Some $4) }
+  INFTY { Instantaneous }
+| Float { RateSA ($1, directive.default_sa) }
+| Float Absorb Int { RateSA ($1, $3) }
+| LBRACKET Float SEMI Float RBRACKET { FiringInterval ($2,$4,0.99) }
+//| LBRACKET Float SEMI Float RBRACKET SHARP Float { FiringInterval ($2,$4,$7) }
 ;
-instr : 
-  process ARROW process Int 		 				{ ($1, $3, $4, None) }
-| process ARROW process Int rate 					{ ($1, $3, $4, Some($5)) }
+hit : 
+  process ARROW process Int 		 				{ ($1, $3, $4, default_rsa ()) }
+| process ARROW process Int At rate 					{ ($1, $3, $4, $6) }
 ;
 macro:
 	Name LPAREN macro_args RPAREN { precall_macro $1 $3 }
