@@ -501,7 +501,8 @@ let dump_of_ph (ps,hits) init_state =
 	let string_of_rsa = function
 		  Instantaneous -> " @ Inf"
 		| RateSA (r,sa) -> " @ "^string_of_float r^" ~ "^string_of_int sa
-		| FiringInterval (d1, d2, cc) -> " @ ["^string_of_float d1^";"^string_of_float d2^"]#"^string_of_float cc
+		| FiringInterval (d1, d2, cc) -> " @ ["^string_of_float d1^";"^string_of_float d2^"]"
+		(*| FiringInterval (d1, d2, cc) -> " @ ["^string_of_float d1^";"^string_of_float d2^"]#"^string_of_float cc*)
 	in
 	let string_of_hits (b,j) (((a,i),rsa),k) str =
 		str^
