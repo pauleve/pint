@@ -4,7 +4,7 @@ open Debug;;
 open Ph_types;;
 
 type regulation_sign = Positive | Negative
-type regulation_t = Regulation of (string * int * regulation_sign * string)
+type regulation_t = Regulation of (string * int * regulation_sign * string * stochatime)
 
 let cooperativities = ref [];;
 let __coop_counter = ref 0;;
@@ -53,9 +53,7 @@ let merge_instr (ps, actions) (ai,bj,k,stoch) =
 	assert_p_exists (fst bj, k);
 	(ps, (Hit (ai,bj,k),stoch)::actions)
 ;;
-let ph_add_hits (ps, actions) actions' =
-	let stoch = default_rsa () (* TODO: optimise *)
-	in
+let ph_add_hits (ps, actions) actions' stoch =
 	actions @ (List.map (fun a -> (a, stoch)) actions')
 ;;
 
@@ -106,7 +104,7 @@ type macro_arg_t =
 	| Arg_Regulation of regulation_t
 	| Arg_Regulations of regulation_t list
 	| Arg_AnoStates of anostate list
-	| Arg_NamesHit of string list * process * int
+	| Arg_NamesHit of string list * process * int * stochatime
 	| Arg_StateMatching of state_matching_t
 ;;
 
@@ -170,7 +168,7 @@ let build_reflection (ps,actions) = function
 		let hsigma = List.fold_left folder [] sigma
 		in
 		let ps = sigma_p::ps
-		and actions = ph_add_hits (ps,actions) hsigma
+		and actions = ph_add_hits (ps,actions) hsigma (default_rsa ())
 		in
 		let record = sigma_n, (sigma, idx_from_state)
 		in
@@ -182,7 +180,7 @@ let build_reflection (ps,actions) = function
 let macro_regulation = function
 	  [Arg_Regulation regulation] -> (fun (ps,actions) ->
 	  	match regulation with
-	Regulation (a,t,s,b) ->
+	Regulation (a,t,s,b,stoch) ->
 		let la = get_sort_max ps a and lb = get_sort_max ps b
 		in
 		let apply_regulation i =
@@ -202,7 +200,7 @@ let macro_regulation = function
 			List.map make_hit range_j
 
 		in
-		ps, ph_add_hits (ps,actions) (List.flatten (List.map apply_regulation (Util.range 0 la)))
+		ps, ph_add_hits (ps,actions) (List.flatten (List.map apply_regulation (Util.range 0 la))) stoch
 	)
 	| _ -> failwith "macro_regulation: wrong arguments"
 ;;
@@ -210,12 +208,12 @@ let macro_grn = function
 	  [Arg_Regulations regulations] -> (fun ctx ->
 
 	let folder (regulations, genes, regulated) = function
-		Regulation (a,t,s,b) ->
+		Regulation (a,t,s,b,stoch) ->
 			let n_regulated = SSet.singleton b
 			in
 			let n_genes = SSet.add a n_regulated
 			in
-			Regulation (a,t,s,b)::regulations,
+			Regulation (a,t,s,b,stoch)::regulations,
 			SSet.union genes n_genes,
 			SSet.union regulated n_regulated
 	in
@@ -226,7 +224,7 @@ let macro_grn = function
 	let unregulateds = SSet.diff genes regulated
 	in
 	let folder a regulations =
-		Regulation (a,0,Negative,a)::regulations
+		Regulation (a,0,Negative,a, default_rsa ())::regulations
 	in
 	let regulations = SSet.fold folder unregulateds regulations
 	in
@@ -244,7 +242,7 @@ let filter_hits (ps, actions) pred =
 ;;
 
 let macro_cooperativity = function
-  [Arg_NamesHit (sigma, ak, k'); Arg_AnoStates top] -> (fun (ps,actions) ->
+  [Arg_NamesHit (sigma, ak, k', stoch); Arg_AnoStates top] -> (fun (ps,actions) ->
 	let (sigma_n, (sigma, idx_from_state)), (ps,actions) = build_reflection (ps,actions) sigma
 	in
 	let (ps, actions) = filter_hits (ps,actions) (function Hit ((a,i),bj,j') -> not (List.mem a sigma && bj = ak && j' = k'))
@@ -253,7 +251,7 @@ let macro_cooperativity = function
 		Hit ((sigma_n, idx_from_state state), ak, k'))
 			top
 	in
-	ps, ph_add_hits (ps,actions) h'coop
+	ps, ph_add_hits (ps,actions) h'coop stoch
 )
 
 | [Arg_StateMatching sm; Arg_Name sort; Arg_Int l_true; Arg_Int l_false] -> (fun ctx ->
@@ -310,7 +308,7 @@ let macro_cooperativity = function
 				@ List.map (fun s -> [Hit ((sig2,s), (sigma_n,1), 0);
 									Hit ((sig2,s), (sigma_n,3), 2)]) bot2
 			) in
-			let ctx = (sigma_n,3)::(fst ctx), ph_add_hits ctx h_coop
+			let ctx = (sigma_n,3)::(fst ctx), ph_add_hits ctx h_coop (default_rsa ())
 			in
 			cooperativities := (sigma_n, ([sig1;sig2], 
 				function [s1;s2] ->
@@ -332,7 +330,7 @@ let macro_cooperativity = function
 	in
 	let ps, actions = ctx
 	in
-	ps, ph_add_hits (ps,actions) h'coop
+	ps, ph_add_hits (ps,actions) h'coop (default_rsa ())
 )
 | _ -> failwith "macro_cooperativity: wrong arguments"
 ;;
@@ -425,7 +423,8 @@ macro_arg:
 	| regulation					{ Arg_Regulation $1 }
 	| regulation_list				{ Arg_Regulations $1 }
 	| state_list					{ Arg_AnoStates $1 }
-	| name_list ARROW process Int	{ Arg_NamesHit ($1,$3,$4) }
+	| name_list ARROW process Int	{ Arg_NamesHit ($1,$3,$4,default_rsa ()) }
+	| name_list ARROW process Int At rate	{ Arg_NamesHit ($1,$3,$4,$6) }
 	| state_matchings				{ Arg_StateMatching $1 }
 ;
 
@@ -448,8 +447,12 @@ state_matching:
 	name_list IN state_list { SM ($1, $3) }
 ;
 
-regulation:
-	  Name Int ARROW Sign Name	{ Regulation($1, $2, (if $4 = '+' then Positive else Negative), $5) }
+regulation_spec :
+	  Name Int ARROW Sign Name	{ ($1, $2, (if $4 = '+' then Positive else Negative), $5) }
+;
+regulation :
+	  regulation_spec { let a,b,c,d = $1 in Regulation (a,b,c,d,default_rsa ()) }
+	| regulation_spec At rate { let a,b,c,d = $1 in Regulation (a,b,c,d,$3) }
 ;
 regulation_list: LBRACKET regulation_list_t RBRACKET { $2 }
 regulation_list_t:
