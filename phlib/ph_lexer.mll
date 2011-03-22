@@ -32,6 +32,7 @@ rule lexer = parse
 | "}" { RCURLY }
 | "->" { ARROW }
 | "@" { At }
+| "#" { SHARP }
 | "~" { Absorb }
 | "," { COMMA }
 | ";" { SEMI }

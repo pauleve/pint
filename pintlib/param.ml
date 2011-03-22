@@ -35,6 +35,8 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 *)
 
+open Debug;;
+
 let firing_interval alpha r sa =
 	let rate = r*.float_of_int sa
 	and alpha = alpha/.2.
@@ -57,4 +59,23 @@ let round_fi_closest fi = int_of_fi (round_float (fst fi), round_float (snd fi))
 let round_fi_ex fi = int_of_fi (floor (fst fi), ceil (snd fi));;
 let round_fi_in fi = int_of_fi (ceil (fst fi), floor (snd fi));;
 let zoom_fi factor fi = factor*.fst fi, factor*.snd fi;;
+
+
+let rsa_of_firinginterval (d1,d2) cc =
+	let round_sa saf = int_of_float (ceil saf)
+	in
+	let sa_hat u v (d1, d2) = exp (u *. ((d2/.d1)**v))
+	and r_hat w x y (d1, d2) = (w +. x *. exp (-.y*.d1)) /. (d1+.d2)
+	in
+	let u, v, w, x, y =
+		if cc = 0.99 then (6.41, -1.04, 2.03, 1.39, 33.33)
+		else failwith ("Cannot compute firing interval at confidence coefficient "^string_of_float cc)
+	in
+	let r = r_hat w x y (d1, d2)
+	and saf = sa_hat u v (d1, d2)
+	in
+	dbg ("["^string_of_float d1^";"^string_of_float d2^"] => "^string_of_float r^","^string_of_int (round_sa saf));
+	r, round_sa saf
+;;
+
 

@@ -14,6 +14,7 @@ SOURCES := \
 	ph_abstr_struct.ml\
 	ph_reach.mli\
 	ph_reach.ml\
+	ph_machine.mli\
 	ph_machine.ml\
 
 LIBS := str nums
