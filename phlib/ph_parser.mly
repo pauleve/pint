@@ -68,6 +68,8 @@ let get_sort_max ps a =
 let compute_init_state ph defaults =
 	let state = merge_state_with_ps (state0 (fst ph)) defaults
 	in
+	let state = merge_state_with_ps state !Ph_useropts.initial_procs
+	in
 	(* apply cooperativities *)
 	let fold state (c, (sigma, idx)) =
 		let state_c = List.map (fun a -> SMap.find a state) sigma
