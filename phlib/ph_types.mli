@@ -97,6 +97,9 @@ val ctx_empty : ctx
 (** Get indexes of the given sort in the given context. *)
 val ctx_get : sort -> ctx -> ISet.t
 
+(** Same as previous but return empty set if sort is not present in the context keys. *)
+val ctx_safe_get : sort -> ctx -> ISet.t
+
 (** String representation of a context. *)
 val string_of_ctx : ctx -> string
 

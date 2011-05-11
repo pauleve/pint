@@ -60,6 +60,7 @@ let copy_abstr_struct aS = {
 type env = {
 	ph : ph;
 	s : state;
+	ctx : ctx;
 	w : objective_seq;
 	bs_cache : Ph_bounce_seq.bs_cache;
 	a : abstr_struct;
@@ -110,6 +111,7 @@ let init_env ph s w =
 	{
 		ph = ph;
 		s = s;
+		ctx = ctx_of_state s;
 		w = w;
 		bs_cache = Ph_bounce_seq.new_bs_cache ();
 		a = new_abstr_struct s w;
@@ -653,9 +655,7 @@ let under_approximation_1 env =
 		raise (Decision True);
 ;;
 
-let process_reachability ph s w =
-	let env = init_env ph s w
-	in
+let process_reachability env =
 	try
 		over_approximation_1 env;
 		under_approximation_1 env;
@@ -735,12 +735,8 @@ let cwA_init env ctx w =
 	gA
 ;;
 
-let test_new_abstr ph s w =
-	let ctx = ctx_of_state s
-	in
-	let env = init_env ph s w
-	in
-	let gA = cwA_init env ctx w
+let test_new_abstr env =
+	let gA = cwA_init env env.ctx env.w
 	in
 	gA#debug ();
 	if not (unordered_over_approx env gA) then
@@ -750,4 +746,24 @@ let test_new_abstr ph s w =
 ;;
 
 let test = test_new_abstr;;
+
+let min_procs env =
+	let gA = new cwA env.ctx env.w (Ph_bounce_seq.get_aBS env.ph env.bs_cache)
+	in
+	List.iter (fun obj -> gA#init_proc (obj_bounce_proc obj)) env.w;
+	gA#commit ();
+	gA#debug ();
+
+	let d_min_procs = Hashtbl.create 50
+	in
+	min_procs gA d_min_procs (ObjSet.elements gA#objs);
+	let debug_min_procs obj =
+		let ctx, _ = Hashtbl.find d_min_procs (NodeObj obj)
+		in
+		dbg ("minProc("^string_of_obj obj^") = "^string_of_ctx ctx);
+	in
+	(if !Debug.dodebug then List.iter debug_min_procs (ObjSet.elements gA#objs));
+	d_min_procs
+;;
+
 

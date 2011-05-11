@@ -38,13 +38,17 @@ knowledge of the CeCILL license and that you accept its terms.
 open Debug;;
 open Ph_types;;
 
+open Ph_abstr_struct;;
+
 let opt_method = ref "static"
 and opt_args = ref []
+and opt_list_keys = ref false
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("--method", Arg.Symbol (["static";"test"],
 				(fun x -> opt_method := x)),
 			"Method");
+		("--list-keys", Arg.Set opt_list_keys, "List Key Processes");
 	]
 and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
 and anon_fun arg = opt_args := !opt_args@[arg]
@@ -73,11 +77,29 @@ in
 dbg ("# "^phname^": "^(string_of_int nb_actions)^" actions");
 dbg ("# testing concretizability of "^Ph_reach.string_of_objseq w^" from state "^string_of_state state);
 
+let env = Ph_reach.init_env ph state w
+in
+
 let decision = 
 match !opt_method with
-	| "static" -> Ph_reach.process_reachability ph state w
-	| "test" -> Ph_reach.test ph state w
+	| "static" -> Ph_reach.process_reachability env
+	| "test" -> Ph_reach.test env
 	| _ -> failwith "Unknown method."
 in
-print_endline (string_of_ternary decision)
+print_endline (string_of_ternary decision);
+
+if !opt_list_keys then (
+	let d_min_procs = Ph_reach.min_procs env
+	in
+	let handle_proc p =
+		let obj = obj_reach state p
+		in
+		let ctx = fst (Hashtbl.find d_min_procs (NodeObj obj))
+		in
+		let procs = procs_of_ctx ctx
+		in
+		print_endline ("Key processes for "^string_of_obj obj^": "^string_of_procs procs);
+	in
+	List.iter handle_proc pl
+)
 

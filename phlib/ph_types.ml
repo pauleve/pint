@@ -150,6 +150,10 @@ let ctx_empty = SMap.empty;;
 
 let ctx_get = SMap.find;;
 
+let ctx_safe_get a ctx =
+	try ctx_get a ctx with Not_found -> ISet.empty
+;;
+
 let string_of_ctx ctx = 
 	let folder a is str =
 		str ^ (if str = "" then "" else "; ")

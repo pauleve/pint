@@ -6,6 +6,9 @@ val string_of_float0 : float -> string
 (** [string_of_list str_of_el l] returns string representation of the given list [l] using the element to string function [str_of_el]. *)
 val string_of_list : ('a -> string) -> 'a list -> string
 
+(** [opt_default default opt] returns [x] if opt is [Some x], otherwise returns [default]. *)
+val opt_default : 'a -> 'a option -> 'a
+
 (** [list_remove a l] removes all [a] occurences in [l]. *)
 val list_remove : 'a -> 'a list -> 'a list
 
