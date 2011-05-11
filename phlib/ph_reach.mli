@@ -2,7 +2,27 @@
 Process reachability by static analysis.
 *)
 
+type abstr_struct = {
+	mutable procs : Ph_types.PSet.t;
+	mutable objs : Ph_types.ObjSet.t;
+	mutable _Sol : (Ph_types.PSet.t list) Ph_types.ObjMap.t;
+	mutable _Req : (Ph_types.objective list) Ph_types.PMap.t;
+	mutable _Cont : Ph_types.ObjSet.t Ph_types.ObjMap.t;
+}
+
 type objective_seq = Ph_types.objective list
+
+type env = {
+	ph : Ph_types.ph;
+	s : Ph_types.state;
+	ctx : Ph_types.ctx;
+	w : objective_seq;
+	bs_cache : Ph_bounce_seq.bs_cache;
+	a : abstr_struct;
+}
+
+
+val init_env : Ph_types.ph -> Ph_types.state -> objective_seq -> env
 
 (** returns a string representation of the given objective sequence. *)
 val string_of_objseq : objective_seq -> string
@@ -13,7 +33,9 @@ val objseq_from_procseq : Ph_types.state -> Ph_types.process list -> objective_s
 (** [process_reachability ph s w]
 returns the semi-decision (ternary) of the concretizability of objective sequence [w] in the state [s] in the process hitting [ph].
 *)
-val process_reachability : Ph_types.ph -> Ph_types.state -> objective_seq -> Ph_types.ternary
+val process_reachability : env -> Ph_types.ternary
 
-val test : Ph_types.ph -> Ph_types.state -> objective_seq -> Ph_types.ternary
+val test : env -> Ph_types.ternary
+
+val min_procs : env -> (Ph_abstr_struct.node, (Ph_types.ctx * Ph_types.ctx Ph_abstr_struct.NodeMap.t)) Hashtbl.t
 
