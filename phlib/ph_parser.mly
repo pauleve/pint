@@ -87,6 +87,39 @@ let compute_init_state ph defaults =
 ;;
 
 (***
+    ACTIONS UPDATE
+***)
+type levelmatch = MatchAnyLevel | MatchOnlyLevel of sortidx;;
+type sortmatch = MatchAnySort | MatchOnlySort of sort;;
+
+let match_sort = function 
+	  MatchAnySort -> (fun _ -> true)
+	| MatchOnlySort a' -> (fun a -> a = a')
+;;
+let match_level = function 
+	  MatchAnyLevel -> (fun _ -> true)
+	| MatchOnlyLevel i' -> (fun i -> i = i')
+;;
+
+let match_proc (ma,mi) (a,i) = match_sort ma a && match_level mi i
+;;
+
+let update (ps,actions) (regexps, rate) =
+	let regexp_match a =
+		let ai, bj, k = match a with Hit d -> d
+		in
+		function (mai,mbj,mk) ->
+			match_proc mai ai && match_proc mbj bj && match_level mk k
+	in
+	let match_action a = List.exists (regexp_match a) regexps
+	in
+	let update_action (a,rsa) =
+		a, if match_action a then rate else rsa
+	in
+	ps, List.map update_action actions
+;;
+
+(***
 	MACROS
 ***)
 
@@ -370,7 +403,7 @@ let precall_macro = function
 %token Directive Sample Stoch_abs Absorb Default_rate Within 
 %token AND NOT IN
 %token ARROW INFTY
-%token COMMA LBRACKET LCURLY LPAREN RBRACKET RCURLY RPAREN SEMI SHARP
+%token COMMA LBRACKET LCURLY LPAREN RBRACKET RCURLY RPAREN SEMI SHARP STAR
 
 %token <char> Sign
 
@@ -391,6 +424,7 @@ content :
   content decl { merge_decl $1 $2 }
 | content hit { merge_instr $1 $2 }
 | content macro { $2 $1 }
+| content update { update $1 $2 }
 | decl		 { merge_decl ([], []) $1 }
 ;
 decl :
@@ -429,6 +463,19 @@ macro_arg:
 	| name_list ARROW process Int At rate	{ Arg_NamesHit ($1,$3,$4,$6) }
 	| state_matchings				{ Arg_StateMatching $1 }
 ;
+
+update: LCURLY actionmatch_list RCURLY At rate { ($2,$5) };
+actionmatch_list:
+	  actionmatch { [$1] }
+	| actionmatch SEMI { [$1] }
+	| actionmatch SEMI actionmatch_list { $1::$3 }
+;
+actionmatch:
+	processmatch ARROW processmatch levelmatch { ($1,$3,$4) }
+;
+levelmatch: STAR { MatchAnyLevel } | Int { MatchOnlyLevel $1 };
+sortmatch: STAR { MatchAnySort } | Name { MatchOnlySort $1 };
+processmatch : sortmatch levelmatch { ($1,$2) };
 
 action_list: LCURLY action_list_t RCURLY { $2 };
 action_list_t:
