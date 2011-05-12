@@ -1,18 +1,22 @@
 #!/usr/bin/env python
 
+import os
 import sys
 
 plots = sys.argv[1:]
 
 print("""
+set terminal pdfcairo size 5in,%(nb)din
+set output "simul.pdf"
 set border 0
 set style data steps
 set size 1.0,0.3
 set ytics 1
-set multiplot layout %d,1
-""" % len(plots))
+set multiplot layout %(nb)d,1
+""" % {"nb":len(plots)})
 
 for d in sys.argv[1:] :
-	t = d.split('.')[0]
-	print("plot \"%s\" title \"%s\"" % (d, t))
+	t = os.path.basename(d).split('.')[0]
+	print("set ylabel \"%s\"" % t)
+	print("plot \"%s\" notitle" % d)
 

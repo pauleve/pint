@@ -33,6 +33,7 @@ rule lexer = parse
 | "->" { ARROW }
 | "@" { At }
 | "#" { SHARP }
+| "*" { STAR }
 | "~" { Absorb }
 | "," { COMMA }
 | ";" { SEMI }
