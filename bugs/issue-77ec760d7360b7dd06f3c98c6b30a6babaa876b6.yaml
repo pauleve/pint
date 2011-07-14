@@ -1,0 +1,20 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: check PRISM translation (with stochasticity absorption)
+desc: |-
+  Sync with IEEE TSE
+  https://bugs.launchpad.net/pint/+bug/644287
+type: :task
+component: pint
+release: 
+reporter: LP <lp@inzenet.org>
+status: :unstarted
+disposition: 
+creation_time: 2011-07-14 13:22:42.741691 Z
+references: []
+
+id: 77ec760d7360b7dd06f3c98c6b30a6babaa876b6
+log_events: 
+- - 2011-07-14 13:22:43.821622 Z
+  - LP <lp@inzenet.org>
+  - created
+  - ""
