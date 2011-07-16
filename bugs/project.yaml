@@ -7,6 +7,16 @@ components:
 - !ditz.rubyforge.org,2008-03-06/component 
   name: PINT language
 - !ditz.rubyforge.org,2008-03-06/component 
-  name: ph-reach
-releases: []
-
+  name: phreach
+- !ditz.rubyforge.org,2008-03-06/component 
+  name: www
+releases: 
+- !ditz.rubyforge.org,2008-03-06/release 
+  name: phd
+  status: :unreleased
+  release_time: 
+  log_events: 
+  - - 2011-07-16 22:14:33.803598 Z
+    - LP <lp@inzenet.org>
+    - created
+    - ""

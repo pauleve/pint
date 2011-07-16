@@ -2,8 +2,8 @@
 title: Finish new implementation
 desc: Finish the over-approximations and under-approximation new implementations.
 type: :task
-component: ph-reach
-release: 
+component: phreach
+release: phd
 reporter: LP <lp@inzenet.org>
 status: :unstarted
 disposition: 
@@ -15,4 +15,8 @@ log_events:
 - - 2011-07-14 13:20:01.973660 Z
   - LP <lp@inzenet.org>
   - created
+  - ""
+- - 2011-07-16 22:14:50.115577 Z
+  - LP <lp@inzenet.org>
+  - assigned to release phd from unassigned
   - ""
