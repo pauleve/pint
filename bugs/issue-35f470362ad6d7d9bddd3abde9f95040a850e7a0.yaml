@@ -1,6 +1,6 @@
 --- !ditz.rubyforge.org,2008-03-06/issue 
-title: Finish new implementation
-desc: Finish the over-approximations and under-approximation new implementations.
+title: (new) implementation of unordered under-approximation
+desc: (new) implementation of unordered under-approximation
 type: :task
 component: phreach
 release: phd
@@ -19,4 +19,12 @@ log_events:
 - - 2011-07-16 22:14:50.115577 Z
   - LP <lp@inzenet.org>
   - assigned to release phd from unassigned
+  - ""
+- - 2011-07-17 15:13:47.716004 Z
+  - LP <lp@inzenet.org>
+  - edited description
+  - ""
+- - 2011-07-17 15:14:46.195741 Z
+  - LP <lp@inzenet.org>
+  - edited title
   - ""

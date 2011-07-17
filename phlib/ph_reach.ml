@@ -1,9 +1,7 @@
 (*
-Copyright or © or Copr. Loïc Paulevé, Morgan Magnin, Olivier Roux (2010-2011)
+Copyright or © or Copr. Loïc Paulevé (2010-2012)
 
-loic.pauleve@irccyn.ec-nantes.fr
-morgan.magnin@irccyn.ec-nantes.fr
-olivier.roux@irccyn.ec-nantes.fr
+lp@inzenet.org
 
 This software is a computer program whose purpose is to provide Process
 Hitting related tools.

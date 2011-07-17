@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: implement the ordered over-approximation
+desc: ""
+type: :feature
+component: phreach
+release: phd
+reporter: LP <lp@inzenet.org>
+status: :unstarted
+disposition: 
+creation_time: 2011-07-17 15:14:20.723891 Z
+references: []
+
+id: d646cb9c0d653a7559bccd9e9f9d5239e653787a
+log_events: 
+- - 2011-07-17 15:14:22.195699 Z
+  - LP <lp@inzenet.org>
+  - created
+  - ""

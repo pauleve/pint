@@ -321,8 +321,8 @@ class cwA ctx w get_Sols = object(self) inherit graph
 		)
 end;;
 
-let min_procs (gA : #graph) flood_values from_objs =
 
+let min_procs (gA : #graph) flood_values from_objs =
 
 	let union_value nm =
 		NodeMap.fold (fun _ -> ctx_union) nm ctx_empty

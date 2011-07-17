@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: implement the ordered under-approximation
+desc: ""
+type: :feature
+component: phreach
+release: phd
+reporter: LP <lp@inzenet.org>
+status: :unstarted
+disposition: 
+creation_time: 2011-07-17 15:15:42.275873 Z
+references: []
+
+id: c2ff3624c6157089be8ed1d89c45ee6d725fea41
+log_events: 
+- - 2011-07-17 15:15:43.315752 Z
+  - LP <lp@inzenet.org>
+  - created
+  - ""
