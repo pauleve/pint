@@ -1,9 +1,7 @@
 (*
-Copyright or © or Copr. Loïc Paulevé, Morgan Magnin, Olivier Roux (2010-2011)
+Copyright or © or Copr. Loïc Paulevé (2010-2012)
 
-loic.pauleve@irccyn.ec-nantes.fr
-morgan.magnin@irccyn.ec-nantes.fr
-olivier.roux@irccyn.ec-nantes.fr
+lp@inzenet.org
 
 This software is a computer program whose purpose is to provide Process
 Hitting related tools.
@@ -190,19 +188,46 @@ object(self)
 
 end;;
 
-let min_conts (gA : #graph) flood_values from_objs =
+(**
+   shared functions related to rflood algorithms 
 
-	let union_value nm =
-		NodeMap.fold (fun _ -> ctx_union) nm ctx_empty
-	and inter_value nm =
+   each node is associated to a couple
+			(ctx, nm) 
+		where nm is the cached value of childs
+ **)
+let union_value nm =
+	NodeMap.fold (fun _ -> ctx_union) nm ctx_empty
+;;
+let inter_value nm =
 		let r = NodeMap.fold (fun _ c1 -> function
-			None -> Some c1
+			  None -> Some c1
 			| Some c2 -> Some (ctx_inter c1 c2)) nm None
 		in
 		match r with
 		  None -> ctx_empty
 		| Some c -> c
+;;
+let update update_value n (v,nm) n' (v',_) =
+	(* 1. update cache map *)
+	let nm = NodeMap.add n' v' nm
 	in
+	(* 2. update value *)
+	let v' = update_value n (v,nm)
+	in
+	(v',nm), v<>v'
+;;
+let run_rflood update_value push (gA : #graph) flood_values from_objs =
+	let init n = update_value n (ctx_empty, NodeMap.empty), NodeMap.empty
+	in
+	let fold_obj ns obj = NodeSet.add (NodeObj obj) ns
+	in
+	let ns = List.fold_left fold_obj NodeSet.empty from_objs
+	in
+	gA#rflood init push flood_values ns
+;;
+(**  **)
+
+let min_conts (gA : #graph) =
 	let update_value n (ctx,nm) = match n with
 		  NodeSol _ -> union_value nm
 		| NodeObj _ -> inter_value nm
@@ -211,24 +236,10 @@ let min_conts (gA : #graph) flood_values from_objs =
 			in
 			SMap.add a (ISet.singleton i) ctx'
 	in
-	let update n (v,nm) n' (v',_) =
-		(* 1. update cache map *)
-		let nm = NodeMap.add n' v' nm
-		in
-		(* 2. update value *)
-		let v' = update_value n (v,nm)
-		in
-		(v',nm), v<>v'
+	let update = update update_value
 	in
-
-	(** each node is associated to a couple
-			(ctx, nm) 
-		where nm is the cached value of childs *)
-
-	let init n = update_value n (ctx_empty, NodeMap.empty), NodeMap.empty
-
 	(* the node n with value v receive update from node n' with value v' *)
-	and push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
+	let push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
 		match n, n' with
 		  NodeSol _, NodeProc _
 		| NodeObj _, NodeSol _
@@ -236,11 +247,71 @@ let min_conts (gA : #graph) flood_values from_objs =
 		| NodeObj _, NodeObj _ -> (v, false) (* ignore Cont rels *)
 		| _ -> failwith "wrong abstract structure graph."
 	in
-	let fold_obj ns obj = NodeSet.add (NodeObj obj) ns
+	run_rflood update_value push gA
+;;
+
+let max_conts (gA : #graph) =
+	let update_value n (ctx,nm) = match n with
+		  NodeSol _ -> union_value nm
+		| NodeObj _ -> union_value nm
+		| NodeProc (a,i) -> 
+			let ctx' = union_value nm
+			in
+			SMap.add a (ISet.singleton i) ctx'
 	in
-	let ns = List.fold_left fold_obj NodeSet.empty from_objs
+	let update = update update_value
 	in
-	gA#rflood init push flood_values ns
+	(* the node n with value v receive update from node n' with value v' *)
+	let push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
+		match n, n' with
+		  NodeSol _, NodeProc _
+		| NodeObj _, NodeSol _
+		| NodeProc _, NodeObj _ -> (update n v n' v')
+		| NodeObj _, NodeObj _ -> (v, false) (* ignore Cont rels *)
+		| _ -> failwith "wrong abstract structure graph."
+	in
+	run_rflood update_value push gA
+;;
+
+let min_procs (gA : #graph) flood_values =
+	let update_value n (ctx,nm) = match n with
+		  NodeSol _ -> union_value nm
+
+		| NodeObj (a,j,i) -> 
+			let r1 = NodeMap.fold (function 
+				  NodeSol _ -> (fun c1 -> function
+									  None -> Some c1
+									| Some c2 -> Some (ctx_inter c1 c2))
+				| _ -> (fun _ c2 -> c2)) nm None
+			in
+			let r1 = Util.opt_default ctx_empty r1
+			and r2 = NodeMap.fold (function 
+				  NodeObj obj' ->
+						let my_obj = (a,j,obj_bounce obj')
+						in
+						let ctx2 = fst (Hashtbl.find flood_values (NodeObj my_obj))
+						in
+						(fun c1 c2 -> ctx_union (ctx_union c1 c2) ctx2)
+				| _ -> (fun _ c2 -> c2)) nm ctx_empty
+			in
+			let ctx' = ctx_union r1 r2
+			in
+			SMap.add a (ISet.union (ctx_safe_get a ctx') (ISet.singleton i)) ctx'
+
+		| NodeProc _ -> inter_value nm (* TODO: ignore Obj without sols *)
+	in
+	let update = update update_value
+	in
+	(* the node n with value v receive update from node n' with value v' *)
+	let push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
+		match n, n' with
+		  NodeSol _, NodeProc _
+		| NodeObj _, NodeSol _
+		| NodeProc _, NodeObj _ 
+		| NodeObj _, NodeObj _ -> (update n v n' v')
+		| _ -> failwith "wrong abstract structure graph."
+	in
+	run_rflood update_value push gA flood_values
 ;;
 
 
@@ -252,17 +323,19 @@ class cwA ctx w get_Sols = object(self) inherit graph
 	method get_trivial_nsols () = trivial_nsols
 	method get_leafs () = NodeSet.union trivial_nsols impossible_nobjs
 
-	val mutable min_conts_flood = Hashtbl.create 50
+	val mutable conts_flood = Hashtbl.create 50
+
+	method conts = min_conts
 	
 	method commit () =
 		self#debug ();
-		(* update min_conts_flood with new objectives *)
-		min_conts self min_conts_flood new_objs;
+		(* update conts_flood with new objectives *)
+		self#conts self conts_flood new_objs;
 		(* we assume the minCont grows *)
 		let register_cont obj = 
 			let nobj = NodeObj obj
 			in
-			let ctx = fst (Hashtbl.find min_conts_flood nobj)
+			let ctx = fst (Hashtbl.find conts_flood nobj)
 			and a,i,j = obj
 			in
 			let make_cont i' =
@@ -322,75 +395,21 @@ class cwA ctx w get_Sols = object(self) inherit graph
 end;;
 
 
-let min_procs (gA : #graph) flood_values from_objs =
+class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
+	method conts = max_conts
+end;;
 
-	let union_value nm =
-		NodeMap.fold (fun _ -> ctx_union) nm ctx_empty
-	and inter_value nm =
-		let r = NodeMap.fold (fun _ c1 -> function
-			None -> Some c1
-			| Some c2 -> Some (ctx_inter c1 c2)) nm None
-		in
-		match r with
-		  None -> ctx_empty
-		| Some c -> c
-	in
+class cwB_generator ctx w get_Sols = object(self)
 
-	let update_value n (ctx,nm) = match n with
-		  NodeSol _ -> union_value nm
+	val mutable has_next = false
+	method has_next = has_next
 
-		| NodeObj (a,j,i) -> 
-			let r1 = NodeMap.fold (function 
-				  NodeSol _ -> (fun c1 -> function
-									  None -> Some c1
-									| Some c2 -> Some (ctx_inter c1 c2))
-				| _ -> (fun _ c2 -> c2)) nm None
-			in
-			let r1 = Util.opt_default ctx_empty r1
-			and r2 = NodeMap.fold (function 
-				  NodeObj obj' ->
-						let my_obj = (a,j,obj_bounce obj')
-						in
-						let ctx2 = fst (Hashtbl.find flood_values (NodeObj my_obj))
-						in
-						(fun c1 c2 -> ctx_union (ctx_union c1 c2) ctx2)
-				| _ -> (fun _ c2 -> c2)) nm ctx_empty
-			in
-			let ctx' = ctx_union r1 r2
-			in
-			SMap.add a (ISet.union (ctx_safe_get a ctx') (ISet.singleton i)) ctx'
+	method init =
+		(* TODO *)
+		()
 
-		| NodeProc _ -> inter_value nm (* TODO: ignore Obj without sols *)
-	in
-	let update n (v,nm) n' (v',_) =
-		(* 1. update cache map *)
-		let nm = NodeMap.add n' v' nm
-		in
-		(* 2. update value *)
-		let v' = update_value n (v,nm)
-		in
-		(v',nm), v<>v'
-	in
-
-	(** each node is associated to a couple
-			(ctx, nm) 
-		where nm is the cached value of childs *)
-
-	let init n = update_value n (ctx_empty, NodeMap.empty), NodeMap.empty
-
-	(* the node n with value v receive update from node n' with value v' *)
-	and push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
-		match n, n' with
-		  NodeSol _, NodeProc _
-		| NodeObj _, NodeSol _
-		| NodeProc _, NodeObj _ 
-		| NodeObj _, NodeObj _ -> (update n v n' v')
-		| _ -> failwith "wrong abstract structure graph."
-	in
-	let fold_obj ns obj = NodeSet.add (NodeObj obj) ns
-	in
-	let ns = List.fold_left fold_obj NodeSet.empty from_objs
-	in
-	gA#rflood init push flood_values ns
-;;
+	method next =
+		(* TODO *)
+		()
+end;;
 
