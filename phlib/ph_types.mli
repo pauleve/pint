@@ -100,6 +100,12 @@ val ctx_get : sort -> ctx -> ISet.t
 (** Same as previous but return empty set if sort is not present in the context keys. *)
 val ctx_safe_get : sort -> ctx -> ISet.t
 
+(** [ctx_has_proc p ctx] retruns true iff [p] is present in [ctx]. *)
+val ctx_has_proc : process -> ctx -> bool
+
+(** [ctx_add_proc p ctx] returns the context where [p] has been added. *)
+val ctx_add_proc : process -> ctx -> ctx
+
 (** String representation of a context. *)
 val string_of_ctx : ctx -> string
 

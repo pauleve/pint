@@ -317,11 +317,13 @@ let min_procs (gA : #graph) flood_values =
 
 class cwA ctx w get_Sols = object(self) inherit graph
 
+	val mutable actual_ctx = ctx
 	val mutable new_objs = []
 	val mutable trivial_nsols = NodeSet.empty
 	val mutable impossible_nobjs = NodeSet.empty
 	method get_trivial_nsols () = trivial_nsols
 	method get_leafs () = NodeSet.union trivial_nsols impossible_nobjs
+	method ctx = actual_ctx
 
 	val mutable conts_flood = Hashtbl.create 50
 
@@ -359,6 +361,23 @@ class cwA ctx w get_Sols = object(self) inherit graph
 		new_objs <- [];
 		List.iter register_cont my_objs;
 		if new_objs <> [] then self#commit ()
+	
+	method increase_ctx procs =
+		let pick_new_proc p ps =
+			if not (ctx_has_proc p actual_ctx) then
+				PSet.add p ps
+			else ps
+		in
+		let new_procs = PSet.fold pick_new_proc procs PSet.empty
+		in
+		if not (PSet.is_empty new_procs) then (
+			let ctx' = procs_to_ctx procs
+			in
+			actual_ctx <- ctx_union actual_ctx ctx';
+			(* TODO: re-init procs having sort in new_procs *)
+			self#commit ();
+			true
+		) else false
 
 	method init_obj obj nobj =
 		let aBS = get_Sols obj
@@ -384,7 +403,7 @@ class cwA ctx w get_Sols = object(self) inherit graph
 		if not (self#has_proc (a,i)) then (
 			let np = NodeProc (a,i)
 			in
-			let objs = ISet.fold (fun j objs -> (a,j,i)::objs) (ctx_get a ctx) []
+			let objs = ISet.fold (fun j objs -> (a,j,i)::objs) (ctx_get a actual_ctx) []
 			in
 			List.iter (fun obj ->
 				let nobj = NodeObj obj

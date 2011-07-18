@@ -154,6 +154,18 @@ let ctx_safe_get a ctx =
 	try ctx_get a ctx with Not_found -> ISet.empty
 ;;
 
+let ctx_has_proc (a,i) ctx = 
+	try
+		ISet.mem i (ctx_get a ctx)
+	with Not_found -> false
+;;
+
+let ctx_add_proc (a,i) ctx =
+	let is = ctx_safe_get a ctx
+	in
+	SMap.add a (ISet.add i is) ctx
+;;
+
 let string_of_ctx ctx = 
 	let folder a is str =
 		str ^ (if str = "" then "" else "; ")
