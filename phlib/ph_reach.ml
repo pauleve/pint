@@ -1,5 +1,5 @@
 (*
-Copyright or © or Copr. Loïc Paulevé (2010-2012)
+Copyright or © or Copr. Loïc Paulevé (2010-2011)
 
 lp@inzenet.org
 

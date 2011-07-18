@@ -1,5 +1,5 @@
 (*
-Copyright or © or Copr. Loïc Paulevé (2010-2012)
+Copyright or © or Copr. Loïc Paulevé (2010-2011)
 
 lp@inzenet.org
 
@@ -361,23 +361,6 @@ class cwA ctx w get_Sols = object(self) inherit graph
 		new_objs <- [];
 		List.iter register_cont my_objs;
 		if new_objs <> [] then self#commit ()
-	
-	method increase_ctx procs =
-		let pick_new_proc p ps =
-			if not (ctx_has_proc p actual_ctx) then
-				PSet.add p ps
-			else ps
-		in
-		let new_procs = PSet.fold pick_new_proc procs PSet.empty
-		in
-		if not (PSet.is_empty new_procs) then (
-			let ctx' = procs_to_ctx procs
-			in
-			actual_ctx <- ctx_union actual_ctx ctx';
-			(* TODO: re-init procs having sort in new_procs *)
-			self#commit ();
-			true
-		) else false
 
 	method init_obj obj nobj =
 		let aBS = get_Sols obj
@@ -399,18 +382,46 @@ class cwA ctx w get_Sols = object(self) inherit graph
 		List.iter register_sol aBS;
 		new_objs <- obj::new_objs
 
+	method _init_proc (a,i) js =
+		let np = NodeProc (a,i)
+		in
+		let objs = ISet.fold (fun j objs -> (a,j,i)::objs) js []
+		in
+		List.iter (fun obj ->
+			let nobj = NodeObj obj
+			in
+			self#add_child nobj np;
+			self#init_obj obj nobj) objs
+
 	method init_proc (a,i) =
 		if not (self#has_proc (a,i)) then (
-			let np = NodeProc (a,i)
-			in
-			let objs = ISet.fold (fun j objs -> (a,j,i)::objs) (ctx_get a actual_ctx) []
-			in
-			List.iter (fun obj ->
-				let nobj = NodeObj obj
-				in
-				self#add_child nobj np;
-				self#init_obj obj nobj) objs
+			self#_init_proc (a,i) (ctx_get a actual_ctx)
 		)
+
+	method increase_ctx procs =
+		let is_new_proc p = not (ctx_has_proc p actual_ctx)
+		in
+		let new_procs = PSet.filter is_new_proc procs
+		in
+		if not (PSet.is_empty new_procs) then (
+			let ctx' = procs_to_ctx new_procs
+			in
+			actual_ctx <- ctx_union actual_ctx ctx';
+			(* re-init procs having sort in new_procs *)
+			let reinit_proc (a,i) =
+				try
+					let is = ctx_get a ctx'
+					in
+					self#_init_proc (a,i) is
+				with Not_found -> ()
+			in
+			PSet.iter reinit_proc self#procs;
+			self#commit ();
+			true
+		) else false
+	
+	method saturate_ctx =
+		if self#increase_ctx self#procs then self#saturate_ctx
 end;;
 
 
@@ -419,7 +430,6 @@ class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 end;;
 
 class cwB_generator ctx w get_Sols = object(self)
-
 	val mutable has_next = false
 	method has_next = has_next
 
