@@ -452,6 +452,17 @@ end;;
 
 class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 	method conts = max_conts
+
+	method analyse_impossible_objs ms_objs =
+		prerr_endline ("multisols objs: "^string_of_set string_of_obj ObjSet.elements ms_objs);
+		(*
+			rflood from impossible_nobjs:
+				- colors parents
+				- stop if parent is an ms_objs
+				- failure if exists P \in w coloured and not in ms_objs
+				- fetch coloured ms_objs
+		*)
+
 end;;
 
 let string_of_choices choices =
@@ -481,6 +492,9 @@ class cwB_generator ctx w get_Sols = object(self)
 	val mutable queue = [ObjMap.empty]
 	method has_next = queue <> [] (*not (Queue.is_empty queue)*)
 
+	val mutable multisols_objs = ObjSet.empty
+	method multisols_objs = multisols_objs
+
 	val mutable known_choices = ObjMapSet.empty
 
 	method get_Sols choices obj =
@@ -488,6 +502,7 @@ class cwB_generator ctx w get_Sols = object(self)
 		in
 		match aBS with [] | [_] -> aBS
 		| _ -> (
+			multisols_objs <- ObjSet.add obj multisols_objs;
 			let sol =
 				try
 					let n = ObjMap.find obj choices
