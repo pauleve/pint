@@ -671,7 +671,12 @@ let process_reachability env =
 open Ph_abstr_struct;;
 
 
-let unordered_over_approx env (gA:#cwA) =
+let unordered_over_approx env get_Sols =
+	let gA = new cwA env.ctx env.w get_Sols
+	in
+	gA#build;
+	gA#debug ();
+
 	(** each node is associated to a couple
 			(green, nm) 
 		where nm is the cached value of childs *)
@@ -724,26 +729,44 @@ let unordered_over_approx env (gA:#cwA) =
 		env.w
 ;;
 
-
-let cwA_init env ctx w =
-	let gA = new cwA ctx w (Ph_bounce_seq.get_aBS env.ph env.bs_cache)
+let unordered_under_approx env get_Sols =
+	let gB_iterator = new cwB_generator env.ctx env.w get_Sols
 	in
-	List.iter (fun (a,j,i) -> gA#init_proc (a,i)) w;
-	gA#commit ();
-	gA
+	let rec iter_gBs () =
+		if gB_iterator#has_next then
+			let gB = gB_iterator#next
+			in
+			dbg "!! unordered underapprox";
+			gB#debug ();
+			(if gB#has_loops then prerr_endline "has_loops!"
+			else if gB#has_impossible_objs then
+				prerr_endline ("has_impossible_objs! "^
+					(String.concat ";" (List.map string_of_obj gB#get_impossible_objs)))
+			else raise Found
+			);
+			(*
+			if not (gB#has_loops or gB#has_impossible_objs) then
+				raise Found
+			*)
+			iter_gBs ()
+		else false
+	in
+	try iter_gBs ()
+	with Found -> true
 ;;
 
-let test_new_abstr env =
-	let gA = cwA_init env env.ctx env.w
+let new_process_reachability env =
+	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
-	gA#debug ();
-	if not (unordered_over_approx env gA) then
+	if not (unordered_over_approx env get_Sols) then
 		False
+	else if unordered_under_approx env get_Sols then
+		True
 	else
 		Inconc
 ;;
 
-let test = test_new_abstr;;
+let test = new_process_reachability;;
 
 let min_procs env =
 	let gA = new cwA env.ctx env.w (Ph_bounce_seq.get_aBS env.ph env.bs_cache)
@@ -763,5 +786,4 @@ let min_procs env =
 	(if !Debug.dodebug then List.iter debug_min_procs (ObjSet.elements gA#objs));
 	d_min_procs
 ;;
-
 

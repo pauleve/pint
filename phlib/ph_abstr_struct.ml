@@ -52,6 +52,8 @@ module NodeOrd = struct type t = node let compare = compare end
 module NodeSet = Set.Make (NodeOrd)
 module NodeMap = Map.Make (NodeOrd)
 
+exception Found
+
 class graph = 
 object(self)
 	val edges = Hashtbl.create 50
@@ -186,6 +188,17 @@ object(self)
 			-> (node, 'a) Hashtbl.t -> NodeSet.t -> unit
 		= self#_flood false
 
+	method has_loop_from n =
+		let rec forward visited n =
+			(if NodeSet.mem n visited then raise Found);
+			let visited = NodeSet.add n visited
+			in
+			List.iter (forward visited) (self#childs n)
+		in
+		try
+			forward NodeSet.empty n;
+			false
+		with Found -> true
 end;;
 
 (**
@@ -323,14 +336,24 @@ class cwA ctx w get_Sols = object(self) inherit graph
 	val mutable impossible_nobjs = NodeSet.empty
 	method get_trivial_nsols () = trivial_nsols
 	method get_leafs () = NodeSet.union trivial_nsols impossible_nobjs
+	method has_impossible_objs = not (NodeSet.is_empty impossible_nobjs)
 	method ctx = actual_ctx
+	method get_impossible_objs = NodeSet.fold (function NodeObj obj -> fun objs -> obj::objs
+													| _ -> fun objs -> objs) impossible_nobjs []
+
+	method has_loops =
+		List.exists (fun obj -> self#has_loop_from (NodeObj obj)) w
 
 	val mutable conts_flood = Hashtbl.create 50
 
 	method conts = min_conts
+
+	method build = 
+		List.iter (fun (a,j,i) -> self#init_proc (a,i)) w;
+		self#commit ()
 	
 	method commit () =
-		self#debug ();
+		(*self#debug ();*)
 		(* update conts_flood with new objectives *)
 		self#conts self conts_flood new_objs;
 		(* we assume the minCont grows *)
@@ -352,8 +375,8 @@ class cwA ctx w get_Sols = object(self) inherit graph
 			let ais = try ISet.remove i (ctx_get a ctx) 
 				with Not_found -> ISet.empty
 			in
-			dbg ("minCONT("^string_of_obj (a,i,j)^")="
-					^a^"_"^string_of_iset ais^ " ("^string_of_ctx ctx^")");
+			dbg ("cont("^string_of_obj (a,i,j)^")="
+					^a^"_"^string_of_iset ais);(*^ " ("^string_of_ctx ctx^")");*)
 			ISet.iter make_cont ais
 		in
 		let my_objs = new_objs
@@ -412,6 +435,8 @@ class cwA ctx w get_Sols = object(self) inherit graph
 				try
 					let is = ctx_get a ctx'
 					in
+					let is = ISet.remove i is
+					in
 					self#_init_proc (a,i) is
 				with Not_found -> ()
 			in
@@ -430,15 +455,27 @@ class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 end;;
 
 class cwB_generator ctx w get_Sols = object(self)
-	val mutable has_next = false
+	val mutable has_next = true
 	method has_next = has_next
 
-	method init =
-		(* TODO *)
-		()
+	method get_Sols obj =
+		let aBS = get_Sols obj
+		in
+		match aBS with [] | [_] -> aBS
+		| _ -> (
+			(* TODO *)
+			let sol = List.hd aBS
+			in
+			[sol]
+		)
 
 	method next =
-		(* TODO *)
-		()
+		has_next <- false;
+		let gB = new cwB ctx w self#get_Sols
+		in 
+		gB#build;
+		gB#saturate_ctx;
+		gB
+
 end;;
 
