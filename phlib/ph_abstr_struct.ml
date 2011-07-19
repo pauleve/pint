@@ -334,6 +334,7 @@ class cwA ctx w get_Sols = object(self) inherit graph
 	val mutable new_objs = []
 	val mutable trivial_nsols = NodeSet.empty
 	val mutable impossible_nobjs = NodeSet.empty
+	method impossible_nobjs = impossible_nobjs
 	method get_trivial_nsols () = trivial_nsols
 	method get_leafs () = NodeSet.union trivial_nsols impossible_nobjs
 	method has_impossible_objs = not (NodeSet.is_empty impossible_nobjs)
@@ -455,6 +456,8 @@ class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 
 	method analyse_impossible_objs ms_objs =
 		prerr_endline ("multisols objs: "^string_of_set string_of_obj ObjSet.elements ms_objs);
+		let im_nobjs = self#impossible_nobjs
+		in
 		(*
 			rflood from impossible_nobjs:
 				- colors parents
@@ -462,6 +465,39 @@ class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 				- failure if exists P \in w coloured and not in ms_objs
 				- fetch coloured ms_objs
 		*)
+		let is_ms_objs = function NodeObj obj -> ObjSet.mem obj ms_objs
+			| _ -> false
+		in
+		(* the node n with value v receive update from node n' with value v' *)
+		let update n (coloured, is_ms) n' (coloured', is_ms') =
+			if (not is_ms') && (not coloured) && coloured' then
+				((true,is_ms),true)
+			else
+				((coloured,is_ms),false)
+		in
+		let init n = if NodeSet.mem n im_nobjs then (true, false) else (false, is_ms_objs n)
+		and push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
+			match n, n' with
+			  NodeSol _, NodeProc _
+			| NodeObj _, NodeSol _
+			| NodeProc _, NodeObj _ 
+			| NodeObj _, NodeObj _ -> (update n v n' v')
+			| _ -> failwith "wrong abstract structure graph."
+		and flood_values = Hashtbl.create 50
+		in
+		self#rflood init push flood_values im_nobjs;
+		let get_responsibles n (coloured, is_ms) r =
+			if coloured && is_ms then n::r 
+			else (
+				(if coloured then match n with
+					    NodeObj obj -> if List.mem obj w then failwith "ROOT is coloured!!"
+					  | _ -> ());
+				r
+			)
+		in
+		let r = Hashtbl.fold get_responsibles flood_values []
+		in
+		prerr_endline ("Responsibles: "^String.concat ", " (List.map string_of_node r)^" ("^string_of_int (Hashtbl.length flood_values)^"-"^string_of_int (NodeSet.cardinal im_nobjs)^")")
 
 end;;
 

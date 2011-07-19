@@ -739,10 +739,10 @@ let unordered_under_approx env get_Sols =
 			dbg "!! unordered underapprox";
 			gB#debug ();
 			(if gB#has_impossible_objs then (
-				dbg ("has_impossible_objs! "^
+				prerr_endline ("has_impossible_objs! "^
 					(String.concat ";" (List.map string_of_obj gB#get_impossible_objs)));
 				gB#analyse_impossible_objs gB_iterator#multisols_objs;
-				(*raise Not_found*)
+				raise Not_found
 
 			) else if gB#has_loops then dbg "has_loops!"
 			else raise Found);
