@@ -454,24 +454,71 @@ class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 	method conts = max_conts
 end;;
 
+let string_of_choices choices =
+	let string_of_choice obj n =
+		string_of_obj obj ^"#"^string_of_int n
+	in
+	let fold_choice obj n acc =
+		(string_of_choice obj n)::acc
+	in
+	let acc = ObjMap.fold fold_choice choices []
+	in
+	"<"^(String.concat "; " acc)^">"
+;;
+
+let empty_choices_queue () =
+	let q = Queue.create ()
+	in
+	Queue.push ObjMap.empty q;
+	q
+;;
+
+module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = compare end)
+
 class cwB_generator ctx w get_Sols = object(self)
 	val mutable has_next = true
-	method has_next = has_next
+	(*val queue = empty_choices_queue ()*)
+	val mutable queue = [ObjMap.empty]
+	method has_next = queue <> [] (*not (Queue.is_empty queue)*)
 
-	method get_Sols obj =
+	val mutable known_choices = ObjMapSet.empty
+
+	method get_Sols choices obj =
 		let aBS = get_Sols obj
 		in
 		match aBS with [] | [_] -> aBS
 		| _ -> (
-			(* TODO *)
-			let sol = List.hd aBS
+			let sol =
+				try
+					let n = ObjMap.find obj choices
+					in
+					List.nth aBS n
+				with Not_found -> (
+					let register_choice n =
+						let choices' = ObjMap.add obj n choices
+						in
+						if not (ObjMapSet.mem choices' known_choices) then (
+							known_choices <- ObjMapSet.add choices' known_choices;
+							dbg ("::: pushing choices "^string_of_choices choices');
+							queue <- queue @ [choices'] (*::queue*)
+							(*Queue.push choices' queue*)
+						) else
+							prerr_endline ("skip "^string_of_choices choices')
+					in
+					List.iter register_choice (Util.range 1 (List.length aBS - 1));
+					List.hd aBS
+				)
 			in
 			[sol]
 		)
 
 	method next =
-		has_next <- false;
-		let gB = new cwB ctx w self#get_Sols
+		(*let choices = Queue.pop queue*)
+		let choices = List.hd queue
+		in
+		prerr_endline ("::: playing choices "^string_of_choices choices);
+		queue <- List.tl queue;
+		let gB = new cwB ctx w (self#get_Sols choices)
 		in 
 		gB#build;
 		gB#saturate_ctx;
