@@ -239,8 +239,8 @@ let macro_regulation = function
 	)
 	| _ -> failwith "macro_regulation: wrong arguments"
 ;;
-let macro_grn = function
-	  [Arg_Regulations regulations] -> (fun ctx ->
+let macro_brn do_unregulated = function
+[Arg_Regulations regulations] -> (fun ctx ->
 
 	let folder (regulations, genes, regulated) = function
 		Regulation (a,t,s,b,stoch) ->
@@ -256,20 +256,20 @@ let macro_grn = function
 	in
 	let regulations, genes, regulated = List.fold_left folder init regulations
 	in
-	let unregulateds = SSet.diff genes regulated
-	in
-	let folder a regulations =
-		Regulation (a,0,Negative,a, default_rsa ())::regulations
-	in
-	let regulations = SSet.fold folder unregulateds regulations
+	let regulations = if not do_unregulated then regulations else (
+		let unregulateds = SSet.diff genes regulated
+		in
+		let folder a regulations =
+			Regulation (a,0,Negative,a, default_rsa ())::regulations
+		in
+		SSet.fold folder unregulateds regulations)
 	in
 	let folder ctx regulation =
 		macro_regulation [Arg_Regulation regulation] ctx
 	in
 	List.fold_left folder ctx regulations
-
-	)
-	| _ -> failwith "macro_grn: wrong arguments"
+)
+| _ -> failwith "macro_grn: wrong arguments"
 ;;
 
 let filter_hits (ps, actions) pred =
@@ -387,7 +387,8 @@ let macro_knockdown = function
 
 let precall_macro = function 
 	  "COOPERATIVITY" -> macro_cooperativity
-	| "GRN" -> macro_grn
+	| "GRN" -> macro_brn true
+	| "BRN" -> macro_brn false
 	| "KNOCKDOWN" -> macro_knockdown
 	| "REGULATION" -> macro_regulation
 	| "RM" -> macro_remove
