@@ -69,6 +69,7 @@ module PMap = Map.Make (struct type t = process let compare = compare end);;
 module PSet = Set.Make (struct type t = process let compare = compare end);;
 
 let string_of_proc (a,i) = a^"_"^string_of_int i;;
+let pintstring_of_proc (a,i) = a^" "^string_of_int i;;
 
 let string_of_procs = string_of_set string_of_proc PSet.elements;;
 
@@ -100,6 +101,9 @@ let bounce2 = function Hit (_,(b,_),k) -> (b,k);;
 
 let string_of_action = function
 	Hit (ai, bj, k) -> string_of_proc ai ^"->"^string_of_proc bj^" "^string_of_int k
+;;
+let pintstring_of_action = function
+	Hit (ai, bj, k) -> pintstring_of_proc ai ^" -> "^pintstring_of_proc bj^" "^string_of_int k
 ;;
 
 let string_of_actions actions =

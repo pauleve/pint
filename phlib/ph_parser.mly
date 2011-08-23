@@ -139,6 +139,7 @@ type macro_arg_t =
 	| Arg_Regulation of regulation_t
 	| Arg_Regulations of regulation_t list
 	| Arg_AnoStates of anostate list
+	| Arg_Sorts of sort list
 	| Arg_NamesHit of string list * process * int * stochatime
 	| Arg_StateMatching of state_matching_t
 ;;
@@ -276,11 +277,17 @@ let filter_hits (ps, actions) pred =
 	(ps, List.filter (fun (a,rsa) -> pred a) actions)
 ;;
 
-let macro_cooperativity = function
-  [Arg_NamesHit (sigma, ak, k', stoch); Arg_AnoStates top] -> (fun (ps,actions) ->
+let macro_cooperativity autoremove = function
+
+  (* COOPERATIVITY([a;b]): creates a cooperative sort between a and b *)
+  [Arg_Sorts sorts] -> (fun (ps,actions) -> snd (build_reflection (ps,actions) sorts))
+
+| [Arg_NamesHit (sigma, ak, k', stoch); Arg_AnoStates top] -> (fun (ps,actions) ->
 	let (sigma_n, (sigma, idx_from_state)), (ps,actions) = build_reflection (ps,actions) sigma
 	in
-	let (ps, actions) = filter_hits (ps,actions) (function Hit ((a,i),bj,j') -> not (List.mem a sigma && bj = ak && j' = k'))
+	let (ps, actions) = if not autoremove then (ps, actions) else
+		filter_hits (ps,actions) (function Hit ((a,i),bj,j') -> 
+						not (List.mem a sigma && bj = ak && j' = k'))
 	in
 	let h'coop = List.map (fun state ->
 		Hit ((sigma_n, idx_from_state state), ak, k'))
@@ -386,9 +393,10 @@ let macro_knockdown = function
 ;;
 
 let precall_macro = function 
-	  "COOPERATIVITY" -> macro_cooperativity
+	  "BRN" -> macro_brn false
+	| "COOPERATIVITY" -> macro_cooperativity true
+	| "COOPERATIVITY_KEEP" -> macro_cooperativity false
 	| "GRN" -> macro_brn true
-	| "BRN" -> macro_brn false
 	| "KNOCKDOWN" -> macro_knockdown
 	| "REGULATION" -> macro_regulation
 	| "RM" -> macro_remove
@@ -460,6 +468,7 @@ macro_arg:
 	| regulation					{ Arg_Regulation $1 }
 	| regulation_list				{ Arg_Regulations $1 }
 	| state_list					{ Arg_AnoStates $1 }
+	| name_list						{ Arg_Sorts $1 }
 	| name_list ARROW process Int	{ Arg_NamesHit ($1,$3,$4,default_rsa ()) }
 	| name_list ARROW process Int At rate	{ Arg_NamesHit ($1,$3,$4,$6) }
 	| state_matchings				{ Arg_StateMatching $1 }

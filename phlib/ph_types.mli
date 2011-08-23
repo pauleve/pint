@@ -22,10 +22,13 @@ module PSet : Set.S with type elt = process
 module PMap : Map.S with type key = process
 module PCSet : Set.S with type elt = process * process
 
-(** Retruns string representation of a process. *)
+(** String representation of a process. *)
 val string_of_proc : process -> string
 
-(** Returns string representation of a process Set. *)
+(** PINT string representation of a process. *)
+val pintstring_of_proc : process -> string
+
+(** String representation of a process Set. *)
 val string_of_procs : PSet.t -> string
 
 
@@ -50,6 +53,9 @@ type action = Hit of (process * process * int)
 
 (** String representation of an action. *)
 val string_of_action : action -> string
+
+(** PINT string representation of an action. *)
+val pintstring_of_action : action -> string
 
 (** String representation of a list of actions. *)
 val string_of_actions : action list -> string
