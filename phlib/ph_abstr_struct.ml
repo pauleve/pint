@@ -48,6 +48,11 @@ let string_of_node = function
 	| NodeProc p -> "Proc["^string_of_proc p^"]"
 ;;
 
+let obj_from_node = function
+	  NodeObj obj -> obj
+	| _ -> raise (Invalid_argument "obj_from_node")
+;;
+
 module NodeOrd = struct type t = node let compare = compare end
 module NodeSet = Set.Make (NodeOrd)
 module NodeMap = Map.Make (NodeOrd)
@@ -497,8 +502,8 @@ class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 		in
 		let r = Hashtbl.fold get_responsibles flood_values []
 		in
-		prerr_endline ("Responsibles: "^String.concat ", " (List.map string_of_node r)^" ("^string_of_int (Hashtbl.length flood_values)^"-"^string_of_int (NodeSet.cardinal im_nobjs)^")")
-
+		prerr_endline ("Responsibles: "^String.concat ", " (List.map string_of_node r));
+		List.map obj_from_node r
 end;;
 
 let string_of_choices choices =
@@ -526,6 +531,7 @@ class cwB_generator ctx w get_Sols = object(self)
 	val mutable has_next = true
 	(*val queue = empty_choices_queue ()*)
 	val mutable queue = [ObjMap.empty]
+	val mutable current_choices = ObjMap.empty
 	method has_next = queue <> [] (*not (Queue.is_empty queue)*)
 
 	val mutable multisols_objs = ObjSet.empty
@@ -545,29 +551,48 @@ class cwB_generator ctx w get_Sols = object(self)
 					in
 					List.nth aBS n
 				with Not_found -> (
+					(*
 					let register_choice n =
 						let choices' = ObjMap.add obj n choices
 						in
-						if not (ObjMapSet.mem choices' known_choices) then (
-							known_choices <- ObjMapSet.add choices' known_choices;
-							dbg ("::: pushing choices "^string_of_choices choices');
-							queue <- queue @ [choices'] (*::queue*)
-							(*Queue.push choices' queue*)
-						) else
-							prerr_endline ("skip "^string_of_choices choices')
+						self#push_choices choices'
 					in
-					List.iter register_choice (Util.range 1 (List.length aBS - 1));
+					List.iter register_choice (Util.range 1 (List.length aBS - 1)); *)
 					List.hd aBS
 				)
 			in
 			[sol]
 		)
+	
+	method push_choices choices =
+		if not (ObjMapSet.mem choices known_choices) then (
+			known_choices <- ObjMapSet.add choices known_choices;
+			prerr_endline ("::: pushing choices "^string_of_choices choices);
+			queue <- choices::queue
+			(*Queue.push choices queue*)
+		) else
+			dbg ("skip "^string_of_choices choices)
+
+	method change_objs objs =
+		let change_obj choices obj =
+			try
+				let n = ObjMap.find obj choices
+				in
+				(* TODO: handle overflow *)
+				ObjMap.add obj (n+1) choices
+			with Not_found ->
+				ObjMap.add obj 1 choices
+		in
+		let next_choices = List.fold_left change_obj current_choices objs
+		in
+		self#push_choices next_choices
 
 	method next =
 		(*let choices = Queue.pop queue*)
 		let choices = List.hd queue
 		in
 		prerr_endline ("::: playing choices "^string_of_choices choices);
+		current_choices <- choices;
 		queue <- List.tl queue;
 		let gB = new cwB ctx w (self#get_Sols choices)
 		in 
