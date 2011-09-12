@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: new implementation of max_cont fails on egfr20
+desc: infinite loop when computing max_cont on egfr20 (3rd test case).
+type: :bugfix
+component: phreach
+release: phd
+reporter: LP <lp@inzenet.org>
+status: :unstarted
+disposition: 
+creation_time: 2011-09-12 17:50:57.310622 Z
+references: []
+
+id: 74e69dd0f331b2af8611dfe65cea5e12e2a81954
+log_events: 
+- - 2011-09-12 17:50:58.566353 Z
+  - LP <lp@inzenet.org>
+  - created
+  - ""
