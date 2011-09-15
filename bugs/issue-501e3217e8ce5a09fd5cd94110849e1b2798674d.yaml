@@ -5,8 +5,8 @@ type: :task
 component: www
 release: phd
 reporter: LP <lp@inzenet.org>
-status: :unstarted
-disposition: 
+status: :closed
+disposition: :fixed
 creation_time: 2011-07-16 22:13:39.515660 Z
 references: []
 
@@ -19,4 +19,8 @@ log_events:
 - - 2011-07-16 22:15:05.035572 Z
   - LP <lp@inzenet.org>
   - assigned to release phd from unassigned
+  - ""
+- - 2011-09-15 15:04:53.761352 Z
+  - LP <lp@inzenet.org>
+  - closed with disposition fixed
   - ""
