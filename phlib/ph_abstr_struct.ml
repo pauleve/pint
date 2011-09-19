@@ -193,15 +193,24 @@ object(self)
 			-> (node, 'a) Hashtbl.t -> NodeSet.t -> unit
 		= self#_flood false
 
+	val mutable last_loop = []
+	method last_loop = last_loop
 	method has_loop_from n =
-		let rec forward visited n =
-			(if NodeSet.mem n visited then raise Found);
+		let rec forward (visited,path) n =
+			if NodeSet.mem n visited then (
+				let rec pop_until = function [] -> []
+					| m::q -> if n = m then n::q else pop_until q
+				in
+				last_loop <- pop_until (List.rev path);
+				raise Found
+			);
 			let visited = NodeSet.add n visited
+			and path' = n::path
 			in
-			List.iter (forward visited) (self#childs n)
+			List.iter (forward (visited,path')) (self#childs n)
 		in
 		try
-			forward NodeSet.empty n;
+			forward (NodeSet.empty, []) n;
 			false
 		with Found -> true
 end;;
@@ -288,7 +297,8 @@ let max_conts (gA : #graph) =
 		| NodeObj _, NodeObj _ -> (v, false) (* ignore Cont rels *)
 		| _ -> failwith "wrong abstract structure graph."
 	in
-	run_rflood update_value push gA
+	gA#debug ();
+	run_rflood update_value push gA;
 ;;
 
 let min_procs (gA : #graph) flood_values =
@@ -354,12 +364,16 @@ class cwA ctx w get_Sols = object(self) inherit graph
 
 	method conts = min_conts
 
+	method auto_conts = true
+
 	method build = 
 		List.iter (fun (a,j,i) -> self#init_proc (a,i)) w;
 		self#commit ()
 	
 	method commit () =
 		(*self#debug ();*)
+		if self#auto_conts then (
+		dbg "Automatically pushing conts";
 		(* update conts_flood with new objectives *)
 		self#conts self conts_flood new_objs;
 		(* we assume the minCont grows *)
@@ -389,7 +403,7 @@ class cwA ctx w get_Sols = object(self) inherit graph
 		in
 		new_objs <- [];
 		List.iter register_cont my_objs;
-		if new_objs <> [] then self#commit ()
+		if new_objs <> [] then self#commit ())
 
 	method init_obj obj nobj =
 		let aBS = get_Sols obj
@@ -453,11 +467,16 @@ class cwA ctx w get_Sols = object(self) inherit graph
 	
 	method saturate_ctx =
 		if self#increase_ctx self#procs then self#saturate_ctx
+	
 end;;
 
 
 class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 	method conts = max_conts
+
+	val mutable auto_conts = false
+	method set_auto_conts t = auto_conts <- t
+	method auto_conts = auto_conts
 
 	method analyse_impossible_objs ms_objs =
 		prerr_endline ("multisols objs: "^string_of_set string_of_obj ObjSet.elements ms_objs);
@@ -503,6 +522,12 @@ class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 		let r = Hashtbl.fold get_responsibles flood_values []
 		in
 		prerr_endline ("Responsibles: "^String.concat ", " (List.map string_of_node r));
+		List.map obj_from_node r
+	
+	method analyse_loop loop ms_objs =
+		let r = List.filter (function NodeObj obj -> ObjSet.mem obj ms_objs | _ -> false) loop
+		in
+		prerr_endline ("Loop responsibles: "^String.concat ", " (List.map string_of_node r));
 		List.map obj_from_node r
 end;;
 

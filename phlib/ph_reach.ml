@@ -671,12 +671,7 @@ let process_reachability env =
 open Ph_abstr_struct;;
 
 
-let unordered_over_approx env get_Sols =
-	let gA = new cwA env.ctx env.w get_Sols
-	in
-	gA#build;
-	gA#debug ();
-
+let __unordered_over_approx env (gA: #cwA) =
 	(** each node is associated to a couple
 			(green, nm) 
 		where nm is the cached value of childs *)
@@ -729,8 +724,41 @@ let unordered_over_approx env get_Sols =
 		env.w
 ;;
 
+
+let unordered_over_approx env get_Sols =
+	let gA = new cwA env.ctx env.w get_Sols
+	in
+	gA#build;
+	gA#debug ();
+	__unordered_over_approx env gA
+;;
+
+
+
 let unordered_under_approx env get_Sols =
 	let gB_iterator = new cwB_generator env.ctx env.w get_Sols
+	in
+	let rec __check gB =
+		if gB#has_impossible_objs then (
+			prerr_endline ("has_impossible_objs! "^
+				(String.concat ";" (List.map string_of_obj gB#get_impossible_objs)));
+			let objs = gB#analyse_impossible_objs gB_iterator#multisols_objs
+			in
+			gB_iterator#change_objs objs;
+			false
+		) else if gB#has_loops then (
+			dbg "has_loops!";
+			let objs = gB#analyse_loop gB#last_loop gB_iterator#multisols_objs
+			in
+			gB_iterator#change_objs objs;
+			false
+		) else (
+			if not gB#auto_conts then (
+				gB#set_auto_conts true;
+				gB#commit ();
+				__check gB
+			) else true
+		)
 	in
 	let rec iter_gBs () =
 		if gB_iterator#has_next then
@@ -738,14 +766,7 @@ let unordered_under_approx env get_Sols =
 			in
 			dbg "!! unordered underapprox";
 			gB#debug ();
-			(if gB#has_impossible_objs then (
-				prerr_endline ("has_impossible_objs! "^
-					(String.concat ";" (List.map string_of_obj gB#get_impossible_objs)));
-				let objs = gB#analyse_impossible_objs gB_iterator#multisols_objs
-				in
-				gB_iterator#change_objs objs
-			) else if gB#has_loops then dbg "has_loops!"
-			else raise Found);
+			(if __check gB then raise Found);
 			iter_gBs ()
 		else false
 	in
