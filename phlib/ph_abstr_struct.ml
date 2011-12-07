@@ -116,6 +116,58 @@ object(self)
 		in
 		dbg buf)
 
+	method to_dot =
+		let dot_of_obj (a,i,j) =
+			"O_"^a^"_"^string_of_int i ^"_"^string_of_int j
+		and dot_of_proc p = string_of_proc  p
+		in
+		let solcounter = ref 0
+		in
+		let register_proc p =
+			let dproc = dot_of_proc p
+			in
+			let dot_of_rel = function
+				NodeObj obj -> dproc ^ " -> " ^ dot_of_obj obj ^";"
+				| _ -> failwith "invalid graph"
+			in
+			let rels = Hashtbl.find_all edges (NodeProc p)
+			in
+			let def = dproc^"[shape=box];\n"
+			and edges = String.concat "\n" (List.map dot_of_rel rels)
+			in
+			def ^ edges ^ "\n"
+		
+		and register_obj obj =
+			let dobj = dot_of_obj obj
+			in
+			let dot_of_rel = function
+				NodeSol (_,ps) ->
+					let dsol = "pintsol"^string_of_int !solcounter
+					in
+					let def = dsol^"[label=\"\",shape=circle,fixedsize=true,width=0.1,height=0.1];\n"
+					in
+					let edges = dobj ^" -> "^dsol^";\n" 
+						^ (String.concat "\n" (List.map (fun p -> dsol^" -> "^(dot_of_proc p)^";") (PSet.elements ps)))
+					in
+					solcounter := !solcounter + 1;
+					def ^ edges
+				| NodeObj obj' -> dobj ^" -> "^dot_of_obj obj'^";"
+				| _ -> failwith "invalid graph"
+			in
+			let rels = self#childs (NodeObj obj)
+			in
+			let def = dobj^"[label=\""^string_of_obj obj^"\"];\n"
+			and edges = String.concat "\n" (List.map dot_of_rel rels)
+			in
+			def ^ edges ^ "\n"
+		in
+		let procs = List.map register_proc (PSet.elements procs)
+		and objs = List.map register_obj (ObjSet.elements objs)
+		in
+		let content = String.concat "\n" procs ^ String.concat "\n" objs
+		in
+		"digraph { \n" ^ content ^ "}\n"
+
 	method register_node = function
 		  NodeProc p -> (procs <- PSet.add p procs)
 		| NodeObj (a,i,j) -> 
