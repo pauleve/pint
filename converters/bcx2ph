@@ -35,6 +35,7 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 """
 
+import re
 import sys
 
 from xml.dom.minidom import parse
@@ -53,9 +54,25 @@ outputname = inputname.replace(".bcx","")+".ph"
 
 bcx = parse(inputname)
 
-SimpleNodes = [n.getAttribute("name") for n in bcx.getElementsByTagName("CSimpleNode")]
-PermNodes = [n.getAttribute("name") for n in bcx.getElementsByTagName("CPermNode")]
+# ensure PINT name validity
+trMap = {}
+def register_name( name ) :
+	if ord("0") <= ord(name[0]) <= ord("9") :
+		phname = "v%s" % name
+		trMap[name] = phname
+	return name
 
+def tr( name ) :
+	return trMap.get(name, name)
+
+
+# fetch nodes
+SimpleNodes = []
+for nt in ["CSimpleNode", "CTrapNode", "CMacroNode"] :
+	SimpleNodes += [register_name(n.getAttribute("name")) for n in bcx.getElementsByTagName(nt)]
+PermNodes = [register_name(n.getAttribute("name")) for n in bcx.getElementsByTagName("CPermNode")]
+
+# fetch transitions
 def read_transition( n ) :
 	return {
 		"orig" : n.getAttribute("ori"),
@@ -64,38 +81,59 @@ def read_transition( n ) :
 	}
 transitions = map(read_transition, bcx.getElementsByTagName("transition"))
 
-print("PermNodes: %s" % PermNodes)
-
-groups = []
+# parse transitions
 def register_transition( t ) :
-	orig, dest = t["orig"], t["dest"]
-	found = False
-	for g in groups :
-		if orig in g :
-			g.add(dest)
-			found = True
-			break
-	if not found :
-		groups.append(set([orig,dest]))
+	target = t["dest"]
+	state_matching = "[%s] in [[1]]" % t["orig"]
 
-list(map(register_transition, transitions))
+	names = set([t["orig"]])
+	def make_state_matching( m ) :
+		sort = m.group(1)
+		if sort in ["and", "or", "not"] :
+			return sort
+		names.add(sort)
+		return "[%s] in [[1]]" % tr(sort)
+			
 
-while True :
-	merges = []
-	for i in range(len(groups)-1) :
-		for j in range(i+1,len(groups)) :
-			if not groups[i].isdisjoint(groups[j]) :
-				merges.append((i,j))
-	if merges :
-		todel = set()
-		for (i,j) in merges :
-			groups[i].update(groups[j])
-			todel.add(j)
-		for j in sorted(todel, reverse=True) :
-			del groups[j]
+	if t["condition"] :
+		my_condition = re.sub(r'\b(\w+)\b', make_state_matching, t["condition"])
+		state_matching += " and " + my_condition
+	
+	return {
+		"target": target,
+		"state_matching": state_matching,
+		"names": names,
+	}
+	
+actions = list(map(register_transition, transitions))
+
+# filter duplicate transitions
+dactions = {}
+for a in actions :
+	if a["target"] not in dactions :
+		dactions[a["target"]] = [a]
 	else :
-		break
+		sort_actions = dactions[a["target"]]
+		# check if there exists another registered action with same names for condition
+		# (we assume: same names = same condition)
+		dup = False
+		for b in sort_actions :
+			if not b["names"].symmetric_difference(a["names"]) :
+				dup = True
+		if not dup :
+			sort_actions.append(a)
 
-for g in groups :
-	print("--- %d elements: %s" % (len(g), g))
+#
+# PINT output
+#
+for a in SimpleNodes + PermNodes :
+	print("process %s 1" % tr(a))
+
+print()
+for sort_actions in dactions.values() :
+	for a in sort_actions :
+		print("COOPERATIVITY(%s, %s, 1, 0)" % (a["state_matching"], tr(a["target"])))
+
+print()
+print("initial_state %s" % ", ".join(["%s 1" % tr(a) for a in PermNodes]))
 
