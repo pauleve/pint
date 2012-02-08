@@ -129,6 +129,7 @@ type state_matching_t =
 	  SM of (string list * anostate list)
 	| SM_Not of state_matching_t
 	| SM_And of (state_matching_t * state_matching_t)
+	| SM_Or of (state_matching_t * state_matching_t)
 ;;
 
 type macro_arg_t =
@@ -303,6 +304,7 @@ let macro_cooperativity autoremove = function
 		  SM (sigma, _) -> sigma
 		| SM_Not sm -> matching_names sm
 		| SM_And (sm1, sm2) -> matching_names sm1 @ matching_names sm2
+		| SM_Or (sm1, sm2) -> matching_names sm1 @ matching_names sm2
 	in
 	let names = matching_names sm
 	in
@@ -321,7 +323,7 @@ let macro_cooperativity autoremove = function
 	in
 
 	(* build reflections *)
-	let rec cooperative_matching ctx = function
+	let rec cooperative_matching ctx op = match op with
 		  SM (sigma, top) -> 
 		  	let (sigma_n, (sigma, idx_from_state)), ctx = build_reflection ctx sigma
 			in
@@ -332,7 +334,8 @@ let macro_cooperativity autoremove = function
 			in
 			sigma_n, (bot, top), ctx
 
-		| SM_And (sm1, sm2) ->
+		| SM_And (sm1, sm2) 
+		| SM_Or (sm1, sm2) ->
 			let sig1, (top1,bot1), ctx = cooperative_matching ctx sm1
 			in
 			let sig2, (top2,bot2), ctx = cooperative_matching ctx sm2
@@ -359,7 +362,12 @@ let macro_cooperativity autoremove = function
 					in
 					r1 + r2
 				| _ -> invalid_arg "__coop idx_from_state"))::!cooperativities;
-			sigma_n, ([3], [0;1;2]), ctx
+			let (top, bot) = match op with
+				  SM_And _ -> ([3], [0;1;2])
+				| SM_Or _ -> ([1;2;3], [0])
+				| _ -> invalid_arg "match op"
+			in
+			sigma_n, (top, bot), ctx
 	in
 	let sigma_n, (top, bot), ctx = cooperative_matching ctx sm
 	in
@@ -410,7 +418,7 @@ let precall_macro = function
 %token <int> Int
 %token New Art At Eof Initial
 %token Directive Sample Stoch_abs Absorb Default_rate Within 
-%token AND NOT IN
+%token AND OR NOT IN
 %token ARROW INFTY
 %token COMMA LBRACKET LCURLY LPAREN RBRACKET RCURLY RPAREN SEMI SHARP STAR
 
@@ -501,6 +509,7 @@ state_matchings:
 	| NOT state_matchings { SM_Not $2 }
 	| LPAREN state_matchings RPAREN { $2 }
 	| state_matchings AND state_matchings { SM_And ($1, $3) }
+	| state_matchings OR state_matchings { SM_Or ($1, $3) }
 ;
 state_matching:
 	name_list IN state_list { SM ($1, $3) }

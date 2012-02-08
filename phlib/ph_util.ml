@@ -57,6 +57,13 @@ let opt_initial_procs = Ph_useropts.initial_procs;;
 let parse channel_in =
 	let lexbuf = Lexing.from_channel channel_in
 	in
+	let show_position () =
+		let pos = Lexing.lexeme_start_p lexbuf
+		in
+		"Line " ^ string_of_int pos.Lexing.pos_lnum ^
+		  " char " ^ string_of_int 
+				(pos.Lexing.pos_cnum - pos.Lexing.pos_bol) ^ ": "
+	in
 	try 
 		let ph, s = Ph_parser.main Ph_lexer.lexer lexbuf
 		in
@@ -65,12 +72,12 @@ let parse channel_in =
 		in
 		ph, s
 	with Parsing.Parse_error ->
-		let show_position pos =
-			  "Line " ^ string_of_int pos.Lexing.pos_lnum ^
-			  " char " ^ string_of_int 
-					(pos.Lexing.pos_cnum - pos.Lexing.pos_bol) ^ ": "
-		in
-		failwith (show_position (Lexing.lexeme_start_p lexbuf) ^
-						"Syntax error")
+		failwith (show_position () ^ "Syntax error")
+	| Failure msg ->
+		failwith (show_position () ^ msg)
+	| e -> (
+		failwith (show_position () ^ Printexc.to_string e)
+	)
 ;;
+
 
