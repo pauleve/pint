@@ -458,6 +458,7 @@ let precall_macro = function
 
 %left IN
 %left AND
+%left OR
 %left NOT
 
 /* test */
