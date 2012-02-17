@@ -21,6 +21,7 @@ rule lexer = parse
 | "sample" { Sample }
 | "stochasticity_absorption" { Stoch_abs }
 | "default_rate" { Default_rate }
+| "option" { Option }
 | "and" { AND }
 | "or" { OR }
 | "not" { NOT }

@@ -9,10 +9,23 @@ type regulation_t = Regulation of (string * int * regulation_sign * string * sto
 let cooperativities = ref [];;
 let __coop_counter = ref 0;;
 
+type options_t = {
+	mutable autoinit : bool;
+}
+let options = {
+	autoinit = true;
+}
+
 let default_rsa () = 
 	match directive.default_rate with
 	  None -> Instantaneous
 	| Some r -> RateSA (r, directive.default_sa)
+;;
+
+let set_option name b =
+	match name with
+	  "autoinit" -> options.autoinit <- b
+	| _ -> failwith ("Unknown option '"^name^"'")
 ;;
 
 let init_content (ps, actions) =
@@ -96,7 +109,8 @@ let compute_init_context ph procs =
 	in
 	(*TODO: handle nested cooperativities *)
 	let ctx =
-		if !Ph_useropts.autoinit then
+		if !Ph_useropts.autoinit = (Some true) ||
+			!Ph_useropts.autoinit = None && options.autoinit then
 			List.fold_left fold ctx (List.rev !cooperativities)
 		else ctx
 	in
@@ -435,7 +449,7 @@ let precall_macro = function
 %token <float> Float
 %token <int> Int
 %token New Art At Eof Initial_state Initial_context
-%token Directive Sample Stoch_abs Absorb Default_rate Within 
+%token Directive Option Sample Stoch_abs Absorb Default_rate Within 
 %token AND OR NOT IN
 %token ARROW INFTY
 %token COMMA LBRACKET LCURLY LPAREN RBRACKET RCURLY RPAREN SEMI SHARP STAR
@@ -568,15 +582,15 @@ level_list:
 ;
 
 header :
-  Sample Float { directive.sample <- $2 }
-| Stoch_abs Int { assert ($2 > 0); directive.default_sa <- $2 }
-| Default_rate Float { assert ($2 >= 0.); directive.default_rate <- Some($2) }
-| Default_rate INFTY { directive.default_rate <- None }
+  Directive Sample Float { directive.sample <- $3 }
+| Directive Stoch_abs Int { assert ($3 > 0); directive.default_sa <- $3 }
+| Directive Default_rate Float { assert ($3 >= 0.); directive.default_rate <- Some($3) }
+| Directive Default_rate INFTY { directive.default_rate <- None }
+| Option Sign Name { set_option $3 ($2 = '+') }
 ;
-
 headers :
-  header { $1::[] }
-| header Directive headers { $1::$3 }
+  header { }
+| header headers{ }
 ;
 
 processlist :
@@ -597,7 +611,7 @@ footer :
 ;
 
 main :
-  Directive headers content footer { (init_content $3, compute_init_context $3 $4) }
+  headers content footer { (init_content $2, compute_init_context $2 $3) }
 | content footer { (init_content $1, compute_init_context $1 $2) }
 ;
 %%

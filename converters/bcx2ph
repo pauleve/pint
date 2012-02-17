@@ -133,6 +133,8 @@ for a in actions :
 #
 # PINT output
 #
+print("option -autoinit")
+print()
 for a in SimpleNodes + PermNodes :
 	print("process %s 1" % tr(a))
 
@@ -143,7 +145,7 @@ for sort_actions in dactions.values() :
 
 init_procs = ["%s 1" % tr(a) for a in PermNodes]
 # add frontiers
-init_procs += ["%s 0, %s 1" % tr(n) for n in nodes]
+init_procs += ["%(sort)s 0, %(sort)s 1" %{"sort": tr(n)} for n in nodes]
 
 print()
 print("initial_context %s" % ", ".join(init_procs))

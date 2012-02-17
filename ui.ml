@@ -59,7 +59,8 @@ let setup_opt_channel_in filename =
 ;;
 let input_cmdopts = [
 	("-i", Arg.String setup_opt_channel_in, "Input filename");
-	("--no-autoinit", Arg.Clear Ph_useropts.autoinit, "Do not automatically initialize cooperativities");
+	("--autoinit", Arg.Bool (fun b -> Ph_useropts.autoinit := Some b),
+			"true|false Automatically initialize cooperativities");
 	("--initial-state", Arg.String setup_opt_initial_procs, "Initial state");
 ]
 

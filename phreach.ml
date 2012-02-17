@@ -43,12 +43,14 @@ open Ph_abstr_struct;;
 let opt_method = ref "static"
 and opt_args = ref []
 and opt_list_keys = ref false
+and opt_extract_graph = ref false
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("--method", Arg.Symbol (["static";"test"],
 				(fun x -> opt_method := x)),
 			"Method");
 		("--list-keys", Arg.Set opt_list_keys, "List Key Processes");
+		("--extract-graph", Arg.Set opt_extract_graph, "Export abstract structure graph");
 	]
 and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
 and anon_fun arg = opt_args := !opt_args@[arg]
@@ -66,26 +68,10 @@ in
 
 let ph, ctx = Ph_util.parse !Ui.opt_channel_in
 in
-let nb_actions = Ph_util.count_actions ph
-in
-
-let phname = !Ui.opt_filename_in
-and str_reach = String.concat "; " (List.map string_of_proc pl)
-in
-dbg ("# "^phname^": "^(string_of_int nb_actions)^" actions");
-dbg ("# testing reachability of "^str_reach^" from context "^string_of_ctx ctx);
-
-let env = Ph_reach.init_env ph ctx pl
-in
-let decision = 
-match !opt_method with
-	| "static" -> Ph_reach.process_reachability (Ph_reach.init_oldenv ph ctx pl)
-	| "test" -> Ph_reach.test env
-	| _ -> failwith "Unknown method."
-in
-print_endline (string_of_ternary decision);
-
-if !opt_list_keys then (
+if !opt_list_keys then
+	(* compute key processes *)
+	let env = Ph_reach.init_env ph ctx pl
+	in
 	let d_min_procs = Ph_reach.min_procs env
 	in
 	let handle_proc p =
@@ -96,5 +82,24 @@ if !opt_list_keys then (
 		print_endline ("Key processes for "^string_of_proc p^": "^string_of_procs procs);
 	in
 	List.iter handle_proc pl
-)
+else if !opt_extract_graph then
+	(* export abstract structure *)
+	let bs_cache = Ph_bounce_seq.new_bs_cache ()
+	in
+	let get_Sols = Ph_bounce_seq.get_aBS ph bs_cache
+	in
+	let gA = new Ph_abstr_struct.cwA ctx pl get_Sols
+	in
+	( gA#build;
+	  gA#debug ();
+	  print_string gA#to_dot)
+else
+	(* run the approximations *)
+	let decision = 
+	match !opt_method with
+		| "static" -> Ph_reach.process_reachability (Ph_reach.init_oldenv ph ctx pl)
+		| "test" -> Ph_reach.test (Ph_reach.init_env ph ctx pl)
+		| _ -> failwith "Unknown method."
+	in
+	print_endline (string_of_ternary decision);
 
