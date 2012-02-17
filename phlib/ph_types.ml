@@ -89,6 +89,10 @@ let rsa_of_stochatime = function
 
 type hits = (process, ((process * stochatime) * int)) Hashtbl.t
 
+let procs_of_ps = 
+	List.fold_left (fun procs ai -> PSet.add ai procs) PSet.empty 
+;;
+
 type ph = process list * hits
 
 (* (a,i) * (b,j) * j' *)
@@ -114,11 +118,7 @@ let string_of_actions actions =
 (* STATE *)
 type state = int SMap.t
 
-let string_of_state ?show_zero s =
-	let show_zero = match show_zero with
-		  None -> false
-		| Some t -> t
-	in
+let string_of_state ?show_zero:(show_zero=false) s =
 	let folder a i str =
 		if show_zero || i <> 0 then
 			str ^ (if str <> "" then ";" else "")

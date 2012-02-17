@@ -40,7 +40,8 @@ rule lexer = parse
 | ";" { SEMI }
 | "Inf" { INFTY }
 | ['+' '-'] as sign	{ Sign sign }
-| "initial_state" { Initial }
+| "initial_state" { Initial_state }
+| "initial_context" { Initial_context  }
 | digit+ as value { Int (int_of_string value) }
 | name as n { Name n }
 | digit+ "." digit* as rate	{ Float (float_of_string rate) }

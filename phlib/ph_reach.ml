@@ -57,11 +57,13 @@ let copy_abstr_struct aS = {
 
 type env = {
 	ph : ph;
-	s : state;
 	ctx : ctx;
-	w : objective_seq;
+	pl : process list;
 	bs_cache : Ph_bounce_seq.bs_cache;
+	(* deprecated fields *)
 	a : abstr_struct;
+	s : state;
+	w : objective_seq;
 }
 
 (** Objectives **)
@@ -105,14 +107,40 @@ let new_abstr_struct s w =
 	aS
 ;;
 
-let init_env ph s w = 
+let init_oldenv ph ctx pl = 
+	let state = state_of_ctx ctx
+	in
+	let w = objseq_from_procseq state pl
+	in
 	{
 		ph = ph;
-		s = s;
-		ctx = ctx_of_state s;
-		w = w;
+		ctx = ctx;
+		pl = pl;
 		bs_cache = Ph_bounce_seq.new_bs_cache ();
-		a = new_abstr_struct s w;
+		a = new_abstr_struct state w;
+		s = state;
+		w = w;
+	}
+;;
+
+let init_env ph ctx pl = 
+	let a = {
+		_Req = PMap.empty;
+		_Sol = ObjMap.empty;
+		_Cont = ObjMap.empty;
+		procs = PSet.empty;
+		objs = ObjSet.empty;
+	}
+	in
+	{
+		ph = ph;
+		ctx = ctx;
+		pl = pl;
+		bs_cache = Ph_bounce_seq.new_bs_cache ();
+		(* default values, to be removed ASAP *)
+		s = state0 (fst ph);
+		a = a;
+		w = [];
 	}
 ;;
 
@@ -720,13 +748,13 @@ let __unordered_over_approx env (gA: #cwA) =
 		dbg ("Green("^string_of_node n^") = "^string_of_bool g)
 	in
 	Hashtbl.iter dbg_value values;*)
-	List.for_all (fun obj -> try fst (Hashtbl.find values (NodeObj obj)) with Not_found -> false) 
-		env.w
+	List.for_all (fun ai -> try fst (Hashtbl.find values (NodeProc ai)) with Not_found -> false) 
+		env.pl
 ;;
 
 
 let unordered_over_approx env get_Sols =
-	let gA = new cwA env.ctx env.w get_Sols
+	let gA = new cwA env.ctx env.pl get_Sols
 	in
 	gA#build;
 	gA#debug ();
@@ -736,7 +764,7 @@ let unordered_over_approx env get_Sols =
 
 
 let unordered_under_approx env get_Sols =
-	let gB_iterator = new cwB_generator env.ctx env.w get_Sols
+	let gB_iterator = new cwB_generator env.ctx env.pl get_Sols
 	in
 	let rec __check gB =
 		if gB#has_impossible_objs then (
@@ -787,9 +815,9 @@ let new_process_reachability env =
 let test = new_process_reachability;;
 
 let min_procs env =
-	let gA = new cwA env.ctx env.w (Ph_bounce_seq.get_aBS env.ph env.bs_cache)
+	let gA = new cwA env.ctx env.pl (Ph_bounce_seq.get_aBS env.ph env.bs_cache)
 	in
-	List.iter (fun obj -> gA#init_proc (obj_bounce_proc obj)) env.w;
+	List.iter gA#init_proc env.pl;
 	gA#commit ();
 	gA#debug ();
 

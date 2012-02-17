@@ -14,15 +14,17 @@ type objective_seq = Ph_types.objective list
 
 type env = {
 	ph : Ph_types.ph;
-	s : Ph_types.state;
 	ctx : Ph_types.ctx;
-	w : objective_seq;
+	pl : Ph_types.process list;
 	bs_cache : Ph_bounce_seq.bs_cache;
 	a : abstr_struct;
+	s : Ph_types.state;
+	w : objective_seq;
 }
 
 
-val init_env : Ph_types.ph -> Ph_types.state -> objective_seq -> env
+val init_oldenv : Ph_types.ph -> Ph_types.ctx -> Ph_types.process list -> env
+val init_env : Ph_types.ph -> Ph_types.ctx -> Ph_types.process list -> env
 
 (** returns a string representation of the given objective sequence. *)
 val string_of_objseq : objective_seq -> string

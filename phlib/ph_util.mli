@@ -1,11 +1,11 @@
 (** Process Hitting helpers. *)
 
 (** Reference to the process list that should be present in the initial state. *)
-val opt_initial_procs : Ph_types.process list ref
+val opt_initial_procs : Ph_types.PSet.t ref
 
 (** Parse a Process Hitting and its initial state from given input channel.
 	Overwrite the initial state with the processes referenced by [opt_initial_procs]. *)
-val parse : in_channel -> Ph_types.ph * Ph_types.state
+val parse : in_channel -> Ph_types.ph * Ph_types.ctx
 
 (** Returns the total number of states of the given Process Hitting. *)
 val count_states : Ph_types.ph -> Big_int.big_int

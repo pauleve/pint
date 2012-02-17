@@ -73,9 +73,9 @@ in
 let translator = List.assoc !opt_language languages
 in
 
-let ph, init_state = Ph_util.parse !Ui.opt_channel_in
+let ph, ctx = Ph_util.parse !Ui.opt_channel_in
 in
-let data = translator ph init_state
+let data = translator ph ctx
 in
 let channel_out = if !opt_output = "" then stdout else open_out !opt_output
 in

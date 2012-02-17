@@ -45,7 +45,9 @@ type opts = {
 type piproc_arg_action = ArgReset | ArgUpdate of (string * string) list;;
 
 (* spim_of_ph with stochasticity_absorption *)
-let spim_of_ph (ps,hits) init_state =
+let spim_of_ph (ps,hits) ctx =
+	let init_state = state_of_ctx ctx
+	in
 	let chanl_of_process a = "l_"^a
 	and p_level (a,i) = a^"("^string_of_int i^")"
 	and p_name (a,i) = a^string_of_int i
@@ -192,7 +194,9 @@ let spim_of_ph (ps,hits) init_state =
 ;;
 
 
-let prism_mdp_of_ph (ps,hits) init_state =
+let prism_mdp_of_ph (ps,hits) ctx =
+	let init_state = state_of_ctx ctx
+	in
 	let modname p = "proc_"^p
 	and statemod p = p
 	in
@@ -267,7 +271,9 @@ let prism_mdp_of_ph (ps,hits) init_state =
 			^ "\n\n"
 ;;
 
-let prism_of_ph (ps,hits) init_state =
+let prism_of_ph (ps,hits) ctx =
+	let init_state = state_of_ctx ctx
+	in
 	let modname p = "proc_"^p
 	and statemod p = p
 	and hitcounter hitid = "c_"^string_of_int hitid
@@ -503,7 +509,7 @@ let prism2_of_ph (ps,hits) init_state =
 ;;
 *)
 
-let dump_of_ph (ps,hits) init_state =
+let dump_of_ph (ps,hits) ctx =
 (*	(String.concat "\n" (List.map (fun (pname, pvalue) -> 
 	"directive "^pname^" "^pvalue) properties))
 	^"\n\n"^ *)
@@ -525,12 +531,15 @@ let dump_of_ph (ps,hits) init_state =
 	Hashtbl.fold string_of_hits hits ""
 	^"\n"
 	^
-		let istate = List.filter (fun (a,i) -> i <> 0) (list_of_state init_state)
-		in
-		if istate = [] then "" else 
-			("initial_state " ^ (String.concat ", " (List.map (fun (a,i) -> a^" "^string_of_int i) istate)))
-	
-				
+	let procs = procs_of_ctx ctx
+	in
+	let is_state = SMap.for_all (fun a is -> ISet.cardinal is = 1) ctx
+	in
+	let procs = if is_state then PSet.filter (fun (a,i) -> i <> 0) procs else procs
+	in
+	if PSet.is_empty procs then "" else
+		(if is_state then "initial_state " else "initial_context ")
+		^ String.concat ", " (List.map string_of_proc (PSet.elements procs))
 	^"\n\n"
 ;;
 
@@ -546,7 +555,9 @@ let romeo_pid (ps,_) (a,i) =
 	string_of_int (List.nth base_id (sort_id a) + i)
 ;;
 
-let romeo_of_ph opts (ps,hits) init_state =
+let romeo_of_ph opts (ps,hits) ctx =
+	let init_state = state_of_ctx ctx
+	in
 	let sorts = List.map fst ps
 	in
 	let sort_id a = Util.index_of a sorts
@@ -602,7 +613,9 @@ let romeo_of_ph opts (ps,hits) init_state =
 	^ "\n</TPN>\n"
 ;;
 
-let tina_of_ph (ps,hits) init_state =
+let tina_of_ph (ps,hits) ctx =
+	let init_state = state_of_ctx ctx
+	in
 	let proc_id ai = string_of_proc ai
 	and tr_id = ref (-1)
 	in
@@ -628,7 +641,9 @@ let biocham_of_process (a,i) =
 	in
 	bc_of_sort a ^ string_of_int i
 ;;
-let biocham_of_ph (ps,hits) state =
+let biocham_of_ph (ps,hits) ctx =
+	let state = state_of_ctx ctx
+	in
 	let bc_of_process = biocham_of_process
 	in
 	let bc_of_hit (b,j) ((ai,_),k) =
@@ -645,7 +660,9 @@ let biocham_of_ph (ps,hits) state =
 	^ "make_absent_not_present.\n"
 ;;
 
-let kappa_of_ph (ps,hits) state =
+let kappa_of_ph (ps,hits) ctx =
+	let state = state_of_ctx ctx
+	in
 	let term_of_process (a,i) = a^"(s~"^string_of_int i^")"
 	in
 	let string_of_hit (b,j) ((ai,_),k) =

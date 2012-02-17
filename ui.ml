@@ -35,9 +35,13 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 *)
 
+open Ph_types;;
+
 let setup_opt_initial_procs opt =
 	try 
-		Ph_util.opt_initial_procs := Ph_parser.processlist Ph_lexer.lexer (Lexing.from_string opt)
+		let ps = Ph_parser.processlist Ph_lexer.lexer (Lexing.from_string opt)
+		in
+		Ph_util.opt_initial_procs := procs_of_ps ps
 	with Parsing.Parse_error -> 
 		failwith ("Parsing error for initial_state '"^opt^"'")
 ;;
@@ -55,6 +59,7 @@ let setup_opt_channel_in filename =
 ;;
 let input_cmdopts = [
 	("-i", Arg.String setup_opt_channel_in, "Input filename");
+	("--no-autoinit", Arg.Clear Ph_useropts.autoinit, "Do not automatically initialize cooperativities");
 	("--initial-state", Arg.String setup_opt_initial_procs, "Initial state");
 ]
 

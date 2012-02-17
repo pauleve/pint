@@ -64,25 +64,22 @@ in
 let pl = make_procseq !opt_args
 in
 
-let ph, state = Ph_util.parse !Ui.opt_channel_in
+let ph, ctx = Ph_util.parse !Ui.opt_channel_in
 in
 let nb_actions = Ph_util.count_actions ph
 in
 
-let w = Ph_reach.objseq_from_procseq state pl
-in
-
 let phname = !Ui.opt_filename_in
+and str_reach = String.concat "; " (List.map string_of_proc pl)
 in
 dbg ("# "^phname^": "^(string_of_int nb_actions)^" actions");
-dbg ("# testing concretizability of "^Ph_reach.string_of_objseq w^" from state "^string_of_state state);
+dbg ("# testing reachability of "^str_reach^" from context "^string_of_ctx ctx);
 
-let env = Ph_reach.init_env ph state w
+let env = Ph_reach.init_env ph ctx pl
 in
-
 let decision = 
 match !opt_method with
-	| "static" -> Ph_reach.process_reachability env
+	| "static" -> Ph_reach.process_reachability (Ph_reach.init_oldenv ph ctx pl)
 	| "test" -> Ph_reach.test env
 	| _ -> failwith "Unknown method."
 in
@@ -92,13 +89,11 @@ if !opt_list_keys then (
 	let d_min_procs = Ph_reach.min_procs env
 	in
 	let handle_proc p =
-		let obj = obj_reach state p
-		in
-		let ctx = fst (Hashtbl.find d_min_procs (NodeObj obj))
+		let ctx = fst (Hashtbl.find d_min_procs (NodeProc p))
 		in
 		let procs = procs_of_ctx ctx
 		in
-		print_endline ("Key processes for "^string_of_obj obj^": "^string_of_procs procs);
+		print_endline ("Key processes for "^string_of_proc p^": "^string_of_procs procs);
 	in
 	List.iter handle_proc pl
 )

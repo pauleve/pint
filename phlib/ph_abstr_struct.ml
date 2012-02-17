@@ -395,7 +395,7 @@ let min_procs (gA : #graph) flood_values =
 ;;
 
 
-class cwA ctx w get_Sols = object(self) inherit graph
+class cwA ctx pl get_Sols = object(self) inherit graph
 
 	val mutable actual_ctx = ctx
 	val mutable new_objs = []
@@ -410,7 +410,7 @@ class cwA ctx w get_Sols = object(self) inherit graph
 													| _ -> fun objs -> objs) impossible_nobjs []
 
 	method has_loops =
-		List.exists (fun obj -> self#has_loop_from (NodeObj obj)) w
+		List.exists (fun ai -> self#has_loop_from (NodeProc ai)) pl
 
 	val mutable conts_flood = Hashtbl.create 50
 
@@ -419,7 +419,7 @@ class cwA ctx w get_Sols = object(self) inherit graph
 	method auto_conts = true
 
 	method build = 
-		List.iter (fun (a,j,i) -> self#init_proc (a,i)) w;
+		List.iter self#init_proc pl;
 		self#commit ()
 	
 	method commit () =
@@ -523,7 +523,7 @@ class cwA ctx w get_Sols = object(self) inherit graph
 end;;
 
 
-class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
+class cwB ctx pl get_Sols = object(self) inherit (cwA ctx pl get_Sols)
 	method conts = max_conts
 
 	val mutable auto_conts = false
@@ -538,7 +538,7 @@ class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 			rflood from impossible_nobjs:
 				- colors parents
 				- stop if parent is an ms_objs
-				- failure if exists P \in w coloured and not in ms_objs
+				- failure if exists bounce(P) \in pl coloured and not in ms_objs 
 				- fetch coloured ms_objs
 		*)
 		let is_ms_objs = function NodeObj obj -> ObjSet.mem obj ms_objs
@@ -566,7 +566,8 @@ class cwB ctx w get_Sols = object(self) inherit (cwA ctx w get_Sols)
 			if coloured && is_ms then n::r 
 			else (
 				(if coloured then match n with
-					    NodeObj obj -> if List.mem obj w then failwith "ROOT is coloured!!"
+					    NodeObj obj -> if List.mem (obj_bounce_proc obj) pl then 
+												failwith "ROOT is coloured!!"
 					  | _ -> ());
 				r
 			)
@@ -604,7 +605,7 @@ let empty_choices_queue () =
 
 module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = compare end)
 
-class cwB_generator ctx w get_Sols = object(self)
+class cwB_generator ctx pl get_Sols = object(self)
 	val mutable has_next = true
 	(*val queue = empty_choices_queue ()*)
 	val mutable queue = [ObjMap.empty]
@@ -671,7 +672,7 @@ class cwB_generator ctx w get_Sols = object(self)
 		prerr_endline ("::: playing choices "^string_of_choices choices);
 		current_choices <- choices;
 		queue <- List.tl queue;
-		let gB = new cwB ctx w (self#get_Sols choices)
+		let gB = new cwB ctx pl (self#get_Sols choices)
 		in 
 		gB#build;
 		gB#saturate_ctx;

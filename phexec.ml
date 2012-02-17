@@ -55,7 +55,9 @@ let duration, outputdir = match !opt_args with
 in
 
 
-let ph, state = Ph_util.parse !Ui.opt_channel_in
+let ph, ctx = Ph_util.parse !Ui.opt_channel_in
+in
+let state = state_of_ctx ctx
 in
 
 (** plot **)

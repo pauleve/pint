@@ -65,12 +65,10 @@ let parse channel_in =
 				(pos.Lexing.pos_cnum - pos.Lexing.pos_bol) ^ ": "
 	in
 	try 
-		let ph, s = Ph_parser.main Ph_lexer.lexer lexbuf
+		let ph, ctx = Ph_parser.main Ph_lexer.lexer lexbuf
 		in
 		close_in channel_in;
-		let s = merge_state_with_ps s !opt_initial_procs
-		in
-		ph, s
+		ph, ctx
 	with Parsing.Parse_error ->
 		failwith (show_position () ^ "Syntax error")
 	| Failure msg ->

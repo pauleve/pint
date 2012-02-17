@@ -64,26 +64,44 @@ let get_sort_max ps a =
 		failwith ("get_sort_max: unknown sort '"^a^"'")
 ;;
 
-
-let compute_init_state ph defaults =
-	let state = merge_state_with_ps (state0 (fst ph)) defaults
+let compute_init_context ph procs =
+	let apply_settings ctx =
+		(* override with model settings *)
+		let ctx = ctx_override ctx procs
+		in
+		(* override with user settings *)
+		ctx_override ctx !Ph_useropts.initial_procs
 	in
-	let state = merge_state_with_ps state !Ph_useropts.initial_procs
+
+	(* by default, each process 0 is present *)
+	let ctx0 = ctx_of_state (state0 (fst ph))
+	in
+	let ctx = apply_settings ctx0
 	in
 	(* apply cooperativities *)
-	let fold state (c, (sigma, idx)) =
-		let state_c = List.map (fun a -> SMap.find a state) sigma
+	let fold ctx (c, (sigma, idx)) =
+		let ctx_c = List.map (fun a -> ISet.elements (SMap.find a ctx)) sigma
 		in
-		let i = idx state_c
+		let states_c = List.rev (Util.cross_list ctx_c)
 		in
-		dbg ("- init cooperativity: "^string_of_proc (c,i));
-		SMap.add c i state
+		let fold procs_c state_c =
+			let i = idx state_c
+			in
+			PSet.add (c,i) procs_c
+		in
+		let procs_c = List.fold_left fold PSet.empty states_c
+		in
+		dbg ("- init cooperativity: "^string_of_procs procs_c);
+		ctx_override ctx procs_c
 	in
 	(*TODO: handle nested cooperativities *)
-	let state = List.fold_left fold state (List.rev !cooperativities)
+	let ctx =
+		if !Ph_useropts.autoinit then
+			List.fold_left fold ctx (List.rev !cooperativities)
+		else ctx
 	in
-	(* re-apply default (force cooperative states) *)
-	merge_state_with_ps state defaults
+	(* re-apply settings (force cooperative states) *)
+	apply_settings ctx
 ;;
 
 (***
@@ -416,7 +434,7 @@ let precall_macro = function
 %token <string> Name
 %token <float> Float
 %token <int> Int
-%token New Art At Eof Initial
+%token New Art At Eof Initial_state Initial_context
 %token Directive Sample Stoch_abs Absorb Default_rate Within 
 %token AND OR NOT IN
 %token ARROW INFTY
@@ -430,7 +448,7 @@ let precall_macro = function
 
 /* test */
 %start main
-%type <Ph_types.ph * Ph_types.state> main
+%type <Ph_types.ph * Ph_types.ctx> main
 
 %start processlist
 %type <Ph_types.process list> processlist
@@ -566,16 +584,20 @@ processlist :
 | process COMMA processlist { $1::$3 }
 ;
 initstate :
-  Initial processlist { $2 }
+  Initial_state processlist { procs_of_ps $2 }
+;
+initctx : 
+  Initial_context processlist { procs_of_ps $2 }
 ;
 
 footer :
-  Eof { [] }
+  Eof { PSet.empty }
 | initstate Eof { $1 }
+| initctx Eof { $1 }
 ;
 
 main :
-  Directive headers content footer { (init_content $3, compute_init_state $3 $4) }
-| content footer { (init_content $1, compute_init_state $1 $2) }
+  Directive headers content footer { (init_content $3, compute_init_context $3 $4) }
+| content footer { (init_content $1, compute_init_context $1 $2) }
 ;
 %%

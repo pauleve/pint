@@ -1,4 +1,8 @@
 
-let initial_procs = ref ([]: Ph_types.process list) ;;
+open Ph_types;;
+
+let initial_procs = ref PSet.empty;;
+
+let autoinit = ref true;;
 
 

@@ -68,7 +68,7 @@ def tr( name ) :
 
 # fetch nodes
 SimpleNodes = []
-for nt in ["CSimpleNode", "CTrapNode", "CMacroNode"] :
+for nt in ["CSimpleNode", "CTrapNode", "CMacroNode", "CStartNode"] :
 	SimpleNodes += [register_name(n.getAttribute("name")) for n in bcx.getElementsByTagName(nt)]
 PermNodes = [register_name(n.getAttribute("name")) for n in bcx.getElementsByTagName("CPermNode")]
 
@@ -81,10 +81,14 @@ def read_transition( n ) :
 	}
 transitions = map(read_transition, bcx.getElementsByTagName("transition"))
 
+non_frontier = set()
+
 # parse transitions
 def register_transition( t ) :
 	target = t["dest"]
 	state_matching = "[%s] in [[1]]" % t["orig"]
+
+	non_frontier.add(target)
 
 	names = set([t["orig"]])
 	def make_state_matching( m ) :
@@ -106,6 +110,9 @@ def register_transition( t ) :
 	}
 	
 actions = list(map(register_transition, transitions))
+
+nodes = set(SimpleNodes)
+nodes.difference_update(non_frontier)
 
 # filter duplicate transitions
 dactions = {}
@@ -134,6 +141,10 @@ for sort_actions in dactions.values() :
 	for a in sort_actions :
 		print("COOPERATIVITY(%s, %s, 1, 0)" % (a["state_matching"], tr(a["target"])))
 
+init_procs = ["%s 1" % tr(a) for a in PermNodes]
+# add frontiers
+init_procs += ["%s 0, %s 1" % tr(n) for n in nodes]
+
 print()
-print("initial_state %s" % ", ".join(["%s 1" % tr(a) for a in PermNodes]))
+print("initial_context %s" % ", ".join(init_procs))
 

@@ -22,6 +22,9 @@ module PSet : Set.S with type elt = process
 module PMap : Map.S with type key = process
 module PCSet : Set.S with type elt = process * process
 
+(** Converts a list of processus to a set of processes. *)
+val procs_of_ps : process list -> PSet.t
+
 (** String representation of a process. *)
 val string_of_proc : process -> string
 
