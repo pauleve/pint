@@ -114,9 +114,13 @@ let string_of_actions actions =
 (* STATE *)
 type state = int SMap.t
 
-let string_of_state s =
+let string_of_state ?show_zero s =
+	let show_zero = match show_zero with
+		  None -> false
+		| Some t -> t
+	in
 	let folder a i str =
-		if i <> 0 then
+		if show_zero || i <> 0 then
 			str ^ (if str <> "" then ";" else "")
 			^ string_of_proc (a,i)
 		else str
@@ -197,6 +201,16 @@ let procs_to_ctx ps =
 		SMap.add a is ctx
 	in
 	PSet.fold group ps SMap.empty
+;;
+
+let state_of_ctx ctx =
+	let register a is state = 
+		if ISet.cardinal is <> 1 then
+			raise (Invalid_argument "state_of_ctx: given ctx is not a state")
+		else
+			SMap.add a (ISet.choose is) state
+	in
+	SMap.fold register ctx SMap.empty
 ;;
 
 let ctx_override ctx ps =
