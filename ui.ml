@@ -58,10 +58,13 @@ let setup_opt_channel_in filename =
 	opt_channel_in := open_in filename
 ;;
 let input_cmdopts = [
-	("-i", Arg.String setup_opt_channel_in, "Input filename");
+	("-i", Arg.String setup_opt_channel_in, "<model.ph>\tInput filename");
 	("--autoinit", Arg.Bool (fun b -> Ph_useropts.autoinit := Some b),
-			"true|false Automatically initialize cooperativities");
-	("--initial-state", Arg.String setup_opt_initial_procs, "Initial state");
+			"<true|false>\tAutomatically initialize cooperativities");
+	("--initial-state", Arg.String setup_opt_initial_procs,
+		"<process list>\tInitial state");
+	("--initial-context", Arg.String setup_opt_initial_procs,
+		"<process list>\tInitial context (equivalent to --initial-state)");
 ]
 
 

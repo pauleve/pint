@@ -47,7 +47,7 @@ and opt_output = ref ""
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), "\tOutput language");
-		("-o", Arg.Set_string opt_output, "\tOutput filename");
+		("-o", Arg.Set_string opt_output, "<filename>\tOutput filename");
 	]
 and usage_msg = "phc"
 in

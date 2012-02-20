@@ -27,6 +27,6 @@ clean:
 apidoc:
 	rm -f docs/api/*
 	ocamldoc -sort -html -d docs/api -I bindings -I pintlib -I phlib \
-		-t "Pint OCaml API - processhitting.wordpress.com" \
+		-t "Pint OCaml API - process.hitting.free.fr" \
 		bindings/r.mli pintlib/*.mli phlib/*.mli *.mli
 

@@ -39,18 +39,19 @@ open Debug;;
 open Ph_types;;
 
 open Ph_abstr_struct;;
+open Ph_reach;;
 
 let opt_method = ref "static"
 and opt_args = ref []
 and opt_list_keys = ref false
-and opt_extract_graph = ref false
+and opt_extract_graph = ref ""
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("--method", Arg.Symbol (["static";"test"],
-				(fun x -> opt_method := x)),
-			"Method");
-		("--list-keys", Arg.Set opt_list_keys, "List Key Processes");
-		("--extract-graph", Arg.Set opt_extract_graph, "Export abstract structure graph");
+				(fun x -> opt_method := x)), "\tMethod");
+		("--list-keys", Arg.Set opt_list_keys, "\tList Key Processes");
+		("--extract-graph", Arg.Set_string opt_extract_graph, 
+				"<graph.dot>\tExport abstract structure graph");
 	]
 and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
 and anon_fun arg = opt_args := !opt_args@[arg]
@@ -66,12 +67,20 @@ in
 let pl = make_procseq !opt_args
 in
 
+let do_list_keys = !opt_list_keys
+and do_extract_graph = !opt_extract_graph <> ""
+in
+let do_reach = not (do_list_keys or do_extract_graph)
+in
+
 let ph, ctx = Ph_util.parse !Ui.opt_channel_in
 in
-if !opt_list_keys then
+
+let env = Ph_reach.init_env ph ctx pl
+in
+
+(if do_list_keys then
 	(* compute key processes *)
-	let env = Ph_reach.init_env ph ctx pl
-	in
 	let d_min_procs = Ph_reach.min_procs env
 	in
 	let handle_proc p =
@@ -82,24 +91,26 @@ if !opt_list_keys then
 		print_endline ("Key processes for "^string_of_proc p^": "^string_of_procs procs);
 	in
 	List.iter handle_proc pl
-else if !opt_extract_graph then
-	(* export abstract structure *)
-	let bs_cache = Ph_bounce_seq.new_bs_cache ()
+);
+(if do_extract_graph then
+	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
-	let get_Sols = Ph_bounce_seq.get_aBS ph bs_cache
-	in
-	let gA = new Ph_abstr_struct.cwA ctx pl get_Sols
+	let gA = new Ph_abstr_struct.cwA env.ctx env.pl get_Sols
+	and channel_out = if !opt_extract_graph = "-" then stdout else open_out !opt_extract_graph
 	in
 	( gA#build;
 	  gA#debug ();
-	  print_string gA#to_dot)
-else
+	  output_string channel_out gA#to_dot;
+	  close_out channel_out)
+);
+(if do_reach then
 	(* run the approximations *)
 	let decision = 
 	match !opt_method with
 		| "static" -> Ph_reach.process_reachability (Ph_reach.init_oldenv ph ctx pl)
-		| "test" -> Ph_reach.test (Ph_reach.init_env ph ctx pl)
+		| "test" -> Ph_reach.test env
 		| _ -> failwith "Unknown method."
 	in
-	print_endline (string_of_ternary decision);
+	print_endline (string_of_ternary decision)
+)
 
