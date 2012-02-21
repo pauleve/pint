@@ -29,7 +29,7 @@ let set_option name b =
 ;;
 
 let init_content (ps, actions) =
-	let hits = Hashtbl.create 200
+	let hits = Hashtbl.create (List.length actions)
 	in
 	let register_action = function Hit (ai,bj,j'), rsa ->
 		Hashtbl.add hits bj ((ai,rsa),j')
@@ -39,35 +39,11 @@ let init_content (ps, actions) =
 ;;
 
 let merge_decl (ps, actions) p =
-	let merge_metaproc ps (p,l) =
-		try
-			let ol = List.assoc p ps
-			in
-			if ol > l then
-				failwith "Cannot decrease metaprocess levels"
-			else (p,l)::List.remove_assoc p ps
-		with Not_found -> (p,l)::ps
+	let register_sort ps (a,l) =
+		(if List.mem_assoc a ps then failwith ("Sort "^a^" already declared"));
+		(a,l)::ps
 	in
-	merge_metaproc ps p, actions
-;;
-let merge_instr (ps, actions) (ai,bj,k,stoch) = 
-	let assert_p_exists (name,level) =
-		let errstr = "Invalid reference to process "^name^(string_of_int level)^": "
-		in
-		try
-			let ml = List.assoc name ps
-			in
-			if level < 0 || ml < level then 
-				failwith (errstr^"level out of bound (max is "^(string_of_int ml)^")")
-		with Not_found -> failwith (errstr^"undefined metaprocess")
-	in
-	assert_p_exists ai;
-	assert_p_exists bj;
-	assert_p_exists (fst bj, k);
-	(ps, (Hit (ai,bj,k),stoch)::actions)
-;;
-let ph_add_hits (ps, actions) actions' stoch =
-	actions @ (List.map (fun a -> (a, stoch)) actions')
+	register_sort ps p, actions
 ;;
 
 let get_sort_max ps a =
@@ -75,6 +51,23 @@ let get_sort_max ps a =
 		List.assoc a ps
 	with Not_found -> 
 		failwith ("get_sort_max: unknown sort '"^a^"'")
+;;
+
+let merge_instr (ps, actions) ((a,i),(b,j),k,stoch) = 
+	let ma, mb = get_sort_max ps a, get_sort_max ps b
+	in
+	let check_boundaries (a,i) ml =
+		if i < 0 || ml < i then 
+			failwith (string_of_proc (a,i)^": level out of bound (max is "^(string_of_int ml)^")")
+	in
+	check_boundaries (a,i) ma;
+	check_boundaries (b,j) mb;
+	check_boundaries (b,k) mb;
+	(ps, (Hit ((a,i),(b,j),k),stoch)::actions)
+;;
+
+let ph_add_hits (ps, actions) actions' stoch =
+	actions @ (List.map (fun a -> (a, stoch)) actions')
 ;;
 
 let compute_init_context ph procs =
@@ -330,13 +323,12 @@ let macro_cooperativity autoremove = function
 )
 
 | [Arg_StateMatching sm; Arg_Name sort; Arg_Int l_true; Arg_Int l_false] -> (fun ctx ->
-	
+
 	(* remove existing hits from sorts in sm to processes (sort,l_true|l_false) *)
 	let rec matching_names = function
 		  SM (sigma, _) -> sigma
 		| SM_Not sm -> matching_names sm
-		| SM_And (sm1, sm2) -> matching_names sm1 @ matching_names sm2
-		| SM_Or (sm1, sm2) -> matching_names sm1 @ matching_names sm2
+		| SM_And (sm1, sm2) | SM_Or (sm1, sm2) -> matching_names sm1 @ matching_names sm2
 	in
 	let names = matching_names sm
 	in
@@ -491,8 +483,8 @@ rate :
 //| LBRACKET Float SEMI Float RBRACKET SHARP Float { FiringInterval ($2,$4,$7) }
 ;
 hit : 
-  process ARROW process Int 		 				{ ($1, $3, $4, default_rsa ()) }
-| process ARROW process Int At rate 					{ ($1, $3, $4, $6) }
+  process ARROW process Int At rate 					{ ($1, $3, $4, $6) }
+| process ARROW process Int 		 				{ ($1, $3, $4, default_rsa ()) }
 ;
 macro:
 	Name LPAREN macro_args RPAREN { precall_macro $1 $3 }

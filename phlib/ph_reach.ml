@@ -698,8 +698,7 @@ let process_reachability env =
 
 open Ph_abstr_struct;;
 
-
-let __unordered_over_approx env (gA: #cwA) =
+let color_nodes_connected_to_trivial_sols (gA: #cwA) =
 	(** each node is associated to a couple
 			(green, nm) 
 		where nm is the cached value of childs *)
@@ -740,16 +739,24 @@ let __unordered_over_approx env (gA: #cwA) =
 		(new_v, nm), v<>new_v
 	in
 
+	(*dbg ("Leafs: "^(String.concat ";" (List.map string_of_node (NodeSet.elements (gA#get_leafs ())))));*)
 	let values = Hashtbl.create 50
 	in
-	(*dbg ("Leafs: "^(String.concat ";" (List.map string_of_node (NodeSet.elements (gA#get_leafs ())))));*)
 	gA#rflood init push values (gA#get_leafs ());
 	(*let dbg_value n (g,_) =
 		dbg ("Green("^string_of_node n^") = "^string_of_bool g)
 	in
 	Hashtbl.iter dbg_value values;*)
-	List.for_all (fun ai -> try fst (Hashtbl.find values (NodeProc ai)) with Not_found -> false) 
-		env.pl
+	let folder n (coloured, _) (green, red)=
+		if coloured then (NodeSet.add n green, red) else (green, NodeSet.add n red)
+	in
+	Hashtbl.fold folder values (NodeSet.empty, NodeSet.empty)
+;;
+
+let __unordered_over_approx env (gA: #cwA) =
+	let nodes = fst (color_nodes_connected_to_trivial_sols gA)
+	in
+	List.for_all (fun ai -> NodeSet.mem (NodeProc ai) nodes) env.pl
 ;;
 
 

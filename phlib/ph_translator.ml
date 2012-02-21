@@ -539,7 +539,7 @@ let dump_of_ph (ps,hits) ctx =
 	in
 	if PSet.is_empty procs then "" else
 		(if is_state then "initial_state " else "initial_context ")
-		^ String.concat ", " (List.map string_of_proc (PSet.elements procs))
+		^ String.concat ", " (List.map pintstring_of_proc (PSet.elements procs))
 	^"\n\n"
 ;;
 

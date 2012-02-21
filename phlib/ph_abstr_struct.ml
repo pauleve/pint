@@ -84,12 +84,13 @@ object(self)
 			in
 			sol^"Req("^string_of_proc p^") = [ "^
 				(String.concat "; " (List.map (function NodeObj obj -> string_of_obj obj
-													| _ -> failwith "invalid graph") rels))^" ]"^eol
+						| _ -> failwith "invalid graph (debug/register_proc)") rels))^" ]"^eol
 		and register_obj (sols,conts) obj =
 			let rels = self#childs (NodeObj obj)
 			in
 			let solrels, contrels = List.partition (function NodeSol _ -> true |
-								NodeObj _ -> false | _ -> failwith "invalid graph") rels
+								NodeObj _ -> false | _ -> 
+									failwith "invalid graph (debug/register_obj)") rels
 			in
 			let sols = if solrels == [] then sols else 
 				(sol^"Sol("^string_of_obj obj^") = [ "^
@@ -128,7 +129,7 @@ object(self)
 			in
 			let dot_of_rel = function
 				NodeObj obj -> dproc ^ " -> " ^ dot_of_obj obj ^";"
-				| _ -> failwith "invalid graph"
+				| _ -> failwith "invalid graph (to_dot/register_proc)"
 			in
 			let rels = Hashtbl.find_all edges (NodeProc p)
 			in
@@ -152,7 +153,7 @@ object(self)
 					solcounter := !solcounter + 1;
 					def ^ edges
 				| NodeObj obj' -> dobj ^" -> "^dot_of_obj obj'^";"
-				| _ -> failwith "invalid graph"
+				| _ -> failwith "invalid graph (to_dot/register_obj)"
 			in
 			let rels = self#childs (NodeObj obj)
 			in
@@ -185,6 +186,8 @@ object(self)
 		self#register_node c;
 		Hashtbl.add edges n c;
 		Hashtbl.add rev_edges c n
+	
+	method iter f = Hashtbl.iter f rev_edges
 
 	method private _flood
 		: 'a. bool -> (node -> 'a) 
@@ -216,7 +219,10 @@ object(self)
 			in
 			let chgs = NodeSet.fold forward chgs NodeSet.empty
 			in
-			if not (NodeSet.is_empty chgs) then flood chgs
+			if not (NodeSet.is_empty chgs) then (
+				dbg ("_flood: "^string_of_int (NodeSet.cardinal chgs)^" changes");
+				flood chgs
+			)
 
 		and setup n =
 			let forward v p =
@@ -416,7 +422,9 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 
 	method conts = min_conts
 
-	method auto_conts = true
+	val mutable auto_conts = true
+	method set_auto_conts t = auto_conts <- t
+	method auto_conts = auto_conts
 
 	method build = 
 		List.iter self#init_proc pl;
@@ -525,10 +533,6 @@ end;;
 
 class cwB ctx pl get_Sols = object(self) inherit (cwA ctx pl get_Sols)
 	method conts = max_conts
-
-	val mutable auto_conts = false
-	method set_auto_conts t = auto_conts <- t
-	method auto_conts = auto_conts
 
 	method analyse_impossible_objs ms_objs =
 		prerr_endline ("multisols objs: "^string_of_set string_of_obj ObjSet.elements ms_objs);

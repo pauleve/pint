@@ -39,5 +39,8 @@ val process_reachability : env -> Ph_types.ternary
 
 val test : env -> Ph_types.ternary
 
+val color_nodes_connected_to_trivial_sols :
+  #Ph_abstr_struct.cwA -> (Ph_abstr_struct.NodeSet.t * Ph_abstr_struct.NodeSet.t)
+
 val min_procs : env -> (Ph_abstr_struct.node, (Ph_types.ctx * Ph_types.ctx Ph_abstr_struct.NodeMap.t)) Hashtbl.t
 
