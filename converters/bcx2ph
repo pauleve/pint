@@ -86,7 +86,7 @@ non_frontier = set()
 # parse transitions
 def register_transition( t ) :
 	target = t["dest"]
-	state_matching = "[%s] in [[1]]" % t["orig"]
+	state_matching = "[%s] in [[1]]" % tr(t["orig"])
 
 	non_frontier.add(target)
 
