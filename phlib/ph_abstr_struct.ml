@@ -72,8 +72,8 @@ object(self)
 	method has_proc p = PSet.mem p procs
 	method has_obj obj = ObjSet.mem obj objs
 	method has_child c n = List.mem c (self#childs n)
-	method count_procs () = PSet.cardinal procs
-	method count_objs () = ObjSet.cardinal objs
+	method count_procs = PSet.cardinal procs
+	method count_objs = ObjSet.cardinal objs
 
 	method debug () = if !Debug.dodebug then (
 		let sol = "#aS# "
@@ -114,6 +114,8 @@ object(self)
 			^(String.concat "" reqs)
 			^(String.concat "" sols)
 			^(String.concat "" conts)
+			^sol^"procs count = "^string_of_int self#count_procs
+				^"; objs count = "^string_of_int self#count_objs
 		in
 		dbg buf)
 
@@ -220,7 +222,7 @@ object(self)
 			let chgs = NodeSet.fold forward chgs NodeSet.empty
 			in
 			if not (NodeSet.is_empty chgs) then (
-				dbg ("_flood: "^string_of_int (NodeSet.cardinal chgs)^" changes");
+				(*dbg ("_flood: "^string_of_int (NodeSet.cardinal chgs)^" changes");*)
 				flood chgs
 			)
 

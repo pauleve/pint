@@ -747,14 +747,14 @@ let color_nodes_connected_to_trivial_sols (gA: #cwA) =
 		dbg ("Green("^string_of_node n^") = "^string_of_bool g)
 	in
 	Hashtbl.iter dbg_value values;*)
-	let folder n (coloured, _) (green, red)=
-		if coloured then (NodeSet.add n green, red) else (green, NodeSet.add n red)
+	let folder n (coloured, _) green =
+		if coloured then NodeSet.add n green else green
 	in
-	Hashtbl.fold folder values (NodeSet.empty, NodeSet.empty)
+	Hashtbl.fold folder values NodeSet.empty
 ;;
 
 let __unordered_over_approx env (gA: #cwA) =
-	let nodes = fst (color_nodes_connected_to_trivial_sols gA)
+	let nodes = color_nodes_connected_to_trivial_sols gA
 	in
 	List.for_all (fun ai -> NodeSet.mem (NodeProc ai) nodes) env.pl
 ;;
@@ -819,14 +819,31 @@ let new_process_reachability env =
 		Inconc
 ;;
 
+let get_Sols env = Ph_bounce_seq.get_aBS env.ph env.bs_cache
+;;
+
+let trimmed_cwA env gA =
+	let nodes = color_nodes_connected_to_trivial_sols gA
+	in
+	let gA' = new cwA env.ctx env.pl (get_Sols env)
+	in
+	gA#iter (fun node child -> 
+				if NodeSet.mem node nodes && NodeSet.mem child nodes then
+					gA'#add_child node child);
+	gA'#set_auto_conts true;
+	gA'#commit ();
+	gA'
+;;
+
 let test = new_process_reachability;;
 
 let min_procs env =
-	let gA = new cwA env.ctx env.pl (Ph_bounce_seq.get_aBS env.ph env.bs_cache)
+	let gA' = new cwA env.ctx env.pl (get_Sols env)
 	in
-	List.iter gA#init_proc env.pl;
-	gA#commit ();
-	gA#debug ();
+	gA'#set_auto_conts false;
+	gA'#build;
+	let gA = trimmed_cwA env gA'
+	in
 
 	let d_min_procs = Hashtbl.create 50
 	in

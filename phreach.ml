@@ -107,15 +107,8 @@ in
 	if !opt_graph = "verbose" then
 		output_string channel_out gA#to_dot
 	else if !opt_graph = "trimmed" then (
-		let nodes = fst (Ph_reach.color_nodes_connected_to_trivial_sols gA)
+		let gA' = trimmed_cwA env gA
 		in
-		let gA' = new cwA env.ctx env.pl get_Sols
-		in
-		gA#iter (fun node child -> 
-					if NodeSet.mem node nodes && NodeSet.mem child nodes then
-						gA'#add_child node child);
-		gA'#set_auto_conts true;
-		gA'#commit ();
 		output_string channel_out gA'#to_dot
 	);
 	close_out channel_out

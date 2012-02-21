@@ -37,10 +37,17 @@ returns the semi-decision (ternary) of the concretizability of objective sequenc
 *)
 val process_reachability : env -> Ph_types.ternary
 
+
+(** EXPERIMENTAL API - TO BE DOCUMENTED WHEN STABLE *)
+
 val test : env -> Ph_types.ternary
 
 val color_nodes_connected_to_trivial_sols :
-  #Ph_abstr_struct.cwA -> (Ph_abstr_struct.NodeSet.t * Ph_abstr_struct.NodeSet.t)
+  #Ph_abstr_struct.cwA -> Ph_abstr_struct.NodeSet.t
+
+val get_Sols : env -> Ph_types.objective -> Ph_types.PSet.t list
+
+val trimmed_cwA : env -> #Ph_abstr_struct.cwA -> Ph_abstr_struct.cwA
 
 val min_procs : env -> (Ph_abstr_struct.node, (Ph_types.ctx * Ph_types.ctx Ph_abstr_struct.NodeMap.t)) Hashtbl.t
 
