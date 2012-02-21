@@ -45,6 +45,7 @@ let opt_method = ref "static"
 and opt_args = ref []
 and opt_list_keys = ref false
 and opt_extract_graph = ref ""
+and opt_graph = ref "verbose"
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("--method", Arg.Symbol (["static";"test"],
@@ -52,6 +53,8 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("--list-keys", Arg.Set opt_list_keys, "\tList Key Processes");
 		("--extract-graph", Arg.Set_string opt_extract_graph, 
 				"<graph.dot>\tExport abstract structure graph");
+		("--graph", Arg.Symbol (["verbose";"trimmed"],
+				(fun x -> opt_graph := x)), "\tGraph to export");
 	]
 and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
 and anon_fun arg = opt_args := !opt_args@[arg]
@@ -92,16 +95,30 @@ in
 	in
 	List.iter handle_proc pl
 );
-(if do_extract_graph then
+(if do_extract_graph then 
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
 	let gA = new Ph_abstr_struct.cwA env.ctx env.pl get_Sols
 	and channel_out = if !opt_extract_graph = "-" then stdout else open_out !opt_extract_graph
 	in
-	( gA#build;
-	  gA#debug ();
-	  output_string channel_out gA#to_dot;
-	  close_out channel_out)
+	gA#set_auto_conts false;
+	gA#build;
+	(*gA#debug;*)
+	if !opt_graph = "verbose" then
+		output_string channel_out gA#to_dot
+	else if !opt_graph = "trimmed" then (
+		let nodes = fst (Ph_reach.color_nodes_connected_to_trivial_sols gA)
+		in
+		let gA' = new cwA env.ctx env.pl get_Sols
+		in
+		gA#iter (fun node child -> 
+					if NodeSet.mem node nodes && NodeSet.mem child nodes then
+						gA'#add_child node child);
+		gA'#set_auto_conts true;
+		gA'#commit ();
+		output_string channel_out gA'#to_dot
+	);
+	close_out channel_out
 );
 (if do_reach then
 	(* run the approximations *)
