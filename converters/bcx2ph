@@ -113,6 +113,7 @@ actions = list(map(register_transition, transitions))
 
 nodes = set(SimpleNodes)
 nodes.difference_update(non_frontier)
+print("%d frontier nodes" % len(nodes), file=sys.stderr)
 
 # filter duplicate transitions
 dactions = {}
