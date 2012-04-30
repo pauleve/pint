@@ -14,9 +14,12 @@ phreach:
 	make -f target/phreach
 phexec:
 	make -f target/phexec
+phthomas:
+	make -f target/phthomas
 
 clean:
 	make -f target/phexec clean
+	make -f target/phthomas clean
 	make -f target/phreach clean
 	make -f target/phstable clean
 	make -f target/phstat clean

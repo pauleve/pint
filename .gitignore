@@ -34,3 +34,4 @@ bindings/r_stubs.c
 ph-*
 docs/api/*
 bin/ph-reach.old
+*.exe

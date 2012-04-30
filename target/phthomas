@@ -1,0 +1,16 @@
+all: nc
+
+include Makefile.common
+
+SOURCES = \
+	$(BINDINGS_SOURCES)\
+	$(PINTLIB_SOURCES) \
+	$(PHLIB_SOURCES) \
+	$(UI_SOURCES) \
+	$(PH2THOMAS_SOURCES) \
+	ph2thomas.ml
+
+RESULT = ph2thomas.exe
+
+include OCamlMakefile
+# vi:set syntax=make:

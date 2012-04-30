@@ -686,4 +686,18 @@ let kappa_of_ph (ps,hits) ctx =
 	^ "\n"
 ;;
 
+let asp_of_ph (ps, hits) _ = 
+	(*** Écriture dans le fichier de sortie ***)
+	"% Translation of the Process Hitting to ASP\n"
+	(* Sortes *)
+	^ "\n% Sorts\n"
+	^ (String.concat "" (List.map (fun sort -> 
+				"sort(\"" ^ (fst sort) ^ "\"," ^ (string_of_int (snd sort)) ^ ").\n") ps))
+	(* Frappes du PH *)
+	^ "\n% Actions\n"
+	^ Hashtbl.fold (fun target value buf -> let ((hit, _), bounce) = value in
+		  buf ^ ("action(\"" ^ (fst hit) ^ "\"," ^ (string_of_int (snd hit)) ^ "," ^
+		  "\"" ^ (fst target) ^ "\"," ^ (string_of_int (snd target)) ^ "," ^ (string_of_int bounce) ^
+		  ").\n")) hits ""
+;;
 

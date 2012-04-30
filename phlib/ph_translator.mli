@@ -37,3 +37,6 @@ val romeo_pid : Ph_types.ph -> Ph_types.process -> string
 (** Returns the Romeo translation of the given Process Hitting. *)
 val romeo_of_ph : opts -> Ph_types.ph -> Ph_types.ctx -> string
 
+(** Returns the ASP translation of the given Process Hitting - WiP *)
+val asp_of_ph : Ph_types.ph -> Ph_types.ctx -> string
+
