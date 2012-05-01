@@ -1,4 +1,4 @@
-all: pint phstable phreach phc libpint phstat phexec
+all: pint phstable phreach phc libpint phstat phexec ph2thomas
 
 phc:
 	make -f target/phc
