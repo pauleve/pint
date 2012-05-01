@@ -47,7 +47,7 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		"<graph.dot>\tExport the interaction graph to the given file.");
 	("--debug-asp", Arg.Set_string  opt_asp, 
 		"<file.lp>\tExport the generated ASP program.");
-	("--format", Arg.Symbol (["active"; "AB"], (fun x -> opt_format := x)),
+	("--format", Arg.Symbol (["active"; "AB"; "iter"], (fun x -> opt_format := x)),
 		("\tParameter format (default: "^ (!opt_format) ^")."));
 	("--enumerate", Arg.Set opt_enum, "\tPerform parameterization enumeration.");
 	]
@@ -100,8 +100,7 @@ and readall cin =
 in
 
 let run_process_io cmdline input_data =
-	let cmdline = "clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop1.lp")^" -"
-	in
+	dbg cmdline;
 	let fin, fout = Unix.open_process cmdline
 	in
 	output_string fout input_data;
@@ -133,8 +132,46 @@ in
 debug_asp asp_data;
 
 let igin = run_process_io
-	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfoIG.lp")^" -")
+	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferIG.lp")^" -")
 		asp_data
 in
-()
+let ig = Ph2thomas_ig.input_graph igin
+in
+(if !opt_dotfile <> "" then
+	let cout = open_out !opt_dotfile
+	in
+	(output_string cout (Ph2thomas_ig.dot_of_graph ig);
+	close_out cout)
+);
+let asp_data = asp_data ^ (Ph2thomas_ig.asp_of_graph ig)
+in
+debug_asp asp_data;
+
+let pin = run_process_io
+	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferK.lp")^" -")
+		asp_data
+in
+let params = Ph2thomas_param.input_params pin ig
+in
+let string_of_params = 
+	match !opt_format with
+		  "AB" -> Ph2thomas_param.string_AB_of_params
+		| "active" -> Ph2thomas_param.string_active_of_params
+		| "iter" -> Ph2thomas_param.string_iter_of_params
+		| f -> failwith ("Invalid format '" ^ f ^ "'")
+in
+print_string (string_of_params ig params);
+
+if !opt_enum then (
+	let asp_data = asp_data ^ (Ph2thomas_param.asp_for_enum ig params)
+	in
+	debug_asp asp_data;
+	let cmdline = "clingo 0 --verbose=1 "^(Filename.concat asp_path "phenumK.lp")^" -"
+	in
+	dbg cmdline;
+	let fout = Unix.open_process_out cmdline
+	in
+	output_string fout asp_data;
+	close_out fout
+)
 

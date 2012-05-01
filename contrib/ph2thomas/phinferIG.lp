@@ -176,7 +176,7 @@ warning("NOT AN ACTIVATION NOR INHIBITION [not gi_edge(A,+/-,B)]",A,B) :- ea(A),
 % Debug
 #show error/3.
 #show warning/3.
-%#show debug/3.
+#show debug/3.
 %#show debug_no_action/4.
 #show debug_auto_influence/1.
 

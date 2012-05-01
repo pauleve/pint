@@ -7,37 +7,10 @@
     Sortie : sortie standard
 *)
 
-(*open List;;*)
-let hd = List.hd ;;
-let tl = List.tl ;;
-
-let fichier_ASP = Array.get Sys.argv 1 ;;
-let fichier_entree = Array.get Sys.argv 2 ;;
-let output_format = Array.get Sys.argv 3 ;;
-
-let sortie_ASP = open_out_gen [Open_append ; Open_creat] 700 fichier_ASP ;;
-let entree_IG = open_in fichier_entree ;;
-let entree = stdin ;;
-let sortie = stdout ;;
-
 exception Parsing_error of string ;;    (* Error while parsing *)
 exception Result_error ;;               (* Error in the resolution result, f.i.: undefined sign *)
 
-
-
-(** Lecture des données IG **)
-let nodes : string list = input_value entree_IG ;;
-let edges : ((string * string), (string * int)) Hashtbl.t = input_value entree_IG ;;
-close_in entree_IG ;;
-
 (* Hashtbl.iter (fun (a, b) (s, t) -> print_endline (a ^ " =(" ^ s ^ (string_of_int t) ^ ")=> " ^ b)) edges ;; *)
-
-(* Table de référence des prédécesseurs *)
-let edgesb : (string, string) Hashtbl.t = Hashtbl.create (Hashtbl.length edges) ;;
-Hashtbl.iter (fun e _ -> let (e1, e2) = e in Hashtbl.add edgesb e2 e1) edges ;;
-
-(* Paramétrisation *)
-let param = Hashtbl.create (Hashtbl.length edges) ;;
 
 
 
@@ -203,13 +176,13 @@ let rec input_lines input table key_clause =
           then (
             (* Traitement ici si trouvé ! *)
             let lres = get_all_clauses !line "result" in
-              if fst (parse_for_string (hd lres)) = "ok"
+              if fst (parse_for_string (List.hd lres)) = "ok"
                 (* Traitement ici si bon résultat *)
                 then let lactivation = List.map
                                             (fun i -> fst (parse_for_string i))
                                             (List.sort compare (get_all_clauses !line "kA")) in
                   let lparameters = (if List.length (get_all_clauses !line "error") > 0
-                    then ( prerr_endline ("Error: parameter is not an attractor for k_ " ^ fst (parse_for_string (hd (get_all_clauses !line "error")))
+                    then ( prerr_endline ("Error: parameter is not an attractor for k_ " ^ fst (parse_for_string (List.hd (get_all_clauses !line "error")))
                                           ^ ", {" ^ (string_of_list ", " id lactivation) ^ "}") ;
                       []
                     ) else         List.map (fun i -> int_of_string (fst (parse_for_word i)))
@@ -224,7 +197,14 @@ let rec input_lines input table key_clause =
       ()
 ;;
 
-input_lines entree param "ka" ;;
+let input_params entree (nodes, edges) = 
+	(* Paramétrisation *)
+	let param = Hashtbl.create (Hashtbl.length edges)
+	in
+	input_lines entree param "ka";
+	close_in entree;
+	param
+;;
 
 
 
@@ -236,19 +216,6 @@ let rec powerset l =
 ;;
 
 let (|||) a b = (not (a && b)) && (a || b) ;;
-
-let active l a =
-  let rec active_rec predec l a =
-    match predec with
-    | [] -> []
-    | h::tpredec ->
-      let (sign, _) = Hashtbl.find edges (h, a) in
-        if (List.mem h l) ||| ((String.compare sign "-") = 0)
-          then h :: (active_rec tpredec l a)
-          else active_rec tpredec l a
-in
-  active_rec (Hashtbl.find_all edgesb a) l a
-;;
 
 (*
 let print_nodes_list l =
@@ -264,73 +231,101 @@ in
 let print_param_list l =
 *)
 
-if String.compare output_format "AB" = 0 then (
-  let iterator n c =
-    output_string sortie ("k_ " ^ n ^ ", {") ;
-    output_string sortie (string_of_list ";" id c) ;
-    output_string sortie "}  =  {" ;
-    output_string sortie (string_of_list " " string_of_int (Hashtbl.find_all param (n, c))) ;
-    output_string sortie "}\n" ;
-  in
-    List.iter (fun n -> List.iter (fun c -> iterator n (List.sort compare c)) (powerset (Hashtbl.find_all edgesb n))) nodes
-) else if String.compare output_format "active" = 0 then (
-  let iterator n c =
-    output_string sortie ("k_ " ^ n ^ ", {") ;
-    output_string sortie (string_of_list ";" id (active c n)) ;
-    output_string sortie "}  =  {" ;
-    output_string sortie (string_of_list " " string_of_int (Hashtbl.find_all param (n, c))) ;
-    output_string sortie "}\n" ;
-  in
-    List.iter (fun n -> List.iter (fun c -> iterator n (List.sort compare c)) (powerset (Hashtbl.find_all edgesb n))) nodes
-
-) else if String.compare output_format "iter" = 0 then (
-
-  let iterator =
-    fun a lparams -> let (gene, activators) = a in
-      output_string sortie ("k_ " ^ gene ^ ", A =");
-      List.iter (fun s -> output_string sortie (" " ^ s)) activators;
-      output_string sortie (" = {");
-      output_string sortie (" " ^ (string_of_int lparams)) ;
-      output_string sortie " }\n"
-  in
-    Hashtbl.iter iterator param
-
-) ;;
-
-close_out sortie ;;
-
-
-
-(** Sortie fichier ASP **)
-let rec pow n e =
-  if e = 0
-    then 1
-    else n * (pow n (e - 1))
+let build_edgesb edges =
+	(* Table de référence des prédécesseurs *)
+	let edgesb : (string, string) Hashtbl.t = Hashtbl.create (Hashtbl.length edges)
+	in
+	Hashtbl.iter (fun e _ -> let (e1, e2) = e in Hashtbl.add edgesb e2 e1) edges;
+	edgesb
 ;;
 
-if String.compare output_format "enum" = 0 || String.compare output_format "enumerate" = 0 then (
-  output_string sortie_ASP ("\n% Labelling for parameter enumeration\n") ;
-(*  List.iter (fun n -> (output_string sortie_ASP ("max_param(\"" ^ n ^ "\"," ^ (string_of_int (pow 2 (List.length (Hashtbl.find_all edgesb n)))) ^ ").\n"))) nodes ; *)
-  let rec rec_node n predec =
-    match predec with
-    | [] -> ()
-    | h :: t -> (output_string sortie_ASP ("param_label(\"" ^ n ^ "\"," ^ (string_of_int (List.length predec)) ^ ").\n") ; rec_node n t)
+let string_AB_of_params (nodes, edges) param =
+	let edgesb = build_edgesb edges
+	in
+  let iterator n c =
+    ("k_ " ^ n ^ ", {")
+    ^ (string_of_list ";" id c)
+    ^ "}  =  {"
+    ^ (string_of_list " " string_of_int (Hashtbl.find_all param (n, c)))
+	^ "}\n"
   in
-    List.iter (fun n -> rec_node n (powerset (Hashtbl.find_all edgesb n))) nodes ;
-  let iterator_predec n i a = output_string sortie_ASP ("param_label(\"" ^ n ^ "\"," ^ (string_of_int i) ^ ",\"" ^ a ^ "\").\n") in
-    let rec rec_node n predec =
-      match predec with
-      | [] -> ()
-      | h :: t -> (List.iter (iterator_predec n (List.length predec)) h ; rec_node n t)
+  String.concat "" (List.map (fun n -> String.concat "" 
+  			(List.map (fun c -> iterator n (List.sort compare c)) (powerset (Hashtbl.find_all edgesb n)))) nodes)
+;;
+
+let string_active_of_params (nodes, edges) param =
+	let edgesb = build_edgesb edges
+	in
+	let active l a =
+	  let rec active_rec predec l a =
+		match predec with
+		| [] -> []
+		| h::tpredec ->
+		  let (sign, _) = Hashtbl.find edges (h, a) in
+			if (List.mem h l) ||| ((String.compare sign "-") = 0)
+			  then h :: (active_rec tpredec l a)
+			  else active_rec tpredec l a
+		in
+		active_rec (Hashtbl.find_all edgesb a) l a
+	in
+	let iterator n c =
+	("k_ " ^ n ^ ", {")
+	^ (string_of_list ";" id (active c n))
+	^ "}  =  {"
+	^ (string_of_list " " string_of_int (Hashtbl.find_all param (n, c)))
+	^ "}\n"
+	in
+	String.concat "" (List.map (fun n -> String.concat "" 
+  			(List.map (fun c -> iterator n (List.sort compare c)) (powerset (Hashtbl.find_all edgesb n)))) nodes)
+;;
+
+let string_iter_of_params (nodes, edges) param =
+  let iterator =
+    fun a lparams -> let (gene, activators) = a in
+      ("k_ " ^ gene ^ ", A =")
+      ^ (String.concat "" (List.map (fun s -> " " ^ s) activators))
+	  ^ (" = {")
+	  ^ (" " ^ (string_of_int lparams))
+	  ^ " }\n"
   in
-    List.iter (fun n -> rec_node n (powerset (Hashtbl.find_all edgesb n))) nodes ;
-  output_string sortie_ASP ("\n% Infered parameters\n") ;
-  let iterator_param n i p = output_string sortie_ASP ("param(\"" ^ n ^ "\"," ^ (string_of_int i) ^ "," ^ (string_of_int p) ^ ").\n") in
-    let rec rec_node n predec =
-      match predec with
-      | [] -> ()
-      | h :: t -> (List.iter (iterator_param n (List.length predec)) (Hashtbl.find_all param (n, (List.sort compare h))) ; rec_node n t)
-  in
-    List.iter (fun n -> rec_node n (powerset (Hashtbl.find_all edgesb n))) nodes
-) ;;
+  Hashtbl.fold (fun x y b -> b ^ iterator x y) param ""
+;;
+
+let asp_for_enum (nodes, edges) param =
+	let edgesb = build_edgesb edges
+	in
+	(** Sortie fichier ASP **)
+	let rec pow n e =
+	  if e = 0
+		then 1
+		else n * (pow n (e - 1))
+	in
+	"\n% Labelling for parameter enumeration\n"
+	^
+	(*  List.iter (fun n -> (output_string sortie_ASP ("max_param(\"" ^ n ^ "\"," ^ (string_of_int (pow 2 (List.length (Hashtbl.find_all edgesb n)))) ^ ").\n"))) nodes ; *)
+	  let rec rec_node n predec =
+		match predec with
+		| [] -> ""
+		| h :: t -> "param_label(\"" ^ n ^ "\"," ^ (string_of_int (List.length predec)) ^ ").\n" ^ rec_node n t
+	  in
+	(String.concat "" (List.map (fun n -> rec_node n (powerset (Hashtbl.find_all edgesb n))) nodes))
+	^
+	  let iterator_predec n i a = "param_label(\"" ^ n ^ "\"," ^ (string_of_int i) ^ ",\"" ^ a ^ "\").\n" in
+		let rec rec_node n predec =
+		  match predec with
+		  | [] -> ""
+		  | h :: t -> (String.concat "" (List.map (iterator_predec n (List.length predec)) h)) ^ rec_node n t
+	  in
+	(String.concat "" (List.map (fun n -> rec_node n (powerset (Hashtbl.find_all edgesb n))) nodes))
+	^ "\n% Infered parameters\n"
+	^
+	  let iterator_param n i p = "param(\"" ^ n ^ "\"," ^ (string_of_int i) ^ "," ^ (string_of_int p) ^ ").\n" in
+		let rec rec_node n predec =
+		  match predec with
+		  | [] -> ""
+		  | h :: t -> (String.concat "" (List.map (iterator_param n (List.length predec)) (Hashtbl.find_all param (n, (List.sort compare h)))))
+		  					^ rec_node n t
+	  in
+	(String.concat "" (List.map (fun n -> rec_node n (powerset (Hashtbl.find_all edgesb n))) nodes))
+;;
 

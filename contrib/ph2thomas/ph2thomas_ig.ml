@@ -8,32 +8,6 @@
     Sortie : sortie standard
 *)
 
-(*open Ph_types ;;
-open Ph_util ;;*)
-
-let fichier_sortie =
-  if Array.length Sys.argv > 1
-    then Array.get Sys.argv 1
-    else ""
-;;
-let fichier_IG =
-  if Array.length Sys.argv > 2
-    then Array.get Sys.argv 2
-    else ""
-;;
-let fichier_DOT =
-  if Array.length Sys.argv > 3
-    then Array.get Sys.argv 3
-    else ""
-;;
-
-let entree = stdin ;;
-let sortie =
-  if (String.length fichier_sortie) != 0
-    then open_out_gen [Open_append ; Open_creat] 700 fichier_sortie
-    else stdout
-;;
-
 exception Parsing_error of string ;;    (* Error while parsing *)
 exception Result_error ;;               (* Error in the resolution result, f.i.: undefined sign *)
 
@@ -262,94 +236,102 @@ let after_w c =
 ;;
 
 
+let input_graph entree =
 
-(** Lecture effective des clauses **)
-let clauses = Hashtbl.create 4 ;;
-input_clauses entree clauses ["ea" ; "eb" ; "gi_edge" ; "error"] ;;
+	(** Lecture effective des clauses **)
+	let clauses = Hashtbl.create 4
+	in
+	input_clauses entree clauses ["ea" ; "eb" ; "gi_edge" ; "error"];
 
-(* Vérification de l'absence d'erreurs *)
-if Hashtbl.mem clauses "error" then
-  let err_args = Hashtbl.find clauses "error" in
-    let err_text = parse_for_string_at err_args 0 in
-      let err_compl = end_string err_args ((after err_text) + 1) in
-        prerr_endline ("Error in the result of the resolution: \"" ^ (fst err_text) ^ "\", with args: " ^ err_compl) ;
-        raise Result_error
-;;
+	(* Vérification de l'absence d'erreurs *)
+	if Hashtbl.mem clauses "error" then (
+	  let err_args = Hashtbl.find clauses "error" in
+		let err_text = parse_for_string_at err_args 0 in
+		  let err_compl = end_string err_args ((after err_text) + 1) in
+			prerr_endline ("Error in the result of the resolution: \"" ^ (fst err_text) ^ "\", with args: " ^ err_compl) ;
+			raise Result_error
+	);
 
 
+	(** Traitement des clauses **)
+	(*
+	let node_from_clause cargs =
+	  let a = parse_for_string cargs in
+		(fst a) ^ "\n"
+	in
+	*)
 
-(** Traitement des clauses **)
-let node_from_clause cargs =
-  let a = parse_for_string cargs in
-    (fst a) ^ "\n"
-;;
+	(* Table des nœuds *)
+	let nodupes l = List.fold_left (fun l1 a -> if (List.mem a l1) then l1 else a :: l1) [] l
+	in
+	let nodes = (nodupes (List.map (fun a -> fst (parse_for_string a))
+	  (List.append (Hashtbl.find_all clauses "ea") (Hashtbl.find_all clauses "eb"))))
+	in
 
-(* Table des nœuds *)
-let nodupes l = List.fold_left (fun l1 a -> if (List.mem a l1) then l1 else a :: l1) [] l ;;
-let nodes = (nodupes (List.map (fun a -> fst (parse_for_string a))
-  (List.append (Hashtbl.find_all clauses "ea") (Hashtbl.find_all clauses "eb")))) ;;
+	(* Tables des arcs positifs et négatifs *)
+	let edges_act = Hashtbl.create (2 * (List.length nodes))
+	and edges_inh = Hashtbl.create (2 * (List.length nodes))
+	and edges_nos = Hashtbl.create (2 * (List.length nodes))
+	in
 
-(* Tables des arcs positifs et négatifs *)
-let edges_act = Hashtbl.create (2 * (List.length nodes)) ;;
-let edges_inh = Hashtbl.create (2 * (List.length nodes)) ;;
-let edges_nos = Hashtbl.create (2 * (List.length nodes)) ;;
+	let update_edge e =
+	  let (ea, sign, threshold, eb) = e in
+		match sign with
+		| "+" -> Hashtbl.add edges_act (ea, eb) threshold
+		| "-" -> Hashtbl.add edges_inh (ea, eb) threshold
+		| "?" -> Hashtbl.add edges_nos (ea, eb) 0
+		| _ -> raise (Parsing_error ("update_edge: Unknown edge sign: " ^ sign))
+	in
 
-let update_edge e =
-  let (ea, sign, threshold, eb) = e in
-    match sign with
-    | "+" -> Hashtbl.add edges_act (ea, eb) threshold
-    | "-" -> Hashtbl.add edges_inh (ea, eb) threshold
-    | "?" -> Hashtbl.add edges_nos (ea, eb) 0
-    | _ -> raise (Parsing_error ("update_edge: Unknown edge sign: " ^ sign))
-;;
+	let edge_from_clause cargs =
+	  let ea = parse_for_string_at cargs 0 in
+		let sign = parse_for_string_at cargs (after ea) in
+		  let threshold = parse_for_word_at cargs (after sign) in
+			let eb = parse_for_string_at cargs (after_w threshold) in
+			((fst ea), (fst sign), (int_of_string (fst threshold)), (fst eb))
+	in
 
-let edge_from_clause cargs =
-  let ea = parse_for_string_at cargs 0 in
-    let sign = parse_for_string_at cargs (after ea) in
-      let threshold = parse_for_word_at cargs (after sign) in
-        let eb = parse_for_string_at cargs (after_w threshold) in
-        ((fst ea), (fst sign), (int_of_string (fst threshold)), (fst eb))
-;;
+	List.iter (fun a -> update_edge (edge_from_clause a)) (Hashtbl.find_all clauses "gi_edge");
 
-List.iter (fun a -> update_edge (edge_from_clause a)) (Hashtbl.find_all clauses "gi_edge") ;;
+	(* Relecture des arcs et rangement final dans la table edges, et mise à jour du seuil *)
+	let edges = Hashtbl.create ((Hashtbl.length edges_act) + (Hashtbl.length edges_inh))
+	in
 
-(* Relecture des arcs et rangement final dans la table edges, et mise à jour du seuil *)
-let edges = Hashtbl.create ((Hashtbl.length edges_act) + (Hashtbl.length edges_inh)) ;;
+	let iterator sign ee threshold =
+	  let (ea, eb) = ee in
+		if Hashtbl.mem edges (ea, eb)
+		  then (
+			let old_edge = Hashtbl.find edges (ea, eb) in
+			  if (fst (old_edge)) != sign
+				then (
+				  Hashtbl.replace edges (ea, eb) ("?", 0)
+				  (* prerr_endline ("Error: Edge " ^ ea ^ " -> " ^ eb ^ " has both signs (+ and -)") ;
+				  raise Result_error *)
+				) else
+				  Hashtbl.replace edges (ea, eb) (sign, min threshold (snd old_edge))
+		  ) else
+			Hashtbl.add edges (ea, eb) (sign, threshold)
+	in
+	Hashtbl.iter (iterator "+") edges_act ;
+	Hashtbl.iter (iterator "-") edges_inh ;
 
-let iterator sign ee threshold =
-  let (ea, eb) = ee in
-    if Hashtbl.mem edges (ea, eb)
-      then (
-        let old_edge = Hashtbl.find edges (ea, eb) in
-          if (fst (old_edge)) != sign
-            then (
-              Hashtbl.replace edges (ea, eb) ("?", 0)
-              (* prerr_endline ("Error: Edge " ^ ea ^ " -> " ^ eb ^ " has both signs (+ and -)") ;
-              raise Result_error *)
-            ) else
-              Hashtbl.replace edges (ea, eb) (sign, min threshold (snd old_edge))
-      ) else
-        Hashtbl.add edges (ea, eb) (sign, threshold)
-in
-  Hashtbl.iter (iterator "+") edges_act ;
-  Hashtbl.iter (iterator "-") edges_inh
-;;
-
-let iterator ee _ =
-  let (ea, eb) = ee in
-    Hashtbl.replace edges (ea, eb) ("?", 0)
-in
-  Hashtbl.iter iterator edges_nos
+	let iterator ee _ =
+	  let (ea, eb) = ee in
+		Hashtbl.replace edges (ea, eb) ("?", 0)
+	in
+	Hashtbl.iter iterator edges_nos;
+	close_in entree;
+	(nodes, edges)
 ;;
 
 let string_of_edge ee st =
   let (ea, eb) = ee in
-    let (sign, threshold) = st in
-      "edge(\"" ^ ea ^ "\",\"" ^ sign ^ "\"," ^ 
-      ( if (String.compare sign "?") != 0
-          then (string_of_int threshold) ^ ","
-          else "" ) ^
-      "\"" ^ eb ^ "\").\n"
+	let (sign, threshold) = st in
+	  "edge(\"" ^ ea ^ "\",\"" ^ sign ^ "\"," ^ 
+	  ( if (String.compare sign "?") != 0
+		  then (string_of_int threshold) ^ ","
+		  else "" ) ^
+	  "\"" ^ eb ^ "\").\n"
 ;;
 
 let string_of_edge_DOT ee st =
@@ -362,38 +344,20 @@ let string_of_edge_DOT ee st =
       "\"];\n"
 ;;
 
-
-
-(** Écriture sur la sortie **)
-output_string sortie "\n" ;;
-
+let asp_of_graph (nodes, edges) =
+	"\n"
 (*
 List.iter (fun n -> output_string sortie (node_from_clause n)) nodes ;;
 output_string sortie "\nEND_NODES\n\n" ;;
 *)
+ 	^ "% Edges of Thomas' modelling\n"
+	^ Hashtbl.fold (fun e c b -> b ^ (string_of_edge e c)) edges ""
+;;
 
-output_string sortie "% Edges of Thomas' modelling\n" ;;
-Hashtbl.iter (fun e c -> output_string sortie (string_of_edge e c)) edges ;;
-
-close_out sortie ;;
-
-
-
-(** Fichier IG de sortie **)
-if (String.length fichier_IG) != 0
-  then ( let sortie_IG = open_out fichier_IG 
-    in
-      output_value sortie_IG nodes ;
-      output_value sortie_IG edges ) ;;
-
-
-
-(** Fichier DOT de sortie **)
-if ((String.length fichier_DOT) != 0) && ((String.compare fichier_DOT "-") != 0)
-  then ( let sortie_DOT = open_out fichier_DOT 
-    in
-      output_string sortie_DOT "digraph ig {\n" ;
-      List.iter (fun n -> output_string sortie_DOT ("  " ^ n ^ ";\n")) nodes ;
-      Hashtbl.iter (fun e c -> output_string sortie_DOT (string_of_edge_DOT e c)) edges ;
-      output_string sortie_DOT "}" ) ;;
+let dot_of_graph (nodes, edges) =
+      "digraph ig {\n"
+      ^ (String.concat "" (List.map (fun n -> "  " ^ n ^ ";\n") nodes))
+	  ^ (Hashtbl.fold (fun e c b -> b ^ string_of_edge_DOT e c) edges "")
+	  ^ "}\n" 
+;;
 
