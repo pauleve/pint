@@ -131,6 +131,7 @@ let asp_data = asp_data ^ asp_coop
 in
 debug_asp asp_data;
 
+dbg "Infering Interaction Graph...";
 let igin = run_process_io
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferIG.lp")^" -")
 		asp_data
@@ -147,6 +148,7 @@ let asp_data = asp_data ^ (Ph2thomas_ig.asp_of_graph ig)
 in
 debug_asp asp_data;
 
+dbg "Infering Parameters..";
 let pin = run_process_io
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferK.lp")^" -")
 		asp_data
