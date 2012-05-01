@@ -66,8 +66,8 @@ Arg.parse cmdopts anon_fun usage_msg;
 
 let check_clingo () =
 	if Sys.command "clingo -v" <> 0 then
-		failwith ("The program 'clingo' is not in your path. Please read "
-					^"http://process.wordpress.com/doc/install/#clingo")
+		failwith ("The program 'clingo' is not in your path. Please download it at "
+					^"http://sourceforge.net/projects/potassco/files/clingo/")
 in
 
 check_clingo ();
