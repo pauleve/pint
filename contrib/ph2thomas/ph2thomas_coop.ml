@@ -1,24 +1,7 @@
 (*** Inférer les paramètres de Thomas à partir d'un Process Hitting
       et d'un Graphe des Interactions ***)
 
-
-
-let fichier_sortie =
-  if Array.length Sys.argv > 1
-    then Array.get Sys.argv 1
-    else ""
-;;
-
-let entree = stdin ;;
-let sortie =
-  if String.length fichier_sortie != 0
-    then open_out_gen [Open_append ; Open_creat] 700 fichier_sortie
-    else stdout
-;;
-
 exception Parsing_error of string ;;    (* Error while parsing *)
-
-
 
 (** Fonctions de lecture des clauses **)
 (* Fonction de lecture du nom d'une clause *)
@@ -178,57 +161,65 @@ let after_w c =
     c2 + (String.length c1)
 ;;
 
-
-
-(** Lecture effective des clauses **)
-let clauses = Hashtbl.create 3 ;;
-input_clauses entree clauses ["ecs" ; "cooperation" ; "cannot_be_cs"] ;;
-
-(*
-(* Vérification de l'absence d'erreurs *)
-if Hashtbl.mem clauses "error" then
-  let err_args = Hashtbl.find clauses "error" in
-    let err_text = parse_for_string_at err_args 0 in
-      let err_compl = end_string err_args ((after err_text) + 1) in
-        prerr_endline ("Error in the result of the resolution: \"" ^ (fst err_text) ^ "\", with args: " ^ err_compl) ;
-        raise Result_error
+let create_clauses () =
+	Hashtbl.create 3
 ;;
-*)
 
-(** Traitement des clauses **)
-(* Liste des sortes coopératives *)
-let cannot_be_cs = List.map (fun c -> fst (parse_for_string c)) (Hashtbl.find_all clauses "cannot_be_cs") ;;
+let input_clauses clauses entree =
+	(** Lecture effective des clauses **)
+	(input_clauses entree clauses ["ecs" ; "cooperation" ; "cannot_be_cs"]);
+	close_in entree
+;;
 
-let cooperative_sorts =
-  let possible_sorts = List.map
-    (fun c -> let s1 = parse_for_string c in fst s1)
-    (Hashtbl.find_all clauses "ecs")
-in
-  List.filter (fun a -> not (List.mem a cannot_be_cs)) possible_sorts ;;
+let asp_of_clauses clauses =
+	(*
+	(* Vérification de l'absence d'erreurs *)
+	if Hashtbl.mem clauses "error" then
+	  let err_args = Hashtbl.find clauses "error" in
+		let err_text = parse_for_string_at err_args 0 in
+		  let err_compl = end_string err_args ((after err_text) + 1) in
+			prerr_endline ("Error in the result of the resolution: \"" ^ (fst err_text) ^ "\", with args: " ^ err_compl) ;
+			raise Result_error
+	;;
+	*)
 
-let fst4 a = let (a1, _, _, _) = a in a1 ;;
+	(** Traitement des clauses **)
+	(* Liste des sortes coopératives *)
+	let cannot_be_cs = List.map (fun c -> fst (parse_for_string c)) (Hashtbl.find_all clauses "cannot_be_cs")
+	in
 
-let cooperations =
-  let get_cooperation s =
-    let cs = parse_for_string s in
-      let a = parse_for_string_at s (after_s cs) in
-        let i = parse_for_word_at s (after_s a) in
-          let j = parse_for_word_at s (after_w i) in
-            (fst cs, fst a, int_of_string (fst i), int_of_string (fst j))
-in
-  let possible_cooperations = List.map get_cooperation (Hashtbl.find_all clauses "cooperation")
-in
-  List.filter (fun a -> not (List.mem (fst4 a) cannot_be_cs)) possible_cooperations ;;
+	let cooperative_sorts =
+	  let possible_sorts = List.map
+		(fun c -> let s1 = parse_for_string c in fst s1)
+		(Hashtbl.find_all clauses "ecs")
+	in
+	  List.filter (fun a -> not (List.mem a cannot_be_cs)) possible_sorts
+	in
 
+	let fst4 a = let (a1, _, _, _) = a in a1
+	in
 
+	let cooperations =
+	  let get_cooperation s =
+		let cs = parse_for_string s in
+		  let a = parse_for_string_at s (after_s cs) in
+			let i = parse_for_word_at s (after_s a) in
+			  let j = parse_for_word_at s (after_w i) in
+				(fst cs, fst a, int_of_string (fst i), int_of_string (fst j))
+	in
+	  let possible_cooperations = List.map get_cooperation (Hashtbl.find_all clauses "cooperation")
+	in
+	  List.filter (fun a -> not (List.mem (fst4 a) cannot_be_cs)) possible_cooperations
+	 in
 
-(** Fichier de sortie **)
-(* Sortes coopératives et coopérations du PH *)
-output_string sortie "\n% Cooperations from the Process Hitting\n" ;;
-List.iter (fun cs -> output_string sortie ("cooperative_sort(\"" ^ cs ^ "\").\n")) cooperative_sorts ;;
-List.iter (fun coop -> let (cs, a, i, k) = coop in
-  output_string sortie ("cooperation(\"" ^ cs ^ "\",\"" ^ a ^ "\"," ^ (string_of_int i) ^ "," ^ (string_of_int k) ^ ").\n")) cooperations ;;
-
-flush sortie ;;
-close_out sortie ;;
+	(* Sortes coopératives et coopérations du PH *)
+	"\n% Cooperations from the Process Hitting\n"
+	^ (String.concat "" (List.map 
+			(fun cs -> ("cooperative_sort(\"" ^ cs ^ "\").\n"))
+				cooperative_sorts))
+	^ (String.concat "" (List.map
+			(fun coop -> let (cs, a, i, k) = coop in
+			  	("cooperation(\"" ^ cs ^ "\",\"" ^ a ^ "\"," ^ (string_of_int i) ^ "," ^ (string_of_int k) ^ ").\n"))
+				cooperations))
+;;
 

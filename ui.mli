@@ -6,6 +6,8 @@ val opt_channel_in : in_channel ref
 (** Reference to the input filename. *)
 val opt_filename_in : string ref
 
+(** path to Pint directory *)
+val pint_path : string
 
 (** Sets [Ph_util.opt_initial_procs] to the process list represented by the given string. *)
 val setup_opt_initial_procs : string -> unit

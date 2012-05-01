@@ -10,6 +10,8 @@ SOURCES = \
 	$(PH2THOMAS_SOURCES) \
 	ph2thomas.ml
 
+LIBS := $(PINTLIB_LIBS) $(PHLIB_LIBS) unix
+
 RESULT = ph2thomas.exe
 
 include OCamlMakefile

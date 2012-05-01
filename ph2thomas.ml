@@ -55,7 +55,8 @@ and usage_msg = "ph2thomas [opts]"
 in
 let anon_fun _ = (Arg.usage cmdopts usage_msg; raise Exit)
 in
-Arg.parse cmdopts anon_fun usage_msg;;
+Arg.parse cmdopts anon_fun usage_msg;
+
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts
 and usage_msg = "ph-stable"
 in
@@ -69,13 +70,71 @@ let check_clingo () =
 					^"http://process.wordpress.com/doc/install/#clingo")
 in
 
-check_clingo ();;
+check_clingo ();
+let asp_path = Filename.concat Ui.pint_path "contrib/ph2thomas"
+in
 
+let debug_asp data =
+	if !opt_asp <> "" then
+		let cout = open_out !opt_asp
+		in
+		(output_string cout data;
+		close_out cout)
+
+(*
+and readall cin =
+	let bs = 2048
+	in
+	let buffer = Buffer.create bs
+	in
+	let string = String.create bs
+	and chars_read = ref 1
+	in
+	while !chars_read <> 0 do
+		chars_read := input cin string 0 bs;
+		Buffer.add_substring buffer string 0 !chars_read
+	done;
+	close_in cin;
+	Buffer.contents buffer;
+*)
+in
+
+let run_process_io cmdline input_data =
+	let cmdline = "clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop1.lp")^" -"
+	in
+	let fin, fout = Unix.open_process cmdline
+	in
+	output_string fout input_data;
+	close_out fout;
+	fin
+in
 
 let ph, ctx = Ph_util.parse !Ui.opt_channel_in
 in
 
 let asp_data = Ph_translator.asp_of_ph ph ctx
 in
-print_string asp_data
+debug_asp asp_data;
+
+let clauses = Ph2thomas_coop.create_clauses ()
+in
+Ph2thomas_coop.input_clauses clauses (run_process_io 
+	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop1.lp")^" -")
+		asp_data);
+Ph2thomas_coop.input_clauses clauses (run_process_io 
+	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop2.lp")^" -")
+		asp_data);
+
+let asp_coop = Ph2thomas_coop.asp_of_clauses clauses
+in
+
+let asp_data = asp_data ^ asp_coop
+in
+debug_asp asp_data;
+
+let igin = run_process_io
+	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfoIG.lp")^" -")
+		asp_data
+in
+()
 
