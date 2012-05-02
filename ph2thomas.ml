@@ -103,11 +103,11 @@ in
 
 let run_process_io cmdline input_data =
 	dbg cmdline;
-	let fin, fout = Unix.open_process cmdline
+	let pin, pout = Unix.open_process cmdline
 	in
-	output_string fout input_data;
-	close_out fout;
-	fin
+	output_string pout input_data;
+	close_out pout;
+	pin
 in
 
 let ph, ctx = Ph_util.parse !Ui.opt_channel_in
@@ -165,6 +165,7 @@ let string_of_params =
 		| f -> failwith ("Invalid format '" ^ f ^ "'")
 in
 print_string (string_of_params ig params);
+flush_all ();
 
 if !opt_enum or !opt_fullenum then (
 	let asp_data = asp_data ^ (Ph2thomas_param.asp_for_enum ig params)
@@ -173,13 +174,13 @@ if !opt_enum or !opt_fullenum then (
 	let cmdline = "clingo 0 --verbose=1 "^(Filename.concat asp_path "phenumK.lp")^" -"
 	in
 	dbg cmdline;
-	let fout = Unix.open_process_out cmdline
+	let pout = Unix.open_process_out cmdline
 	in
 	(if not !opt_fullenum then
-		output_string fout 
+		output_string pout 
 			":- enum_param(A,P,I), enum_param(A,P,J), I != J, not infered_param(A,P).\n"
 	);
-	output_string fout asp_data;
-	close_out fout
+	output_string pout asp_data;
+	ignore(Unix.close_process_out pout);
 )
 
