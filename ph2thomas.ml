@@ -41,6 +41,7 @@ let opt_dotfile = ref ""
 and opt_asp = ref ""
 and opt_format = ref "active"
 and opt_enum = ref false
+and opt_fullenum = ref false
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 	("--dot", Arg.Set_string  opt_dotfile, 
@@ -50,6 +51,7 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 	("--format", Arg.Symbol (["active"; "AB"; "iter"], (fun x -> opt_format := x)),
 		("\tParameter format (default: "^ (!opt_format) ^")."));
 	("--enumerate", Arg.Set opt_enum, "\tPerform parameterization enumeration.");
+	("--full-enumerate", Arg.Set opt_fullenum, "\tPerform parameterization enumeration, including intervals.");
 	]
 and usage_msg = "ph2thomas [opts]"
 in
@@ -164,7 +166,7 @@ let string_of_params =
 in
 print_string (string_of_params ig params);
 
-if !opt_enum then (
+if !opt_enum or !opt_fullenum then (
 	let asp_data = asp_data ^ (Ph2thomas_param.asp_for_enum ig params)
 	in
 	debug_asp asp_data;
@@ -173,6 +175,10 @@ if !opt_enum then (
 	dbg cmdline;
 	let fout = Unix.open_process_out cmdline
 	in
+	(if not !opt_fullenum then
+		output_string fout 
+			":- enum_param(A,P,I), enum_param(A,P,J), I != J, not infered_param(A,P).\n"
+	);
 	output_string fout asp_data;
 	close_out fout
 )
