@@ -150,6 +150,13 @@ let asp_data = asp_data ^ (Ph2thomas_ig.asp_of_graph ig)
 in
 debug_asp asp_data;
 
+(** check if there is no unsigned arc, as we don't support them yet. **)
+let assert_signed _ (s, _) = 
+	if s = "?" then
+		failwith ("Error: there is at least one unsigned interaction, and we don't support it yet.")
+in
+Hashtbl.iter assert_signed (snd ig);
+
 dbg "Infering Parameters..";
 let pin = run_process_io
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferK.lp")^" -")
