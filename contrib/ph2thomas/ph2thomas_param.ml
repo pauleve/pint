@@ -188,7 +188,8 @@ let rec input_lines input table key_clause =
                     ) else         List.map (fun i -> int_of_string (fst (parse_for_word i)))
                                             (List.sort compare (get_all_clauses !line "sL_foc")) ) in
                       List.iter (Hashtbl.add table (fst (parse_for_string !args), lactivation)) lparameters ;
-          ) else (
+          ) else if !clause = "UNSATISFIABLE" then (
+		  	failwith "An error occured while infering parameters (error: UNSATISFIABLE)"
             (* Traitement ici si non trouvé *)
 (*            print_endline "NOT FOUNDS HERE =(";*)
           )
