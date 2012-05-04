@@ -153,7 +153,7 @@ gi_edge(A,"?",0,A) :- auto_action, ea(A), epsilon(_,"?"), not no_influence.
 gi_edge(A,S,AJ,A) :- auto_action, ea(A), true_sign(S), bar_sign(S,S_bar), epsilon(AI,S_bar), epsilon(AJ,S), AI < AJ, not no_influence.
 gi_edge(A,S,P,A) :- auto_action, ea(A), true_sign(S), bar_sign(S,S_bar), epsilon(0,S_bar), sort(A,P), not no_influence.
 gi_edge(A,S,P,A) :- auto_action, ea(A), true_sign(S), epsilon(P,S), sort(A,P), not no_influence.
-gi_edge(A,S,P,A) :- auto_action, ea(A), true_sign(S), sort(A,P), epsilon(P,"0"), epsilon(0,"0"), all_sign(S), not no_influence.
+gi_edge(A,S,1,A) :- auto_action, ea(A), true_sign(S), sort(A,P), epsilon(P,"0"), epsilon(0,"0"), all_sign(S), not no_influence.
 
 
 %debug_GI_EDGE(S) :- auto_action, ea(A), bar_sign(S,Sbar), epsilon(0,S_bar), not no_influence.
