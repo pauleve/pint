@@ -4,6 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Abandon des projections %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Considération uniquement des confugurations des prédécesseurs %%%
+%%% Nouvelle version selon la formalisation du papier %%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -64,6 +65,157 @@ at_least_one_cooperation_debug(CS,A,J) :- is_process(A,I), is_process_of_cs(CS,J
 
 %%% Résolution de l'inférence du Graphe des Interactions
 
+% Prédécesseurs dans le PH : directs ou à travers une/des SC
+is_ph_pred(A,B) :- is_ph_predec(A,B).
+is_ph_pred(A,B) :- is_ph_pred(A,CS), is_ph_pred(CS,B), is_cs(CS).
+is_ph_reg(A,B) :- is_ph_pred(A,B), is_gene(A).
+is_ph_pred_cs(CS,B) :- is_ph_pred(CS,B), is_cs(CS).
+
+%gamma(A,B,A) :- is_gene(B), is_gene(A), is_ph_reg(B,A).
+%gamma(B,B,A) :- is_gene(B), is_gene(A), is_ph_reg(B,A).
+gamma(C,B,A) :- is_gene(C), is_gene(B), is_gene(A), is_ph_reg(B,A), is_ph_pred_cs(CS,A), is_ph_pred(B,CS), is_ph_pred(C,CS), C != B.
+gamma_cs(CS,B,A) :- is_cs(CS), is_gene(B), is_gene(A), is_ph_reg(B,A), is_ph_pred_cs(CS,A), gamma(C,B,A), is_ph_pred(C,CS).
+
+% Pour le cas où seul a régule a
+not_forever_alone(A) :- is_gene(A), is_ph_reg(B,A), B != A.
+% Cycle dans les bounces
+bounce_predec(A,X,Y) :- action(A,_,A,X,Y).
+bounce_predec(A,X,Z) :- bounce_predec(A,X,Y), bounce_predec(A,Y,Z).
+bounce_cycle(A) :- bounce_predec(A,X,X).
+% focals
+exists_self_hit(A,J) :- action(A,_,A,J,_).
+self_focals(A,I) :- is_process(A,I), not exists_self_hit(A,I), not bounce_cycle(A).
+self_focals_exists_upper(A,I) :- self_focals(A,I), self_focals(A,J), I < J.
+self_focals_max(A,I) :- self_focals(A,I), not self_focals_exists_upper(A,I).
+self_focals_exists_lower(A,I) :- self_focals(A,I), self_focals(A,J), J < I.
+self_focals_min(A,I) :- self_focals(A,I), not self_focals_exists_lower(A,I).
+focals_is_not_interval(A) :- is_process(A,I), self_focals_min(A,Min), self_focals_max(A,Max), Min < I, I < Max, not self_focals(A,I).
+exists_self_focals(A) :- self_focals(A,_).
+focals_is_not_interval(A) :- is_gene(A), not exists_self_focals(A).
+
+% Si non précisé, recherche de tous les arcs
+1 {eb(B) : is_ph_reg(B,A)} 1 :- ea(A).
+1 {ea(A) : is_gene(A)} 1.
+b_process(BI) :- eb(B), is_process(B,BI).
+a_process(AI) :- ea(A), is_process(A,AI).
+% Capture du cas auto_influence
+auto_influence :- gamma(A,B,A), ea(A), eb(B).
+auto_influence :- ea(A), eb(A).
+auto_action :- ea(A), eb(A).
+
+% Sélection d'une configuration de tous les autres prédécesseurs
+%seac(C) :- is_gene(C), eb(B), is_ph_predec_proj(C,B), not ea(C). %%% gamma
+1 {sigma_select(C,I) : is_process(C,I)} 1 :- gamma(C,B,A), eb(B), ea(A).%, not eb(C).
+sigma(BI,C,I) :- sigma_select(C,I), b_process(BI).
+sigma(BI,B,BI) :- eb(B), b_process(BI).
+% Héritage aux sortes coopératives
+temp_not_sigma(BI,CS,I) :- ea(A), is_ph_pred_cs(CS,A), is_process_of_cs(CS,I), is_ph_predec(C,CS), sigma(BI,C,J), not cooperation(CS,C,J,I).
+sigma(BI,CS,I) :- eb(B), ea(A), b_process(BI), is_process_of_cs(CS,I), gamma_cs(CS,B,A), not temp_not_sigma(BI,CS,I).
+% Debug
+%:- sigma(BI,CS,I), sigma(BI,CS,J), I != J.
+% Bounds depuis le contexte sélectionné (sigma)
+%% Cas sans auto-influence
+temp_exists_hit(BI,J) :- ea(A), action(C,I,A,J,_), sigma(BI,C,I), not auto_influence.
+bounces(BI,AK,AK) :- b_process(BI), a_process(AK), not temp_exists_hit(BI,AK), not auto_influence.
+bounces(BI,AK,AL) :- b_process(BI), ea(A), action(C,I,A,AK,AL), sigma(BI,C,I), not auto_influence.
+%% Cas avec auto_influence (a régule a avec b)
+temp_exists_hit(BI,J) :- ea(A), action(C,I,A,J,_), sigma(BI,C,I), sigma(BI,A,J), auto_influence.
+bounces(BI,AK,AK) :- b_process(BI), ea(A), a_process(AK), not temp_exists_hit(BI,AK), sigma(BI,A,AK), auto_influence.
+bounces(BI,AK,AL) :- b_process(BI), ea(A), action(C,I,A,AK,AL), sigma(BI,C,I), sigma(BI,A,AK), auto_influence.
+% Conclusion
+gi_edge(B,"+",BJ,A) :- eb(B), ea(A), b_process(BI), b_process(BJ), BI < BJ, bounces(BI,AK,AL1), bounces(BJ,AK,AL2), AL1 < AL2, not auto_action.
+gi_edge(B,"-",BJ,A) :- eb(B), ea(A), b_process(BI), b_process(BJ), BI < BJ, bounces(BI,AK,AL1), bounces(BJ,AK,AL2), AL1 > AL2, not auto_action.
+
+% Cas auto_action (a -> a)
+no_influence :- ea(A), not focals_is_not_interval(A), not not_forever_alone(A), auto_action.
+% "0" = ∅, "+" = +, "-" = −, "?" = ±
+epsilon(AI,"0") :- bounces(AI,AI,AI).
+epsilon(AI,"+") :- bounces(AI,AI,AI + 1), not epsilon(AI,"?").
+epsilon(AI,"-") :- bounces(AI,AI,AI - 1), not epsilon(AI,"?").
+epsilon(AI,"?") :- bounces(AI,AI,AI + 1), bounces(AI,AI,AI - 1).
+%sign("0";"+";"-";"?").
+%same_sign("+","+";"?"). same_sign("-","-";"?").
+true_sign("+";"-").
+bar_sign("+","-"). bar_sign("-","+").
+exists_sign(S) :- true_sign(S), epsilon(_,S).
+exists_sign("+";"-") :- epsilon(_,"?").
+all_sign(S) :- exists_sign(S), bar_sign(S,S_bar), not exists_sign(S_bar).
+%exists_below(AK,S1) :- a_process(AK), same_sign(S1,S2), epsilon(AI,S2), AI < AK.
+%exists_above(AK,S1) :- a_process(AK), same_sign(S1,S2), epsilon(AJ,S2), AK <= AJ.
+%all_above(AK,S1) :- a_process(AK), bar_sign(S1,S2), not exists_above(AK,S2), not exists_above(AK,"?").
+%%%%%% Contraindre AK ≠ 0 ?
+%all_below(AK,S1) :- a_process(AK), bar_sign(S1,S2), not exists_below(AK,S2), not exists_below(AK,"?").
+
+%gi_edge(A,"?",0,A) :- ea(A), not not_forever_alone(A), not no_influence.
+%gi_edge(A,S1,AK,A) :- auto_action, ea(A), all_above(AK,S1), all_below(AK,S2), bar_sign(S1,S2), not_forever_alone(A), not no_influence.
+
+gi_edge(A,"?",0,A) :- auto_action, ea(A), epsilon(_,"?"), not no_influence.
+gi_edge(A,S,AJ,A) :- auto_action, ea(A), true_sign(S), bar_sign(S,S_bar), epsilon(AI,S_bar), epsilon(AJ,S), AI < AJ, not no_influence.
+gi_edge(A,S,P,A) :- auto_action, ea(A), true_sign(S), bar_sign(S,S_bar), epsilon(0,S_bar), sort(A,P), not no_influence.
+gi_edge(A,S,P,A) :- auto_action, ea(A), true_sign(S), epsilon(P,S), sort(A,P), not no_influence.
+gi_edge(A,S,P,A) :- auto_action, ea(A), true_sign(S), sort(A,P), epsilon(P,"0"), epsilon(0,"0"), all_sign(S), not no_influence.
+
+
+%debug_GI_EDGE(S) :- auto_action, ea(A), bar_sign(S,Sbar), epsilon(0,S_bar), not no_influence.
+%debug_GI_EDGE(S) :- bar_sign(S,"-").
+
+
+%all_above(AK,S1) :- a_process(AK), bar_sign(S1,S2), same_sign(S2,S3), not exists_above(AK,S3).
+%all_below(AK,S1) :- a_process(AK), bar_sign(S1,S2), same_sign(S2,S3), not exists_below(AK,S3).
+
+
+%no_gi_edge(A,"+",A) :- ea(A), exists_above(_,"-").
+
+
+
+
+
+#hide.
+
+%#show is_ph_pred/2.
+%#show is_ph_reg/2.
+%#show is_ph_pred_cs/2.
+
+%#show bounce_predec/3.
+%#show bounce_cycle/1.
+%#show not_forever_alone/1.
+%#show exists_self_hit/2.
+#show self_focals/2.
+%#show self_focals_exists_upper/2.
+%#show self_focals_max/2.
+%#show self_focals_exists_lower/2.
+%#show self_focals_min/2.
+#show exists_self_focals/1.
+#show focals_is_not_interval/1.
+
+%#show gamma/3.
+%#show gamma_cs/3.
+#show ea/1.
+#show eb/1.
+%#show sigma_select/2.
+#show sigma/3.
+#show auto_influence/0.
+#show auto_action/0.
+%#show temp_exists_hit/2.
+#show bounces/3.
+#show gi_edge/4.
+
+#show no_influence/0.
+#show epsilon/2.
+#show exists_sign/1.
+#show all_sign/1.
+%#show exists_below/2.
+%#show exists_above/2.
+%#show all_above/2.
+%#show all_below/2.
+#show gi_edge/3.
+
+
+% Debug
+#show debug_GI_EDGE/1.
+
+
+%*
 % Prédécesseurs dans le PH : directs ou à travers une/des SC
 temp_is_ph_predec_proj(A,B) :- is_ph_predec(A,B).
 temp_is_ph_predec_proj(A,B) :- temp_is_ph_predec_proj(A,CS), temp_is_ph_predec_proj(CS,B), is_cs(CS).
@@ -150,7 +302,9 @@ warning("EMPTY L INTERVAL [empty_gi_sL_foc(AI)]",A,AI) :- ea(A), empty_gi_sL_foc
 answer_ok :- debug_no_action(_,_,_,_).
 answer_ok :- gi_edge(_,_,_,_).
 warning("NOT AN ACTIVATION NOR INHIBITION [not gi_edge(A,+/-,B)]",A,B) :- ea(A), eb(B), not answer_ok.
+*%
 
+%*
 
 %%% Affichage des solutions
 #hide.
@@ -194,4 +348,6 @@ warning("NOT AN ACTIVATION NOR INHIBITION [not gi_edge(A,+/-,B)]",A,B) :- ea(A),
 %#show gi_sL_foc_min/2.
 %#show gi_inf/2.
 %#show gi_edge/3.
+
+*%
 
