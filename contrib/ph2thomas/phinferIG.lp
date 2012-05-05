@@ -69,6 +69,8 @@ at_least_one_cooperation_debug(CS,A,J) :- is_process(A,I), is_process_of_cs(CS,J
 is_ph_pred(A,B) :- is_ph_predec(A,B).
 is_ph_pred(A,B) :- is_ph_pred(A,CS), is_ph_pred(CS,B), is_cs(CS).
 is_ph_reg(A,B) :- is_ph_pred(A,B), is_gene(A).
+is_ph_reg_or_same(A,B) :- is_ph_reg(A,B).
+is_ph_reg_or_same(A,A) :- is_gene(A).
 is_ph_pred_cs(CS,B) :- is_ph_pred(CS,B), is_cs(CS).
 
 %gamma(A,B,A) :- is_gene(B), is_gene(A), is_ph_reg(B,A).
@@ -94,7 +96,7 @@ exists_self_focals(A) :- self_focals(A,_).
 focals_is_not_interval(A) :- is_gene(A), not exists_self_focals(A).
 
 % Si non précisé, recherche de tous les arcs
-1 {eb(B) : is_ph_reg(B,A)} 1 :- ea(A).
+1 {eb(B) : is_ph_reg_or_same(B,A)} 1 :- ea(A).
 1 {ea(A) : is_gene(A)} 1.
 b_process(BI) :- eb(B), is_process(B,BI).
 a_process(AI) :- ea(A), is_process(A,AI).
@@ -105,7 +107,8 @@ auto_action :- ea(A), eb(A).
 
 % Sélection d'une configuration de tous les autres prédécesseurs
 %seac(C) :- is_gene(C), eb(B), is_ph_predec_proj(C,B), not ea(C). %%% gamma
-1 {sigma_select(C,I) : is_process(C,I)} 1 :- gamma(C,B,A), eb(B), ea(A).%, not eb(C).
+1 {sigma_select(C,I) : is_process(C,I)} 1 :- gamma(C,B,A), eb(B), ea(A), not auto_action.
+1 {sigma_select(C,I) : is_process(C,I)} 1 :- is_ph_reg(C,A), ea(A), C != A, auto_action.
 sigma(BI,C,I) :- sigma_select(C,I), b_process(BI).
 sigma(BI,B,BI) :- eb(B), b_process(BI).
 % Héritage aux sortes coopératives
@@ -113,60 +116,33 @@ temp_not_sigma(BI,CS,I) :- ea(A), is_ph_pred_cs(CS,A), is_process_of_cs(CS,I), i
 sigma(BI,CS,I) :- eb(B), ea(A), b_process(BI), is_process_of_cs(CS,I), gamma_cs(CS,B,A), not temp_not_sigma(BI,CS,I).
 % Debug
 %:- sigma(BI,CS,I), sigma(BI,CS,J), I != J.
-% Bounds depuis le contexte sélectionné (sigma)
+
+% Calcul des bounces (focals depuis un seul processus)
 %% Cas sans auto-influence
 temp_exists_hit(BI,J) :- ea(A), action(C,I,A,J,_), sigma(BI,C,I), not auto_influence.
-bounces(BI,AK,AK) :- b_process(BI), a_process(AK), not temp_exists_hit(BI,AK), not auto_influence.
-bounces(BI,AK,AL) :- b_process(BI), ea(A), action(C,I,A,AK,AL), sigma(BI,C,I), not auto_influence.
+bounce_focals(BI,AK,AK) :- b_process(BI), a_process(AK), not temp_exists_hit(BI,AK), not auto_influence.
+bounce_focals(BI,AI,AK) :- ea(A), b_process(BI), action(C,I,A,AI,AK), sigma(BI,C,I), not auto_influence.
 %% Cas avec auto_influence (a régule a avec b)
 temp_exists_hit(BI,J) :- ea(A), action(C,I,A,J,_), sigma(BI,C,I), sigma(BI,A,J), auto_influence.
-bounces(BI,AK,AK) :- b_process(BI), ea(A), a_process(AK), not temp_exists_hit(BI,AK), sigma(BI,A,AK), auto_influence.
-bounces(BI,AK,AL) :- b_process(BI), ea(A), action(C,I,A,AK,AL), sigma(BI,C,I), sigma(BI,A,AK), auto_influence.
-% Conclusion
-gi_edge(B,"+",BJ,A) :- eb(B), ea(A), b_process(BI), b_process(BJ), BI < BJ, bounces(BI,AK,AL1), bounces(BJ,AK,AL2), AL1 < AL2, not auto_action.
-gi_edge(B,"-",BJ,A) :- eb(B), ea(A), b_process(BI), b_process(BJ), BI < BJ, bounces(BI,AK,AL1), bounces(BJ,AK,AL2), AL1 > AL2, not auto_action.
+bounce_focals(BI,AK,AK) :- b_process(BI), ea(A), a_process(AK), not temp_exists_hit(BI,AK), sigma(BI,A,AK), auto_influence.
+bounce_focals(BI,AK,AL) :- b_process(BI), ea(A), action(C,I,A,AK,AL), sigma(BI,C,I), sigma(BI,A,AK), auto_influence.
+% Conclusion du cas b -> a
+gi_edge(B,"+",BI + 1,A) :- eb(B), ea(A), b_process(BI), b_process(BI + 1), bounce_focals(BI,AK,AL1), bounce_focals(BI + 1,AK,AL2), AL1 < AL2,
+  not auto_action.
+gi_edge(B,"-",BI + 1,A) :- eb(B), ea(A), b_process(BI), b_process(BI + 1), bounce_focals(BI,AK,AL1), bounce_focals(BI + 1,AK,AL2), AL1 > AL2,
+  not auto_action.
 
 % Cas auto_action (a -> a)
 no_influence :- ea(A), not focals_is_not_interval(A), not not_forever_alone(A), auto_action.
-% "0" = ∅, "+" = +, "-" = −, "?" = ±
-epsilon(AI,"0") :- bounces(AI,AI,AI).
-epsilon(AI,"+") :- bounces(AI,AI,AI + 1), not epsilon(AI,"?").
-epsilon(AI,"-") :- bounces(AI,AI,AI - 1), not epsilon(AI,"?").
-epsilon(AI,"?") :- bounces(AI,AI,AI + 1), bounces(AI,AI,AI - 1).
-%sign("0";"+";"-";"?").
-%same_sign("+","+";"?"). same_sign("-","-";"?").
-true_sign("+";"-").
-bar_sign("+","-"). bar_sign("-","+").
-exists_sign(S) :- true_sign(S), epsilon(_,S).
-exists_sign("+";"-") :- epsilon(_,"?").
-all_sign(S) :- exists_sign(S), bar_sign(S,S_bar), not exists_sign(S_bar).
-%exists_below(AK,S1) :- a_process(AK), same_sign(S1,S2), epsilon(AI,S2), AI < AK.
-%exists_above(AK,S1) :- a_process(AK), same_sign(S1,S2), epsilon(AJ,S2), AK <= AJ.
-%all_above(AK,S1) :- a_process(AK), bar_sign(S1,S2), not exists_above(AK,S2), not exists_above(AK,"?").
-%%%%%% Contraindre AK ≠ 0 ?
-%all_below(AK,S1) :- a_process(AK), bar_sign(S1,S2), not exists_below(AK,S2), not exists_below(AK,"?").
-
-%gi_edge(A,"?",0,A) :- ea(A), not not_forever_alone(A), not no_influence.
-%gi_edge(A,S1,AK,A) :- auto_action, ea(A), all_above(AK,S1), all_below(AK,S2), bar_sign(S1,S2), not_forever_alone(A), not no_influence.
-
-gi_edge(A,"?",0,A) :- auto_action, ea(A), epsilon(_,"?"), not no_influence.
-gi_edge(A,S,AJ,A) :- auto_action, ea(A), true_sign(S), bar_sign(S,S_bar), epsilon(AI,S_bar), epsilon(AJ,S), AI < AJ, not no_influence.
-gi_edge(A,S,P,A) :- auto_action, ea(A), true_sign(S), bar_sign(S,S_bar), epsilon(0,S_bar), sort(A,P), not no_influence.
-gi_edge(A,S,P,A) :- auto_action, ea(A), true_sign(S), epsilon(P,S), sort(A,P), not no_influence.
-gi_edge(A,S,1,A) :- auto_action, ea(A), true_sign(S), sort(A,P), epsilon(P,"0"), epsilon(0,"0"), all_sign(S), not no_influence.
-
-
-%debug_GI_EDGE(S) :- auto_action, ea(A), bar_sign(S,Sbar), epsilon(0,S_bar), not no_influence.
-%debug_GI_EDGE(S) :- bar_sign(S,"-").
-
-
-%all_above(AK,S1) :- a_process(AK), bar_sign(S1,S2), same_sign(S2,S3), not exists_above(AK,S3).
-%all_below(AK,S1) :- a_process(AK), bar_sign(S1,S2), same_sign(S2,S3), not exists_below(AK,S3).
-
-
-%no_gi_edge(A,"+",A) :- ea(A), exists_above(_,"-").
-
-
+%% Premier cas
+gi_edge(A,"+",AI + 1,A) :- ea(A), a_process(AI), a_process(AI + 1), bounce_focals(AI,AI,AJ), bounce_focals(AI + 1,AI + 1,AK),
+  AK != AJ + 1, AJ < AK, auto_action, not no_influence.
+gi_edge(A,"-",AI + 1,A) :- ea(A), a_process(AI), a_process(AI + 1), bounce_focals(AI,AI,AJ), bounce_focals(AI + 1,AI + 1,AK),
+  AK != AJ + 1, AK < AJ, auto_action, not no_influence.
+%% Second cas
+exists_different_focals(A) :- ea(A), a_process(AI), a_process(AK), bounce_focals(AI,AI,AK), AI != AK, auto_action.
+%all_same_focals(A) :- ea(A), not exists_different_focals(A), auto_action.
+gi_edge(A,"+",1,A) :- ea(A), not exists_different_focals(A), auto_action, not no_influence.
 
 
 
@@ -197,10 +173,13 @@ gi_edge(A,S,1,A) :- auto_action, ea(A), true_sign(S), sort(A,P), epsilon(P,"0"),
 #show auto_influence/0.
 #show auto_action/0.
 %#show temp_exists_hit/2.
-#show bounces/3.
+#show bounce_focals/3.
 #show gi_edge/4.
 
 #show no_influence/0.
+#show exists_different_focals/1.
+
+%*
 #show epsilon/2.
 #show exists_sign/1.
 #show all_sign/1.
@@ -209,10 +188,49 @@ gi_edge(A,S,1,A) :- auto_action, ea(A), true_sign(S), sort(A,P), epsilon(P,"0"),
 %#show all_above/2.
 %#show all_below/2.
 #show gi_edge/3.
-
+*%
 
 % Debug
 #show debug_GI_EDGE/1.
+
+
+
+
+
+
+%*
+% Cas auto_action (a -> a)
+no_influence :- ea(A), not focals_is_not_interval(A), not not_forever_alone(A), auto_action.
+% "0" = ∅, "+" = +, "-" = −, "?" = ±
+epsilon(AI,"0") :- bounces(AI,AI,AI).
+epsilon(AI,"+") :- bounces(AI,AI,AI + 1), not epsilon(AI,"?").
+epsilon(AI,"-") :- bounces(AI,AI,AI - 1), not epsilon(AI,"?").
+epsilon(AI,"?") :- bounces(AI,AI,AI + 1), bounces(AI,AI,AI - 1).
+%sign("0";"+";"-";"?").
+%same_sign("+","+";"?"). same_sign("-","-";"?").
+true_sign("+";"-").
+bar_sign("+","-"). bar_sign("-","+").
+exists_sign(S) :- true_sign(S), epsilon(_,S).
+exists_sign("+";"-") :- epsilon(_,"?").
+all_sign(S) :- exists_sign(S), bar_sign(S,S_bar), not exists_sign(S_bar).
+%exists_below(AK,S1) :- a_process(AK), same_sign(S1,S2), epsilon(AI,S2), AI < AK.
+%exists_above(AK,S1) :- a_process(AK), same_sign(S1,S2), epsilon(AJ,S2), AK <= AJ.
+%all_above(AK,S1) :- a_process(AK), bar_sign(S1,S2), not exists_above(AK,S2), not exists_above(AK,"?").
+%%%%%% Contraindre AK ≠ 0 ?
+%all_below(AK,S1) :- a_process(AK), bar_sign(S1,S2), not exists_below(AK,S2), not exists_below(AK,"?").
+
+%gi_edge(A,"?",0,A) :- ea(A), not not_forever_alone(A), not no_influence.
+%gi_edge(A,S1,AK,A) :- auto_action, ea(A), all_above(AK,S1), all_below(AK,S2), bar_sign(S1,S2), not_forever_alone(A), not no_influence.
+
+gi_edge(A,"?",0,A) :- auto_action, ea(A), epsilon(_,"?"), not no_influence.
+gi_edge(A,S,AJ,A) :- auto_action, ea(A), true_sign(S), bar_sign(S,S_bar), epsilon(AI,S_bar), epsilon(AJ,S), AI < AJ, not no_influence.
+gi_edge(A,S,P,A) :- auto_action, ea(A), true_sign(S), bar_sign(S,S_bar), epsilon(0,S_bar), sort(A,P), not no_influence.
+gi_edge(A,S,P,A) :- auto_action, ea(A), true_sign(S), epsilon(P,S), sort(A,P), not no_influence.
+gi_edge(A,S,1,A) :- auto_action, ea(A), true_sign(S), sort(A,P), epsilon(P,"0"), epsilon(0,"0"), all_sign(S), not no_influence.
+*%
+
+
+
 
 
 %*
