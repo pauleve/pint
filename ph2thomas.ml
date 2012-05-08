@@ -133,7 +133,7 @@ let asp_data = asp_data ^ asp_coop
 in
 debug_asp asp_data;
 
-dbg "Infering Interaction Graph...";
+dbg "Inferring Interaction Graph...";
 let igin = run_process_io
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferIG.lp")^" -")
 		asp_data
@@ -157,7 +157,7 @@ let assert_signed _ (s, _) =
 in
 Hashtbl.iter assert_signed (snd ig);
 
-dbg "Infering Parameters..";
+dbg "Inferring Parameters..";
 let pin = run_process_io
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferK.lp")^" -")
 		asp_data
