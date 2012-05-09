@@ -136,16 +136,17 @@ levels_minus(A,B,I) :- edge(A,"positive",T,B), I = 0..T-1.
 % Context^b_{a,A,B}   % Contexte
 sContext(A,P,B,I) :- levels_plus(B,A,I), param_label(A,P,B).
 sContext(A,P,B,I) :- param_label(A,P), levels_minus(B,A,I), not param_label(A,P,B).
-sContext(A,P,A,I) :- gene(A,L), I = 0..L, param_label(A,P), not is_predec(A,A).
+sContext(A,P,B,I) :- gene(B,L), I = 0..L, param_label(A,P), not is_predec(B,A).
 temp_context_cs(A,P,CS,B,I) :- cooperation(CS,B,J,I), sContext(A,P,B,J).
 temp_context_cs_neg(A,P,CS,I) :- param_label(A,P), is_process_of_cs(CS,I), cs_of(B,CS), not temp_context_cs(A,P,CS,B,I).
 sContext(A,P,CS,I) :- param_label(A,P), is_process_of_cs(CS,I), not temp_context_cs_neg(A,P,CS,I).
 % Actions possibles
 exists_action(A,P,I,J) :- action(C,K,A,I,J), sContext(A,P,C,K).
-%exists_action(A,P,I) :- exists_action(A,P,I,_).
 % Contraintes
 :- is_bounce(A,I,J), not enum_param(A,P,I), not exists_action(A,P,I,J), I < KMin, param_min(A,P,KMin), J > I, #abs(I - J) == 1.
 :- is_bounce(A,I,J), not enum_param(A,P,I), not exists_action(A,P,I,J), I > KMin, param_min(A,P,KMin), J < I, #abs(I - J) == 1.
+%debug_NOT_VALID1(A,P,I,J) :- is_bounce(A,I,J), not enum_param(A,P,I), not exists_action(A,P,I,J), I < KMin, param_min(A,P,KMin), J > I, #abs(I - J) == 1.
+%debug_NOT_VALID2(A,P,I,J) :- is_bounce(A,I,J), not enum_param(A,P,I), not exists_action(A,P,I,J), I > KMin, param_min(A,P,KMin), J < I, #abs(I - J) == 1.
 
 %%% Autres ?
 
@@ -167,9 +168,11 @@ exists_action(A,P,I,J) :- action(C,K,A,I,J), sContext(A,P,C,K).
 
 %#show param_label/3.
 %#show sContext/4.
-#show exists_action/4.
-%#show exists_action/3.
+%#show exists_action/4.
 
 #show result/1.
 #show error/1.
+
+%#show debug_NOT_VALID1/4.
+%#show debug_NOT_VALID2/4.
 
