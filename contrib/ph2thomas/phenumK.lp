@@ -53,6 +53,8 @@ max_active(A,P) :- param_label(A,P), not temp_exists_more_active(A,P).
 temp_exists_less_active(A,P) :- less_active(A,_,P).
 min_active(A,P) :- param_label(A,P), not temp_exists_less_active(A,P).
 
+%is_param(P) :- param_label(_,P).
+
 
 
 %%% Contraintes d'intégrité
@@ -120,6 +122,31 @@ param_str_inf(A,P1,P2) :- param_min(A,P1,Min1), param_max(A,P1,Max1), param_min(
 temp_activation_ok(A,B) :- is_predec(B,A), param_label(A,P1), param_label(A,P2), param_label(A,P2,B), not param_label(A,P1,B), param_str_inf(A,P1,P2).
 :- is_gene(A), is_predec(B,A), not temp_activation_ok(A,B).
 
+% Paramètres simples uniquement
+%% À activer si souhaité
+%:- enum_param(A,P,I), enum_param(A,P,J), I != J, not infered_param(A,P).
+
+% Respect de la dynamique du PH
+%% Contexte
+% Niveaux +/−
+levels_plus(A,B,I) :- edge(A,"positive",T,B), gene(A,P), I = T..P.
+levels_plus(A,B,I) :- edge(A,"negative",T,B), I = 0..T-1.
+levels_minus(A,B,I) :- edge(A,"negative",T,B), gene(A,P), I = T..P.
+levels_minus(A,B,I) :- edge(A,"positive",T,B), I = 0..T-1.
+% Context^b_{a,A,B}   % Contexte
+sContext(A,P,B,I) :- levels_plus(B,A,I), param_label(A,P,B).
+sContext(A,P,B,I) :- param_label(A,P), levels_minus(B,A,I), not param_label(A,P,B).
+sContext(A,P,A,I) :- gene(A,L), I = 0..L, param_label(A,P), not is_predec(A,A).
+temp_context_cs(A,P,CS,B,I) :- cooperation(CS,B,J,I), sContext(A,P,B,J).
+temp_context_cs_neg(A,P,CS,I) :- param_label(A,P), is_process_of_cs(CS,I), cs_of(B,CS), not temp_context_cs(A,P,CS,B,I).
+sContext(A,P,CS,I) :- param_label(A,P), is_process_of_cs(CS,I), not temp_context_cs_neg(A,P,CS,I).
+% Actions possibles
+exists_action(A,P,I,J) :- action(C,K,A,I,J), sContext(A,P,C,K).
+%exists_action(A,P,I) :- exists_action(A,P,I,_).
+% Contraintes
+:- is_bounce(A,I,J), not enum_param(A,P,I), not exists_action(A,P,I,J), I < KMin, param_min(A,P,KMin), J > I, #abs(I - J) == 1.
+:- is_bounce(A,I,J), not enum_param(A,P,I), not exists_action(A,P,I,J), I > KMin, param_min(A,P,KMin), J < I, #abs(I - J) == 1.
+
 %%% Autres ?
 
 
@@ -137,6 +164,11 @@ temp_activation_ok(A,B) :- is_predec(B,A), param_label(A,P1), param_label(A,P2),
 
 %#show param/3.
 #show enum_param/3.
+
+%#show param_label/3.
+%#show sContext/4.
+#show exists_action/4.
+%#show exists_action/3.
 
 #show result/1.
 #show error/1.
