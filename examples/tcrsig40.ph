@@ -120,7 +120,8 @@ COOPERATIVITY([ZAP70;Slp76;PLCg_b] in [[1;1;1]]
 
 COOPERATIVITY([ZAP70;Slp76] -> Itk 0 1, [[1;1]])
 COOPERATIVITY([Fos;Jun] -> AP1 0 1, [[1;1]])
-COOPERATIVITY([Grb2Sos;RasGRP1] -> Ras 0 1, [[1;1]])
+COOPERATIVITY([Grb2Sos;RasGRP1] -> Ras 0 1, [[1;1];[0;1];[1;0]])
+COOPERATIVITY([Grb2Sos;RasGRP1] -> Ras 1 0, [[0;0]])
 COOPERATIVITY([DAG;PKCth] -> RasGRP1 0 1, [[1;1]])
 
 COOPERATIVITY([cCbl;TCRlig] -> TCRbind 0 1, [[0;1]])
@@ -128,7 +129,10 @@ COOPERATIVITY([PAGCsk;CD8;CD45] -> LCK 0 1, [[0;1;1]])
 COOPERATIVITY([cCbl;TCRphos;LCK] -> ZAP70 0 1, [[0;1;1]])
 
 (* ?? *)
-COOPERATIVITY([TCRbind;Fyn] -> PAGCsk 0 1, [[0;0];[0;1]])
-COOPERATIVITY([TCRbind;Fyn] -> PAGCsk 1 0, [[1;0];[1;1]])
+COOPERATIVITY([TCRbind;Fyn] -> PAGCsk 0 1, [[0;0];[0;1];[1;1]])
+COOPERATIVITY([TCRbind;Fyn] -> PAGCsk 1 0, [[1;0]])
 
+CD45 0 -> CD45 0 1
+CD8 0 -> CD8 0 1
+TCRlig 0 -> TCRlig 0 1
 
