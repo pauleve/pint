@@ -66,8 +66,8 @@ at_least_one_cooperation_debug(CS,A,J) :- is_process(A,I), is_process_of_cs(CS,J
 :- is_process_of_cs(CS,J), is_gene(A), cs_of(A,CS), not at_least_one_cooperation_debug(CS,A,J).
 
 % Propriété 3 : bien-formé pour l'inférence des paramètres
-:- is_predec(B,A), levels_plus(B,A,I), levels_plus(B,A,J), is_ph_pred(C,A), is_ph_pred(B,C), action(B,I,C,K,L), not action(B,J,C,K,L).
-:- is_predec(B,A), levels_minus(B,A,I), levels_minus(B,A,J), is_ph_pred(C,A), is_ph_pred(B,C), action(B,I,C,K,L), not action(B,J,C,K,L).
+:- is_predec(B,A), levels_plus(B,A,I), levels_plus(B,A,J), is_ph_pred(C,A), is_ph_predec(B,C), action(B,I,C,K,L), not action(B,J,C,K,L).
+:- is_predec(B,A), levels_minus(B,A,I), levels_minus(B,A,J), is_ph_pred(C,A), is_ph_predec(B,C), action(B,I,C,K,L), not action(B,J,C,K,L).
 :- is_predec(B,A), levels_plus(B,A,I), levels_plus(B,A,J), B != A, action(B,I,A,K,L), not action(B,J,A,K,L).
 :- is_predec(B,A), levels_minus(B,A,I), levels_minus(B,A,J), B != A, action(B,I,A,K,L), not action(B,J,A,K,L).
 %debug_NOT_WELL_FORMED(B,I,A,K,L) 

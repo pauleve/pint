@@ -43,7 +43,7 @@ gamma(A) :- is_sort(A), not must_be_cs(A).
 %error("CS is not the target of an action",CS) :- must_be_cs(CS), not temp_targeted(CS).
 
 % Pas de cycles entre sortes coopératives
-is_ph_pred(A,B) :- is_ph_predec(A,B).
+is_ph_pred(A,B) :- is_ph_predec(A,B), A != B.
 is_ph_pred(A,B) :- is_ph_pred(A,CS), is_ph_pred(CS,B), not gamma(CS).
 is_ph_reg(A,B) :- is_ph_pred(A,B), gamma(A).
 error("Cooperative sort involved in a cycle",CS) :- must_be_cs(CS), is_ph_pred(CS,CS).
