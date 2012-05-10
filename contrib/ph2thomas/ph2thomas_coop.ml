@@ -2,6 +2,7 @@
       et d'un Graphe des Interactions ***)
 
 exception Parsing_error of string ;;    (* Error while parsing *)
+exception Result_error ;;               (* Error in the resolution result, i.e.: error in the model *)
 
 (** Fonctions de lecture des clauses **)
 (* Fonction de lecture du nom d'une clause *)
@@ -167,36 +168,25 @@ let create_clauses () =
 
 let input_clauses clauses entree =
 	(** Lecture effective des clauses **)
-	(input_clauses entree clauses ["ecs" ; "cooperation" ; "cannot_be_cs"]);
+	(input_clauses entree clauses ["ecs" ; "cooperation" ; "cannot_be_cs" ; "error"]);
 	close_in entree
 ;;
 
 let asp_of_clauses clauses =
-	(*
+
 	(* Vérification de l'absence d'erreurs *)
-	if Hashtbl.mem clauses "error" then
+	if Hashtbl.mem clauses "error" then (
 	  let err_args = Hashtbl.find clauses "error" in
 		let err_text = parse_for_string_at err_args 0 in
-		  let err_compl = end_string err_args ((after err_text) + 1) in
-			prerr_endline ("Error in the result of the resolution: \"" ^ (fst err_text) ^ "\", with args: " ^ err_compl) ;
+		  let err_compl = end_string err_args ((after_s err_text) + 1) in
+			prerr_endline ("Error in the model: \"" ^ (fst err_text) ^ "\", with args: " ^ err_compl) ;
 			raise Result_error
-	;;
-	*)
-
+	);
+  
 	(** Traitement des clauses **)
-	(* Liste des sortes coopératives *)
-	let cannot_be_cs = List.map (fun c -> fst (parse_for_string c)) (Hashtbl.find_all clauses "cannot_be_cs")
-	in
-
-	let cooperative_sorts =
-	  let possible_sorts = List.map
+	let cooperative_sorts = List.map
 		(fun c -> let s1 = parse_for_string c in fst s1)
 		(Hashtbl.find_all clauses "ecs")
-	in
-	  List.filter (fun a -> not (List.mem a cannot_be_cs)) possible_sorts
-	in
-
-	let fst4 a = let (a1, _, _, _) = a in a1
 	in
 
 	let cooperations =
@@ -207,10 +197,8 @@ let asp_of_clauses clauses =
 			  let j = parse_for_word_at s (after_w i) in
 				(fst cs, fst a, int_of_string (fst i), int_of_string (fst j))
 	in
-	  let possible_cooperations = List.map get_cooperation (Hashtbl.find_all clauses "cooperation")
+    List.map get_cooperation (Hashtbl.find_all clauses "cooperation")
 	in
-	  List.filter (fun a -> not (List.mem (fst4 a) cannot_be_cs)) possible_cooperations
-	 in
 
 	(* Sortes coopératives et coopérations du PH *)
 	"\n% Cooperations from the Process Hitting\n"

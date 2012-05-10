@@ -120,11 +120,15 @@ debug_asp asp_data;
 let clauses = Ph2thomas_coop.create_clauses ()
 in
 Ph2thomas_coop.input_clauses clauses (run_process_io 
+	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop.lp")^" -")
+		asp_data);
+(*
+Ph2thomas_coop.input_clauses clauses (run_process_io 
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop1.lp")^" -")
 		asp_data);
 Ph2thomas_coop.input_clauses clauses (run_process_io 
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop2.lp")^" -")
-		asp_data);
+		asp_data);*)
 
 let asp_coop = Ph2thomas_coop.asp_of_clauses clauses
 in
