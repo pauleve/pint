@@ -35,6 +35,10 @@ cs_of(A,CS) :- cooperation(CS,A,_,_).
 is_process_of_cs(CS,I) :- cooperative_sort(CS,P), I = 0..P.
 is_bounce_of_cs(CS,I,J) :- is_process_of_cs(CS,I), is_process_of_cs(CS,J), I != J.
 
+is_ph_predec(A,B) :- action(A,_,B,_,_).
+is_ph_pred(A,B) :- is_ph_predec(A,B).
+is_ph_pred(A,B) :- is_ph_pred(A,CS), is_ph_pred(CS,B), is_cs(CS).
+
 % Fonctions pour le modèle de Thomas
 is_predec(A,B) :- edge(A,_,_,B).
 % Compatibilité
@@ -60,6 +64,13 @@ is_cs_debug(CS) :- cooperation(CS,_,_,_).
 %:- cooperation(CS,A,I1,J), cooperation(CS,A,I2,J), I1 != I2. % Non -> cas de représentations de plusieurs processus
 at_least_one_cooperation_debug(CS,A,J) :- is_process(A,I), is_process_of_cs(CS,J), cs_of(A,CS), cooperation(CS,A,I,J).
 :- is_process_of_cs(CS,J), is_gene(A), cs_of(A,CS), not at_least_one_cooperation_debug(CS,A,J).
+
+% Propriété 3 : bien-formé pour l'inférence des paramètres
+:- is_predec(B,A), levels_plus(B,A,I), levels_plus(B,A,J), is_ph_pred(C,A), is_ph_pred(B,C), action(B,I,C,K,L), not action(B,J,C,K,L).
+:- is_predec(B,A), levels_minus(B,A,I), levels_minus(B,A,J), is_ph_pred(C,A), is_ph_pred(B,C), action(B,I,C,K,L), not action(B,J,C,K,L).
+:- is_predec(B,A), levels_plus(B,A,I), levels_plus(B,A,J), B != A, action(B,I,A,K,L), not action(B,J,A,K,L).
+:- is_predec(B,A), levels_minus(B,A,I), levels_minus(B,A,J), B != A, action(B,I,A,K,L), not action(B,J,A,K,L).
+%debug_NOT_WELL_FORMED(B,I,A,K,L) 
 
 % Sur le Graphe des Interactions (Thomas)
 :- edge(A,_,I,_), not is_process(A,I).
@@ -147,6 +158,7 @@ error(A) :- ka(A), not attractor.
 %#show attractor.
 %#show exists_sL_foc.
 %#show cannot_infer.
+
 #show result/1.
 #show error/1.
 
