@@ -55,10 +55,14 @@ COOPERATIVITY([ERBB1;ERBB1_2;ERBB1_3] in [[0;0;0]]
 COOPERATIVITY([CycE1;p21;p27] -> CDK2 0 1, [[1;0;0]])
 COOPERATIVITY([CycD1;p21;p27] -> CDK4 0 1, [[1;0;0]])
 
-COOPERATIVITY([ERalpha;MYC;AKT1;MEK1] -> CycD1 0 1, [[1;1;1;0];[1;1;0;1];[1;1;1;1]])
+(*COOPERATIVITY([ERalpha;MYC;AKT1;MEK1] -> CycD1 0 1, [[1;1;1;0];[1;1;0;1];[1;1;1;1]])*)
+COOPERATIVITY([ERalpha;MYC] in [[1;1]]
+					and [AKT1;MEK1] in [[1;0];[0;1];[1;1]], CycD1, 1, 0)
 
 COOPERATIVITY([AKT1;MEK1] -> CycD1 1 0, [[0;0]])
-COOPERATIVITY([ERalpha;AKT1;MYC;CDK4] -> p21 0 1, [[1;0;0;0]])
+(*COOPERATIVITY([ERalpha;AKT1;MYC;CDK4] -> p21 0 1, [[1;0;0;0]])*)
+COOPERATIVITY([ERalpha;AKT1] in [[1;0]]
+					and [MYC;CDK4] in [[0;0]], p21, 1, 0)
 
 (*COOPERATIVITY([ERalpha;CDK4;CDK2;AKT1;MYC] -> p27 0 1, [[1;0;0;0;0]])*)
 COOPERATIVITY([AKT1;ERalpha] in [[0;1]]
