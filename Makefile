@@ -33,3 +33,11 @@ apidoc:
 		-t "Pint OCaml API - process.hitting.free.fr" \
 		bindings/r.mli pintlib/*.mli phlib/*.mli *.mli
 
+
+RELNAME=$(shell date -I)
+RELBRANCH=master
+
+release:
+	git tag $(RELNAME)
+	git archive -o /tmp/pint-$(RELNAME).zip --prefix pint-$(RELNAME)/ $(RELBRANCH)
+
