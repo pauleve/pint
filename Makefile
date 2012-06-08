@@ -57,7 +57,13 @@ phexec-install: phexec
 ph2thomas-install: ph2thomas
 	make -f target/ph2thomas PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
 
-install: phc-install libpint-install phstat-install phstable-install phreach-install phexec-install ph2thomas-install
+MISC_TOOLS = converters/bcx2ph converters/CNA2ph converters/ginml2ph
+misc-install:
+	for i in $(MISC_TOOLS); do \
+		install -m 0755 $$i $(DESTDIR)$(PREFIX)/bin; \
+	done
+
+install: phc-install libpint-install phstat-install phstable-install phreach-install phexec-install ph2thomas-install misc-install
 
 release:
 	git tag $(RELNAME)
