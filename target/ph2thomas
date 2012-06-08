@@ -12,7 +12,10 @@ SOURCES = \
 
 LIBS := $(PINTLIB_LIBS) $(PHLIB_LIBS) unix
 
-RESULT = ph2thomas.exe
+RESULT = bin/ph2thomas
+
+install:
+	install -m 0755 $(RESULT) $(DESTDIR)$(PREFIX)/bin
 
 include OCamlMakefile
 # vi:set syntax=make:

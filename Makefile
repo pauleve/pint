@@ -37,6 +37,28 @@ apidoc:
 RELNAME=$(shell date -I)
 RELBRANCH=master
 
+PREFIX=/usr
+DESTDIR=
+
+phc-install: phc
+	make -f target/phc PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
+#pint-install: pint
+#	make -f target/pinttop PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
+libpint-install: libpint
+	make -f target/pintlib PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
+phstat-install: phstat
+	make -f target/phstat PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
+phstable-install: phstable
+	make -f target/phstable PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
+phreach-install: phreach
+	make -f target/phreach PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
+phexec-install: phexec
+	make -f target/phexec PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
+ph2thomas-install: ph2thomas
+	make -f target/ph2thomas PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
+
+install: phc-install libpint-install phstat-install phstable-install phreach-install phexec-install ph2thomas-install
+
 release:
 	git tag $(RELNAME)
 	git archive -o /tmp/pint-$(RELNAME).zip --prefix pint-$(RELNAME)/ $(RELBRANCH)

@@ -13,5 +13,8 @@ LIBS := $(PHLIB_LIBS) unix
 
 RESULT = ph-exec
 
+install:
+	install -m 0755 $(RESULT) $(DESTDIR)$(PREFIX)/bin
+
 include OCamlMakefile
 # vi:set syntax=make:

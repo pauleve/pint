@@ -11,5 +11,8 @@ SOURCES = \
 
 RESULT = ph-stable
 
+install:
+	install -m 0755 $(RESULT) $(DESTDIR)$(PREFIX)/bin
+
 include OCamlMakefile
 # vi:set syntax=make:
