@@ -12,11 +12,9 @@ test
 runs
 test_pseudomonas
 pint.top
-bin/phc
 phlib/ph_parser.ml
 phlib/ph_parser.mli
 phlib/ph_lexer.ml
-/dist
 docs/*.aux
 docs/*.log
 docs/*.backup
@@ -33,5 +31,7 @@ bindings/r.mli
 bindings/r_stubs.c
 ph-*
 docs/api/*
-bin/ph-reach.old
+bin/ph-reach
 bin/ph2thomas
+bin/phc
+bin/ph-exec
