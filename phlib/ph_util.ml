@@ -37,6 +37,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 open Big_int;;
 
+open Debug;;
 open Ph_types;;
 
 let count_states (ps,hits) = 
@@ -65,8 +66,11 @@ let parse channel_in =
 				(pos.Lexing.pos_cnum - pos.Lexing.pos_bol) ^ ": "
 	in
 	try 
+		let t0 = Sys.time ()
+		in
 		let ph, ctx = Ph_parser.main Ph_lexer.lexer lexbuf
 		in
+		dbg ("Parsing took "^string_of_float (Sys.time() -. t0)^"s");
 		close_in channel_in;
 		ph, ctx
 	with Parsing.Parse_error ->

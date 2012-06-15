@@ -54,6 +54,7 @@ let get_sort_max ps a =
 ;;
 
 let merge_instr (ps, actions) ((a,i),(b,j),k,stoch) = 
+(* DISABLED FOR PERFORMANCE ISSUES
 	let ma, mb = get_sort_max ps a, get_sort_max ps b
 	in
 	let check_boundaries (a,i) ml =
@@ -63,6 +64,7 @@ let merge_instr (ps, actions) ((a,i),(b,j),k,stoch) =
 	check_boundaries (a,i) ma;
 	check_boundaries (b,j) mb;
 	check_boundaries (b,k) mb;
+	*)
 	(ps, (Hit ((a,i),(b,j),k),stoch)::actions)
 ;;
 
