@@ -28,6 +28,8 @@ let set_option name b =
 	| _ -> failwith ("Unknown option '"^name^"'")
 ;;
 
+let init_ph (mps, actions) = (SMap.bindings mps, actions);;
+
 let init_content (ps, actions) =
 	let hits = Hashtbl.create (List.length actions)
 	in
@@ -38,22 +40,18 @@ let init_content (ps, actions) =
 	(ps, hits)
 ;;
 
-let merge_decl (ps, actions) p =
-	let register_sort ps (a,l) =
-		(if List.mem_assoc a ps then failwith ("Sort "^a^" already declared"));
-		(a,l)::ps
-	in
-	register_sort ps p, actions
+let merge_decl (mps, actions) (a,l) =
+	SMap.add a l mps, actions
 ;;
 
-let get_sort_max ps a =
+let get_sort_max mps a =
 	try
-		List.assoc a ps
+		SMap.find a mps
 	with Not_found -> 
 		failwith ("get_sort_max: unknown sort '"^a^"'")
 ;;
 
-let merge_instr (ps, actions) ((a,i),(b,j),k,stoch) = 
+let merge_instr (mps, actions) ((a,i),(b,j),k,stoch) = 
 (* DISABLED FOR PERFORMANCE ISSUES
 	let ma, mb = get_sort_max ps a, get_sort_max ps b
 	in
@@ -65,11 +63,13 @@ let merge_instr (ps, actions) ((a,i),(b,j),k,stoch) =
 	check_boundaries (b,j) mb;
 	check_boundaries (b,k) mb;
 	*)
-	(ps, (Hit ((a,i),(b,j),k),stoch)::actions)
+	(mps, (Hit ((a,i),(b,j),k),stoch)::actions)
 ;;
 
-let ph_add_hits (ps, actions) actions' stoch =
-	actions @ (List.map (fun a -> (a, stoch)) actions')
+let ph_add_hits actions stoch rawactions =
+	let actions' = List.map (fun a -> (a,stoch)) rawactions
+	in
+	List.rev_append actions' actions
 ;;
 
 let compute_init_context ph procs =
@@ -131,7 +131,7 @@ let match_level = function
 let match_proc (ma,mi) (a,i) = match_sort ma a && match_level mi i
 ;;
 
-let update (ps,actions) (regexps, rate) =
+let update (mps,actions) (regexps, rate) =
 	let regexp_match a =
 		let ai, bj, k = match a with Hit d -> d
 		in
@@ -143,7 +143,7 @@ let update (ps,actions) (regexps, rate) =
 	let update_action (a,rsa) =
 		a, if match_action a then rate else rsa
 	in
-	ps, List.map update_action actions
+	mps, List.map update_action actions
 ;;
 
 (***
@@ -174,18 +174,19 @@ type macro_arg_t =
 
 let reflection_name sigma = String.concat "" sigma
 ;;
-let build_reflection (ps,actions) = function
-  [a] -> (a, ([a], (function [s] -> s | _ -> invalid_arg "idx_from_state singleton"))), (ps,actions)
+let build_reflection (mps,actions) = function
+  [a] -> (a, ([a], (function [s] -> s | _ -> invalid_arg "idx_from_state singleton"))), (mps,actions)
 | sigma -> 
 	let sigma_n = reflection_name sigma
 	in
-	if List.mem_assoc sigma_n ps then
-		((sigma_n, List.assoc sigma_n !cooperativities), (ps,actions))
+	if SMap.mem sigma_n mps then
+		((sigma_n, List.assoc sigma_n !cooperativities), (mps,actions))
 	else (
 		let sigma_len = List.length sigma
 		in
 		let rec build_idx_sizes n prec_size =
-			let my_size = if n = sigma_len-1 then 1 else ((1+get_sort_max ps (List.nth sigma (n+1))) * prec_size)
+			let my_size = if n = sigma_len-1 then 1 
+				else ((1+get_sort_max mps (List.nth sigma (n+1))) * prec_size)
 			and n' = n-1
 			in
 			(if n' < -1 then [] else build_idx_sizes (n-1) my_size)
@@ -206,7 +207,7 @@ let build_reflection (ps,actions) = function
 			idx_from_state 0 state
 		in
 
-		let get_sort_processes a = Util.range 0 (get_sort_max ps a)
+		let get_sort_processes a = Util.range 0 (get_sort_max mps a)
 		in
 		let _S = Util.cross_list (List.map get_sort_processes (List.rev sigma))
 		in
@@ -227,25 +228,25 @@ let build_reflection (ps,actions) = function
 				in
 				hsigma @ List.map make_hit my_S
 			in
-			List.fold_left folder hsigma (Util.range 0 (List.assoc z ps))
+			List.fold_left folder hsigma (Util.range 0 (SMap.find z mps))
 		in
 		let hsigma = List.fold_left folder [] sigma
 		in
-		let ps = sigma_p::ps
-		and actions = ph_add_hits (ps,actions) hsigma (default_rsa ())
+		let mps = SMap.add (fst sigma_p) (snd sigma_p) mps
+		and actions = ph_add_hits actions (default_rsa ()) hsigma
 		in
 		let record = sigma_n, (sigma, idx_from_state)
 		in
 		cooperativities := record::!cooperativities;
-		(record, (ps,actions))
+		(record, (mps,actions))
 	)
 ;;
 
 let macro_regulation = function
-	  [Arg_Regulation regulation] -> (fun (ps,actions) ->
+	  [Arg_Regulation regulation] -> (fun (mps,actions) ->
 	  	match regulation with
 	Regulation (a,t,s,b,stoch) ->
-		let la = get_sort_max ps a and lb = get_sort_max ps b
+		let la = get_sort_max mps a and lb = get_sort_max mps b
 		in
 		let apply_regulation i =
 			let r = if i >= t then s else match s with Positive -> Negative |
@@ -264,7 +265,7 @@ let macro_regulation = function
 			List.map make_hit range_j
 
 		in
-		ps, ph_add_hits (ps,actions) (List.flatten (List.map apply_regulation (Util.range 0 la))) stoch
+		mps, ph_add_hits actions stoch (List.flatten (List.map apply_regulation (Util.range 0 la)))
 	)
 	| _ -> failwith "macro_regulation: wrong arguments"
 ;;
@@ -301,12 +302,11 @@ let macro_brn do_unregulated = function
 | _ -> failwith "macro_grn: wrong arguments"
 ;;
 
-let filter_hits (ps, actions) pred =
-	(ps, List.filter (fun (a,rsa) -> pred a) actions)
+let filter_hits (mps, actions) pred =
+	(mps, List.filter (fun (a,rsa) -> pred a) actions)
 ;;
 
 let macro_cooperativity autoremove = function
-
   (* COOPERATIVITY([a;b]): creates a cooperative sort between a and b *)
   [Arg_Sorts sorts] -> (fun (ps,actions) -> snd (build_reflection (ps,actions) sorts))
 
@@ -321,10 +321,13 @@ let macro_cooperativity autoremove = function
 		Hit ((sigma_n, idx_from_state state), ak, k'))
 			top
 	in
-	ps, ph_add_hits (ps,actions) h'coop stoch
+	ps, ph_add_hits actions stoch h'coop
 )
 
 | [Arg_StateMatching sm; Arg_Name sort; Arg_Int l_true; Arg_Int l_false] -> (fun ctx ->
+
+	let m_default_rsa = default_rsa ()
+	in
 
 	(* remove existing hits from sorts in sm to processes (sort,l_true|l_false) *)
 	let rec matching_names = function
@@ -334,14 +337,15 @@ let macro_cooperativity autoremove = function
 	in
 	let names = matching_names sm
 	in
-	let ctx = filter_hits ctx (function Hit((b,k), (a,i), j) ->
-		not (List.mem b names && a = sort &&
-			(i = l_true && j = l_false || i = l_false && j = l_true)))
+	let ctx = if not autoremove then ctx else
+		filter_hits ctx (function Hit((b,k), (a,i), j) ->
+			not (List.mem b names && a = sort &&
+				(i == l_true && j == l_false || i == l_false && j == l_true)))
 	in
-	let separate_levels (ps, actions) sigma_n idx_from_state top =
+	let separate_levels mps sigma_n idx_from_state top =
 		let idx_top = List.map idx_from_state top
 		in
-		let n = List.assoc sigma_n ps
+		let n = SMap.find sigma_n mps
 		in
 		let idx_bot = List.filter (fun i -> not (List.mem i idx_top)) (Util.range 0 n)
 		in
@@ -353,7 +357,7 @@ let macro_cooperativity autoremove = function
 		  SM (sigma, top) -> 
 		  	let (sigma_n, (sigma, idx_from_state)), ctx = build_reflection ctx sigma
 			in
-			sigma_n, separate_levels ctx sigma_n idx_from_state top, ctx
+			sigma_n, separate_levels (fst ctx) sigma_n idx_from_state top, ctx
 
 		| SM_Not sm ->
 			let sigma_n, (top,bot), ctx = cooperative_matching ctx sm
@@ -369,17 +373,20 @@ let macro_cooperativity autoremove = function
 			let sigma_n = "__coop" ^ (string_of_int !__coop_counter)
 			in __coop_counter := !__coop_counter + 1;
 
-			let h_coop = List.flatten (
-				  List.map (fun s -> [Hit ((sig1,s), (sigma_n,0), 2);
-									Hit ((sig1,s), (sigma_n,1), 3)]) top1
-				@ List.map (fun s -> [Hit ((sig1,s), (sigma_n,2), 0);
-									Hit ((sig1,s), (sigma_n,3), 1)]) bot1
-				@ List.map (fun s -> [Hit ((sig2,s), (sigma_n,0), 1);
-									Hit ((sig2,s), (sigma_n,2), 3)]) top2
-				@ List.map (fun s -> [Hit ((sig2,s), (sigma_n,1), 0);
-									Hit ((sig2,s), (sigma_n,3), 2)]) bot2
-			) in
-			let ctx = (sigma_n,3)::(fst ctx), ph_add_hits ctx h_coop (default_rsa ())
+			let dirs = [
+				(sig1, top1, 0, 2);(sig1, top1, 1, 3);
+				(sig1, bot1, 2, 0);(sig1, bot1, 3, 1);
+				(sig2, top2, 0, 1);(sig2, top2, 2, 3);
+				(sig2, bot2, 1, 0);(sig2, bot2, 3, 2);
+			]
+			in
+			let register sigN j k actions s =
+				(Hit ((sigN,s), (sigma_n,j), k), m_default_rsa)::actions
+			in
+			let folder actions (sigN, levels, j, k) =
+				List.fold_left (register sigN j k) actions levels
+			in
+			let ctx = SMap.add sigma_n 3 (fst ctx), List.fold_left folder (snd ctx) dirs
 			in
 			cooperativities := (sigma_n, ([sig1;sig2], 
 				function [s1;s2] ->
@@ -406,21 +413,21 @@ let macro_cooperativity autoremove = function
 	in
 	let ps, actions = ctx
 	in
-	ps, ph_add_hits (ps,actions) h'coop (default_rsa ())
+	ps, ph_add_hits actions m_default_rsa h'coop
 )
 | _ -> failwith "macro_cooperativity: wrong arguments"
 ;;
 
 let macro_remove = function
-  [Arg_Actions ractions] -> (fun (ps,actions) ->
-  	(ps, List.filter (fun (Hit h, rsa) -> not (List.mem h ractions)) actions)
+  [Arg_Actions ractions] -> (fun (mps,actions) ->
+  	(mps, List.filter (fun (Hit h, rsa) -> not (List.mem h ractions)) actions)
 )
 | _ -> failwith "macro_remove: wrong arguments"
 ;;
 
 let macro_knockdown = function
-[Arg_Process proc] -> (fun (ps, actions) ->
-	(ps, List.filter (fun (Hit (ai,(b,j),j'),_) ->
+[Arg_Process proc] -> (fun (mps, actions) ->
+	(mps, List.filter (fun (Hit (ai,(b,j),j'),_) ->
 		proc <> ai && proc <> (b,j) && proc <> (b,j')) actions)
 )
 | _ -> failwith "macro_knockdown: wrong arguments"
@@ -469,7 +476,7 @@ content :
 | content hit { merge_instr $1 $2 }
 | content macro { $2 $1 }
 | content update { update $1 $2 }
-| decl		 { merge_decl ([], []) $1 }
+| decl		 { merge_decl (SMap.empty, []) $1 }
 ;
 decl :
   New process	{ assert (snd $2 >= 0); $2 }
@@ -606,7 +613,7 @@ footer :
 ;
 
 main :
-  headers content footer { (init_content $2, compute_init_context $2 $3) }
-| content footer { (init_content $1, compute_init_context $1 $2) }
+  headers content footer { let ph = init_ph $2 in (init_content ph, compute_init_context ph $3) }
+| content footer { let ph = init_ph $1 in (init_content ph, compute_init_context ph $2) }
 ;
 %%
