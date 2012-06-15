@@ -142,7 +142,7 @@ for a in SimpleNodes + PermNodes :
 print()
 for sort_actions in dactions.values() :
 	for a in sort_actions :
-		print("COOPERATIVITY(%s, %s, 1, 0)" % (a["state_matching"], tr(a["target"])))
+		print("COOPERATIVITY_KEEP(%s, %s, 1, 0)" % (a["state_matching"], tr(a["target"])))
 
 init_procs = ["%s 1" % tr(a) for a in PermNodes]
 # add frontiers
