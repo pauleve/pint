@@ -69,3 +69,22 @@ release:
 	git tag $(RELNAME)
 	git archive -o /tmp/pint-$(RELNAME).zip --prefix pint-$(RELNAME)/ $(RELBRANCH)
 
+OSX_W=/tmp/osx-pint/pint-$(RELNAME)
+OSX_W_BIN=/tmp/osx-pint/pint-$(RELNAME)/pint
+OSX_BINS=phc ph-stat ph-stable ph-reach ph-exec ph2thomas
+dist-osx: phc phstat phstable phreach phexec ph2thomas
+	-rm -rf $(OSX_W)
+	install -d $(OSX_W_BIN)
+	install -m 755 $(OSX_BINS:%=bin/%) $(MISC_TOOLS) $(OSX_W_BIN)
+	install -m 644 dist/osx/*.dylib $(OSX_W_BIN)
+	for i in $(OSX_BINS); do \
+		install -m 755 -b -B .mac dist/osx/wrapper.sh $(OSX_W_BIN)/$$i; \
+	done
+	OSX_BINS="$(OSX_BINS)" MISC_TOOLS="$(MISC_TOOLS)" ./dist/osx/gen_install.sh > $(OSX_W_BIN)/install.sh
+	chmod 655 $(OSX_W_BIN)/install.sh
+	install -d $(OSX_W)/examples
+	install -m 644 examples/* $(OSX_W)/examples
+	install -m 644 dist/osx/README $(OSX_W)
+	-rm -f /tmp/pint-$(RELNAME).dmg
+	hdiutil create -srcfolder $(OSX_W) -volname pint-$(RELNAME) -fs HFS+ /tmp/pint-$(RELNAME).dmg
+
