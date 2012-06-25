@@ -826,6 +826,7 @@ let trimmed_cwA env gA =
 	gA#iter (fun node child -> 
 				if NodeSet.mem node nodes && NodeSet.mem child nodes then
 					gA'#add_child node child);
+	gA'#set_trivial_nsols (NodeSet.inter (gA#get_trivial_nsols ()) nodes);
 	gA'#set_auto_conts true;
 	gA'#commit ();
 	gA'

@@ -57,12 +57,14 @@ module NodeOrd = struct type t = node let compare = compare end
 module NodeSet = Set.Make (NodeOrd)
 module NodeMap = Map.Make (NodeOrd)
 
+let string_of_nodeset = string_of_set string_of_node NodeSet.elements;;
+
 exception Found
 
 class graph = 
 object(self)
-	val edges = Hashtbl.create 50
-	val rev_edges = Hashtbl.create 50
+	val edges = Hashtbl.create 1000
+	val rev_edges = Hashtbl.create 1000
 
 	val mutable procs = PSet.empty
 	val mutable objs = ObjSet.empty
@@ -242,6 +244,7 @@ object(self)
 				flood chgs
 			)
 
+		(*
 		and setup n =
 			let push n nv n' n'v =
 				let nv' = update_cache n nv n' n'v
@@ -258,10 +261,95 @@ object(self)
 			let v = List.fold_left forward (init n) (_parents n)
 			in
 			Hashtbl.add values n v
-
+		in*)
+		and setup n =
+			Hashtbl.add values n (init n)
 		in
 		NodeSet.iter setup ns;
 		flood ns
+
+	method rflood2
+		: 'a 'b. bool -> (node -> 'a * 'b NodeMap.t) 
+			-> (node -> 'a * 'b NodeMap.t -> node -> 'a * 'b NodeMap.t -> 'a * 'b NodeMap.t) (* update_cache *)
+			-> (node -> 'a * 'b NodeMap.t -> 'a) (* update_value *)
+			-> (node, 'a * 'b NodeMap.t) Hashtbl.t -> NodeSet.t -> unit
+		= fun desc init update_cache update_value values ns ->
+		let _childs, _parents = if desc then (self#childs, self#parents)
+										else (self#parents, self#childs)
+		in
+
+		let cache_nb_childs = Hashtbl.create 500
+		in
+
+		let get_nb_childs n =
+			try
+				Hashtbl.find cache_nb_childs n
+			with Not_found ->
+				let i = List.length (_childs n)
+				in
+				Hashtbl.add cache_nb_childs n i;
+				i
+		in
+
+		let rec flood (ready, waiting, news) = (
+			let n, (ready, waiting) =	
+				try
+					let n, ready = List.hd ready, List.tl ready
+					in
+					n, (ready, waiting)
+				with Failure _ ->
+					let n = NodeSet.choose waiting
+					in
+					let waiting = NodeSet.remove n waiting
+					in
+					n, (ready, waiting)
+			in
+			let isnew, news =
+				if NodeSet.mem n news then
+					(true, NodeSet.remove n news)
+				else
+					(false, news)
+			in
+
+			(* compute value *)
+			(*print_endline ("updating "^string_of_node n);*)
+			let v, nm = try Hashtbl.find values n with Not_found -> init n
+			in
+			let v' = update_value n (v,nm)
+			in
+			let changed = isnew || v <> v'
+			in
+			let cfg = if not changed then (ready, waiting, news) else (
+				let nv = (v',nm)
+				in
+				Hashtbl.replace values n nv;
+
+				(* update cached values of childs *)
+				let forward (updated, news) n' =
+					let n'v, isnew = try Hashtbl.find values n', false
+										with Not_found -> (init n', true)
+					in
+					let n'v = update_cache n' n'v n nv
+					and news = if isnew then NodeSet.add n' news else news
+					in
+					Hashtbl.replace values n' n'v;
+					(NodeSet.add n' updated, news)
+				in
+				let updated, news = List.fold_left forward (NodeSet.empty, news) (_childs n)
+				in
+				let upd_ready, upd_waiting = NodeSet.partition (fun n -> 
+						let (v,nm) = Hashtbl.find values n
+						in
+						NodeMap.cardinal nm = get_nb_childs n) updated
+				in
+				let ready = NodeSet.elements upd_ready @ ready
+				and waiting = NodeSet.union (NodeSet.diff waiting upd_ready) upd_waiting
+				in
+				(ready, waiting, news))
+			in
+			if not (ready == [] && NodeSet.is_empty waiting) then flood cfg
+		) in
+		flood (NodeSet.elements ns, NodeSet.empty, ns)
 
 	method flood 
 		: 'a 'b. (node -> 'a * 'b) 
@@ -316,15 +404,6 @@ let inter_value nm =
 		match r with
 		  None -> ctx_empty
 		| Some c -> c
-;;
-let update update_value n (v,nm) n' (v',_) =
-	(* 1. update cache map *)
-	let nm = NodeMap.add n' v' nm
-	in
-	(* 2. update value *)
-	let v' = update_value n (v,nm)
-	in
-	(v',nm), v<>v'
 ;;
 let update_cache n (v,nm) n' (v',_) =
 	(v, NodeMap.add n' v' nm)
@@ -428,6 +507,9 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 	method ctx = actual_ctx
 	method get_impossible_objs = NodeSet.fold (function NodeObj obj -> fun objs -> obj::objs
 													| _ -> fun objs -> objs) impossible_nobjs []
+	
+	method set_trivial_nsols t =
+		trivial_nsols <- t
 
 	method has_loops =
 		List.exists (fun ai -> self#has_loop_from (NodeProc ai)) pl
