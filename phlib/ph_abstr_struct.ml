@@ -43,7 +43,7 @@ type node =
 	| NodeSol of (objective * PSet.t)
 
 let string_of_node = function                                         
-	  NodeSol (obj,_) -> "Sol("^string_of_obj obj^"]"
+	  NodeSol (obj,ps) -> "Sol["^string_of_obj obj^"/"^string_of_procs ps^"]"
 	| NodeObj obj -> "Obj["^string_of_obj obj^"]"
 	| NodeProc p -> "Proc["^string_of_proc p^"]"
 ;;
@@ -192,34 +192,50 @@ object(self)
 	method iter f = Hashtbl.iter f rev_edges
 
 	method private _flood
-		: 'a. bool -> (node -> 'a) 
-			-> (node -> 'a -> node -> 'a -> 'a * bool)
-			-> (node, 'a) Hashtbl.t -> NodeSet.t -> unit
-		= fun desc init push values ns ->
+		: 'a 'b. bool -> (node -> 'a * 'b) 
+			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
+			-> (node -> 'a * 'b-> 'a) (* update_value *)
+			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
+		= fun desc init update_cache update_value values ns ->
 		let _childs, _parents = if desc then (self#childs, self#parents)
 										else (self#parents, self#childs)
 		in
 		let rec flood chgs = 
-			let forward n chgs = 
-				(* forward the new value v of n to its childs *)
-				let v = Hashtbl.find values n
-				and nexts = _childs n
+			(* 1. update cached values of childs *)
+			let update_childs n (nexts, news) =
+				let childs = _childs n
+				and nv = Hashtbl.find values n
 				in
-				let forward_to chgs n' =
+				let forward_to (nexts, news) n' =
 					let n'v, isnew = try Hashtbl.find values n', false
 						with Not_found -> (init n', true)
 					in
-					let n'v, changed = push n' n'v n v
-					in
-					let chgs = if changed || isnew then
-							NodeSet.add n' chgs else chgs
+					let n'v = update_cache n' n'v n nv
+					and news = if isnew then NodeSet.add n' news else news
 					in
 					Hashtbl.replace values n' n'v;
-					chgs
+					(NodeSet.add n' nexts, news)
 				in
-				List.fold_left forward_to chgs nexts
+				List.fold_left forward_to (nexts, news) childs
 			in
-			let chgs = NodeSet.fold forward chgs NodeSet.empty
+			let nexts, news = NodeSet.fold update_childs chgs (NodeSet.empty, NodeSet.empty)
+			in
+
+			(* 2. compute child values *)
+			let forward n chgs = 
+				let (v, nm) = Hashtbl.find values n
+				in
+				let v' = update_value n (v,nm)
+				in
+				let changed = v' <> v
+				and n'v = (v',nm)
+				in
+				let chgs = if changed then NodeSet.add n chgs else chgs
+				in
+				Hashtbl.replace values n n'v;
+				chgs
+			in
+			let chgs = NodeSet.fold forward nexts news
 			in
 			if not (NodeSet.is_empty chgs) then (
 				(*dbg ("_flood: "^string_of_int (NodeSet.cardinal chgs)^" changes");*)
@@ -227,11 +243,16 @@ object(self)
 			)
 
 		and setup n =
+			let push n nv n' n'v =
+				let nv' = update_cache n nv n' n'v
+				in
+				(update_value n nv', snd nv')
+			in
 			let forward v p =
 				try 
 					let pv = Hashtbl.find values p
 					in
-					fst (push n v p pv)
+					push n v p pv
 				with Not_found -> v
 			in
 			let v = List.fold_left forward (init n) (_parents n)
@@ -243,14 +264,16 @@ object(self)
 		flood ns
 
 	method flood 
-		: 'a. (node -> 'a) 
-			-> (node -> 'a -> node -> 'a -> 'a * bool)
-			-> (node, 'a) Hashtbl.t -> NodeSet.t -> unit
+		: 'a 'b. (node -> 'a * 'b) 
+			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
+			-> (node -> 'a * 'b-> 'a) (* update_value *)
+			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
 		= self#_flood true
 	method rflood 
-		: 'a. (node -> 'a) 
-			-> (node -> 'a -> node -> 'a -> 'a * bool)
-			-> (node, 'a) Hashtbl.t -> NodeSet.t -> unit
+		: 'a 'b. (node -> 'a * 'b) 
+			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
+			-> (node -> 'a * 'b-> 'a) (* update_value *)
+			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
 		= self#_flood false
 
 	val mutable last_loop = []
@@ -303,6 +326,10 @@ let update update_value n (v,nm) n' (v',_) =
 	in
 	(v',nm), v<>v'
 ;;
+let update_cache n (v,nm) n' (v',_) =
+	(v, NodeMap.add n' v' nm)
+;;
+
 let run_rflood update_value push (gA : #graph) flood_values from_objs =
 	let init n = update_value n (ctx_empty, NodeMap.empty), NodeMap.empty
 	in
@@ -310,7 +337,7 @@ let run_rflood update_value push (gA : #graph) flood_values from_objs =
 	in
 	let ns = List.fold_left fold_obj NodeSet.empty from_objs
 	in
-	gA#rflood init push flood_values ns
+	gA#rflood init update_cache update_value flood_values ns
 ;;
 (**  **)
 
@@ -551,23 +578,25 @@ class cwB ctx pl get_Sols = object(self) inherit (cwA ctx pl get_Sols)
 			| _ -> false
 		in
 		(* the node n with value v receive update from node n' with value v' *)
-		let update n (coloured, is_ms) n' (coloured', is_ms') =
+		let update_cache n (coloured, is_ms) n' (coloured', is_ms') =
 			if (not is_ms') && (not coloured) && coloured' then
-				((true,is_ms),true)
+				(true,is_ms)
 			else
-				((coloured,is_ms),false)
+				(coloured,is_ms)
+		and update_value n (coloured, is_ms) = coloured
 		in
 		let init n = if NodeSet.mem n im_nobjs then (true, false) else (false, is_ms_objs n)
-		and push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
+		(*and push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
 			match n, n' with
 			  NodeSol _, NodeProc _
 			| NodeObj _, NodeSol _
 			| NodeProc _, NodeObj _ 
 			| NodeObj _, NodeObj _ -> (update n v n' v')
 			| _ -> failwith "wrong abstract structure graph."
+			*)
 		and flood_values = Hashtbl.create 50
 		in
-		self#rflood init push flood_values im_nobjs;
+		self#rflood init update_cache update_value flood_values im_nobjs;
 		let get_responsibles n (coloured, is_ms) r =
 			if coloured && is_ms then n::r 
 			else (

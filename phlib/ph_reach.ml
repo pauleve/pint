@@ -708,11 +708,7 @@ let color_nodes_connected_to_trivial_sols (gA: #cwA) =
 		| _ -> (false, NodeMap.empty)
 
 	(* the node n with value v receives update from node n' with value v' *)
-	and push n (v,nm) n' (v',_) = 
-		(* 1. update cache map *)
-		let nm = NodeMap.add n' v' nm
-		in
-		(* 2. update value *)
+	and push n (v,nm) = 
 		let new_v = match n with
 		  NodeProc _ -> (* at least one child is green *)
 		  	let exists_green n' g r = r || g
@@ -736,13 +732,13 @@ let color_nodes_connected_to_trivial_sols (gA: #cwA) =
 			in
 			if r then NodeMap.fold all_obj_green nm true else false
 		in
-		(new_v, nm), v<>new_v
+		new_v
 	in
 
 	(*dbg ("Leafs: "^(String.concat ";" (List.map string_of_node (NodeSet.elements (gA#get_leafs ())))));*)
 	let values = Hashtbl.create 50
 	in
-	gA#rflood init push values (gA#get_leafs ());
+	gA#rflood init update_cache push values (gA#get_leafs ());
 	(*let dbg_value n (g,_) =
 		dbg ("Green("^string_of_node n^") = "^string_of_bool g)
 	in
