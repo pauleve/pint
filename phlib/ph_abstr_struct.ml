@@ -278,9 +278,8 @@ object(self)
 										else (self#parents, self#childs)
 		in
 
-		let cache_nb_childs = Hashtbl.create 500
+		let cache_nb_childs = Hashtbl.create 1000
 		in
-
 		let get_nb_childs n =
 			try
 				Hashtbl.find cache_nb_childs n
@@ -304,6 +303,7 @@ object(self)
 					in
 					n, (ready, waiting)
 			in
+			(*print_endline ("* popping "^string_of_node n);*)
 			let isnew, news =
 				if NodeSet.mem n news then
 					(true, NodeSet.remove n news)
@@ -312,14 +312,13 @@ object(self)
 			in
 
 			(* compute value *)
-			(*print_endline ("updating "^string_of_node n);*)
 			let v, nm = try Hashtbl.find values n with Not_found -> init n
 			in
 			let v' = update_value n (v,nm)
 			in
 			let changed = isnew || v <> v'
 			in
-			let cfg = if not changed then (ready, waiting, news) else (
+			let cfg = if not changed then (ready, waiting, news) else 
 				let nv = (v',nm)
 				in
 				Hashtbl.replace values n nv;
@@ -342,10 +341,10 @@ object(self)
 						in
 						NodeMap.cardinal nm = get_nb_childs n) updated
 				in
-				let ready = NodeSet.elements upd_ready @ ready
+				let ready = ready @ NodeSet.elements upd_ready
 				and waiting = NodeSet.union (NodeSet.diff waiting upd_ready) upd_waiting
 				in
-				(ready, waiting, news))
+				(ready, waiting, news)
 			in
 			if not (ready == [] && NodeSet.is_empty waiting) then flood cfg
 		) in
