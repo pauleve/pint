@@ -330,7 +330,7 @@ let update_cache n (v,nm) n' (v',_) =
 	(v, NodeMap.add n' v' nm)
 ;;
 
-let run_rflood update_value push (gA : #graph) flood_values from_objs =
+let run_rflood update_cache update_value (gA : #graph) flood_values from_objs =
 	let init n = update_value n (ctx_empty, NodeMap.empty), NodeMap.empty
 	in
 	let fold_obj ns obj = NodeSet.add (NodeObj obj) ns
@@ -350,18 +350,16 @@ let min_conts (gA : #graph) =
 			in
 			SMap.add a (ISet.singleton i) ctx'
 	in
-	let update = update update_value
-	in
 	(* the node n with value v receive update from node n' with value v' *)
 	let push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
 		match n, n' with
 		  NodeSol _, NodeProc _
 		| NodeObj _, NodeSol _
-		| NodeProc _, NodeObj _ -> (update n v n' v')
-		| NodeObj _, NodeObj _ -> (v, false) (* ignore Cont rels *)
+		| NodeProc _, NodeObj _ -> update_cache n v n' v'
+		| NodeObj _, NodeObj _ -> v (* ignore Cont rels *)
 		| _ -> failwith "wrong abstract structure graph."
 	in
-	run_rflood update_value push gA
+	run_rflood push update_value gA
 ;;
 
 let max_conts (gA : #graph) =
@@ -373,19 +371,17 @@ let max_conts (gA : #graph) =
 			in
 			SMap.add a (ISet.singleton i) ctx'
 	in
-	let update = update update_value
-	in
 	(* the node n with value v receive update from node n' with value v' *)
 	let push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
 		match n, n' with
 		  NodeSol _, NodeProc _
 		| NodeObj _, NodeSol _
-		| NodeProc _, NodeObj _ -> (update n v n' v')
-		| NodeObj _, NodeObj _ -> (v, false) (* ignore Cont rels *)
+		| NodeProc _, NodeObj _ -> update_cache n v n' v'
+		| NodeObj _, NodeObj _ -> v (* ignore Cont rels *)
 		| _ -> failwith "wrong abstract structure graph."
 	in
 	gA#debug ();
-	run_rflood update_value push gA;
+	run_rflood push update_value gA;
 ;;
 
 let min_procs (gA : #graph) flood_values =
@@ -415,18 +411,7 @@ let min_procs (gA : #graph) flood_values =
 
 		| NodeProc _ -> inter_value nm (* TODO: ignore Obj without sols *)
 	in
-	let update = update update_value
-	in
-	(* the node n with value v receive update from node n' with value v' *)
-	let push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
-		match n, n' with
-		  NodeSol _, NodeProc _
-		| NodeObj _, NodeSol _
-		| NodeProc _, NodeObj _ 
-		| NodeObj _, NodeObj _ -> (update n v n' v')
-		| _ -> failwith "wrong abstract structure graph."
-	in
-	run_rflood update_value push gA flood_values
+	run_rflood update_cache update_value gA flood_values
 ;;
 
 
