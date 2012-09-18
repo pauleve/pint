@@ -2,6 +2,8 @@
 cat <<EOF
 #!/bin/sh
 cd "\`dirname "\$0"\`"
+mkdir -p /usr/local/bin
+mkdir -p /usr/local/lib
 for x in $MISC_TOOLS; do
 	cp -v \`basename "\$x"\` /usr/local/bin/
 done

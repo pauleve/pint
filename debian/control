@@ -1,0 +1,12 @@
+Source: pint
+Section: science
+Priority: optional
+Maintainer: Loic Pauleve <loic.pauleve@ens-cachan.org>
+Build-Depends: debhelper (>= 4.0.0), ocaml, camlidl, librmath, ocaml-facile
+Standards-Version: 3.6.0
+
+Package: qomics
+Architecture: amd64
+Depends: python (>= 3), ocaml, clingo
+Description: Process Hitting related tools.
+
