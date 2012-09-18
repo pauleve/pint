@@ -1,9 +1,7 @@
 (*
-Copyright or © or Copr. Loïc Paulevé, Morgan Magnin, Olivier Roux (2010)
+Copyright or © or Copr. Loïc Paulevé (2012)
 
 loic.pauleve@irccyn.ec-nantes.fr
-morgan.magnin@irccyn.ec-nantes.fr
-olivier.roux@irccyn.ec-nantes.fr
 
 This software is a computer program whose purpose is to provide Process
 Hitting related tools.
@@ -38,15 +36,6 @@ knowledge of the CeCILL license and that you accept its terms.
 open Big_int;;
 open Ph_types;;
 
-let string_of_state state =
-	"[ "^
-	String.concat " " (List.sort compare (List.map string_of_proc state))
-	^" ]"
-;;
-let string_of_states states =
-	String.concat "\n" (List.sort compare (List.map string_of_state states))
-;;
-
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts
 and usage_msg = "ph-stable"
 in
@@ -54,13 +43,20 @@ let anon_fun _ = (Arg.usage cmdopts usage_msg; raise Exit)
 in
 Arg.parse cmdopts anon_fun usage_msg;
 
-let ph = fst (Ph_util.parse !Ui.opt_channel_in)
+let (sorts_def, actions) = fst (Ph_util.parse !Ui.opt_channel_in)
 in
-let nb_states = Ph_util.count_states ph
+
+let nb_states = Ph_util.count_states (sorts_def, actions)
 in
 output_string stderr ("["^(!Ui.opt_filename_in)^"] total: "^string_of_big_int nb_states^" states\n"); flush stderr;
-let stable_states = Ph_static.stable_states ph
-in
-print_endline (string_of_states stable_states)
 
+let register_action bj ((ai,_),_) hits = (ai,bj)::hits
+in
+let hits = Hashtbl.fold register_action actions []
+in
+
+let fps = Ph_fixpoint.fixpoints (sorts_def, hits)
+in
+print_endline (String.concat "\n" (List.map string_of_procs fps))
+;;
 

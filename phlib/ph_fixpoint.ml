@@ -2,8 +2,6 @@
 Copyright or © or Copr. Loïc Paulevé (2012)
 
 loic.pauleve@irccyn.ec-nantes.fr
-morgan.magnin@irccyn.ec-nantes.fr
-olivier.roux@irccyn.ec-nantes.fr
 
 This software is a computer program whose purpose is to provide Process
 Hitting related tools.
@@ -34,8 +32,6 @@ same conditions as regards security.
 The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 *)
-
-open Big_int;;
 
 open Facile;;
 open Easy;;
@@ -99,30 +95,4 @@ let fixpoints ?restrict:(pl=[]) args =
 	try _fixpoints pl args with Stak.Fail _ -> []
 ;;
 	
-(*
-let _ = 
-	let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts
-	and usage_msg = "ph-stable"
-	in
-	let anon_fun _ = (Arg.usage cmdopts usage_msg; raise Exit)
-	in
-	Arg.parse cmdopts anon_fun usage_msg;
-
-	let (sorts_def, actions) = fst (Ph_util.parse !Ui.opt_channel_in)
-	in
-
-	let nb_states = Ph_util.count_states (sorts_def, actions)
-	in
-	output_string stderr ("["^(!Ui.opt_filename_in)^"] total: "^string_of_big_int nb_states^" states\n"); flush stderr;
-
-	let register_action bj ((ai,_),_) hits = (ai,bj)::hits
-	in
-	let hits = Hashtbl.fold register_action actions []
-	in
-
-	let fps = fixpoints (sorts_def, hits)
-	in
-	print_endline (String.concat "\n" (List.map string_of_procs fps))
-;;
-*)
 
