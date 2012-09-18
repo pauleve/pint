@@ -252,3 +252,71 @@ let get_process_equivalence equivalences b (a,i) =
 	with Not_found -> ISet.singleton i
 ;;
 
+
+let influence_graph (ps, hits) =
+	let register_action (b,_) (((a,_),_),_) g =
+		let precs = try SMap.find b g with Not_found -> SSet.empty
+		in
+		SMap.add b (SSet.add a precs) g
+	in
+	Hashtbl.fold register_action hits SMap.empty
+;;
+
+
+let resolve_cooperativities (ps, hits) pl =
+	let is_coop a =
+		String.length a > 6 && String.sub a 0 6 = "__coop"
+	in
+	let sort_precs = influence_graph (ps, hits)
+	in
+	let rec saturate_precs a visited =
+		let visited = SSet.add a visited
+		in
+		if is_coop a then
+			let bs = try
+				SMap.find a sort_precs
+				with Not_found -> 
+					failwith ("NOT FOUND ? "^a);
+			in
+			let fold_sort b visited =
+				if not(SSet.mem b visited) then
+					saturate_precs b visited
+				else visited
+			in
+			SSet.fold fold_sort bs visited
+		else
+			visited
+	in
+	let resolve_cooperativity (a,i) =
+		let connected_sorts = saturate_precs a (SSet.empty)
+		in
+		let push_arcs arcs bj =
+			let register_action arcs (((a,i),_),_) =
+				if SSet.mem a connected_sorts then
+					((a,i),bj)::arcs
+				else
+					arcs
+			in
+			List.fold_left register_action arcs (Hashtbl.find_all hits bj)
+		in
+		let register_sort b (rps, arcs) =
+			let l = List.assoc b ps
+			in
+			let arcs = if is_coop b then 
+					let register_proc arcs j =
+						push_arcs arcs (b,j)
+					in
+					List.fold_left register_proc arcs (Util.range 0 l)
+				else arcs
+			in
+			(b,l)::rps, arcs
+		in
+		let rps, arcs = SSet.fold register_sort connected_sorts ([], [])
+		in
+		let ps_list = Ph_fixpoint.fixpoints (rps, arcs) ~restrict:[a,i]
+		in
+		((a,i), List.map (PSet.filter (fun (a,_) -> not (is_coop a))) ps_list)
+	in
+	List.map resolve_cooperativity pl
+;;
+

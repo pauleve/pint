@@ -5,7 +5,9 @@ module SMap : Map.S with type key  = string
 module ISet : Set.S with type elt = int
 module IMap : Map.S with type key = int
 
-val string_of_set : ('a -> string) -> ('b -> 'a list) -> 'b -> string
+val string_of_set : 
+	?lbracket:string -> ?rbracket:string -> ?delim:string ->
+		('a -> string) -> ('b -> 'a list) -> 'b -> string
 
 (** String representation of an int Set. *)
 val string_of_iset : ISet.t -> string

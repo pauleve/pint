@@ -44,11 +44,13 @@ module SMap = Map.Make (struct type t = string let compare = compare end);;
 module ISet = Set.Make (struct type t = int let compare = compare end);;
 module IMap = Map.Make (struct type t = int let compare = compare end);;
 
-let string_of_set string_of_element elements_getter set =
-	let content = String.concat ", " 
+let string_of_set
+		?lbracket:(lb="{ ") ?rbracket:(rb=" }") ?delim:(dl=", ")
+		string_of_element elements_getter set =
+	let content = String.concat dl
 		(List.map string_of_element (elements_getter set))
 	in
-	"{ " ^ content ^" }"
+	lb^content^rb
 ;;
 
 let string_of_iset = string_of_set string_of_int ISet.elements

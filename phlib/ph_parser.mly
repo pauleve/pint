@@ -16,6 +16,11 @@ let options = {
 	autoinit = true;
 }
 
+let reset_parser () =
+	cooperativities := [];
+	__coop_counter := 0
+;;
+
 let default_rsa () = 
 	match directive.default_rate with
 	  None -> Instantaneous
@@ -613,7 +618,7 @@ footer :
 ;
 
 main :
-  headers content footer { let ph = init_ph $2 in (init_content ph, compute_init_context ph $3) }
-| content footer { let ph = init_ph $1 in (init_content ph, compute_init_context ph $2) }
+  headers content footer { reset_parser (); let ph = init_ph $2 in (init_content ph, compute_init_context ph $3) }
+| content footer { reset_parser (); let ph = init_ph $1 in (init_content ph, compute_init_context ph $2) }
 ;
 %%
