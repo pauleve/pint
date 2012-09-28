@@ -35,7 +35,7 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 *)
 
-let dodebug = ref true;;
+let dodebug = ref false;;
 
 let dbg_noendl msg = if !dodebug then (prerr_string msg; flush stderr) else ();;
 let dbg msg = dbg_noendl (msg^"\n");;
