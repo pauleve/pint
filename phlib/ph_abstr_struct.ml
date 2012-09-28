@@ -57,6 +57,8 @@ module NodeOrd = struct type t = node let compare = compare end
 module NodeSet = Set.Make (NodeOrd)
 module NodeMap = Map.Make (NodeOrd)
 
+module RankedNodeSet = Set.Make(struct type t = int * node let compare = compare end)
+
 let string_of_nodeset = string_of_set string_of_node NodeSet.elements;;
 
 exception Found
@@ -65,6 +67,8 @@ class graph =
 object(self)
 	val edges = Hashtbl.create 1000
 	val rev_edges = Hashtbl.create 1000
+
+	val mutable nodes = NodeSet.empty
 
 	val mutable procs = PSet.empty
 	val mutable objs = ObjSet.empty
@@ -76,6 +80,7 @@ object(self)
 	method has_child c n = List.mem c (self#childs n)
 	method count_procs = PSet.cardinal procs
 	method count_objs = ObjSet.cardinal objs
+	method count_nodes = NodeSet.cardinal nodes
 
 	method debug () = if !Debug.dodebug then (
 		let sol = "#aS# "
@@ -186,6 +191,7 @@ object(self)
 		Hashtbl.find_all rev_edges n
 
 	method add_child c n =
+		nodes <- NodeSet.add c (NodeSet.add n nodes);
 		self#register_node n;
 		self#register_node c;
 		Hashtbl.add edges n c;
@@ -268,6 +274,19 @@ object(self)
 		NodeSet.iter setup ns;
 		flood ns
 
+	method flood 
+		: 'a 'b. (node -> 'a * 'b) 
+			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
+			-> (node -> 'a * 'b-> 'a) (* update_value *)
+			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
+		= self#_flood true
+	method rflood 
+		: 'a 'b. (node -> 'a * 'b) 
+			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
+			-> (node -> 'a * 'b-> 'a) (* update_value *)
+			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
+		= self#_flood false
+
 	method rflood2
 		: 'a 'b. bool -> (node -> 'a * 'b NodeMap.t) 
 			-> (node -> 'a * 'b NodeMap.t -> node -> 'a * 'b NodeMap.t -> 'a * 'b NodeMap.t) (* update_cache *)
@@ -278,32 +297,65 @@ object(self)
 										else (self#parents, self#childs)
 		in
 
-		let cache_nb_childs = Hashtbl.create 1000
+		(*
+		let debug_node n =
+			print_endline (string_of_node n^" -> "^
+				String.concat " + " (List.map string_of_node (_childs n)))
 		in
-		let get_nb_childs n =
+		NodeSet.iter debug_node nodes;
+		*)
+
+		(* compute strongly connected components *)
+		let sccs = self#tarjan_SCCs desc ns
+		in
+		let sccs_id = Hashtbl.create self#count_nodes
+		in
+		let register_scc id scc =
+			print_endline ("SCC "^string_of_int id^": "^string_of_int (List.length scc));
+			List.iter (fun node -> Hashtbl.add sccs_id node id) scc;
+			id+1
+		in
+		let default_id = List.fold_left register_scc 0 sccs
+		in
+		let get_scc_id n =
+			try Hashtbl.find sccs_id n with Not_found -> default_id
+		in
+
+		let cache_nb_parents = Hashtbl.create self#count_nodes
+		in
+		let get_nb_parents n =
 			try
-				Hashtbl.find cache_nb_childs n
+				Hashtbl.find cache_nb_parents n
 			with Not_found ->
-				let i = List.length (_childs n)
+				let i = List.length (_parents n)
 				in
-				Hashtbl.add cache_nb_childs n i;
+				Hashtbl.add cache_nb_parents n i;
 				i
+		in
+
+		let pop src =
+			let (i, n) = RankedNodeSet.min_elt src
+			in
+			(*print_endline ("picking "^string_of_int i^" - "^string_of_node n);*)
+			prerr_string ("\r["^string_of_int i^"] ");
+			let tail = RankedNodeSet.remove (i,n) src
+			in
+			n, tail
 		in
 
 		let rec flood (ready, waiting, news) = (
 			let n, (ready, waiting) =	
-				try
-					let n, ready = List.hd ready, List.tl ready
+				if not(RankedNodeSet.is_empty ready) then (
+					let n, ready = pop ready
 					in
 					n, (ready, waiting)
-				with Failure _ ->
-					let n = NodeSet.choose waiting
-					in
-					let waiting = NodeSet.remove n waiting
+				) else (
+					let n, waiting = pop waiting
 					in
 					n, (ready, waiting)
+				)
 			in
-			(*print_endline ("* popping "^string_of_node n);*)
+
 			let isnew, news =
 				if NodeSet.mem n news then
 					(true, NodeSet.remove n news)
@@ -318,7 +370,8 @@ object(self)
 			in
 			let changed = isnew || v <> v'
 			in
-			let cfg = if not changed then (ready, waiting, news) else 
+
+			let (ready, waiting, news) = if not changed then (ready, waiting, news) else 
 				let nv = (v',nm)
 				in
 				Hashtbl.replace values n nv;
@@ -332,36 +385,29 @@ object(self)
 					and news = if isnew then NodeSet.add n' news else news
 					in
 					Hashtbl.replace values n' n'v;
-					(NodeSet.add n' updated, news)
+					(RankedNodeSet.add (get_scc_id n', n') updated, news)
 				in
-				let updated, news = List.fold_left forward (NodeSet.empty, news) (_childs n)
+				let updated, news = List.fold_left forward (RankedNodeSet.empty, news) (_childs n)
 				in
-				let upd_ready, upd_waiting = NodeSet.partition (fun n -> 
+				let upd_ready, upd_waiting = RankedNodeSet.partition (fun (_,n) -> 
 						let (v,nm) = Hashtbl.find values n
 						in
-						NodeMap.cardinal nm = get_nb_childs n) updated
+						NodeMap.cardinal nm = get_nb_parents n) updated
 				in
-				let ready = ready @ NodeSet.elements upd_ready
-				and waiting = NodeSet.union (NodeSet.diff waiting upd_ready) upd_waiting
+				let ready = RankedNodeSet.union ready upd_ready
+				and waiting = RankedNodeSet.union (RankedNodeSet.diff waiting upd_ready) upd_waiting
 				in
 				(ready, waiting, news)
 			in
-			if not (ready == [] && NodeSet.is_empty waiting) then flood cfg
+			if not (RankedNodeSet.is_empty ready && RankedNodeSet.is_empty waiting) then 
+				flood (ready, waiting, news)
 		) in
-		flood (NodeSet.elements ns, NodeSet.empty, ns)
-
-	method flood 
-		: 'a 'b. (node -> 'a * 'b) 
-			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
-			-> (node -> 'a * 'b-> 'a) (* update_value *)
-			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
-		= self#_flood true
-	method rflood 
-		: 'a 'b. (node -> 'a * 'b) 
-			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
-			-> (node -> 'a * 'b-> 'a) (* update_value *)
-			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
-		= self#_flood false
+		let fold_n n ins =
+			RankedNodeSet.add (get_scc_id n, n) ins
+		in
+		let ins = NodeSet.fold fold_n ns RankedNodeSet.empty
+		in
+		flood (ins, RankedNodeSet.empty, ns)
 
 	val mutable last_loop = []
 	method last_loop = last_loop
@@ -383,6 +429,64 @@ object(self)
 			forward (NodeSet.empty, []) n;
 			false
 		with Found -> true
+
+	method tarjan_SCCs desc leafs =
+		let get_childs = if desc then self#childs else self#parents
+		in
+		let index = Hashtbl.create self#count_nodes
+		and lowlink = Hashtbl.create self#count_nodes
+		and next_index = ref 0
+		and stack = ref []
+		in
+		let rec strongconnect v sccs =
+			Hashtbl.add index v !next_index;
+			Hashtbl.add lowlink v !next_index;
+			next_index := !next_index + 1;
+			stack := v::!stack;
+			let handle_child sccs w =
+				if not(Hashtbl.mem index w) then (
+					let sccs = strongconnect w sccs
+					in
+					let l_v = Hashtbl.find lowlink v
+					and l_w = Hashtbl.find lowlink w
+					in
+					Hashtbl.replace lowlink v (min l_v l_w);
+					sccs
+				) else (
+					if List.mem w !stack then (
+						let l_v = Hashtbl.find lowlink v
+						and i_w = Hashtbl.find index w
+						in
+						Hashtbl.replace lowlink v (min l_v i_w);
+					);
+					sccs
+				)
+			in
+			let sccs = List.fold_left handle_child sccs (get_childs v)
+			in
+
+			let rec unroll () =
+				match !stack with
+				  [] -> failwith "unroll empty stack!"
+				| a::q ->
+					stack := q;
+					if a = v then [a] else (a::unroll ())
+			in
+			let l_v = Hashtbl.find lowlink v
+			and i_v = Hashtbl.find index v
+			in
+			if l_v = i_v then 
+				let scc = unroll ()
+				in
+				if List.length scc > 1 then scc::sccs else sccs
+			else sccs
+
+		in
+		let fold_node v sccs =
+			if not(Hashtbl.mem index v) then strongconnect v sccs else sccs
+		in
+		NodeSet.fold fold_node leafs []
+
 end;;
 
 (**
