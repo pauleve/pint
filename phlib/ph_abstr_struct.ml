@@ -288,11 +288,11 @@ object(self)
 		= self#_flood false
 
 	method rflood2
-		: 'a 'b. bool -> (node -> 'a * 'b NodeMap.t) 
+		: 'a 'b. ?reversed:bool -> ('a -> 'a -> bool) -> (node -> 'a * 'b NodeMap.t) 
 			-> (node -> 'a * 'b NodeMap.t -> node -> 'a * 'b NodeMap.t -> 'a * 'b NodeMap.t) (* update_cache *)
 			-> (node -> 'a * 'b NodeMap.t -> 'a) (* update_value *)
 			-> (node, 'a * 'b NodeMap.t) Hashtbl.t -> NodeSet.t -> unit
-		= fun desc init update_cache update_value values ns ->
+		= fun ?reversed:(desc=false) equality init update_cache update_value values ns ->
 		let _childs, _parents = if desc then (self#childs, self#parents)
 										else (self#parents, self#childs)
 		in
@@ -336,7 +336,6 @@ object(self)
 		let pop src =
 			let (i, n) = RankedNodeSet.min_elt src
 			in
-			(*print_endline ("picking "^string_of_int i^" - "^string_of_node n);*)
 			prerr_string ("\r["^string_of_int i^"] ");
 			let tail = RankedNodeSet.remove (i,n) src
 			in
@@ -368,9 +367,8 @@ object(self)
 			in
 			let v' = update_value n (v,nm)
 			in
-			let changed = isnew || v <> v'
+			let changed = isnew || not (equality v v')
 			in
-
 			let (ready, waiting, news) = if not changed then (ready, waiting, news) else 
 				let nv = (v',nm)
 				in
