@@ -311,16 +311,17 @@ object(self)
 		let sccs_id = Hashtbl.create self#count_nodes
 		in
 		let register_scc id scc =
-			print_endline ("SCC "^string_of_int id^": "^string_of_int (List.length scc));
 			List.iter (fun node -> Hashtbl.add sccs_id node id) scc;
 			id+1
 		in
 		let default_id = List.fold_left register_scc 0 sccs
 		in
+		prerr_endline (string_of_int default_id^" SCCs");
 		let get_scc_id n =
 			try Hashtbl.find sccs_id n with Not_found -> default_id
 		in
 
+		(*
 		let cache_nb_parents = Hashtbl.create self#count_nodes
 		in
 		let get_nb_parents n =
@@ -332,6 +333,7 @@ object(self)
 				Hashtbl.add cache_nb_parents n i;
 				i
 		in
+		*)
 
 		let pop src =
 			let (i, n) = RankedNodeSet.min_elt src
@@ -387,10 +389,12 @@ object(self)
 				in
 				let updated, news = List.fold_left forward (RankedNodeSet.empty, news) (_childs n)
 				in
+				let upd_ready, upd_waiting = updated, RankedNodeSet.empty
+				(*
 				let upd_ready, upd_waiting = RankedNodeSet.partition (fun (_,n) -> 
 						let (v,nm) = Hashtbl.find values n
 						in
-						NodeMap.cardinal nm = get_nb_parents n) updated
+						NodeMap.cardinal nm = get_nb_parents n) updated*)
 				in
 				let ready = RankedNodeSet.union ready upd_ready
 				and waiting = RankedNodeSet.union (RankedNodeSet.diff waiting upd_ready) upd_waiting
@@ -476,7 +480,8 @@ object(self)
 			if l_v = i_v then 
 				let scc = unroll ()
 				in
-				if List.length scc > 1 then scc::sccs else sccs
+				scc::sccs
+				(* if List.length scc > 1 then scc::sccs else sccs*)
 			else sccs
 
 		in
@@ -592,6 +597,120 @@ let min_procs (gA : #graph) flood_values =
 		| NodeProc _ -> inter_value nm (* TODO: ignore Obj without sols *)
 	in
 	run_rflood update_cache update_value gA flood_values
+;;
+
+(**
+ * Key processes
+ *)
+module PSSet = Set.Make(struct type t = PSet.t 
+		let compare e1 e2 = 
+			let c = compare (PSet.cardinal e1) (PSet.cardinal e2)
+			in
+			if c == 0 then PSet.compare e1 e2 else c end);;
+
+let psset_has_subset ps =
+	PSSet.exists (fun ps' -> PSet.subset ps' ps)
+;;
+
+let psset_simplify pss = 
+	let fold ps pss =
+		if psset_has_subset ps pss then pss else PSSet.add ps pss
+	in
+	PSSet.fold fold pss PSSet.empty
+;;
+
+let psset_cross max_nkp pss1 pss2 =
+	let inter = PSSet.inter pss1 pss2
+	in
+	let pss1 = PSSet.diff pss1 inter
+	and pss2 = PSSet.diff pss2 inter
+	in
+	let fold1 pss2 ps1 pss =
+		let fold2 ps2 pss' =
+			if PSet.cardinal ps2 >= max_nkp && PSet.cardinal ps1 >= max_nkp then
+				pss'
+			else
+			let ps = PSet.union ps2 ps1
+			in
+			if PSet.cardinal ps > max_nkp then 
+				pss'
+			else
+				PSSet.add ps pss'
+		in
+		PSSet.fold fold2 pss2 pss
+	in
+	prerr_string ("<"^string_of_int (PSSet.cardinal pss1)^"x"^string_of_int (PSSet.cardinal pss2));
+	flush stderr;
+	let r = PSSet.fold (fold1 pss2) pss1 inter
+	in
+	(*print_endline ("     -> "^string_of_int (PSSet.cardinal r)); *)
+	
+	let r = 
+	psset_simplify r
+	in
+	prerr_string(">");
+	flush stderr;
+	(*print_endline ("     => "^string_of_int (PSSet.cardinal r));*)
+	r
+;;
+
+let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
+	let psset_cross = psset_cross max_nkp
+	in
+	let nm_union nm =
+		NodeMap.fold (fun _ -> PSSet.union) nm PSSet.empty
+	and nm_cross nm =
+		let r = NodeMap.fold (fun _ c1 -> function
+			  None -> Some c1
+			| Some c2 -> Some (psset_cross c1 c2)) nm None
+		in
+		match r with
+		  None -> PSSet.empty
+		| Some c -> c
+	in
+	let total_count = ref 0
+	in
+	let update_value n (_,nm) =
+		total_count := !total_count + 1;
+		match n with
+		  NodeSol _ -> psset_simplify (nm_union nm)
+
+		| NodeProc ai -> 
+			let pss = nm_cross nm (* TODO: ignore Obj without sols *)
+			in
+			if ignore_proc ai then pss else
+				let psai = PSet.singleton ai 
+				in
+				PSSet.add psai (PSSet.filter (fun ps -> not(PSet.mem ai ps)) pss)
+
+		| NodeObj (a,j,i) -> (
+			let r1 = NodeMap.fold (function 
+				  NodeSol _ -> (fun c1 -> function
+									  None -> Some c1
+									| Some c2 -> Some (psset_cross c1 c2))
+				| _ -> (fun _ c2 -> c2)) nm None
+			in
+			let r1 = Util.opt_default PSSet.empty r1
+			in
+			r1
+			(*
+			and r2 = NodeMap.fold (function 
+				  NodeObj obj' ->
+						let my_obj = (a,j,obj_bounce obj')
+						in
+						let ctx2 = try fst (Hashtbl.find flood_values (NodeObj my_obj))
+										with Not_found -> PSSet.empty
+						in
+						(fun c1 c2 -> PSSet.union (PSSet.union c1 c2) ctx2)
+				| _ -> (fun _ c2 -> c2)) nm PSSet.empty
+			in
+			psset_simplify (PSSet.union r1 r2)*)
+		)
+	in
+    let init n = PSSet.empty, NodeMap.empty
+    in  
+    gA#rflood2 PSSet.equal init update_cache update_value flood_values leafs;
+	!total_count
 ;;
 
 
