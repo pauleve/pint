@@ -625,11 +625,14 @@ let psset_cross max_nkp pss1 pss2 =
 	let pss1 = PSSet.diff pss1 inter
 	and pss2 = PSSet.diff pss2 inter
 	in
+	let filter_size pss =
+		PSSet.filter (fun pss -> PSet.cardinal pss < max_nkp) pss
+	in
+	let pss1 = filter_size pss1
+	and pss2 = filter_size pss2
+	in
 	let fold1 pss2 ps1 pss =
 		let fold2 ps2 pss' =
-			if PSet.cardinal ps2 >= max_nkp && PSet.cardinal ps1 >= max_nkp then
-				pss'
-			else
 			let ps = PSet.union ps2 ps1
 			in
 			if PSet.cardinal ps > max_nkp then 
