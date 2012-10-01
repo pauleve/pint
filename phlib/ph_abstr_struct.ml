@@ -317,23 +317,10 @@ object(self)
 		let default_id = List.fold_left register_scc 0 sccs
 		in
 		prerr_endline (string_of_int default_id^" SCCs");
+
 		let get_scc_id n =
 			try Hashtbl.find sccs_id n with Not_found -> default_id
 		in
-
-		(*
-		let cache_nb_parents = Hashtbl.create self#count_nodes
-		in
-		let get_nb_parents n =
-			try
-				Hashtbl.find cache_nb_parents n
-			with Not_found ->
-				let i = List.length (_parents n)
-				in
-				Hashtbl.add cache_nb_parents n i;
-				i
-		in
-		*)
 
 		let pop src =
 			let (i, n) = RankedNodeSet.min_elt src
@@ -344,19 +331,9 @@ object(self)
 			n, tail
 		in
 
-		let rec flood (ready, waiting, news) = (
-			let n, (ready, waiting) =	
-				if not(RankedNodeSet.is_empty ready) then (
-					let n, ready = pop ready
-					in
-					n, (ready, waiting)
-				) else (
-					let n, waiting = pop waiting
-					in
-					n, (ready, waiting)
-				)
+		let rec flood (ready, news) = (
+			let n, ready = pop ready
 			in
-
 			let isnew, news =
 				if NodeSet.mem n news then
 					(true, NodeSet.remove n news)
@@ -371,13 +348,13 @@ object(self)
 			in
 			let changed = isnew || not (equality v v')
 			in
-			let (ready, waiting, news) = if not changed then (ready, waiting, news) else 
+			let (ready, news) = if not changed then (ready, news) else 
 				let nv = (v',nm)
 				in
 				Hashtbl.replace values n nv;
 
 				(* update cached values of childs *)
-				let forward (updated, news) n' =
+				let forward (ready, news) n' =
 					let n'v, isnew = try Hashtbl.find values n', false
 										with Not_found -> (init n', true)
 					in
@@ -385,31 +362,19 @@ object(self)
 					and news = if isnew then NodeSet.add n' news else news
 					in
 					Hashtbl.replace values n' n'v;
-					(RankedNodeSet.add (get_scc_id n', n') updated, news)
+					(RankedNodeSet.add (get_scc_id n', n') ready, news)
 				in
-				let updated, news = List.fold_left forward (RankedNodeSet.empty, news) (_childs n)
-				in
-				let upd_ready, upd_waiting = updated, RankedNodeSet.empty
-				(*
-				let upd_ready, upd_waiting = RankedNodeSet.partition (fun (_,n) -> 
-						let (v,nm) = Hashtbl.find values n
-						in
-						NodeMap.cardinal nm = get_nb_parents n) updated*)
-				in
-				let ready = RankedNodeSet.union ready upd_ready
-				and waiting = RankedNodeSet.union (RankedNodeSet.diff waiting upd_ready) upd_waiting
-				in
-				(ready, waiting, news)
+				List.fold_left forward (ready, news) (_childs n)
 			in
-			if not (RankedNodeSet.is_empty ready && RankedNodeSet.is_empty waiting) then 
-				flood (ready, waiting, news)
+			if not (RankedNodeSet.is_empty ready) then
+				flood (ready, news)
 		) in
 		let fold_n n ins =
 			RankedNodeSet.add (get_scc_id n, n) ins
 		in
 		let ins = NodeSet.fold fold_n ns RankedNodeSet.empty
 		in
-		flood (ins, RankedNodeSet.empty, ns)
+		flood (ins, ns)
 
 	val mutable last_loop = []
 	method last_loop = last_loop
