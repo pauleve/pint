@@ -440,8 +440,9 @@ object(self)
 			if l_v = i_v then 
 				let scc = unroll ()
 				in
-				List.rev scc::sccs
-				(* if List.length scc > 1 then scc::sccs else sccs*)
+				let scc = List.rev scc
+				in
+				scc::sccs
 			else sccs
 
 		in
