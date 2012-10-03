@@ -650,12 +650,15 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 		  NodeSol _ -> psset_simplify (nm_union nm)
 
 		| NodeProc ai -> 
-			let nm = NodeMap.map (fun pss ->
+			if ignore_proc ai then
+				nm_cross nm
+			else
+				let nm = NodeMap.map (fun pss ->
 					PSSet.filter (fun ps -> not(PSet.mem ai ps)) pss) nm
-			in
-			let pss = nm_cross nm (* TODO: ignore Obj without sols *)
-			in
-			if ignore_proc ai then pss else PSSet.add (PSet.singleton ai) pss
+				in
+				let pss = nm_cross nm
+				in
+				PSSet.add (PSet.singleton ai) pss
 
 		| NodeObj (a,j,i) -> (
 			let r1 = NodeMap.fold (function 
