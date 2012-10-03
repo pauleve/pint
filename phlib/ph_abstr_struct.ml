@@ -38,9 +38,9 @@ open Debug;;
 open Ph_types;;
 
 type node =
-	  NodeObj of objective
-	| NodeProc of process
+	  NodeProc of process
 	| NodeSol of (objective * PSet.t)
+	| NodeObj of objective
 
 let string_of_node = function                                         
 	  NodeSol (obj,ps) -> "Sol["^string_of_obj obj^"/"^string_of_procs ps^"]"
@@ -297,14 +297,6 @@ object(self)
 										else (self#parents, self#childs)
 		in
 
-		(*
-		let debug_node n =
-			print_endline (string_of_node n^" -> "^
-				String.concat " + " (List.map string_of_node (_childs n)))
-		in
-		NodeSet.iter debug_node nodes;
-		*)
-
 		(* compute strongly connected components *)
 		let sccs = self#tarjan_SCCs desc ns
 		in
@@ -317,30 +309,18 @@ object(self)
 		let default_id = List.fold_left register_scc 0 sccs
 		in
 		prerr_endline (string_of_int default_id^" SCCs");
-
 		let get_scc_id n =
 			try Hashtbl.find sccs_id n with Not_found -> default_id
 		in
 
-		let pop src =
-			let (i, n) = RankedNodeSet.min_elt src
-			in
-			prerr_string ("\r["^string_of_int i^"] ");
-			let tail = RankedNodeSet.remove (i,n) src
-			in
-			n, tail
-		in
-
-		let rec flood (ready, news) = (
-			let n, ready = pop ready
-			in
-			let isnew, news =
+		let handle i (ready, news) n = 
+			let ready = RankedNodeSet.remove (i,n) ready
+			and isnew, news =
 				if NodeSet.mem n news then
 					(true, NodeSet.remove n news)
 				else
 					(false, news)
 			in
-
 			(* compute value *)
 			let v, nm = try Hashtbl.find values n with Not_found -> init n
 			in
@@ -348,7 +328,9 @@ object(self)
 			in
 			let changed = isnew || not (equality v v')
 			in
-			let (ready, news) = if not changed then (ready, news) else 
+			if not changed then 
+				(ready, news)
+			else
 				let nv = (v',nm)
 				in
 				Hashtbl.replace values n nv;
@@ -365,16 +347,29 @@ object(self)
 					(RankedNodeSet.add (get_scc_id n', n') ready, news)
 				in
 				List.fold_left forward (ready, news) (_childs n)
+		in
+		(*
+		let init_SCC i (ready, news) n =
+			let sorted_ns = List.nth sccs i
+			in
+			List.fold_left (handle i) (ready, news) sorted_ns
+		in
+		*)
+		let rec flood j (ready, news) = 
+			let (i,n) = RankedNodeSet.min_elt ready
+			in
+			prerr_string ("\r["^string_of_int i^"] ");
+			let (ready, news) = handle i (ready, news) n
 			in
 			if not (RankedNodeSet.is_empty ready) then
-				flood (ready, news)
-		) in
+				flood i (ready, news)
+		in
 		let fold_n n ins =
 			RankedNodeSet.add (get_scc_id n, n) ins
 		in
 		let ins = NodeSet.fold fold_n ns RankedNodeSet.empty
 		in
-		flood (ins, ns)
+		flood (-1) (ins, ns)
 
 	val mutable last_loop = []
 	method last_loop = last_loop
@@ -445,7 +440,7 @@ object(self)
 			if l_v = i_v then 
 				let scc = unroll ()
 				in
-				scc::sccs
+				List.rev scc::sccs
 				(* if List.length scc > 1 then scc::sccs else sccs*)
 			else sccs
 
