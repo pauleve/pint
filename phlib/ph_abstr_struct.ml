@@ -596,6 +596,12 @@ let psset_cross max_nkp pss1 pss2 =
 	let pss1 = filter_size pss1
 	and pss2 = filter_size pss2
 	in
+	let c1 = PSSet.cardinal pss1
+	and c2 = PSSet.cardinal pss2
+	in
+	if c1 = 0 || c2 = 0 then
+		inter
+	else (
 	let fold1 pss2 ps1 pss =
 		let fold2 ps2 pss' =
 			let ps = PSet.union ps2 ps1
@@ -607,7 +613,7 @@ let psset_cross max_nkp pss1 pss2 =
 		in
 		PSSet.fold fold2 pss2 pss
 	in
-	prerr_string ("<"^string_of_int (PSSet.cardinal pss1)^"x"^string_of_int (PSSet.cardinal pss2));
+	prerr_string ("<"^string_of_int c1^"x"^string_of_int c2);
 	flush stderr;
 	let r = PSSet.fold (fold1 pss2) pss1 inter
 	in
@@ -619,7 +625,7 @@ let psset_cross max_nkp pss1 pss2 =
 	prerr_string(">");
 	flush stderr;
 	(*print_endline ("     => "^string_of_int (PSSet.cardinal r));*)
-	r
+	r)
 ;;
 
 let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
