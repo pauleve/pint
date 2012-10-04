@@ -293,7 +293,7 @@ object(self)
 			-> (node -> 'a * 'b NodeMap.t -> 'a) (* update_value *)
 			-> (node, 'a * 'b NodeMap.t) Hashtbl.t -> NodeSet.t -> unit
 		= fun ?reversed:(desc=false) equality init update_cache update_value values ns ->
-		let _childs, _parents = if desc then (self#childs, self#parents)
+		let parents, childs = if desc then (self#childs, self#parents)
 										else (self#parents, self#childs)
 		in
 
@@ -312,7 +312,6 @@ object(self)
 		let get_scc_id n =
 			try Hashtbl.find sccs_id n with Not_found -> default_id
 		in
-
 		let handle i (ready, news) n = 
 			let ready = RankedNodeSet.remove (i,n) ready
 			and isnew, news =
@@ -346,15 +345,8 @@ object(self)
 					Hashtbl.replace values n' n'v;
 					(RankedNodeSet.add (get_scc_id n', n') ready, news)
 				in
-				List.fold_left forward (ready, news) (_childs n)
+				List.fold_left forward (ready, news) (parents n)
 		in
-		(*
-		let init_SCC i (ready, news) n =
-			let sorted_ns = List.nth sccs i
-			in
-			List.fold_left (handle i) (ready, news) sorted_ns
-		in
-		*)
 		let rec flood j (ready, news) = 
 			let (i,n) = RankedNodeSet.min_elt ready
 			in
@@ -677,7 +669,13 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 			psset_simplify (PSSet.union r1 r2)*)
 		)
 	in
-    let init n = PSSet.empty, NodeMap.empty
+    let init n =
+		let register_child nm n' =
+			NodeMap.add n' PSSet.empty nm
+		in
+		let nm0 = List.fold_left register_child NodeMap.empty (gA#childs n)
+		in
+		PSSet.empty, nm0
     in  
     gA#rflood2 PSSet.equal init update_cache update_value flood_values leafs;
 	!total_count
