@@ -556,23 +556,18 @@ let min_procs (gA : #graph) flood_values =
  * Key processes
  *)
 
-module PSSet = KSets.Make(struct 
-	type t = process
-	let compare = compare
-	let max_h = 4
-	let string_of_elt = string_of_proc end)
-;;
+module PSSet = KSets.Make(struct type t = process let compare = compare end);;
 
 
 let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 	let psset_product a b =
 		prerr_string ("<"^string_of_int (PSSet.cardinal a)^"x"^string_of_int (PSSet.cardinal b));
 		flush stderr;
-		let c = PSSet.product a b
+		let c = PSSet.product max_nkp a b
 		in
 		prerr_string (">");
 		flush stderr;
-		let c = PSSet.simplify c
+		let c = PSSet.simplify max_nkp c
 		in
 		prerr_string (" ");
 		flush stderr;
@@ -588,7 +583,7 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 	let update_value n (_,nm) =
 		total_count := !total_count + 1;
 		match n with
-		  NodeSol _ -> PSSet.simplify (nm_union nm)
+		  NodeSol _ -> PSSet.simplify max_nkp (nm_union nm)
 
 		| NodeProc ai -> 
 			if ignore_proc ai then
@@ -596,7 +591,7 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 			else
 				let aisingle = PSSet.singleton ai
 				in
-				let nm = NodeMap.map (PSSet.rm_sursets aisingle) nm
+				let nm = NodeMap.map (PSSet.rm_sursets max_nkp aisingle) nm
 				in
 				let pss = nm_cross nm
 				in

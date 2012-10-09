@@ -154,7 +154,7 @@ in
 			in
 			let n = PSSet.cardinal pss
 			in
-			print_endline (string_of_int n^" key processe(s) for "^string_of_proc ai^":");
+			print_endline (string_of_int n^" key process(es) for "^string_of_proc ai^":");
 			let elts = PSSet.elements pss
 			in
 			let elts = List.sort (fun a b ->

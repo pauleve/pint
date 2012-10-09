@@ -1,23 +1,13 @@
 
-module type KSetsCfg =
-sig
-	type t
-	val compare: t -> t -> int
-	val max_h: int
-	val string_of_elt: t -> string
-end
-
-module Make (Cfg: KSetsCfg) =
+module Make (Ord: Set.OrderedType) =
 struct
 
-	module SubsetMap = Map.Make (struct type t = Cfg.t let compare a b = - Cfg.compare a b end)
+	module SubsetMap = Map.Make (struct type t = Ord.t let compare a b = - Ord.compare a b end)
 
 	type elt = SubsetMap.key
 	type t = Zero | Nodes of (t SubsetMap.t * int) | One
 
-	let string_of_elt = Cfg.string_of_elt
-
-	let to_dot a =
+	let to_dot string_of_elt a =
 		let rec string_of_tree i = function
 		  One -> 
 			[i], "n" ^ string_of_int i ^ "[shape=box,label=1];\n", i+1
@@ -59,12 +49,12 @@ struct
 			in
 			clean_nodes_of_nodemap nm h
 
-	let rec level_up = function Zero -> Zero | One -> One
-		| Nodes (nm, h) -> if h >= Cfg.max_h then Zero else Nodes (SubsetMap.map level_up nm, h+1)
+	let rec level_up max_h = function Zero -> Zero | One -> One
+		| Nodes (nm, h) -> if h >= max_h then Zero else Nodes (SubsetMap.map (level_up max_h) nm, h+1)
 
-	let rec clean_level_up = function Zero -> Zero | One -> One
-		| Nodes (nm, h) -> if h >= Cfg.max_h then Zero else
-			let nm = SubsetMap.map clean_level_up nm
+	let rec clean_level_up max_h = function Zero -> Zero | One -> One
+		| Nodes (nm, h) -> if h >= max_h then Zero else
+			let nm = SubsetMap.map (clean_level_up max_h) nm
 			in
 			clean_nodes_of_nodemap nm (h+1)
 
@@ -83,7 +73,7 @@ struct
 			in
 			Nodes (nm, ha)
 
-	let rec product a b =
+	let rec product max_h a b =
 		match (a,b) with
 		  (Zero, _) | (_, Zero) -> Zero
 		| (One, a) | (a, One) -> a
@@ -93,12 +83,12 @@ struct
 				let nm2, a', nm = SubsetMap.split n nma
 				in
 				let nm = if SubsetMap.is_empty nm then nm else
-							let a = clean_level_up (Nodes (SubsetMap.singleton n a, ha))
+							let a = clean_level_up max_h (Nodes (SubsetMap.singleton n a, ha))
 							in
-							SubsetMap.map (product a) nm
-				and a' = match a' with None -> Zero | Some a' -> product a a'
+							SubsetMap.map (product max_h a) nm
+				and a' = match a' with None -> Zero | Some a' -> product max_h a a'
 				and b = if SubsetMap.is_empty nm2 then Zero else
-							product a (clean_level_up (Nodes (nm2, ha)))
+							product max_h a (clean_level_up max_h (Nodes (nm2, ha)))
 				in
 				let a = union a' b
 				in
@@ -108,21 +98,21 @@ struct
 			in
 			SubsetMap.fold fold nmb Zero
 	
-	let rec rm_sursets p a =
+	let rec rm_sursets max_h p a =
 		match (a,p) with
 		  (_, One) -> Zero
 		| (_, Zero) | (One, _) | (Zero, _) -> a
 		| (Nodes (nma, ha), Nodes (nmp, hp)) ->
 			let fold np p' nma =
-				let up' = clean_level_up (Nodes (SubsetMap.singleton np p', hp))
+				let up' = clean_level_up max_h (Nodes (SubsetMap.singleton np p', hp))
 				in
 				let apply n a' =
-					let ord = Cfg.compare n np
+					let ord = Ord.compare n np
 					in
 					if ord < 0 then
-						rm_sursets up' a'
+						rm_sursets max_h up' a'
 					else if ord = 0 then
-						rm_sursets p' a'
+						rm_sursets max_h p' a'
 					else a'
 				in
 				SubsetMap.mapi apply nma
@@ -131,15 +121,15 @@ struct
 			in
 			clean_nodes_of_nodemap nma ha
 
-	let rec simplify = function Zero -> Zero | One -> One
+	let rec simplify max_h = function Zero -> Zero | One -> One
 		| Nodes (nm, h) ->
-			let nm = SubsetMap.map simplify nm
+			let nm = SubsetMap.map (simplify max_h) nm
 			in
 			let fold n b = function
 				  Zero -> Nodes (SubsetMap.singleton n b, h)
 				| One -> One
 				| p ->
-					let a = rm_sursets p (Nodes (SubsetMap.singleton n b, h))
+					let a = rm_sursets max_h p (Nodes (SubsetMap.singleton n b, h))
 					in
 					union p a
 			in
