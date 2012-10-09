@@ -568,7 +568,6 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 		prerr_string ("<"^string_of_int na^"x"^string_of_int nb);
 		flush stderr;
 		let a = if na < nb then PSSet.product max_nkp b a else PSSet.product max_nkp b a 
-		and b = ()
 		in
 		prerr_string (">");
 		flush stderr;
@@ -579,7 +578,12 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 		a)
 	in
 	let nm_union nm =
-		NodeMap.fold (fun _ -> PSSet.union) nm PSSet.empty
+		let c = NodeMap.cardinal nm
+		in
+		match c with 
+			  0 -> PSSet.empty
+			| 1 -> snd (NodeMap.choose nm)
+			| _ -> NodeMap.fold (fun _ -> PSSet.union) nm PSSet.empty
 	and nm_cross nm =
 		NodeMap.fold (fun _ -> psset_product) nm PSSet.full
 	in
