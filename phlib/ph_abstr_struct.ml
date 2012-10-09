@@ -561,17 +561,21 @@ module PSSet = KSets.Make(struct type t = process let compare = compare end);;
 
 let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 	let psset_product a b =
-		prerr_string ("<"^string_of_int (PSSet.cardinal a)^"x"^string_of_int (PSSet.cardinal b));
+		let na = PSSet.cardinal a
+		and nb = PSSet.cardinal b
+		in
+		prerr_string ("<"^string_of_int na^"x"^string_of_int nb);
 		flush stderr;
-		let c = PSSet.product max_nkp a b
+		let a = if na < nb then PSSet.product max_nkp b a else PSSet.product max_nkp b a 
+		and b = ()
 		in
 		prerr_string (">");
 		flush stderr;
-		let c = PSSet.simplify max_nkp c
+		let a = PSSet.simplify max_nkp a
 		in
 		prerr_string (" ");
 		flush stderr;
-		c
+		a
 	in
 	let nm_union nm =
 		NodeMap.fold (fun _ -> PSSet.union) nm PSSet.empty
