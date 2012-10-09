@@ -4,7 +4,7 @@ SOURCES := \
 	debug.ml\
 	param.mli\
 	param.ml\
-	sSet.ml\
+	kSets.ml\
 	util.mli\
 	util.ml\
 

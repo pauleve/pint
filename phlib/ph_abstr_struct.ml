@@ -555,73 +555,31 @@ let min_procs (gA : #graph) flood_values =
 (**
  * Key processes
  *)
-module PSSet = Set.Make(struct type t = PSet.t 
-		let compare e1 e2 = 
-			let c = compare (PSet.cardinal e1) (PSet.cardinal e2)
-			in
-			if c == 0 then PSet.compare e1 e2 else c end);;
 
-let psset_has_subset ps =
-	PSSet.exists (fun ps' -> PSet.subset ps' ps)
+module PSSet = KSets.Make(struct 
+	type t = process
+	let compare = compare
+	let max_h = 4
+	let string_of_elt = string_of_proc end)
 ;;
 
-let psset_simplify pss = 
-	let fold ps pss =
-		if psset_has_subset ps pss then pss else PSSet.add ps pss
-	in
-	PSSet.fold fold pss PSSet.empty
-;;
-
-let psset_cross max_nkp pss1 pss2 =
-	let inter = PSSet.inter pss1 pss2
-	in
-	let pss1 = PSSet.diff pss1 inter
-	and pss2 = PSSet.diff pss2 inter
-	in
-	let c1 = PSSet.cardinal pss1
-	and c2 = PSSet.cardinal pss2
-	in
-	if c1 = 0 || c2 = 0 then
-		inter
-	else (
-	let fold1 pss2 ps1 pss =
-		let fold2 ps2 pss' =
-			if PSet.cardinal ps2 >= max_nkp && PSet.cardinal ps1 >= max_nkp then
-				pss'
-			else
-			let ps = PSet.union ps2 ps1
-			in
-			if PSet.cardinal ps > max_nkp then 
-				pss'
-			else
-				PSSet.add ps pss'
-		in
-		PSSet.fold fold2 pss2 pss
-	in
-	prerr_string ("<"^string_of_int c1^"x"^string_of_int c2);
-	flush stderr;
-	let r = PSSet.fold (fold1 pss2) pss1 inter
-	in
-	(*print_endline ("     -> "^string_of_int (PSSet.cardinal r)); *)
-	
-	let r = 
-	psset_simplify r
-	in
-	prerr_string(">");
-	flush stderr;
-	(*print_endline ("     => "^string_of_int (PSSet.cardinal r));*)
-	r)
-;;
 
 let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
-	let psset_cross = psset_cross max_nkp
+	let psset_product a b =
+		prerr_string ("<"^string_of_int (PSSet.cardinal a)^"x"^string_of_int (PSSet.cardinal b));
+		flush stderr;
+		let c = PSSet.product a b
+		in
+		prerr_string (">");
+		flush stderr;
+		c
 	in
 	let nm_union nm =
 		NodeMap.fold (fun _ -> PSSet.union) nm PSSet.empty
 	and nm_cross nm =
 		let r = NodeMap.fold (fun _ c1 -> function
 			  None -> Some c1
-			| Some c2 -> Some (psset_cross c1 c2)) nm None
+			| Some c2 -> Some (psset_product c1 c2)) nm None
 		in
 		match r with
 		  None -> PSSet.empty
@@ -632,24 +590,25 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 	let update_value n (_,nm) =
 		total_count := !total_count + 1;
 		match n with
-		  NodeSol _ -> psset_simplify (nm_union nm)
+		  NodeSol _ -> nm_union nm
 
 		| NodeProc ai -> 
 			if ignore_proc ai then
 				nm_cross nm
 			else
+				(* TODO
 				let nm = NodeMap.map (fun pss ->
 					PSSet.filter (fun ps -> not(PSet.mem ai ps)) pss) nm
-				in
+				in*)
 				let pss = nm_cross nm
 				in
-				PSSet.add (PSet.singleton ai) pss
+				PSSet.union pss (PSSet.singleton ai)
 
 		| NodeObj (a,j,i) -> (
 			let r1 = NodeMap.fold (function 
 				  NodeSol _ -> (fun c1 -> function
 									  None -> Some c1
-									| Some c2 -> Some (psset_cross c1 c2))
+									| Some c2 -> Some (psset_product c1 c2))
 				| _ -> (fun _ c2 -> c2)) nm None
 			in
 			let r1 = Util.opt_default PSSet.empty r1

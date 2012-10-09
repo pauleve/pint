@@ -114,6 +114,7 @@ in
 	print_endline ("****** systime: "^string_of_float (Sys.time () -. t0)^"s");
 	print_endline ("Visited nodes: "^string_of_int visited);
 
+	(* TODO 
 	let find_coops pss =
 		let process_ps ps coops =
 			let ps_coops = PSet.filter (fun (a,_) -> is_sort_cooperative a) ps
@@ -148,12 +149,13 @@ in
 				print_endline s
 			in
 			print_endline ("Key processes for "^string_of_proc ai^":");
-			PSSet.iter print_ps pss
+			PSSet.iter print_ps pss 
 
 		with Not_found ->
 			print_endline (string_of_node (NodeProc ai)^" is not reachable.");
 	in
 	List.iter handle_proc pl
+	*)
 );
 (if do_extract_graph then 
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache

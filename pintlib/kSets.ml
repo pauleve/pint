@@ -1,5 +1,5 @@
 
-module type SSetCfg =
+module type KSetsCfg =
 sig
 	type t
 	val compare: t -> t -> int
@@ -7,13 +7,13 @@ sig
 	val string_of_elt: t -> string
 end
 
-module Make (Cfg: SSetCfg) =
+module Make (Cfg: KSetsCfg) =
 struct
 
-	module NodeMap = Map.Make (struct type t = Cfg.t let compare a b = - Cfg.compare a b end)
+	module SubsetMap = Map.Make (struct type t = Cfg.t let compare a b = - Cfg.compare a b end)
 
-	type elt = NodeMap.key
-	type t = Nodes of (t NodeMap.t * int) | One | Zero
+	type elt = SubsetMap.key
+	type t = Nodes of (t SubsetMap.t * int) | One | Zero
 
 	let string_of_elt = Cfg.string_of_elt
 
@@ -33,36 +33,39 @@ struct
 				in
 				i::is, buf^nbuf, i+1
 			in
-			NodeMap.fold fold nm ([], "", i)
+			SubsetMap.fold fold nm ([], "", i)
 		in
 		let _, buf, _ = string_of_tree 0 a
 		in
 		"digraph{\n" ^ buf ^ "}\n"
 
 	let empty = Zero
-	let singleton e = Nodes (NodeMap.singleton e One, 1)
+	let singleton e = Nodes (SubsetMap.singleton e One, 1)
+
+	let rec cardinal = function Zero -> 0 | One -> 1
+		| Nodes (nm, _) -> SubsetMap.fold (fun _ b n -> n + cardinal b) nm 0
 
 	(* cleanup a: remove paths leading to Zero *)
 	let rec cleanup = function Zero -> Zero | One -> One
 		| Nodes (nm, h) ->
-			let nm = NodeMap.map cleanup nm
+			let nm = SubsetMap.map cleanup nm
 			in
-			let nm = NodeMap.filter (fun n a -> match a with Zero -> false | _ -> true) nm
+			let nm = SubsetMap.filter (fun n a -> match a with Zero -> false | _ -> true) nm
 			in
-			if NodeMap.is_empty nm then Zero else Nodes (nm, h)
+			if SubsetMap.is_empty nm then Zero else Nodes (nm, h)
 
 	let rec level_up = function Zero -> Zero | One -> One
-		| Nodes (nm, h) -> if h >= Cfg.max_h then Zero else Nodes (NodeMap.map level_up nm, h+1)
+		| Nodes (nm, h) -> if h >= Cfg.max_h then Zero else Nodes (SubsetMap.map level_up nm, h+1)
 
 	(* cleanup a: remove paths leading to Zero *)
 	let rec clean_level_up = function Zero -> Zero | One -> One
 		| Nodes (nm, h) ->
 			if h >= Cfg.max_h then Zero else
-			let nm = NodeMap.map clean_level_up nm
+			let nm = SubsetMap.map clean_level_up nm
 			in
-			let nm = NodeMap.filter (fun n a -> match a with Zero -> false | _ -> true) nm
+			let nm = SubsetMap.filter (fun n a -> match a with Zero -> false | _ -> true) nm
 			in
-			if NodeMap.is_empty nm then Zero else Nodes (nm, h+1)
+			if SubsetMap.is_empty nm then Zero else Nodes (nm, h+1)
 
 	let rec union a b =
 		match (a,b) with
@@ -71,11 +74,11 @@ struct
 		| (Nodes (nma, ha), Nodes (nmb, hb)) ->
 			assert (ha = hb);
 			let fold n a nm =
-				let a = try union a (NodeMap.find n nm) with Not_found -> a
+				let a = try union a (SubsetMap.find n nm) with Not_found -> a
 				in
-				NodeMap.add n a nm
+				SubsetMap.add n a nm
 			in
-			let nm = NodeMap.fold fold nma nmb
+			let nm = SubsetMap.fold fold nma nmb
 			in
 			Nodes (nm, ha)
 
@@ -86,23 +89,23 @@ struct
 		| (Nodes (nma, ha), Nodes (nmb, hb)) ->
 			assert (ha = hb);
 			let fold n a c =
-				let nm2, a', nm = NodeMap.split n nmb
+				let nm2, a', nm = SubsetMap.split n nmb
 				in
-				let nm = if NodeMap.is_empty nm then nm else
-							let a = clean_level_up (Nodes (NodeMap.singleton n a, ha))
+				let nm = if SubsetMap.is_empty nm then nm else
+							let a = clean_level_up (Nodes (SubsetMap.singleton n a, ha))
 							in
-							NodeMap.map (product a) nm
+							SubsetMap.map (product a) nm
 				and a' = match a' with None -> Zero | Some a' -> product a a'
-				and b = if NodeMap.is_empty nm2 then Zero else
+				and b = if SubsetMap.is_empty nm2 then Zero else
 							product a (clean_level_up (Nodes (nm2, ha)))
 				in
 				let a = union a' b
 				in
-				let nm = match a with Zero -> nm | a -> NodeMap.add n a nm
+				let nm = match a with Zero -> nm | a -> SubsetMap.add n a nm
 				in
 				union c (Nodes (nm, ha))
 			in
-			NodeMap.fold fold nma Zero
+			SubsetMap.fold fold nma Zero
 	
 	let rec rm_sursets a p =
 		match (a,p) with
@@ -113,7 +116,12 @@ struct
 
 	let simplify a = failwith "TODO"
 
-	let equal a b = failwith "TODO"
+	let rec equal a b = 
+		match (a,b) with
+		  (One,One) | (Zero,Zero) -> true
+		| (One,_) | (_,One) | (Zero,_) | (_,Zero) -> false
+		| Nodes (nma, ha), Nodes (nmb, hb) ->
+			ha = hb && SubsetMap.equal equal nma nmb
 
 	let compare a b = failwith "TODO"
 
