@@ -556,10 +556,27 @@ let min_procs (gA : #graph) flood_values =
  * Key processes
  *)
 
-module PSSet = KSets.Make(struct type t = process let compare = compare end);;
-
+module PSSet = KSets.Make(struct type t = int let compare = compare end);;
 
 let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
+
+	let proc_index = Hashtbl.create (gA#count_procs)
+	and index_proc = Hashtbl.create (gA#count_procs)
+	and next_proc_index = ref 0
+	in
+	let get_proc_index ai =
+		try
+			Hashtbl.find proc_index ai
+		with Not_found -> (
+			let idx = !next_proc_index
+			in
+			Hashtbl.add proc_index ai idx;
+			Hashtbl.add index_proc idx ai;
+			next_proc_index := idx + 1;
+			idx
+		)
+	in
+
 	let psset_product a b =
 		if b = PSSet.full then a else (
 		let na = PSSet.cardinal a
@@ -598,7 +615,7 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 			if ignore_proc ai then
 				nm_cross nm
 			else
-				let aisingle = PSSet.singleton ai
+				let aisingle = PSSet.singleton (get_proc_index ai)
 				in
 				let nm = NodeMap.map (PSSet.rm_sursets max_nkp aisingle) nm
 				in
@@ -633,8 +650,14 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 		in
 		PSSet.empty, nm0
     in  
+	print_endline ("Total nodes: "^string_of_int gA#count_nodes);
+	let t0 = Sys.time ()
+	in
     gA#rflood2 PSSet.equal init update_cache update_value flood_values leafs;
-	!total_count
+	prerr_newline ();
+	print_endline ("****** systime: "^string_of_float (Sys.time () -. t0)^"s");
+	print_endline ("Visited nodes: "^string_of_int !total_count);
+	index_proc
 ;;
 
 

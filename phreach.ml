@@ -101,18 +101,11 @@ in
     let gA = trimmed_cwA env gA
     in  
 
-	print_endline ("Total nodes: "^string_of_int gA#count_nodes);
 
     let d_nkp = Hashtbl.create 1000
-	and t0 = Sys.time ()
 	in
-
-    let visited = key_procs gA !opt_nkp ignore_proc d_nkp (gA#get_leafs ())
+    let index_proc = key_procs gA !opt_nkp ignore_proc d_nkp (gA#get_leafs ())
 	in
-
-	prerr_newline ();
-	print_endline ("****** systime: "^string_of_float (Sys.time () -. t0)^"s");
-	print_endline ("Visited nodes: "^string_of_int visited);
 
 	(* TODO
 	let find_coops pss =
@@ -138,6 +131,8 @@ in
 		*)
 
 	let string_of_ai ai =
+		let ai = Hashtbl.find index_proc ai
+		in
 		(*if is_sort_cooperative (fst ai) then TODO
 			string_of_rcoops (List.assoc ai coops)
 		else*)
