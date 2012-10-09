@@ -124,10 +124,6 @@ in
 		PSSet.fold process_ps pss PSet.empty
 	in
 	*)
-	let handle_proc ai =
-		try
-			let pss = fst (Hashtbl.find d_nkp (NodeProc ai))
-			in
 		(* TODO 
 			let coops = find_coops pss
 			in
@@ -139,23 +135,35 @@ in
 				in
 				String.concat ";" (List.map string_of_rcoop psl)
 			in
-			let string_of_ai ai =
-				if is_sort_cooperative (fst ai) then
-					string_of_rcoops (List.assoc ai coops)
-				else
-					string_of_proc ai
-			in
-			let print_ps ps =
-				let s = string_of_set ~lbracket:"" ~rbracket:"" ~delim:";" string_of_ai PSet.elements ps
-				in
-				print_endline s
-			in
 		*)
+
+	let string_of_ai ai =
+		(*if is_sort_cooperative (fst ai) then TODO
+			string_of_rcoops (List.assoc ai coops)
+		else*)
+			string_of_proc ai
+	in
+	let print_ps ps =
+		let s = String.concat ";" (List.map string_of_ai ps)
+		in
+		print_endline s
+	in
+	let handle_proc ai =
+		try
+			let pss = fst (Hashtbl.find d_nkp (NodeProc ai))
+			in
 			let n = PSSet.cardinal pss
 			in
 			print_endline (string_of_int n^" key processe(s) for "^string_of_proc ai^":");
-		(*	PSSet.iter print_ps pss 
-		*)
+			let elts = PSSet.elements pss
+			in
+			let elts = List.sort (fun a b ->
+					let c = compare (List.length a) (List.length b)
+					in
+					if c <> 0 then c else compare a b) elts
+			in
+			List.iter print_ps elts
+
 		with Not_found ->
 			print_endline (string_of_node (NodeProc ai)^" is not reachable.");
 	in
