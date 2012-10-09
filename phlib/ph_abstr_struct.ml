@@ -572,46 +572,39 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 		in
 		prerr_string (">");
 		flush stderr;
+		let c = PSSet.simplify c
+		in
+		prerr_string (" ");
+		flush stderr;
 		c
 	in
 	let nm_union nm =
 		NodeMap.fold (fun _ -> PSSet.union) nm PSSet.empty
 	and nm_cross nm =
-		let r = NodeMap.fold (fun _ c1 -> function
-			  None -> Some c1
-			| Some c2 -> Some (psset_product c1 c2)) nm None
-		in
-		match r with
-		  None -> PSSet.empty
-		| Some c -> c
+		NodeMap.fold (fun _ -> psset_product) nm PSSet.full
 	in
 	let total_count = ref 0
 	in
 	let update_value n (_,nm) =
 		total_count := !total_count + 1;
 		match n with
-		  NodeSol _ -> nm_union nm
+		  NodeSol _ -> PSSet.simplify (nm_union nm)
 
 		| NodeProc ai -> 
 			if ignore_proc ai then
 				nm_cross nm
 			else
-				(* TODO
-				let nm = NodeMap.map (fun pss ->
-					PSSet.filter (fun ps -> not(PSet.mem ai ps)) pss) nm
-				in*)
+				let aisingle = PSSet.singleton ai
+				in
+				let nm = NodeMap.map (PSSet.rm_sursets aisingle) nm
+				in
 				let pss = nm_cross nm
 				in
-				PSSet.union pss (PSSet.singleton ai)
+				PSSet.union pss aisingle
 
 		| NodeObj (a,j,i) -> (
-			let r1 = NodeMap.fold (function 
-				  NodeSol _ -> (fun c1 -> function
-									  None -> Some c1
-									| Some c2 -> Some (psset_product c1 c2))
-				| _ -> (fun _ c2 -> c2)) nm None
-			in
-			let r1 = Util.opt_default PSSet.empty r1
+			let r1 = NodeMap.fold (function NodeSol _ -> psset_product
+										| _ -> (fun _ c -> c)) nm PSSet.full
 			in
 			r1
 			(*

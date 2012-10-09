@@ -13,7 +13,7 @@ struct
 	module SubsetMap = Map.Make (struct type t = Cfg.t let compare a b = - Cfg.compare a b end)
 
 	type elt = SubsetMap.key
-	type t = Nodes of (t SubsetMap.t * int) | One | Zero
+	type t = Zero | Nodes of (t SubsetMap.t * int) | One
 
 	let string_of_elt = Cfg.string_of_elt
 
@@ -40,32 +40,33 @@ struct
 		"digraph{\n" ^ buf ^ "}\n"
 
 	let empty = Zero
+	let full = One
+
 	let singleton e = Nodes (SubsetMap.singleton e One, 1)
 
 	let rec cardinal = function Zero -> 0 | One -> 1
 		| Nodes (nm, _) -> SubsetMap.fold (fun _ b n -> n + cardinal b) nm 0
+	
+	let clean_nodes_of_nodemap nm h =
+			let nm = SubsetMap.filter (fun n a -> match a with Zero -> false | _ -> true) nm
+			in
+			if SubsetMap.is_empty nm then Zero else Nodes (nm, h)
 
 	(* cleanup a: remove paths leading to Zero *)
 	let rec cleanup = function Zero -> Zero | One -> One
 		| Nodes (nm, h) ->
 			let nm = SubsetMap.map cleanup nm
 			in
-			let nm = SubsetMap.filter (fun n a -> match a with Zero -> false | _ -> true) nm
-			in
-			if SubsetMap.is_empty nm then Zero else Nodes (nm, h)
+			clean_nodes_of_nodemap nm h
 
 	let rec level_up = function Zero -> Zero | One -> One
 		| Nodes (nm, h) -> if h >= Cfg.max_h then Zero else Nodes (SubsetMap.map level_up nm, h+1)
 
-	(* cleanup a: remove paths leading to Zero *)
 	let rec clean_level_up = function Zero -> Zero | One -> One
-		| Nodes (nm, h) ->
-			if h >= Cfg.max_h then Zero else
+		| Nodes (nm, h) -> if h >= Cfg.max_h then Zero else
 			let nm = SubsetMap.map clean_level_up nm
 			in
-			let nm = SubsetMap.filter (fun n a -> match a with Zero -> false | _ -> true) nm
-			in
-			if SubsetMap.is_empty nm then Zero else Nodes (nm, h+1)
+			clean_nodes_of_nodemap nm (h+1)
 
 	let rec union a b =
 		match (a,b) with
@@ -78,7 +79,7 @@ struct
 				in
 				SubsetMap.add n a nm
 			in
-			let nm = SubsetMap.fold fold nma nmb
+			let nm = SubsetMap.fold fold nmb nma
 			in
 			Nodes (nm, ha)
 
@@ -89,7 +90,7 @@ struct
 		| (Nodes (nma, ha), Nodes (nmb, hb)) ->
 			assert (ha = hb);
 			let fold n a c =
-				let nm2, a', nm = SubsetMap.split n nmb
+				let nm2, a', nm = SubsetMap.split n nma
 				in
 				let nm = if SubsetMap.is_empty nm then nm else
 							let a = clean_level_up (Nodes (SubsetMap.singleton n a, ha))
@@ -105,25 +106,68 @@ struct
 				in
 				union c (Nodes (nm, ha))
 			in
-			SubsetMap.fold fold nma Zero
+			SubsetMap.fold fold nmb Zero
 	
-	let rec rm_sursets a p =
+	let rec rm_sursets p a =
 		match (a,p) with
 		  (_, One) -> Zero
 		| (_, Zero) | (One, _) | (Zero, _) -> a
 		| (Nodes (nma, ha), Nodes (nmp, hp)) ->
-			failwith "TODO"
+			let fold np p' nma =
+				let up' = clean_level_up (Nodes (SubsetMap.singleton np p', hp))
+				in
+				let apply n a' =
+					let ord = Cfg.compare n np
+					in
+					if ord < 0 then
+						rm_sursets up' a'
+					else if ord = 0 then
+						rm_sursets p' a'
+					else a'
+				in
+				SubsetMap.mapi apply nma
+			in
+			let nma =  SubsetMap.fold fold nmp nma
+			in
+			clean_nodes_of_nodemap nma ha
 
-	let simplify a = failwith "TODO"
+	let rec simplify = function Zero -> Zero | One -> One
+		| Nodes (nm, h) ->
+			let nm = SubsetMap.map simplify nm
+			in
+			let fold n b = function
+				  Zero -> Nodes (SubsetMap.singleton n b, h)
+				| One -> One
+				| p ->
+					let a = rm_sursets p (Nodes (SubsetMap.singleton n b, h))
+					in
+					union p a
+			in
+			SubsetMap.fold fold nm Zero
 
 	let rec equal a b = 
 		match (a,b) with
 		  (One,One) | (Zero,Zero) -> true
 		| (One,_) | (_,One) | (Zero,_) | (_,Zero) -> false
-		| Nodes (nma, ha), Nodes (nmb, hb) ->
-			ha = hb && SubsetMap.equal equal nma nmb
+		| Nodes (nma, _), Nodes (nmb, _) -> SubsetMap.equal equal nma nmb
 
-	let compare a b = failwith "TODO"
+	let rec compare a b = 
+		match (a,b) with
+		  (One,One) | (Zero,Zero) -> 0
+		| (Zero,_) -> -1
+		| (_,Zero) -> 1
+		| (One,_) -> 1
+		| (_,One) -> -1
+		| Nodes (nma, _), Nodes (nmb, _) -> SubsetMap.compare compare nma nmb
+	
+	let rec elements = function
+		  Zero -> []
+		| One -> [[]]
+		| Nodes (nm, _) ->
+			let fold n a elts =
+				List.fold_left (fun elts e -> (n::e)::elts) elts (elements a)
+			in
+			SubsetMap.fold fold nm []
 
 end
 

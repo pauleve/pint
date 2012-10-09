@@ -13,12 +13,16 @@ in
 let a = u a a'
 in
 
+(*let a = IKSets.rm_sursets (p (n 1) (n 4)) a in*)
+let a = IKSets.simplify a in
 
 
-let a = IKSets.cleanup a
 
+List.iter (fun elt -> 
+	let str = String.concat ", " (List.map string_of_int elt)
+	in
+	print_endline ("{ "^str^" }")) (IKSets.elements a);
 
-in
 let fd = open_out "gen/test.dot"
 in
 output_string fd (IKSets.to_dot a);
