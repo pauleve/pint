@@ -561,6 +561,7 @@ module PSSet = KSets.Make(struct type t = process let compare = compare end);;
 
 let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 	let psset_product a b =
+		if b = PSSet.full then a else (
 		let na = PSSet.cardinal a
 		and nb = PSSet.cardinal b
 		in
@@ -575,7 +576,7 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 		in
 		prerr_string (" ");
 		flush stderr;
-		a
+		a)
 	in
 	let nm_union nm =
 		NodeMap.fold (fun _ -> PSSet.union) nm PSSet.empty
