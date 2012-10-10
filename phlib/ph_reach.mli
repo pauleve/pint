@@ -47,7 +47,8 @@ val color_nodes_connected_to_trivial_sols :
 
 val get_Sols : env -> Ph_types.objective -> Ph_types.PSet.t list
 
-val trimmed_cwA : env -> #Ph_abstr_struct.cwA -> Ph_abstr_struct.cwA
+val bot_trimmed_cwA : env -> #Ph_abstr_struct.cwA -> Ph_abstr_struct.cwA
+val top_trimmed_cwA : env -> #Ph_abstr_struct.graph -> unit
 
 val min_procs : env -> (Ph_abstr_struct.node, (Ph_types.ctx * Ph_types.ctx Ph_abstr_struct.NodeMap.t)) Hashtbl.t
 

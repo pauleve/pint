@@ -818,7 +818,7 @@ let new_process_reachability env =
 let get_Sols env = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 ;;
 
-let trimmed_cwA env gA =
+let bot_trimmed_cwA env gA =
 	let nodes = color_nodes_connected_to_trivial_sols gA
 	in
 	let gA' = new cwA env.ctx env.pl (get_Sols env)
@@ -827,9 +827,26 @@ let trimmed_cwA env gA =
 				if NodeSet.mem node nodes && NodeSet.mem child nodes then
 					gA'#add_child node child);
 	gA'#set_trivial_nsols (NodeSet.inter (gA#get_trivial_nsols ()) nodes);
-	gA'#set_auto_conts true;
+	gA'#set_auto_conts (gA#auto_conts);
 	gA'#commit ();
 	gA'
+;;
+
+let nodes_connected_to_procs (gA: #graph) pl =
+	let update_value _ _ = true
+    and init n = true, NodeMap.empty
+	and update_cache _ nm _ _ = nm
+	and leafs = List.fold_left (fun ns ai -> NodeSet.add (NodeProc ai) ns) NodeSet.empty pl
+    in  
+	gA#rflood2 ~reversed:true (=) init update_cache update_value leafs
+;;
+
+let top_trimmed_cwA env gA =
+	let values = nodes_connected_to_procs gA env.pl
+	in
+	let check_node n = if not (Hashtbl.mem values n) then gA#remove_node n
+	in
+	NodeSet.iter check_node gA#nodes
 ;;
 
 let test = new_process_reachability;;
@@ -839,7 +856,7 @@ let min_procs env =
 	in
 	gA'#set_auto_conts false;
 	gA'#build;
-	let gA = trimmed_cwA env gA'
+	let gA = bot_trimmed_cwA env gA'
 	in
 
 	let d_min_procs = Hashtbl.create 50

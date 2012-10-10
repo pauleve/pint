@@ -59,6 +59,18 @@ let index_of v =
 let rec rrange a b = if a <= b then b::rrange a (b-1) else [];;
 let rec range a b = if a <= b then a::range (a+1) b else [];;
 
+let hashtbl_filter_bindings h key filter =
+	let values = Hashtbl.find_all h key
+	in
+	let rec del = function 0 -> () | n -> (Hashtbl.remove h key; del (n-1))
+	in
+	del (List.length (values));
+
+	let values = List.filter filter values
+	in
+	List.iter (Hashtbl.add h key) values
+;;
+
 let rec string_apply substring data = function [] -> data
 	| h::t ->
 		let data = Str.replace_first (Str.regexp_string substring) h data

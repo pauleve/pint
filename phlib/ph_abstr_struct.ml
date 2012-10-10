@@ -73,6 +73,7 @@ object(self)
 	val mutable procs = PSet.empty
 	val mutable objs = ObjSet.empty
 
+	method nodes = nodes
 	method procs = procs
 	method objs = objs
 	method has_proc p = PSet.mem p procs
@@ -197,6 +198,24 @@ object(self)
 		Hashtbl.add edges n c;
 		Hashtbl.add rev_edges c n
 	
+	method remove_child c n =
+		Util.hashtbl_filter_bindings edges n (fun m -> c <> m);
+		Util.hashtbl_filter_bindings rev_edges c (fun m -> n <> m)
+	
+	method remove_node n =
+		nodes <- NodeSet.remove n nodes;
+		(match n with
+		  NodeProc p -> (procs <- PSet.remove p procs)
+		| NodeObj aij -> (objs <- ObjSet.remove aij objs)
+		| _ -> ());
+		let cs = self#childs n
+		and ps = self#parents n
+		in
+		Util.hashtbl_filter_bindings edges n (fun _ -> false);
+		Util.hashtbl_filter_bindings rev_edges n (fun _ -> false);
+		List.iter (fun p -> Util.hashtbl_filter_bindings edges p (fun m -> n <> m)) ps;
+		List.iter (fun c -> Util.hashtbl_filter_bindings rev_edges c (fun m -> n <> m)) cs
+	
 	method iter f = Hashtbl.iter f rev_edges
 
 	method private _flood
@@ -291,10 +310,13 @@ object(self)
 		: 'a 'b. ?reversed:bool -> ('a -> 'a -> bool) -> (node -> 'a * 'b NodeMap.t) 
 			-> (node -> 'a * 'b NodeMap.t -> node -> 'a * 'b NodeMap.t -> 'a * 'b NodeMap.t) (* update_cache *)
 			-> (node -> 'a * 'b NodeMap.t -> 'a) (* update_value *)
-			-> (node, 'a * 'b NodeMap.t) Hashtbl.t -> NodeSet.t -> unit
-		= fun ?reversed:(desc=false) equality init update_cache update_value values ns ->
+			-> NodeSet.t -> (node, 'a * 'b NodeMap.t) Hashtbl.t
+		= fun ?reversed:(desc=false) equality init update_cache update_value ns ->
 		let parents, childs = if desc then (self#childs, self#parents)
 										else (self#parents, self#childs)
+		in
+
+		let values = Hashtbl.create self#count_nodes
 		in
 
 		(* compute strongly connected components *)
@@ -361,7 +383,9 @@ object(self)
 		in
 		let ins = NodeSet.fold fold_n ns RankedNodeSet.empty
 		in
-		flood (-1) (ins, ns)
+		flood (-1) (ins, ns);
+		prerr_newline ();
+		values
 
 	val mutable last_loop = []
 	method last_loop = last_loop
@@ -558,7 +582,7 @@ let min_procs (gA : #graph) flood_values =
 
 module PSSet = KSets.Make(struct type t = int let compare = compare end);;
 
-let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
+let key_procs (gA:#graph) max_nkp ignore_proc leafs =
 
 	let proc_index = Hashtbl.create (gA#count_procs)
 	and index_proc = Hashtbl.create (gA#count_procs)
@@ -653,11 +677,11 @@ let key_procs (gA:#graph) max_nkp ignore_proc flood_values leafs =
 	print_endline ("Total nodes: "^string_of_int gA#count_nodes);
 	let t0 = Sys.time ()
 	in
-    gA#rflood2 PSSet.equal init update_cache update_value flood_values leafs;
-	prerr_newline ();
+    let flood_values = gA#rflood2 PSSet.equal init update_cache update_value leafs
+	in
 	print_endline ("****** systime: "^string_of_float (Sys.time () -. t0)^"s");
 	print_endline ("Visited nodes: "^string_of_int !total_count);
-	index_proc
+	(flood_values, index_proc)
 ;;
 
 

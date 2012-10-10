@@ -98,13 +98,10 @@ in
     in  
     gA#set_auto_conts false;
     gA#build;
-    let gA = trimmed_cwA env gA
+    let gA = bot_trimmed_cwA env gA
     in  
 
-
-    let d_nkp = Hashtbl.create 1000
-	in
-    let index_proc = key_procs gA !opt_nkp ignore_proc d_nkp (gA#get_leafs ())
+    let (d_nkp, index_proc) = key_procs gA !opt_nkp ignore_proc (gA#get_leafs ())
 	in
 
 	(* TODO
@@ -176,7 +173,7 @@ in
 	if !opt_graph = "verbose" then
 		output_string channel_out gA#to_dot
 	else if !opt_graph = "trimmed" then (
-		let gA' = trimmed_cwA env gA
+		let gA' = bot_trimmed_cwA env gA
 		in
 		output_string channel_out gA'#to_dot
 	);

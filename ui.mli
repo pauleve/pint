@@ -21,3 +21,5 @@ val common_cmdopts : (Arg.key * Arg.spec * Arg.doc) list
 (** List of command line options (for use with [Arg] module) for tools taking a model as input. *)
 val input_cmdopts : (Arg.key * Arg.spec * Arg.doc) list
 
+val simple_input : unit -> ((Ph_types.ph * Ph_types.ctx) * string list)
+

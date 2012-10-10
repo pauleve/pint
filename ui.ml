@@ -67,6 +67,15 @@ let input_cmdopts = [
 		"<process list>\tInitial state");
 	("--initial-context", Arg.String setup_opt_initial_procs,
 		"<process list>\tInitial context (equivalent to --initial-state)");
-]
+];;
+
+let simple_input () =
+	let opt_args = ref []
+	in
+	Arg.parse input_cmdopts (fun x -> opt_args := !opt_args@[x]) "usage";
+	let ph, ctx = Ph_util.parse !opt_channel_in
+	in
+	(ph, ctx), !opt_args
+;;
 
 
