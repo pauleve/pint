@@ -46,6 +46,7 @@ and opt_args = ref []
 and opt_list_keys = ref false
 and opt_nkp = ref 1
 and opt_nkp_coop = ref false
+and opt_nkp_reduce = ref false
 and opt_extract_graph = ref ""
 and opt_graph = ref "verbose"
 in
@@ -56,6 +57,8 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("--nkp", Arg.Set_int opt_nkp, "n\tMaximum size of key processes tuples (default: 1)");
 		("--nkp-include-coop", Arg.Set opt_nkp_coop, 
 			"\tConsider cooperativities as potential key processes (default: false)");
+		("--nkp-reduce", Arg.Set opt_nkp_reduce, 
+			"\tExperimental - Statically reduce abstract structre before computing key processes (default: false)");
 		("--extract-graph", Arg.Set_string opt_extract_graph, 
 				"<graph.dot>\tExport abstract structure graph");
 		("--graph", Arg.Symbol (["verbose";"trimmed"],
@@ -100,9 +103,12 @@ in
     gA#build;
     let gA = bot_trimmed_cwA env gA
     in  
-	let gA = cleanup_gA_for_nkp gA
+	let gA = if !opt_nkp_reduce then
+		let gA = cleanup_gA_for_nkp gA
+		in
+		top_trimmed_cwA env gA;
+		gA else gA
 	in
-	top_trimmed_cwA env gA;
 	print_endline ("#nodes = "^string_of_int gA#count_nodes);
 
     let (d_nkp, index_proc) = key_procs gA !opt_nkp ignore_proc (gA#get_leafs ())
