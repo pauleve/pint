@@ -100,6 +100,10 @@ in
     gA#build;
     let gA = bot_trimmed_cwA env gA
     in  
+	let gA = cleanup_gA_for_nkp gA
+	in
+	top_trimmed_cwA env gA;
+	print_endline ("#nodes = "^string_of_int gA#count_nodes);
 
     let (d_nkp, index_proc) = key_procs gA !opt_nkp ignore_proc (gA#get_leafs ())
 	in
@@ -146,7 +150,7 @@ in
 			in
 			let n = PSSet.cardinal pss
 			in
-			print_endline (string_of_int n^" key process(es) for "^string_of_proc ai^":");
+			print_endline ("# "^string_of_int n^" key process(es) for "^string_of_proc ai^":");
 			let elts = PSSet.elements pss
 			in
 			let elts = List.sort (fun a b ->

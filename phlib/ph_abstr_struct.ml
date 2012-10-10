@@ -582,6 +582,48 @@ let min_procs (gA : #graph) flood_values =
 
 module PSSet = KSets.Make(struct type t = int let compare = compare end);;
 
+let scc_dead_rel childs scc =
+	let c = List.length scc
+	in
+	if c > 2 then (
+		prerr_endline ("|SCC|="^string_of_int c);
+		let scc_idx = List.fold_left (fun s n -> NodeSet.add n s) NodeSet.empty scc
+		in
+		let entry_objectives n =
+			match n with
+			  NodeObj _ | NodeProc _ ->
+			  	[] <> List.filter (fun n -> not (NodeSet.mem n scc_idx)) (childs n)
+			| _ -> false
+		and dead_childs n =
+			let dead_node n' =
+				match n' with NodeSol _ -> NodeSet.mem n' scc_idx | _ -> false
+			in
+			List.filter dead_node (childs n)
+		in
+		let objs = List.filter entry_objectives scc
+		in
+		match objs with [n] -> Some (n, dead_childs n) | _ -> None
+	) else None
+;;
+
+let rec cleanup_gA_for_nkp gA =
+	prerr_endline ("--");
+	let sccs = gA#tarjan_SCCs false (gA#get_leafs ())
+	in
+	let handle_scc todel scc =
+		match scc_dead_rel gA#childs scc with
+		  Some x -> x::todel
+		| None -> todel
+	in
+	let todel = List.fold_left handle_scc [] sccs
+	in
+	let apply (n, dead_childs) =
+		List.iter (fun c -> gA#remove_child c n) dead_childs
+	in
+	match todel with [] -> gA
+	| _ -> (List.iter apply todel; cleanup_gA_for_nkp gA)
+;;
+
 let key_procs (gA:#graph) max_nkp ignore_proc leafs =
 
 	let proc_index = Hashtbl.create (gA#count_procs)
@@ -674,7 +716,6 @@ let key_procs (gA:#graph) max_nkp ignore_proc leafs =
 		in
 		PSSet.empty, nm0
     in  
-	print_endline ("Total nodes: "^string_of_int gA#count_nodes);
 	let t0 = Sys.time ()
 	in
     let flood_values = gA#rflood2 PSSet.equal init update_cache update_value leafs
