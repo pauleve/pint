@@ -137,9 +137,10 @@ in
 			in
 		*)
 
+	let resolve_ps = 
+		List.map (Hashtbl.find index_proc)
+	in
 	let string_of_ai ai =
-		let ai = Hashtbl.find index_proc ai
-		in
 		(*if is_sort_cooperative (fst ai) then TODO
 			string_of_rcoops (List.assoc ai coops)
 		else*)
@@ -158,6 +159,10 @@ in
 			in
 			print_endline ("# "^string_of_int n^" key process(es) for "^string_of_proc ai^":");
 			let elts = PSSet.elements pss
+			in
+			let elts = List.map resolve_ps elts
+			in
+			let elts = List.map (List.sort compare) elts
 			in
 			let elts = List.sort (fun a b ->
 					let c = compare (List.length a) (List.length b)
