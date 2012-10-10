@@ -46,7 +46,7 @@ and opt_args = ref []
 and opt_list_keys = ref false
 and opt_nkp = ref 1
 and opt_nkp_coop = ref false
-and opt_nkp_reduce = ref false
+and opt_nkp_reduce = ref true
 and opt_extract_graph = ref ""
 and opt_graph = ref "verbose"
 in
@@ -57,8 +57,8 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("--nkp", Arg.Set_int opt_nkp, "n\tMaximum size of key processes tuples (default: 1)");
 		("--nkp-include-coop", Arg.Set opt_nkp_coop, 
 			"\tConsider cooperativities as potential key processes (default: false)");
-		("--nkp-reduce", Arg.Set opt_nkp_reduce, 
-			"\tExperimental - Statically reduce abstract structre before computing key processes (default: false)");
+		("--no-nkp-reduce", Arg.Clear opt_nkp_reduce, 
+			"\tDisable static reduction of causality abstract structre");
 		("--extract-graph", Arg.Set_string opt_extract_graph, 
 				"<graph.dot>\tExport abstract structure graph");
 		("--graph", Arg.Symbol (["verbose";"trimmed"],
