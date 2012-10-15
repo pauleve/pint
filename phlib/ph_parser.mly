@@ -179,10 +179,10 @@ type macro_arg_t =
 
 let reflection_name sigma = String.concat "" sigma
 ;;
-let build_reflection (mps,actions) = function
+let build_reflection ?coop_label:(coop_label=None) (mps,actions) = function
   [a] -> (a, ([a], (function [s] -> s | _ -> invalid_arg "idx_from_state singleton"))), (mps,actions)
 | sigma -> 
-	let sigma_n = reflection_name sigma
+	let sigma_n = reflection_name sigma ^ (match coop_label with None -> "" | Some l -> "__"^l)
 	in
 	if SMap.mem sigma_n mps then
 		((sigma_n, List.assoc sigma_n !cooperativities), (mps,actions))
@@ -311,12 +311,12 @@ let filter_hits (mps, actions) pred =
 	(mps, List.filter (fun (a,rsa) -> pred a) actions)
 ;;
 
-let macro_cooperativity autoremove = function
+let rec macro_cooperativity ?coop_label:(coop_label=None) autoremove = function
   (* COOPERATIVITY([a;b]): creates a cooperative sort between a and b *)
-  [Arg_Sorts sorts] -> (fun (ps,actions) -> snd (build_reflection (ps,actions) sorts))
+  [Arg_Sorts sorts] -> (fun (ps,actions) -> snd (build_reflection ~coop_label:coop_label (ps,actions) sorts))
 
 | [Arg_NamesHit (sigma, ak, k', stoch); Arg_AnoStates top] -> (fun (ps,actions) ->
-	let (sigma_n, (sigma, idx_from_state)), (ps,actions) = build_reflection (ps,actions) sigma
+	let (sigma_n, (sigma, idx_from_state)), (ps,actions) = build_reflection ~coop_label:coop_label (ps,actions) sigma
 	in
 	let (ps, actions) = if not autoremove then (ps, actions) else
 		filter_hits (ps,actions) (function Hit ((a,i),bj,j') -> 
@@ -360,7 +360,7 @@ let macro_cooperativity autoremove = function
 	(* build reflections *)
 	let rec cooperative_matching ctx op = match op with
 		  SM (sigma, top) -> 
-		  	let (sigma_n, (sigma, idx_from_state)), ctx = build_reflection ctx sigma
+		  	let (sigma_n, (sigma, idx_from_state)), ctx = build_reflection ~coop_label:coop_label ctx sigma
 			in
 			sigma_n, separate_levels (fst ctx) sigma_n idx_from_state top, ctx
 
@@ -376,6 +376,7 @@ let macro_cooperativity autoremove = function
 			let sig2, (top2,bot2), ctx = cooperative_matching ctx sm2
 			in
 			let sigma_n = "__coop" ^ (string_of_int !__coop_counter)
+				^ (match coop_label with None -> "" | Some l -> "__"^l)
 			in __coop_counter := !__coop_counter + 1;
 
 			let dirs = [
@@ -420,6 +421,8 @@ let macro_cooperativity autoremove = function
 	in
 	ps, ph_add_hits actions m_default_rsa h'coop
 )
+| Arg_Name label::params ->
+	macro_cooperativity ~coop_label:(Some label) autoremove params
 | _ -> failwith "macro_cooperativity: wrong arguments"
 ;;
 

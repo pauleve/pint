@@ -190,6 +190,7 @@ in
 	else if !opt_graph = "trimmed" then (
 		let gA' = bot_trimmed_cwA env gA
 		in
+		top_trimmed_cwA env gA';
 		output_string channel_out gA'#to_dot
 	);
 	close_out channel_out
