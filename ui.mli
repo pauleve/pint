@@ -21,5 +21,10 @@ val common_cmdopts : (Arg.key * Arg.spec * Arg.doc) list
 (** List of command line options (for use with [Arg] module) for tools taking a model as input. *)
 val input_cmdopts : (Arg.key * Arg.spec * Arg.doc) list
 
+(** Use of [input_cmdopts] to parse command line. Returns the input process hitting with context and
+additionnal command line arguments as string list *)
 val simple_input : unit -> ((Ph_types.ph * Ph_types.ctx) * string list)
+
+(** Make a list of processes from a string list alterning sort and process index. *)
+val proclist_from_stringlist : string list -> Ph_types.process list
 

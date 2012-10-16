@@ -68,14 +68,10 @@ and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
 and anon_fun arg = opt_args := !opt_args@[arg]
 in
 Arg.parse cmdopts anon_fun usage_msg;
-(if List.length !opt_args < 2 then
-	(Arg.usage cmdopts usage_msg; raise Exit)	
-);
-let rec make_procseq = function [] -> []
-	| a::i::tail -> (a, int_of_string i)::make_procseq tail
-	| _ -> (Arg.usage cmdopts usage_msg; raise Exit)
+let l = List.length !opt_args
 in
-let pl = make_procseq !opt_args
+(if l < 2 || l mod 2 <> 0 then (Arg.usage cmdopts usage_msg; raise Exit));
+let pl = Ui.proclist_from_stringlist !opt_args
 in
 
 let do_list_keys = !opt_list_keys

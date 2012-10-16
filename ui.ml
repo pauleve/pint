@@ -78,4 +78,9 @@ let simple_input () =
 	(ph, ctx), !opt_args
 ;;
 
+let rec proclist_from_stringlist = function [] -> []
+	| a::i::tail -> (a, int_of_string i)::proclist_from_stringlist tail
+	| _ -> raise (Invalid_argument "proclist_from_stringlist: input list length should be even")
+;;
+
 
