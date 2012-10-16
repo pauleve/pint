@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: Ph_reach.color_nodes_connected_to_trivial_sols should use rflood2
+desc: ""
+type: :task
+component: phreach
+release: 
+reporter: LP <lp@inzenet.org>
+status: :unstarted
+disposition: 
+creation_time: 2012-10-16 12:13:33.758080 Z
+references: []
+
+id: 5afce57c5a4d8d4e3fc510713c72654ea367dfe7
+log_events: 
+- - 2012-10-16 12:13:35.093902 Z
+  - LP <lp@inzenet.org>
+  - created
+  - ""

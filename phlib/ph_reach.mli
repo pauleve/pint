@@ -25,6 +25,7 @@ type env = {
 
 val init_oldenv : Ph_types.ph -> Ph_types.ctx -> Ph_types.process list -> env
 val init_env : Ph_types.ph -> Ph_types.ctx -> Ph_types.process list -> env
+val update_env : env -> Ph_types.ctx -> Ph_types.process list -> env
 
 (** returns a string representation of the given objective sequence. *)
 val string_of_objseq : objective_seq -> string

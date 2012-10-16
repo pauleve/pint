@@ -144,6 +144,18 @@ let init_env ph ctx pl =
 	}
 ;;
 
+let update_env env ctx pl =
+	{
+		ph = env.ph;
+		ctx = ctx;
+		pl = pl;
+		bs_cache = env.bs_cache;
+		s = env.s;
+		a = env.a;
+		w = env.w;
+	}
+;;
+
 let __all_ObjMap m obj = try ObjMap.find obj m with Not_found -> [];;
 let __all_PMap m p = try PMap.find p m with Not_found -> [];;
 

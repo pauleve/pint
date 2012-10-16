@@ -102,6 +102,9 @@ val list_of_state : state -> process list
 (** Context type *)
 type ctx = ISet.t SMap.t
 
+(** Check ctx equality *)
+val ctx_equal : ctx -> ctx -> bool
+
 (** Empty context *)
 val ctx_empty : ctx
 
@@ -117,6 +120,9 @@ val ctx_has_proc : process -> ctx -> bool
 (** [ctx_add_proc p ctx] returns the context where [p] has been added. *)
 val ctx_add_proc : process -> ctx -> ctx
 
+(** [ctx_rm_proc p ctx] returns the context where [p] has been removed. *)
+val ctx_rm_proc : process -> ctx -> ctx
+
 (** String representation of a context. *)
 val string_of_ctx : ctx -> string
 
@@ -129,6 +135,9 @@ val procs_to_ctx : PSet.t -> ctx
 (** Converts a context to a state. Raise Invalid_arg if there exists more than one process per sort.
 *)
 val state_of_ctx : ctx -> state
+
+(** Context overriding. *)
+val ctx_override_by_ctx : ctx -> ctx -> ctx
 
 (** Context overriding. *)
 val ctx_override : ctx -> PSet.t -> ctx

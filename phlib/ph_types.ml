@@ -156,6 +156,8 @@ let list_of_state state =
 (** Context *)
 type ctx = ISet.t SMap.t
 
+let ctx_equal = SMap.equal ISet.equal;;
+
 let ctx_empty = SMap.empty;;
 
 let ctx_get = SMap.find;;
@@ -174,6 +176,16 @@ let ctx_add_proc (a,i) ctx =
 	let is = ctx_safe_get a ctx
 	in
 	SMap.add a (ISet.add i is) ctx
+;;
+
+let ctx_rm_proc (a,i) ctx =
+	try
+		let is = ctx_get a ctx
+		in
+		let is = ISet.remove i is
+		in
+		SMap.add a is ctx
+	with Not_found -> ctx
 ;;
 
 let string_of_ctx ctx = 
@@ -215,10 +227,12 @@ let state_of_ctx ctx =
 	SMap.fold register ctx SMap.empty
 ;;
 
-let ctx_override ctx ps =
-	let ctx' = procs_to_ctx ps
-	in
+let ctx_override_by_ctx ctx ctx' =
 	SMap.fold SMap.add ctx' ctx
+;;
+
+let ctx_override ctx ps =
+	ctx_override_by_ctx ctx (procs_to_ctx ps)
 ;;
 
 let ctx_union ctx1 ctx2 =

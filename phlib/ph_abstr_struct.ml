@@ -205,8 +205,11 @@ object(self)
 	method remove_node n =
 		nodes <- NodeSet.remove n nodes;
 		(match n with
-		  NodeProc p -> (procs <- PSet.remove p procs)
-		| NodeObj aij -> (objs <- ObjSet.remove aij objs)
+		  NodeProc p -> procs <- PSet.remove p procs
+		| NodeObj (a,i,j) -> 
+			(if not (NodeSet.mem (NodeProc (a,j)) nodes) then
+				procs <- PSet.remove (a,j) procs);
+			objs <- ObjSet.remove (a,i,j) objs
 		| _ -> ());
 		let cs = self#childs n
 		and ps = self#parents n
@@ -816,13 +819,15 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 	method _init_proc (a,i) js =
 		let np = NodeProc (a,i)
 		in
-		let objs = ISet.fold (fun j objs -> (a,j,i)::objs) js []
-		in
-		List.iter (fun obj ->
+		let register_init j =
+			let obj = (a,j,i)
+			in
 			let nobj = NodeObj obj
 			in
 			self#add_child nobj np;
-			self#init_obj obj nobj) objs
+			self#init_obj obj nobj
+		in
+		ISet.iter register_init js
 
 	method init_proc (a,i) =
 		if not (self#has_proc (a,i)) then (
