@@ -4,6 +4,7 @@ REQUIREMENT
 - OCaml (http://caml.inria.fr)
 - CamlIDL (http://caml.inria.fr/pub/old_caml_site/camlidl/)
 - libRmath (from R - http://www.r-project.org)
+- Facile (http://www.recherche.enac.fr/opti/facile/distrib)
 
 Notes on libRmath requirement:
 - Pint requires the libRmath standalone library for the stochastic parameters inference from time interval specifications.
