@@ -40,7 +40,6 @@ open Ui;;
 open Ph_types;;
 
 Random.self_init ();;
-R.set_seed (Random.bits ()) (Random.bits ());;
 
 let opt_args = ref []
 in

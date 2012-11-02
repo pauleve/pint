@@ -10,21 +10,23 @@ build: build-stamp
 build-stamp:
 	dh_testdir
 	touch build-stamp
+	python setup.py --share-path /usr/share/pint
+	make
 
 clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
-	python setup.py clean --all
 	rm -rf build
 	dh_clean 
+	make clean
 
 install: build
 	dh_testdir
 	dh_testroot
 	dh_clean -k 
 	dh_installdirs
-	python setup.py install --root $(CURDIR)/debian/tmp --no-compile
+	make install DESTDIR=$(CURDIR)/debian/tmp
 
 # Build architecture-independent files here.
 binary-indep: build install

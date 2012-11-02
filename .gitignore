@@ -37,3 +37,8 @@ bin/phc
 bin/ph-exec
 gen
 build
+build-stamp
+debian/*.log
+debian/tmp
+debian/substvars
+debian/files

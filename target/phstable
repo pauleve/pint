@@ -12,6 +12,7 @@ SOURCES = \
 RESULT = ph-stable
 
 install:
+	install -d $(DESTDIR)$(PREFIX)/bin
 	install -m 0755 $(RESULT) $(DESTDIR)$(PREFIX)/bin
 
 include OCamlMakefile

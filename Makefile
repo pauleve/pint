@@ -63,7 +63,7 @@ misc-install:
 		install -m 0755 $$i $(DESTDIR)$(PREFIX)/bin; \
 	done
 
-install: phc-install libpint-install phstat-install phstable-install phreach-install phexec-install ph2thomas-install misc-install
+install: phc-install phstat-install phstable-install phreach-install phexec-install ph2thomas-install misc-install
 
 release:
 	git tag $(RELNAME)
@@ -87,4 +87,7 @@ dist-osx: phc phstat phstable phreach phexec ph2thomas
 	install -m 644 dist/osx/README $(OSX_W)
 	-rm -f /tmp/pint-$(RELNAME).dmg
 	hdiutil create -srcfolder $(OSX_W) -volname pint-$(RELNAME) -fs HFS+ /tmp/pint-$(RELNAME).dmg
+
+dist-deb:
+	dpkg-buildpackage -d	
 

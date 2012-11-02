@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import argparse
 import os
 import sys
+
+from optparse import OptionParser
 
 src_basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -12,16 +13,18 @@ cfg = {
 
 
 
-p = argparse.ArgumentParser()
-p.add_argument("--share-path", type=str,
+p = OptionParser()
+p.add_option("--share-path", type=str,
 					help="Directory containing Pint share files (default: %s)" \
 						% cfg["pint_share_path"],
 					default=cfg["pint_share_path"],
 					dest='share_path')
-args = p.parse_args()
+(args, _) = p.parse_args()
 
 if args.share_path:
 	cfg["pint_share_path"] = args.share_path
+
+print(cfg)
 
 #
 # generation

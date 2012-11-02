@@ -1,9 +1,5 @@
 
-SOURCES := \
-	r_impl.c\
-	r.idl\
-
-CLIBS := m Rmath
+SOURCES := 
 
 BINDINGS_SOURCES := $(SOURCES:%=bindings/%)
 export BINDINGS_SOURCES

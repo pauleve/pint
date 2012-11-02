@@ -37,16 +37,9 @@ knowledge of the CeCILL license and that you accept its terms.
 
 open Debug;;
 
-let firing_interval alpha r sa =
-	let rate = r*.float_of_int sa
-	and alpha = alpha/.2.
-	in
-	R.qerlang alpha sa rate true, R.qerlang alpha sa rate false
-;;
+let firing_interval alpha r sa = failwith "(firing_interval) R bindings missing!";;
 
-let random_firing_time r sa =
-	R.rerlang sa (r*.float_of_int sa)
-;;
+let random_firing_time r sa = failwith "(random_firing_time) R bindings missing!";;
 
 let round_float v = (* assume v >= 0 *)
 	let f = floor v
