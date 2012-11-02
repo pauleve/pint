@@ -1,6 +1,7 @@
 all: nc
 
 include Makefile.common
+include build/Makefile.inc
 
 SOURCES = \
 	$(BINDINGS_SOURCES)\
@@ -17,6 +18,8 @@ RESULT = bin/ph2thomas
 
 install:
 	install -m 0755 $(RESULT) $(DESTDIR)$(PREFIX)/bin
+	install -d $(DESTDIR)$(PINT_SHARE_PATH)/contrib/ph2thomas
+	install -m 0644 contrib/ph2thomas/*.lp $(DESTDIR)$(PINT_SHARE_PATH)/contrib/ph2thomas
 
 include OCamlMakefile
 # vi:set syntax=make:

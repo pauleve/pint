@@ -28,8 +28,13 @@ if args.share_path:
 # 
 if not os.path.isdir('build'):
 	os.mkdir('build')
+
 fd = open('build/distenv.ml', 'w')
 for var, value in cfg.items():
 	fd.write("let %s = \"%s\"\n" % (var, value))
+
+fd = open('build/Makefile.inc', 'w')
+for var, value in cfg.items() :
+	fd.write("%s=%s\n" % (var.upper(), value))
 
 
