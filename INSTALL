@@ -1,5 +1,5 @@
 
-REQUIREMENT
+:: REQUIREMENT
 
 - OCaml (http://caml.inria.fr)
 - CamlIDL (http://caml.inria.fr/pub/old_caml_site/camlidl/)
@@ -19,15 +19,17 @@ Notes on libRmath requirement:
 
 
 
-COMPILATION 
+:: COMPILATION 
 
-- run 'make' in the main directory
-- if you installed libRmath in a custom location, use CFLAGS and LDFLAGS environment variables to
-  indicate it:
+$ python setup.py
+$ make
+
+IMPORTANT: if you installed libRmath in a custom location, use CFLAGS and LDFLAGS environment
+variables to indicate it:
   LDFLAGS=-L/usr/local/lib CFLAGS=-I/usr/local/include make
 
 
-INSTALLATION 
+:: INSTALLATION 
 
 - Add PINT_PATH/bin to your $PATH.
 

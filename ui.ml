@@ -37,8 +37,6 @@ knowledge of the CeCILL license and that you accept its terms.
 
 open Ph_types;;
 
-let pint_path = Filename.dirname Sys.executable_name;;
-
 let setup_opt_initial_procs opt =
 	try 
 		let ps = Ph_parser.processlist Ph_lexer.lexer (Lexing.from_string opt)

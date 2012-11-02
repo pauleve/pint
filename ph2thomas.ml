@@ -73,7 +73,7 @@ let check_clingo () =
 in
 
 check_clingo ();
-let asp_path = Filename.concat Ui.pint_path "../contrib/ph2thomas"
+let asp_path = Filename.concat Distenv.pint_share_path "contrib/ph2thomas"
 in
 
 let debug_asp data =
