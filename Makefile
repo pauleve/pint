@@ -72,6 +72,7 @@ release:
 
 OSX_W=/tmp/osx-pint/pint-$(RELNAME)
 OSX_W_BIN=/tmp/osx-pint/pint-$(RELNAME)/pint
+OSX_W_SHARE=$(OSX_W_BIN)/share
 OSX_BINS=phc ph-stat ph-stable ph-reach ph-exec ph2thomas
 dist-osx: phc phstat phstable phreach phexec ph2thomas
 	-rm -rf $(OSX_W)
@@ -81,6 +82,8 @@ dist-osx: phc phstat phstable phreach phexec ph2thomas
 	for i in $(OSX_BINS); do \
 		install -m 755 -b -B .mac dist/osx/wrapper.sh $(OSX_W_BIN)/$$i; \
 	done
+	install -d $(OSX_W_SHARE)/contrib/ph2thomas
+	install -m 644 contrib/ph2thomas/*.lp $(OSX_W_SHARE)/contrib/ph2thomas
 	OSX_BINS="$(OSX_BINS)" MISC_TOOLS="$(MISC_TOOLS)" ./dist/osx/gen_install.sh > $(OSX_W_BIN)/install.sh
 	chmod 655 $(OSX_W_BIN)/install.sh
 	install -d $(OSX_W)/examples

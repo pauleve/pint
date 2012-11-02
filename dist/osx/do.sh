@@ -4,4 +4,5 @@ if [ -z $1 ]; then
 	exit 1
 fi
 
+python setup.py --share-path /usr/local/share/pint
 LDFLAGS=-L$PWD/dist/osx CFLAGS=-I$PWD/dist/osx make dist-osx RELNAME=$1
