@@ -106,6 +106,8 @@ in
 		gA else gA
 	in
 	print_endline ("#nodes = "^string_of_int gA#count_nodes);
+	print_endline ("#procs = "^string_of_int gA#count_procs);
+	print_endline ("#objs = "^string_of_int gA#count_objs);
 
     let (d_nkp, index_proc) = key_procs gA !opt_nkp ignore_proc (gA#get_leafs ())
 	in
