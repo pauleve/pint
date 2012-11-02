@@ -68,6 +68,7 @@ install: phc-install phstat-install phstable-install phreach-install phexec-inst
 release:
 	git tag $(RELNAME)
 	git archive -o /tmp/pint-$(RELNAME).zip --prefix pint-$(RELNAME)/ $(RELBRANCH)
+	DEBEMAIL="loic.pauleve@ens-cachan.org" DEBFULLNAME="Loic Pauleve" debchange -v $(RELNAME) Release $(RELNAME)
 
 OSX_W=/tmp/osx-pint/pint-$(RELNAME)
 OSX_W_BIN=/tmp/osx-pint/pint-$(RELNAME)/pint
