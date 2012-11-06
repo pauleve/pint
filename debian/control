@@ -7,6 +7,7 @@ Standards-Version: 3.6.0
 
 Package: pint
 Architecture: amd64 i386
-Depends: python (>= 2), clingo
+Depends: python (>= 2)
+Recommends: gringo
 Description: Process Hitting related tools.
 
