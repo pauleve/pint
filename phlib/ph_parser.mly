@@ -78,6 +78,8 @@ let ph_add_hits actions stoch rawactions =
 ;;
 
 let compute_init_context ph procs =
+
+
 	let apply_settings ctx =
 		(* override with model settings *)
 		let ctx = ctx_override ctx procs
@@ -114,6 +116,9 @@ let compute_init_context ph procs =
 			List.fold_left fold ctx (List.rev !cooperativities)
 		else ctx
 	in
+	let register_coop set (c, _) = SSet.add c set
+	in
+	Ph_instance.cooperativities := List.fold_left register_coop SSet.empty !cooperativities;
 	(* re-apply settings (force cooperative states) *)
 	apply_settings ctx
 ;;
@@ -621,7 +626,9 @@ footer :
 ;
 
 main :
-  headers content footer { reset_parser (); let ph = init_ph $2 in (init_content ph, compute_init_context ph $3) }
-| content footer { reset_parser (); let ph = init_ph $1 in (init_content ph, compute_init_context ph $2) }
+  headers content footer { let ph = init_ph $2 in 
+  			let ret = (init_content ph, compute_init_context ph $3) in reset_parser(); ret }
+| content footer { let ph = init_ph $1 in
+			let ret = (init_content ph, compute_init_context ph $2) in reset_parser(); ret }
 ;
 %%

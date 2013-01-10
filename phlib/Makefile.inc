@@ -3,6 +3,7 @@ SOURCES := \
 	ph_types.mli\
 	ph_types.ml\
 	ph_useropts.ml\
+	ph_instance.ml\
 	ph_parser.mly\
 	ph_lexer.mll\
 	ph_translator.mli\
