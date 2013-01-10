@@ -46,6 +46,13 @@ let string_of_list string_of_element l =
 
 let opt_default default = function Some x -> x | None -> default;;
 
+let dump_to_file filename str = 
+	let cout = open_out filename
+	in
+	output_string cout str;
+	close_out cout
+;;
+
 let list_remove v = List.filter (fun x -> x <> v);;
 
 let index_of v = 

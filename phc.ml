@@ -44,10 +44,16 @@ let languages = ["dump"; "spim"; "prism"; "prism_mdp"; "romeo"; "tina"; "biocham
 
 let opt_language = ref "dump"
 and opt_output = ref ""
+and opt_romeo_ctl = ref ""
+and opt_romeo_ctl_file = ref ""
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), "\tOutput language");
 		("-o", Arg.Set_string opt_output, "<filename>\tOutput filename");
+		("--romeo-ctl", Arg.Set_string opt_romeo_ctl,
+				"<proc>\tExport CTL formula for reachability of proc (romeo)");
+		("--romeo-ctl-file", Arg.Set_string opt_romeo_ctl_file, 
+				"<filename>\tfilename for CTL export (romeo)");
 	]
 and usage_msg = "phc"
 in
@@ -80,5 +86,15 @@ in
 let channel_out = if !opt_output = "" then stdout else open_out !opt_output
 in
 output_string channel_out data;
-close_out channel_out
+close_out channel_out;
+
+if !opt_language = "romeo" && !opt_romeo_ctl <> "" then
+	let ai = 
+		match Ph_parser.processlist Ph_lexer.lexer (Lexing.from_string !opt_romeo_ctl) with
+		  [ai] -> ai
+		| _ -> failwith "romeo/CTL: invalid proc specification"
+	in
+	let ctl = "EF ( P_"^romeo_pid ph ai^Ph_types.string_of_proc ai^" = 1 );"
+	in
+	Util.dump_to_file (!opt_romeo_ctl_file) ctl
 

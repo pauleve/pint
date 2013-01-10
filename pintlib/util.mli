@@ -9,6 +9,9 @@ val string_of_list : ('a -> string) -> 'a list -> string
 (** [opt_default default opt] returns [x] if opt is [Some x], otherwise returns [default]. *)
 val opt_default : 'a -> 'a option -> 'a
 
+(** [dump_to_file filename str] dumps [str] to [filename]. *)
+val dump_to_file : string -> string -> unit
+
 (** [list_remove a l] removes all [a] occurences in [l]. *)
 val list_remove : 'a -> 'a list -> 'a list
 
