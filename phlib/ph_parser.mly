@@ -91,6 +91,11 @@ let compute_init_context ph procs =
 	(* by default, each process 0 is present *)
 	let ctx0 = ctx_of_state (state0 (fst ph))
 	in
+	(* validate settings *)
+	let validate_proc (a,_) = if not (SMap.mem a ctx0) then failwith ("unknown sort '"^a^"'")
+	in
+	PSet.iter validate_proc procs;
+	PSet.iter validate_proc !Ph_useropts.initial_procs;
 	let ctx = apply_settings ctx0
 	in
 	(* apply cooperativities *)
