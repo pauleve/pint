@@ -446,7 +446,7 @@ let macro_remove = function
 let macro_knockdown = function
 [Arg_Process proc] -> (fun (mps, actions) ->
 	(mps, List.filter (fun (Hit (ai,(b,j),j'),_) ->
-		proc <> ai && proc <> (b,j) && proc <> (b,j')) actions)
+		proc <> ai (*&& proc <> (b,j) && proc <> (b,j')*)) actions)
 )
 | _ -> failwith "macro_knockdown: wrong arguments"
 ;;
