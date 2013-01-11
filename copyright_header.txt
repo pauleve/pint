@@ -1,6 +1,6 @@
-Copyright or © or Copr. Loïc Paulevé (2011)
+Copyright or © or Copr. Loïc Paulevé (2013)
 
-lp@inzenet.org
+loic.pauleve@ens-cachan.org
 
 This software is a computer program whose purpose is to provide Process
 Hitting related tools.
