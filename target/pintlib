@@ -2,6 +2,7 @@
 all: ncl
 include Makefile.common
 SOURCES = \
+	$(DIST_SOURCES) \
 	$(BINDINGS_SOURCES)\
 	$(PINTLIB_SOURCES)\
 	$(PHLIB_SOURCES)\

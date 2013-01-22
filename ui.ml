@@ -1,7 +1,7 @@
 (*
-Copyright or © or Copr. Loïc Paulevé, Morgan Magnin, Olivier Roux (2010)
+Copyright or © or Copr. Loïc Paulevé, Morgan Magnin, Olivier Roux (2012)
 
-loic.pauleve@irccyn.ec-nantes.fr
+loic.pauleve@ens-cachan.org
 morgan.magnin@irccyn.ec-nantes.fr
 olivier.roux@irccyn.ec-nantes.fr
 
@@ -49,6 +49,9 @@ let setup_opt_initial_procs opt =
 let common_cmdopts = [
 	("--no-debug", Arg.Clear Debug.dodebug, "Disable debugging");
 	("--debug", Arg.Set Debug.dodebug, "Enable debugging");
+	("--version", Arg.Unit (fun () ->
+			print_endline ("Pint version "^Distenv.version);
+			ignore(exit 0)), "Print Pint version and quit");
 ];;
 
 let opt_channel_in = ref stdin;;

@@ -4,11 +4,11 @@ include Makefile.common
 -include build/Makefile.inc
 
 SOURCES = \
+	$(DIST_SOURCES) \
 	$(BINDINGS_SOURCES)\
 	$(PINTLIB_SOURCES) \
 	$(PHLIB_SOURCES) \
 	$(UI_SOURCES) \
-	$(DIST_SOURCES) \
 	$(PH2THOMAS_SOURCES) \
 	ph2thomas.ml
 

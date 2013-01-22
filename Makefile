@@ -66,6 +66,7 @@ misc-install:
 install: phc-install phstat-install phstable-install phreach-install phexec-install ph2thomas-install misc-install
 
 release:
+	sed -i 's/:.*##VERSION##/: "$(RELNAME)",##VERSION##/' setup.py
 	git tag $(RELNAME)
 	git archive -o /tmp/pint-$(RELNAME).zip --prefix pint-$(RELNAME)/ $(RELBRANCH)
 	DEBEMAIL="loic.pauleve@ens-cachan.org" DEBFULLNAME="Loic Pauleve" debchange -v $(RELNAME) Release $(RELNAME)

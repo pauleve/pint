@@ -8,6 +8,7 @@ from optparse import OptionParser
 src_basedir = os.path.abspath(os.path.dirname(__file__))
 
 cfg = {
+	"version": ">2012-11-02",##VERSION##
 	"pint_share_path": src_basedir,
 }
 
