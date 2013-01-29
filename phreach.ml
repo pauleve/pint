@@ -61,7 +61,7 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 			"\tDisable static reduction of causality abstract structre");
 		("--extract-graph", Arg.Set_string opt_extract_graph, 
 				"<graph.dot>\tExport abstract structure graph");
-		("--graph", Arg.Symbol (["verbose";"trimmed"],
+		("--graph", Arg.Symbol (["verbose";"trimmed";"nkp-trimmed"],
 				(fun x -> opt_graph := x)), "\tGraph to export");
 	]
 and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
@@ -185,14 +185,25 @@ in
 	gA#set_auto_conts false;
 	gA#build;
 	(*gA#debug;*)
-	if !opt_graph = "verbose" then
-		output_string channel_out gA#to_dot
-	else if !opt_graph = "trimmed" then (
-		let gA' = bot_trimmed_cwA env gA
-		in
-		top_trimmed_cwA env gA';
-		output_string channel_out gA'#to_dot
-	);
+	let gA = 
+		if !opt_graph = "verbose" then
+			gA
+		else if !opt_graph = "trimmed" then
+			let gA = bot_trimmed_cwA env gA
+			in
+			top_trimmed_cwA env gA;
+			gA
+		else if !opt_graph = "nkp-trimmed" then
+			let gA = bot_trimmed_cwA env gA
+			in  
+			let gA = cleanup_gA_for_nkp gA
+			in
+			top_trimmed_cwA env gA;
+			gA
+		else
+			failwith "invalid graph argument"
+	in
+	output_string channel_out gA#to_dot;
 	close_out channel_out
 );
 (if do_reach then
