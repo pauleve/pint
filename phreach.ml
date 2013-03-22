@@ -238,7 +238,7 @@ in
 			if !opt_coop_priority then
 				Ph_reach.coop_priority_reachability env
 			else
-				Ph_reach.process_reachability (Ph_reach.init_oldenv ph ctx pl)
+				Ph_reach.local_reachability env
 		| "test" -> Ph_reach.test env
 		| _ -> failwith "Unknown method."
 	in

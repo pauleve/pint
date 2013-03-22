@@ -778,7 +778,7 @@ let unordered_over_approx env get_Sols =
 
 
 
-let unordered_underapprox env get_Sols glc_setup =
+let unordered_ua env get_Sols glc_setup =
 	let gB_iterator = new glc_generator glc_setup env.ctx env.pl get_Sols
 	in
 	let rec __check gB =
@@ -816,12 +816,12 @@ let unordered_underapprox env get_Sols glc_setup =
 	try iter_gBs () with Found -> true
 ;;
 
-let new_process_reachability env =
+let local_reachability env =
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
 	if not (unordered_over_approx env get_Sols) then
 		False
-	else if unordered_underapprox env get_Sols ua_glc_setup then
+	else if unordered_ua env get_Sols ua_glc_setup then
 		True
 	else
 		Inconc
@@ -832,7 +832,7 @@ let coop_priority_reachability env =
 	in
 	if not (unordered_over_approx env get_Sols) then
 		False
-	else if unordered_underapprox env get_Sols coop_priority_ua_glc_setup then
+	else if unordered_ua env get_Sols coop_priority_ua_glc_setup then
 		True
 	else
 		Inconc
@@ -872,5 +872,5 @@ let top_trimmed_cwA env gA =
 	NodeSet.iter check_node gA#nodes
 ;;
 
-let test = new_process_reachability;;
+let test = local_reachability;;
 

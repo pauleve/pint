@@ -382,7 +382,7 @@ object(self)
 		in
 		let default_id = List.fold_left register_scc 0 sccs
 		in
-		prerr_endline (string_of_int default_id^" SCCs");
+		dbg (string_of_int default_id^" SCCs");
 		let get_scc_id n =
 			try Hashtbl.find sccs_id n with Not_found -> default_id
 		in
@@ -424,7 +424,7 @@ object(self)
 		let rec flood j (ready, news) = 
 			let (i,n) = RankedNodeSet.min_elt ready
 			in
-			prerr_string ("\r["^string_of_int i^"] ");
+			dbg_noendl ("\r["^string_of_int i^"] ");
 			let (ready, news) = handle i (ready, news) n
 			in
 			if not (RankedNodeSet.is_empty ready) then
@@ -436,7 +436,7 @@ object(self)
 		let ins = NodeSet.fold fold_n ns RankedNodeSet.empty
 		in
 		flood (-1) (ins, ns);
-		prerr_newline ();
+		dbg_noendl "\n";
 		values
 
 	val mutable last_loop = []

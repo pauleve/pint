@@ -46,7 +46,7 @@ val process_reachability : env -> Ph_types.ternary
 
 (** EXPERIMENTAL API - TO BE DOCUMENTED WHEN STABLE *)
 
-val test : env -> Ph_types.ternary
+val local_reachability : env -> Ph_types.ternary
 
 val color_nodes_connected_to_trivial_sols :
   #Ph_glc.glc -> Ph_glc.NodeSet.t
@@ -55,4 +55,6 @@ val get_Sols : env -> Ph_types.objective -> Ph_types.PSet.t list
 
 val bot_trimmed_cwA : env -> #Ph_glc.glc -> Ph_glc.glc
 val top_trimmed_cwA : env -> #Ph_glc.graph -> unit
+
+val test : env -> Ph_types.ternary
 
