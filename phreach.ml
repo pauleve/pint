@@ -38,7 +38,7 @@ knowledge of the CeCILL license and that you accept its terms.
 open Debug;;
 open Ph_types;;
 
-open Ph_abstr_struct;;
+open Ph_glc;;
 open Ph_reach;;
 
 let opt_method = ref "static"
@@ -98,7 +98,7 @@ in
 	in
 		
 	(* compute graph *)
-    let gA = new cwA env.ctx env.pl (get_Sols env)
+    let gA = new glc oa_glc_setup env.ctx env.pl (get_Sols env)
     in  
     gA#set_auto_conts false;
     gA#build;
@@ -183,58 +183,62 @@ in
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
 	let build_glc () =
-		let gA = new Ph_abstr_struct.cwA env.ctx env.pl get_Sols
+		let gA = new glc oa_glc_setup env.ctx env.pl get_Sols
 		in
 		gA#set_auto_conts false;
 		gA#build;
 		gA
 	and build_saturated_glc () =
-		let gB =
+		let glc_setup = 
 			if !opt_coop_priority then
-				new Ph_abstr_struct.coop_priority_cwB env.ctx env.pl get_Sols
+				coop_priority_ua_glc_setup
 			else
-				new Ph_abstr_struct.cwB env.ctx env.pl get_Sols
+				ua_glc_setup
+		in
+		let gB = new glc glc_setup env.ctx env.pl get_Sols
 		in
 		gB#build;
 		gB#saturate_ctx;
 		gB
 	in
-	let output_glc (glc : #Ph_abstr_struct.graph) =
+	let output_glc (glc : #graph) =
 		let channel_out = if !opt_extract_graph = "-" then stdout else open_out !opt_extract_graph
 		in
 		output_string channel_out glc#to_dot;
 		close_out channel_out
 	in
 	(*gA#debug;*)
-	if !opt_graph = "verbose" then
-		let gA = build_glc ()
-		in
-		output_glc gA
-	else if !opt_graph = "trimmed" then
-		let gA = bot_trimmed_cwA env (build_glc ())
-		in
-		top_trimmed_cwA env gA;
-		output_glc gA
-	else if !opt_graph = "nkp-trimmed" then
-		let gA = bot_trimmed_cwA env (build_glc ())
-		in  
-		let gA = cleanup_gA_for_nkp gA
-		in
-		top_trimmed_cwA env gA;
-		output_glc gA
-	else if !opt_graph = "saturated" then
-		let gB = build_saturated_glc ()
-		in
-		output_glc gB
-	else
-		failwith "invalid graph argument"
+	let glc = 
+		if !opt_graph = "verbose" then
+			build_glc ()
+		else if !opt_graph = "trimmed" then
+			let gA = bot_trimmed_cwA env (build_glc ())
+			in
+			top_trimmed_cwA env gA;
+			gA
+		else if !opt_graph = "nkp-trimmed" then
+			let gA = bot_trimmed_cwA env (build_glc ())
+			in  
+			let gA = cleanup_gA_for_nkp gA
+			in
+			top_trimmed_cwA env gA;
+			gA
+		else if !opt_graph = "saturated" then
+			build_saturated_glc ()
+		else
+			failwith "invalid graph argument"
+	in
+	output_glc glc
 );
 (if do_reach then
 	(* run the approximations *)
 	let decision = 
 	match !opt_method with
 		| "static" ->
-			Ph_reach.process_reachability (Ph_reach.init_oldenv ph ctx pl)
+			if !opt_coop_priority then
+				Ph_reach.coop_priority_reachability env
+			else
+				Ph_reach.process_reachability (Ph_reach.init_oldenv ph ctx pl)
 		| "test" -> Ph_reach.test env
 		| _ -> failwith "Unknown method."
 	in

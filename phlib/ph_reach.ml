@@ -708,9 +708,9 @@ let process_reachability env =
   NEW IMPLEMENTATION
 *)
 
-open Ph_abstr_struct;;
+open Ph_glc;;
 
-let color_nodes_connected_to_trivial_sols (gA: #cwA) =
+let color_nodes_connected_to_trivial_sols (gA: #glc) =
 	(** each node is associated to a couple
 			(green, nm) 
 		where nm is the cached value of childs *)
@@ -750,7 +750,7 @@ let color_nodes_connected_to_trivial_sols (gA: #cwA) =
 	(*dbg ("Leafs: "^(String.concat ";" (List.map string_of_node (NodeSet.elements (gA#get_leafs ())))));*)
 	let values = Hashtbl.create 50
 	in
-	gA#rflood init update_cache push values (gA#get_leafs ());
+	gA#deprecated_rflood init update_cache push values (gA#get_leafs ());
 	(*let dbg_value n (g,_) =
 		dbg ("Green("^string_of_node n^") = "^string_of_bool g)
 	in
@@ -761,7 +761,7 @@ let color_nodes_connected_to_trivial_sols (gA: #cwA) =
 	Hashtbl.fold folder values NodeSet.empty
 ;;
 
-let __unordered_over_approx env (gA: #cwA) =
+let __unordered_over_approx env (gA: #glc) =
 	let nodes = color_nodes_connected_to_trivial_sols gA
 	in
 	List.for_all (fun ai -> NodeSet.mem (NodeProc ai) nodes) env.pl
@@ -769,7 +769,7 @@ let __unordered_over_approx env (gA: #cwA) =
 
 
 let unordered_over_approx env get_Sols =
-	let gA = new cwA env.ctx env.pl get_Sols
+	let gA = new glc oa_glc_setup env.ctx env.pl get_Sols
 	in
 	gA#build;
 	gA#debug ();
@@ -778,8 +778,8 @@ let unordered_over_approx env get_Sols =
 
 
 
-let unordered_under_approx env get_Sols =
-	let gB_iterator = new cwB_generator env.ctx env.pl get_Sols
+let unordered_underapprox env get_Sols glc_setup =
+	let gB_iterator = new glc_generator glc_setup env.ctx env.pl get_Sols
 	in
 	let rec __check gB =
 		if gB#has_impossible_objs then (
@@ -821,23 +821,22 @@ let new_process_reachability env =
 	in
 	if not (unordered_over_approx env get_Sols) then
 		False
-	else if unordered_under_approx env get_Sols then
+	else if unordered_underapprox env get_Sols ua_glc_setup then
 		True
 	else
 		Inconc
 ;;
 
-(*
 let coop_priority_reachability env =
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
 	if not (unordered_over_approx env get_Sols) then
 		False
-	else if coop_priority_unordered_underapprox env get_Sols then
+	else if unordered_underapprox env get_Sols coop_priority_ua_glc_setup then
 		True
 	else
 		Inconc
-;;*)
+;;
 
 let get_Sols env = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 ;;
@@ -845,7 +844,7 @@ let get_Sols env = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 let bot_trimmed_cwA env gA =
 	let nodes = color_nodes_connected_to_trivial_sols gA
 	in
-	let gA' = new cwA env.ctx env.pl (get_Sols env)
+	let gA' = new glc gA#setup env.ctx env.pl (get_Sols env)
 	in
 	gA#iter (fun node child -> 
 				if NodeSet.mem node nodes && NodeSet.mem child nodes then
@@ -862,7 +861,7 @@ let nodes_connected_to_procs (gA: #graph) pl =
 	and update_cache _ nm _ _ = nm
 	and leafs = List.fold_left (fun ns ai -> NodeSet.add (NodeProc ai) ns) NodeSet.empty pl
     in  
-	gA#rflood2 ~reversed:true (=) init update_cache update_value leafs
+	gA#rflood ~reversed:true (=) init update_cache update_value leafs
 ;;
 
 let top_trimmed_cwA env gA =
@@ -874,24 +873,4 @@ let top_trimmed_cwA env gA =
 ;;
 
 let test = new_process_reachability;;
-
-let min_procs env =
-	let gA' = new cwA env.ctx env.pl (get_Sols env)
-	in
-	gA'#set_auto_conts false;
-	gA'#build;
-	let gA = bot_trimmed_cwA env gA'
-	in
-
-	let d_min_procs = Hashtbl.create 50
-	in
-	min_procs gA d_min_procs (ObjSet.elements gA#objs);
-	let debug_min_procs obj =
-		let ctx, _ = Hashtbl.find d_min_procs (NodeObj obj)
-		in
-		dbg ("minProc("^string_of_obj obj^") = "^string_of_ctx ctx);
-	in
-	(if !Debug.dodebug then List.iter debug_min_procs (ObjSet.elements gA#objs));
-	d_min_procs
-;;
 

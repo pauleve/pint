@@ -63,6 +63,50 @@ let string_of_nodeset = string_of_set string_of_node NodeSet.elements;;
 
 exception Found
 
+
+(**
+	flooder setup
+**)
+type ('a, 'b) flooder_setup = {
+	equality: 'a -> 'a -> bool;	
+	node_init: node -> 'a * 'b NodeMap.t;
+	update_cache: node -> 'a * 'b NodeMap.t -> node -> 'a * 'b NodeMap.t -> 'a * 'b NodeMap.t;
+	update_value: node -> 'a * 'b NodeMap.t -> 'a;
+}
+
+(**
+   shared functions related to rflood algorithms 
+
+   each node is associated to a couple
+			(ctx, nm) 
+		where nm is the cached value of childs
+ **)
+
+let default_flooder_node_init empty_value = fun n -> empty_value, NodeMap.empty
+
+let union_value nm =
+	NodeMap.fold (fun _ -> ctx_union) nm ctx_empty
+;;
+let inter_value nm =
+		let r = NodeMap.fold (fun _ c1 -> function
+			  None -> Some c1
+			| Some c2 -> Some (ctx_inter c1 c2)) nm None
+		in
+		match r with
+		  None -> ctx_empty
+		| Some c -> c
+;;
+let update_cache n (v,nm) n' (v',_) =
+	(v, NodeMap.add n' v' nm)
+;;
+
+
+
+
+(**
+	generic graph with 3 kind of nodes
+*)
+
 class graph = 
 object(self)
 	val edges = Hashtbl.create 1000
@@ -300,20 +344,21 @@ object(self)
 		NodeSet.iter setup ns;
 		flood ns
 
-	method flood 
-		: 'a 'b. (node -> 'a * 'b) 
-			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
-			-> (node -> 'a * 'b-> 'a) (* update_value *)
-			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
-		= self#_flood true
-	method rflood 
+	method deprecated_rflood 
 		: 'a 'b. (node -> 'a * 'b) 
 			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
 			-> (node -> 'a * 'b-> 'a) (* update_value *)
 			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
 		= self#_flood false
+	
+	method call_rflood
+		: 'a 'b. ?reversed:bool -> ('a,'b) flooder_setup -> NodeSet.t 
+			-> (node, 'a * 'b NodeMap.t) Hashtbl.t
+			= fun ?reversed:(desc=false) cfg ->
+		self#rflood ~reversed:desc cfg.equality cfg.node_init cfg.update_cache
+						cfg.update_value
 
-	method rflood2
+	method rflood
 		: 'a 'b. ?reversed:bool -> ('a -> 'a -> bool) -> (node -> 'a * 'b NodeMap.t) 
 			-> (node -> 'a * 'b NodeMap.t -> node -> 'a * 'b NodeMap.t -> 'a * 'b NodeMap.t) (* update_cache *)
 			-> (node -> 'a * 'b NodeMap.t -> 'a) (* update_value *)
@@ -476,112 +521,6 @@ object(self)
 
 end;;
 
-(**
-   shared functions related to rflood algorithms 
-
-   each node is associated to a couple
-			(ctx, nm) 
-		where nm is the cached value of childs
- **)
-let union_value nm =
-	NodeMap.fold (fun _ -> ctx_union) nm ctx_empty
-;;
-let inter_value nm =
-		let r = NodeMap.fold (fun _ c1 -> function
-			  None -> Some c1
-			| Some c2 -> Some (ctx_inter c1 c2)) nm None
-		in
-		match r with
-		  None -> ctx_empty
-		| Some c -> c
-;;
-let update_cache n (v,nm) n' (v',_) =
-	(v, NodeMap.add n' v' nm)
-;;
-
-let run_rflood update_cache update_value (gA : #graph) flood_values from_objs =
-	let init n = update_value n (ctx_empty, NodeMap.empty), NodeMap.empty
-	in
-	let fold_obj ns obj = NodeSet.add (NodeObj obj) ns
-	in
-	let ns = List.fold_left fold_obj NodeSet.empty from_objs
-	in
-	gA#rflood init update_cache update_value flood_values ns
-;;
-(**  **)
-
-let min_conts (gA : #graph) =
-	let update_value n (ctx,nm) = match n with
-		  NodeSol _ -> union_value nm
-		| NodeObj _ -> inter_value nm
-		| NodeProc (a,i) -> 
-			let ctx' = inter_value nm
-			in
-			SMap.add a (ISet.singleton i) ctx'
-	in
-	(* the node n with value v receive update from node n' with value v' *)
-	let push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
-		match n, n' with
-		  NodeSol _, NodeProc _
-		| NodeObj _, NodeSol _
-		| NodeProc _, NodeObj _ -> update_cache n v n' v'
-		| NodeObj _, NodeObj _ -> v (* ignore Cont rels *)
-		| _ -> failwith "wrong abstract structure graph."
-	in
-	run_rflood push update_value gA
-;;
-
-let max_conts (gA : #graph) =
-	let update_value n (ctx,nm) = match n with
-		  NodeSol _ -> union_value nm
-		| NodeObj _ -> union_value nm
-		| NodeProc (a,i) -> 
-			let ctx' = union_value nm
-			in
-			SMap.add a (ISet.singleton i) ctx'
-	in
-	(* the node n with value v receive update from node n' with value v' *)
-	let push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
-		match n, n' with
-		  NodeSol _, NodeProc _
-		| NodeObj _, NodeSol _
-		| NodeProc _, NodeObj _ -> update_cache n v n' v'
-		| NodeObj _, NodeObj _ -> v (* ignore Cont rels *)
-		| _ -> failwith "wrong abstract structure graph."
-	in
-	gA#debug ();
-	run_rflood push update_value gA;
-;;
-
-let min_procs (gA : #graph) flood_values =
-	let update_value n (ctx,nm) = match n with
-		  NodeSol _ -> union_value nm
-
-		| NodeObj (a,j,i) -> 
-			let r1 = NodeMap.fold (function 
-				  NodeSol _ -> (fun c1 -> function
-									  None -> Some c1
-									| Some c2 -> Some (ctx_inter c1 c2))
-				| _ -> (fun _ c2 -> c2)) nm None
-			in
-			let r1 = Util.opt_default ctx_empty r1
-			and r2 = NodeMap.fold (function 
-				  NodeObj obj' ->
-						let my_obj = (a,j,obj_bounce obj')
-						in
-						let ctx2 = fst (Hashtbl.find flood_values (NodeObj my_obj))
-						in
-						(fun c1 c2 -> ctx_union (ctx_union c1 c2) ctx2)
-				| _ -> (fun _ c2 -> c2)) nm ctx_empty
-			in
-			let ctx' = ctx_union r1 r2
-			in
-			SMap.add a (ISet.union (ctx_safe_get a ctx') (ISet.singleton i)) ctx'
-
-		| NodeProc _ -> inter_value nm (* TODO: ignore Obj without sols *)
-	in
-	run_rflood update_cache update_value gA flood_values
-;;
 
 (**
  * Key processes
@@ -725,7 +664,7 @@ let key_procs (gA:#graph) max_nkp ignore_proc leafs =
     in  
 	let t0 = Sys.time ()
 	in
-    let flood_values = gA#rflood2 PSSet.equal init update_cache update_value leafs
+    let flood_values = gA#rflood PSSet.equal init update_cache update_value leafs
 	in
 	print_endline ("****** systime: "^string_of_float (Sys.time () -. t0)^"s");
 	print_endline ("Visited nodes: "^string_of_int !total_count);
@@ -733,7 +672,18 @@ let key_procs (gA:#graph) max_nkp ignore_proc leafs =
 ;;
 
 
-class cwA ctx pl get_Sols = object(self) inherit graph
+(**
+	GLC
+*)
+
+type glc_setup = {
+	conts_flooder: (ctx, ctx) flooder_setup;
+	conts: ctx -> objective -> ctx -> ISet.t;
+}
+
+class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
+
+	method setup = glc_setup
 
 	val mutable current_ctx = ctx
 	val mutable new_objs = []
@@ -753,27 +703,28 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 	method has_loops =
 		List.exists (fun ai -> self#has_loop_from (NodeProc ai)) pl
 
-	val mutable conts_flood = Hashtbl.create 50
-
-	method conts = min_conts
 
 	val mutable auto_conts = true
 	method set_auto_conts t = auto_conts <- t
 	method auto_conts = auto_conts
 
+	method conts_flooder = self#call_rflood glc_setup.conts_flooder
+	method conts = glc_setup.conts self#ctx
+
 	method build = 
 		List.iter self#init_proc pl;
 		self#commit ()
-	
-	method cont_set (a,i,j) ctx =
-		try ctx_get a ctx with Not_found -> ISet.empty
 
 	method commit () =
 		(*self#debug ();*)
 		if self#auto_conts then (
 		dbg "Automatically pushing conts";
 		(* update conts_flood with new objectives *)
-		self#conts self conts_flood new_objs;
+		let nodeset_of_objs = 
+			List.fold_left (fun ns obj -> NodeSet.add (NodeObj obj) ns) NodeSet.empty
+		in
+		let conts_flood = self#conts_flooder (nodeset_of_objs new_objs)
+		in
 		(* we assume the minCont grows *)
 		let register_cont obj = 
 			let nobj = NodeObj obj
@@ -790,7 +741,7 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 				if not (self#has_child nto nobj) then
 					self#add_child nto nobj
 			in
-			let ais = self#cont_set obj ctx
+			let ais = self#conts obj ctx
 			in
 			let ais = ISet.remove j (ISet.remove i ais)
 			in
@@ -869,11 +820,7 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 	method saturate_ctx =
 		if self#increase_ctx self#all_procs then self#saturate_ctx
 	
-end;;
 
-
-class cwB ctx pl get_Sols = object(self) inherit (cwA ctx pl get_Sols)
-	method conts = max_conts
 
 	method analyse_impossible_objs ms_objs =
 		prerr_endline ("multisols objs: "^string_of_set string_of_obj ObjSet.elements ms_objs);
@@ -908,7 +855,7 @@ class cwB ctx pl get_Sols = object(self) inherit (cwA ctx pl get_Sols)
 			*)
 		and flood_values = Hashtbl.create 50
 		in
-		self#rflood init update_cache update_value flood_values im_nobjs;
+		self#deprecated_rflood init update_cache update_value flood_values im_nobjs;
 		let get_responsibles n (coloured, is_ms) r =
 			if coloured && is_ms then n::r 
 			else (
@@ -931,6 +878,7 @@ class cwB ctx pl get_Sols = object(self) inherit (cwA ctx pl get_Sols)
 		List.map obj_from_node r
 end;;
 
+
 let string_of_choices choices =
 	let string_of_choice obj n =
 		string_of_obj obj ^"#"^string_of_int n
@@ -952,7 +900,9 @@ let empty_choices_queue () =
 
 module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = compare end)
 
-class cwB_generator ctx pl get_Sols = object(self)
+
+class glc_generator glc_setup ctx pl get_Sols =
+	object(self)
 	val mutable has_next = true
 	(*val queue = empty_choices_queue ()*)
 	val mutable queue = [ObjMap.empty]
@@ -1019,7 +969,7 @@ class cwB_generator ctx pl get_Sols = object(self)
 		prerr_endline ("::: playing choices "^string_of_choices choices);
 		current_choices <- choices;
 		queue <- List.tl queue;
-		let gB = new cwB ctx pl (self#get_Sols choices)
+		let gB = new glc glc_setup ctx pl (self#get_Sols choices)
 		in 
 		gB#build;
 		gB#saturate_ctx;
@@ -1028,22 +978,78 @@ class cwB_generator ctx pl get_Sols = object(self)
 end;;
 
 
-(***** PRIORITY ******)
+(**
+	Continuity
+**)
 
-class coop_priority_cwB ctx pl get_Sols = 
-	let cooperativity_resolver = Ph_cooperativity.resolve !Ph_instance.cooperativities
-	in
-	object(self) 
-		inherit (cwB ctx pl get_Sols) as super
+let min_conts_flooder = 
+	let update_cache n v n' v' =
+		match n, n' with
+		  NodeSol _, NodeProc _
+		| NodeObj _, NodeSol _
+		| NodeProc _, NodeObj _ -> update_cache n v n' v'
+		| NodeObj _, NodeObj _ -> v (* ignore Cont rels *)
+		| _ -> failwith "wrong abstract structure graph."
+	and update_value n (ctx, nm) =
+		match n with
+		  NodeSol _ -> union_value nm
+		| NodeObj _ -> inter_value nm
+		| NodeProc (a,i) -> 
+			let ctx' = inter_value nm
+			in
+			SMap.add a (ISet.singleton i) ctx'
+	in {
+	equality = (=);
+	node_init = default_flooder_node_init ctx_empty;
+	update_cache = update_cache;
+	update_value = update_value;
+};;
 
-	method cont_set (a,i,j) ctx =
-		let is = super#cont_set (a,i,j) ctx
+let max_conts_flooder =
+	let update_value n (ctx,nm) = match n with
+		  NodeSol _ -> union_value nm
+		| NodeObj _ -> union_value nm
+		| NodeProc (a,i) -> 
+			let ctx' = union_value nm
+			in
+			SMap.add a (ISet.singleton i) ctx'
+	in {
+	equality = min_conts_flooder.equality;
+	node_init = min_conts_flooder.node_init;
+	update_cache = min_conts_flooder.update_cache;
+	update_value = update_value;
+};;
+
+
+(**
+	GLC setups
+**)
+
+let oa_glc_setup = {
+	conts_flooder = min_conts_flooder;
+	conts = fun _ (a,_,_) ctx -> try ctx_get a ctx with Not_found -> ISet.empty;
+};;
+
+let ua_glc_setup = {
+	conts_flooder = max_conts_flooder;
+	conts = oa_glc_setup.conts;
+};;
+
+let coop_priority_ua_glc_setup = {
+	conts_flooder = ua_glc_setup.conts_flooder;
+	conts = fun glc_ctx (a,i,j) ctx ->
+		let coop_resolver = Ph_cooperativity.resolve !Ph_instance.cooperativities
+		in
+		let is = ua_glc_setup.conts glc_ctx (a,i,j) ctx
 		in
 		if SMap.mem a !Ph_instance.cooperativities then (
-			let i_list = cooperativity_resolver (ctx_union self#ctx ctx) a
+			let ctx = ctx_override_by_ctx glc_ctx ctx
+			in
+			let i_list = coop_resolver ctx a
 			in
 			ISet.union (iset_of_list i_list) is)
 		else 
 			is
+};;
 
-end;;
+

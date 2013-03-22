@@ -33,6 +33,11 @@ val string_of_objseq : objective_seq -> string
 (** returns the objective sequences corresponding to the successive rechability of given processes in the given state. *)
 val objseq_from_procseq : Ph_types.state -> Ph_types.process list -> objective_seq
 
+(** (WiP) [process_reachability ph s w]
+returns the semi-decision (ternary) of the concretizability of objective sequence [w] in the state [s] in the process hitting [ph].
+*)
+val coop_priority_reachability : env -> Ph_types.ternary
+
 (** [process_reachability ph s w]
 returns the semi-decision (ternary) of the concretizability of objective sequence [w] in the state [s] in the process hitting [ph].
 *)
@@ -44,12 +49,10 @@ val process_reachability : env -> Ph_types.ternary
 val test : env -> Ph_types.ternary
 
 val color_nodes_connected_to_trivial_sols :
-  #Ph_abstr_struct.cwA -> Ph_abstr_struct.NodeSet.t
+  #Ph_glc.glc -> Ph_glc.NodeSet.t
 
 val get_Sols : env -> Ph_types.objective -> Ph_types.PSet.t list
 
-val bot_trimmed_cwA : env -> #Ph_abstr_struct.cwA -> Ph_abstr_struct.cwA
-val top_trimmed_cwA : env -> #Ph_abstr_struct.graph -> unit
-
-val min_procs : env -> (Ph_abstr_struct.node, (Ph_types.ctx * Ph_types.ctx Ph_abstr_struct.NodeMap.t)) Hashtbl.t
+val bot_trimmed_cwA : env -> #Ph_glc.glc -> Ph_glc.glc
+val top_trimmed_cwA : env -> #Ph_glc.graph -> unit
 
