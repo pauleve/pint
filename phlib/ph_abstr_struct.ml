@@ -76,7 +76,7 @@ object(self)
 
 	method nodes = nodes
 	method procs = procs
-	method all_procs = PSet.empty
+	method all_procs = all_procs
 	method objs = objs
 	method has_proc p = PSet.mem p procs
 	method has_obj obj = ObjSet.mem obj objs
@@ -182,7 +182,8 @@ object(self)
 		"digraph { \n" ^ content ^ "}\n"
 
 	method register_node = function
-		  NodeProc p -> (procs <- PSet.add p procs)
+		  NodeProc p -> (procs <- PSet.add p procs;
+		  				all_procs <- PSet.add p all_procs)
 		| NodeObj (a,i,j) -> 
 				(procs <- PSet.add (a,j) procs;
 				all_procs <- PSet.add (a,j) (PSet.add (a,i) all_procs);
