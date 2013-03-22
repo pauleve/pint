@@ -832,8 +832,8 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 			in
 			let nobj = NodeObj obj
 			in
+			(if not (self#has_obj obj) then self#init_obj obj nobj);
 			self#add_child nobj np;
-			self#init_obj obj nobj
 		in
 		ISet.iter register_init js
 
