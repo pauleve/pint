@@ -49,11 +49,14 @@ and opt_nkp_coop = ref false
 and opt_nkp_reduce = ref true
 and opt_extract_graph = ref ""
 and opt_graph = ref "verbose"
+and opt_coop_priority = ref false
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("--method", Arg.Symbol (["static";"test"],
 				(fun x -> opt_method := x)), "\tMethod");
 		("--list-keys", Arg.Set opt_list_keys, "\tList Key Processes");
+		("--coop-priority", Arg.Set opt_coop_priority, 
+									"\tAssume hits on cooperative sorts of higher priority");
 		("--nkp", Arg.Set_int opt_nkp, "n\tMaximum size of key processes tuples (default: 1)");
 		("--nkp-include-coop", Arg.Set opt_nkp_coop, 
 			"\tConsider cooperativities as potential key processes (default: false)");
@@ -61,7 +64,7 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 			"\tDisable static reduction of causality abstract structre");
 		("--extract-graph", Arg.Set_string opt_extract_graph, 
 				"<graph.dot>\tExport abstract structure graph");
-		("--graph", Arg.Symbol (["verbose";"trimmed";"nkp-trimmed"],
+		("--graph", Arg.Symbol (["verbose";"trimmed";"nkp-trimmed";"saturated"],
 				(fun x -> opt_graph := x)), "\tGraph to export");
 	]
 and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
@@ -89,7 +92,7 @@ in
 (if do_list_keys then
 	let is_sort_cooperative a = 
 		(try String.sub a 0 6 = "__coop" with Invalid_argument _ -> false) 
-			|| SSet.mem a !Ph_instance.cooperativities
+			|| SMap.mem a !Ph_instance.cooperativities
 	in
 	let ignore_proc ai = if !opt_nkp_coop then false else is_sort_cooperative (fst ai)
 	in
@@ -179,38 +182,59 @@ in
 (if do_extract_graph then 
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
-	let gA = new Ph_abstr_struct.cwA env.ctx env.pl get_Sols
-	and channel_out = if !opt_extract_graph = "-" then stdout else open_out !opt_extract_graph
+	let build_glc () =
+		let gA = new Ph_abstr_struct.cwA env.ctx env.pl get_Sols
+		in
+		gA#set_auto_conts false;
+		gA#build;
+		gA
+	and build_saturated_glc () =
+		let gB =
+			if !opt_coop_priority then
+				new Ph_abstr_struct.coop_priority_cwB env.ctx env.pl get_Sols
+			else
+				new Ph_abstr_struct.cwB env.ctx env.pl get_Sols
+		in
+		gB#build;
+		gB#saturate_ctx;
+		gB
 	in
-	gA#set_auto_conts false;
-	gA#build;
+	let output_glc (glc : #Ph_abstr_struct.graph) =
+		let channel_out = if !opt_extract_graph = "-" then stdout else open_out !opt_extract_graph
+		in
+		output_string channel_out glc#to_dot;
+		close_out channel_out
+	in
 	(*gA#debug;*)
-	let gA = 
-		if !opt_graph = "verbose" then
-			gA
-		else if !opt_graph = "trimmed" then
-			let gA = bot_trimmed_cwA env gA
-			in
-			top_trimmed_cwA env gA;
-			gA
-		else if !opt_graph = "nkp-trimmed" then
-			let gA = bot_trimmed_cwA env gA
-			in  
-			let gA = cleanup_gA_for_nkp gA
-			in
-			top_trimmed_cwA env gA;
-			gA
-		else
-			failwith "invalid graph argument"
-	in
-	output_string channel_out gA#to_dot;
-	close_out channel_out
+	if !opt_graph = "verbose" then
+		let gA = build_glc ()
+		in
+		output_glc gA
+	else if !opt_graph = "trimmed" then
+		let gA = bot_trimmed_cwA env (build_glc ())
+		in
+		top_trimmed_cwA env gA;
+		output_glc gA
+	else if !opt_graph = "nkp-trimmed" then
+		let gA = bot_trimmed_cwA env (build_glc ())
+		in  
+		let gA = cleanup_gA_for_nkp gA
+		in
+		top_trimmed_cwA env gA;
+		output_glc gA
+	else if !opt_graph = "saturated" then
+		let gB = build_saturated_glc ()
+		in
+		output_glc gB
+	else
+		failwith "invalid graph argument"
 );
 (if do_reach then
 	(* run the approximations *)
 	let decision = 
 	match !opt_method with
-		| "static" -> Ph_reach.process_reachability (Ph_reach.init_oldenv ph ctx pl)
+		| "static" ->
+			Ph_reach.process_reachability (Ph_reach.init_oldenv ph ctx pl)
 		| "test" -> Ph_reach.test env
 		| _ -> failwith "Unknown method."
 	in

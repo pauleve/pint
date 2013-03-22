@@ -102,7 +102,7 @@ let compute_init_context ph procs =
 	let fold ctx (c, (sigma, idx)) =
 		let ctx_c = List.map (fun a -> ISet.elements (SMap.find a ctx)) sigma
 		in
-		let states_c = List.rev (Util.cross_list ctx_c)
+		let states_c = Util.cross_list (List.rev ctx_c)
 		in
 		let fold procs_c state_c =
 			let i = idx state_c
@@ -121,9 +121,9 @@ let compute_init_context ph procs =
 			List.fold_left fold ctx (List.rev !cooperativities)
 		else ctx
 	in
-	let register_coop set (c, _) = SSet.add c set
+	let register_coop set (c, cfg) = SMap.add c cfg set
 	in
-	Ph_instance.cooperativities := List.fold_left register_coop SSet.empty !cooperativities;
+	Ph_instance.cooperativities := List.fold_left register_coop SMap.empty !cooperativities;
 	(* re-apply settings (force cooperative states) *)
 	apply_settings ctx
 ;;

@@ -44,6 +44,8 @@ module SMap = Map.Make (struct type t = string let compare = compare end);;
 module ISet = Set.Make (struct type t = int let compare = compare end);;
 module IMap = Map.Make (struct type t = int let compare = compare end);;
 
+let rec iset_of_list = function [] -> ISet.empty | h::t -> ISet.add h (iset_of_list t);;
+
 let string_of_set
 		?lbracket:(lb="{ ") ?rbracket:(rb=" }") ?delim:(dl=", ")
 		string_of_element elements_getter set =

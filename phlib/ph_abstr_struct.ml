@@ -72,9 +72,11 @@ object(self)
 
 	val mutable procs = PSet.empty
 	val mutable objs = ObjSet.empty
+	val mutable all_procs = PSet.empty
 
 	method nodes = nodes
 	method procs = procs
+	method all_procs = PSet.empty
 	method objs = objs
 	method has_proc p = PSet.mem p procs
 	method has_obj obj = ObjSet.mem obj objs
@@ -183,6 +185,7 @@ object(self)
 		  NodeProc p -> (procs <- PSet.add p procs)
 		| NodeObj (a,i,j) -> 
 				(procs <- PSet.add (a,j) procs;
+				all_procs <- PSet.add (a,j) (PSet.add (a,i) all_procs);
 				objs <- ObjSet.add (a,i,j) objs)
 		| _ -> ()
 
@@ -731,7 +734,7 @@ let key_procs (gA:#graph) max_nkp ignore_proc leafs =
 
 class cwA ctx pl get_Sols = object(self) inherit graph
 
-	val mutable actual_ctx = ctx
+	val mutable current_ctx = ctx
 	val mutable new_objs = []
 	val mutable trivial_nsols = NodeSet.empty
 	val mutable impossible_nobjs = NodeSet.empty
@@ -739,7 +742,7 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 	method get_trivial_nsols () = trivial_nsols
 	method get_leafs () = NodeSet.union trivial_nsols impossible_nobjs
 	method has_impossible_objs = not (NodeSet.is_empty impossible_nobjs)
-	method ctx = actual_ctx
+	method ctx = current_ctx
 	method get_impossible_objs = NodeSet.fold (function NodeObj obj -> fun objs -> obj::objs
 													| _ -> fun objs -> objs) impossible_nobjs []
 	
@@ -761,6 +764,9 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 		List.iter self#init_proc pl;
 		self#commit ()
 	
+	method cont_set (a,i,j) ctx =
+		try ctx_get a ctx with Not_found -> ISet.empty
+
 	method commit () =
 		(*self#debug ();*)
 		if self#auto_conts then (
@@ -783,8 +789,9 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 				if not (self#has_child nto nobj) then
 					self#add_child nto nobj
 			in
-			let ais = try ISet.remove i (ctx_get a ctx) 
-				with Not_found -> ISet.empty
+			let ais = self#cont_set obj ctx
+			in
+			let ais = ISet.remove j (ISet.remove i ais)
 			in
 			dbg ("cont("^string_of_obj (a,i,j)^")="
 					^a^"_"^string_of_iset ais);(*^ " ("^string_of_ctx ctx^")");*)
@@ -831,18 +838,18 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 
 	method init_proc (a,i) =
 		if not (self#has_proc (a,i)) then (
-			self#_init_proc (a,i) (ctx_get a actual_ctx)
+			self#_init_proc (a,i) (ctx_get a current_ctx)
 		)
 
 	method increase_ctx procs =
-		let is_new_proc p = not (ctx_has_proc p actual_ctx)
+		let is_new_proc p = not (ctx_has_proc p current_ctx)
 		in
 		let new_procs = PSet.filter is_new_proc procs
 		in
 		if not (PSet.is_empty new_procs) then (
 			let ctx' = procs_to_ctx new_procs
 			in
-			actual_ctx <- ctx_union actual_ctx ctx';
+			current_ctx <- ctx_union current_ctx ctx';
 			(* re-init procs having sort in new_procs *)
 			let reinit_proc (a,i) =
 				try
@@ -859,7 +866,7 @@ class cwA ctx pl get_Sols = object(self) inherit graph
 		) else false
 	
 	method saturate_ctx =
-		if self#increase_ctx self#procs then self#saturate_ctx
+		if self#increase_ctx self#all_procs then self#saturate_ctx
 	
 end;;
 
@@ -1019,3 +1026,23 @@ class cwB_generator ctx pl get_Sols = object(self)
 
 end;;
 
+
+(***** PRIORITY ******)
+
+class coop_priority_cwB ctx pl get_Sols = 
+	let cooperativity_resolver = Ph_cooperativity.resolve !Ph_instance.cooperativities
+	in
+	object(self) 
+		inherit (cwB ctx pl get_Sols) as super
+
+	method cont_set (a,i,j) ctx =
+		let is = super#cont_set (a,i,j) ctx
+		in
+		if SMap.mem a !Ph_instance.cooperativities then (
+			let i_list = cooperativity_resolver (ctx_union self#ctx ctx) a
+			in
+			ISet.union (iset_of_list i_list) is)
+		else 
+			is
+
+end;;

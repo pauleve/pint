@@ -827,6 +827,18 @@ let new_process_reachability env =
 		Inconc
 ;;
 
+(*
+let coop_priority_reachability env =
+	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
+	in
+	if not (unordered_over_approx env get_Sols) then
+		False
+	else if coop_priority_unordered_underapprox env get_Sols then
+		True
+	else
+		Inconc
+;;*)
+
 let get_Sols env = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 ;;
 
