@@ -720,10 +720,7 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		if self#auto_conts then (
 		dbg "Automatically pushing conts";
 		(* update conts_flood with new objectives *)
-		let nodeset_of_objs = 
-			List.fold_left (fun ns obj -> NodeSet.add (NodeObj obj) ns) NodeSet.empty
-		in
-		let conts_flood = self#conts_flooder (nodeset_of_objs new_objs)
+		let conts_flood = self#conts_flooder (self#get_leafs ())
 		in
 		(* we assume the minCont grows *)
 		let register_cont obj = 
