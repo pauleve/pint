@@ -296,11 +296,12 @@ let asp_for_enum (nodes, edges) param =
 	let edgesb = build_edgesb edges
 	in
 	(** Sortie fichier ASP **)
+	(*
 	let rec pow n e =
 	  if e = 0
 		then 1
 		else n * (pow n (e - 1))
-	in
+		in*)
 	"\n% Labelling for parameter enumeration\n"
 	^
 	(*  List.iter (fun n -> (output_string sortie_ASP ("max_param(\"" ^ n ^ "\"," ^ (string_of_int (pow 2 (List.length (Hashtbl.find_all edgesb n)))) ^ ").\n"))) nodes ; *)
