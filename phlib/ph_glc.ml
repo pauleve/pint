@@ -1040,7 +1040,8 @@ let coop_priority_ua_glc_setup = {
 		let is = ua_glc_setup.conts glc_ctx (a,i,j) ctx
 		in
 		if SMap.mem a !Ph_instance.cooperativities then (
-			let ctx = ctx_override_by_ctx glc_ctx ctx
+			(*let ctx = ctx_override_by_ctx glc_ctx ctx*)
+			let ctx = ctx_union glc_ctx ctx
 			in
 			let i_list = coop_resolver ctx a
 			in
