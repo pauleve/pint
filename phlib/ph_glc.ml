@@ -554,7 +554,7 @@ let scc_dead_rel childs scc =
 
 let rec cleanup_gA_for_nkp gA =
 	prerr_endline ("--");
-	let sccs = gA#tarjan_SCCs false (gA#get_leafs ())
+	let sccs = gA#tarjan_SCCs false gA#leafs
 	in
 	let handle_scc todel scc =
 		match scc_dead_rel gA#childs scc with
@@ -691,7 +691,7 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 	val mutable impossible_nobjs = NodeSet.empty
 	method impossible_nobjs = impossible_nobjs
 	method get_trivial_nsols () = trivial_nsols
-	method get_leafs () = NodeSet.union trivial_nsols impossible_nobjs
+	method leafs = NodeSet.union trivial_nsols impossible_nobjs
 	method has_impossible_objs = not (NodeSet.is_empty impossible_nobjs)
 	method ctx = current_ctx
 	method get_impossible_objs = NodeSet.fold (function NodeObj obj -> fun objs -> obj::objs
@@ -720,7 +720,7 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		if self#auto_conts then (
 		dbg "Automatically pushing conts";
 		(* update conts_flood with new objectives *)
-		let conts_flood = self#conts_flooder (self#get_leafs ())
+		let conts_flood = self#conts_flooder self#leafs
 		in
 		(* we assume the minCont grows *)
 		let register_cont obj = 

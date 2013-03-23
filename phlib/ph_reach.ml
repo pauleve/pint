@@ -100,7 +100,7 @@ let color_nodes_connected_to_trivial_sols (gA: #glc) =
 	(*dbg ("Leafs: "^(String.concat ";" (List.map string_of_node (NodeSet.elements (gA#get_leafs ())))));*)
 	let values = Hashtbl.create 50
 	in
-	gA#deprecated_rflood init update_cache push values (gA#get_leafs ());
+	gA#deprecated_rflood init update_cache push values gA#leafs;
 	(*let dbg_value n (g,_) =
 		dbg ("Green("^string_of_node n^") = "^string_of_bool g)
 	in
