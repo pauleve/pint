@@ -316,28 +316,8 @@ object(self)
 			let chgs = NodeSet.fold forward nexts news
 			in
 			if not (NodeSet.is_empty chgs) then (
-				(*dbg ("_flood: "^string_of_int (NodeSet.cardinal chgs)^" changes");*)
 				flood chgs
 			)
-
-		(*
-		and setup n =
-			let push n nv n' n'v =
-				let nv' = update_cache n nv n' n'v
-				in
-				(update_value n nv', snd nv')
-			in
-			let forward v p =
-				try 
-					let pv = Hashtbl.find values p
-					in
-					push n v p pv
-				with Not_found -> v
-			in
-			let v = List.fold_left forward (init n) (_parents n)
-			in
-			Hashtbl.add values n v
-		in*)
 		and setup n =
 			Hashtbl.add values n (init n)
 		in
