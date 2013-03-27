@@ -69,9 +69,9 @@ exception Found
 **)
 type ('a, 'b) flooder_setup = {
 	equality: 'a -> 'a -> bool;	
-	node_init: node -> 'a * 'b NodeMap.t;
-	update_cache: node -> 'a * 'b NodeMap.t -> node -> 'a * 'b NodeMap.t -> 'a * 'b NodeMap.t;
-	update_value: node -> 'a * 'b NodeMap.t -> 'a;
+	node_init: node -> 'a * 'b;
+	update_cache: node -> 'a * 'b -> node -> 'a * 'b  -> 'a * 'b;
+	update_value: node -> 'a * 'b -> 'a;
 }
 
 (**
@@ -333,16 +333,16 @@ object(self)
 	
 	method call_rflood
 		: 'a 'b. ?reversed:bool -> ('a,'b) flooder_setup -> NodeSet.t 
-			-> (node, 'a * 'b NodeMap.t) Hashtbl.t
+			-> (node, 'a * 'b) Hashtbl.t
 			= fun ?reversed:(desc=false) cfg ->
 		self#rflood ~reversed:desc cfg.equality cfg.node_init cfg.update_cache
 						cfg.update_value
 
 	method rflood
-		: 'a 'b. ?reversed:bool -> ('a -> 'a -> bool) -> (node -> 'a * 'b NodeMap.t) 
-			-> (node -> 'a * 'b NodeMap.t -> node -> 'a * 'b NodeMap.t -> 'a * 'b NodeMap.t) (* update_cache *)
-			-> (node -> 'a * 'b NodeMap.t -> 'a) (* update_value *)
-			-> NodeSet.t -> (node, 'a * 'b NodeMap.t) Hashtbl.t
+		: 'a 'b. ?reversed:bool -> ('a -> 'a -> bool) -> (node -> 'a * 'b) 
+			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
+			-> (node -> 'a * 'b -> 'a) (* update_value *)
+			-> NodeSet.t -> (node, 'a * 'b) Hashtbl.t
 		= fun ?reversed:(desc=false) equality init update_cache update_value ns ->
 		let parents, childs = if desc then (self#childs, self#parents)
 										else (self#parents, self#childs)
@@ -657,7 +657,7 @@ let key_procs (gA:#graph) max_nkp ignore_proc leafs =
 *)
 
 type glc_setup = {
-	conts_flooder: (ctx, ctx) flooder_setup;
+	conts_flooder: (ctx, ctx NodeMap.t) flooder_setup;
 	conts: ctx -> objective -> ctx -> ISet.t;
 }
 
@@ -1020,7 +1020,6 @@ let coop_priority_ua_glc_setup = {
 		let is = ua_glc_setup.conts glc_ctx (a,i,j) ctx
 		in
 		if SMap.mem a !Ph_instance.cooperativities then (
-			(*let ctx = ctx_override_by_ctx glc_ctx ctx*)
 			let ctx = ctx_union glc_ctx ctx
 			in
 			let i_list = coop_resolver ctx a
@@ -1029,5 +1028,4 @@ let coop_priority_ua_glc_setup = {
 		else 
 			is
 };;
-
 
