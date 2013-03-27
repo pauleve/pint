@@ -268,68 +268,6 @@ object(self)
 		List.iter (fun c -> Util.hashtbl_filter_bindings rev_edges c (fun m -> n <> m)) cs
 	
 	method iter f = Hashtbl.iter f rev_edges
-
-	method private _flood
-		: 'a 'b. bool -> (node -> 'a * 'b) 
-			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
-			-> (node -> 'a * 'b-> 'a) (* update_value *)
-			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
-		= fun desc init update_cache update_value values ns ->
-		let _childs, _parents = if desc then (self#childs, self#parents)
-										else (self#parents, self#childs)
-		in
-		let rec flood chgs = 
-			(* 1. update cached values of childs *)
-			let update_childs n (nexts, news) =
-				let childs = _childs n
-				and nv = Hashtbl.find values n
-				in
-				let forward_to (nexts, news) n' =
-					let n'v, isnew = try Hashtbl.find values n', false
-						with Not_found -> (init n', true)
-					in
-					let n'v = update_cache n' n'v n nv
-					and news = if isnew then NodeSet.add n' news else news
-					in
-					Hashtbl.replace values n' n'v;
-					(NodeSet.add n' nexts, news)
-				in
-				List.fold_left forward_to (nexts, news) childs
-			in
-			let nexts, news = NodeSet.fold update_childs chgs (NodeSet.empty, NodeSet.empty)
-			in
-
-			(* 2. compute child values *)
-			let forward n chgs = 
-				let (v, nm) = Hashtbl.find values n
-				in
-				let v' = update_value n (v,nm)
-				in
-				let changed = v' <> v
-				and n'v = (v',nm)
-				in
-				let chgs = if changed then NodeSet.add n chgs else chgs
-				in
-				Hashtbl.replace values n n'v;
-				chgs
-			in
-			let chgs = NodeSet.fold forward nexts news
-			in
-			if not (NodeSet.is_empty chgs) then (
-				flood chgs
-			)
-		and setup n =
-			Hashtbl.add values n (init n)
-		in
-		NodeSet.iter setup ns;
-		flood ns
-
-	method deprecated_rflood 
-		: 'a 'b. (node -> 'a * 'b) 
-			-> (node -> 'a * 'b -> node -> 'a * 'b -> 'a * 'b) (* update_cache *)
-			-> (node -> 'a * 'b-> 'a) (* update_value *)
-			-> (node, 'a * 'b) Hashtbl.t -> NodeSet.t -> unit
-		= self#_flood false
 	
 	method call_rflood
 		: 'a 'b. ?reversed:bool -> ('a,'b) flooder_setup -> NodeSet.t 
@@ -822,17 +760,9 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		and update_value n (coloured, is_ms) = coloured
 		in
 		let init n = if NodeSet.mem n im_nobjs then (true, false) else (false, is_ms_objs n)
-		(*and push n v n' v' = (* if SMap.is_empty (fst v') then (v, false) else*)
-			match n, n' with
-			  NodeSol _, NodeProc _
-			| NodeObj _, NodeSol _
-			| NodeProc _, NodeObj _ 
-			| NodeObj _, NodeObj _ -> (update n v n' v')
-			| _ -> failwith "wrong abstract structure graph."
-			*)
-		and flood_values = Hashtbl.create 50
 		in
-		self#deprecated_rflood init update_cache update_value flood_values im_nobjs;
+		let flood_values = self#rflood (=) init update_cache update_value im_nobjs
+		in
 		let get_responsibles n (coloured, is_ms) r =
 			if coloured && is_ms then n::r 
 			else (
