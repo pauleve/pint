@@ -79,7 +79,13 @@ let local_fixed_points register (ps, hits) =
 				let register_cond conds j =
 					let bj_conds = List.map (state_add_proc (b,j)) (min_conds (b,j))
 					in
-					let cross_conds conds cond = (List.map (state_inter cond) bj_conds) @ conds
+					let merge cond conds bj_cond =
+						try
+							state_inter bj_cond cond::conds
+						with Assert_failure _ ->
+							conds
+					in
+					let cross_conds conds cond = List.fold_left (merge cond) conds bj_conds
 					in
 					List.fold_left cross_conds [] conds
 				in
