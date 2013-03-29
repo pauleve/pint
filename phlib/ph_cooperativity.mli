@@ -35,7 +35,12 @@ knowledge of the CeCILL license and that you accept its terms.
 
 (** [resolve !Ph_instance.cooperativities ctx ab] returns the set of process indexes that are
 		coherent with ctx *)
-val resolve : (Ph_types.sort list * (Ph_types.sortidx list -> int)) Ph_types.SMap.t
+val resolve: (Ph_types.sort list * (Ph_types.sortidx list -> int)) Ph_types.SMap.t
 					-> Ph_types.ctx -> Ph_types.sort -> Ph_types.sortidx list
+
+
+(** [local_fixed_points !Ph_instance.cooperativities ph ai] returns the list of semi-global states
+		which are sufficient to ensure ai (local) stability *)
+val local_fixed_points: 'a Ph_types.SMap.t -> Ph_types.ph -> Ph_types.process -> Ph_types.state list
 
 

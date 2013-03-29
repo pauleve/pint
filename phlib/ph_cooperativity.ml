@@ -53,3 +53,42 @@ let resolve register ctx =
 	resolve_sort
 ;;
 
+let local_fixed_points register (ps, hits) =
+	let state_empty = SMap.empty
+	and state_add_proc (a,i) = SMap.add a i
+	and state_inter =
+		let inter a i s =
+			try assert (SMap.find a s = i); s with Not_found -> SMap.add a i s
+		in
+		SMap.fold inter
+	in
+	let rec min_conds (a,i) = 
+		if SMap.mem a register then (
+			let register_hit ctx ((hitter,_),_) = ctx_add_proc hitter ctx
+			in
+			let ai_hits = Hashtbl.find_all hits (a,i)
+			in
+			let unstable_ctx = List.fold_left register_hit ctx_empty ai_hits
+			in
+			let complement_states b is states =
+				let lb = List.assoc b ps
+				in
+				(* levels of b that do not hit ai *)
+				let js = List.filter (fun j -> not (ISet.mem j is)) (Util.range 0 lb)
+				in
+				let register_cond conds j =
+					let bj_conds = List.map (state_add_proc (b,j)) (min_conds (b,j))
+					in
+					let cross_conds conds cond = (List.map (state_inter cond) bj_conds) @ conds
+					in
+					List.fold_left cross_conds [] conds
+				in
+				List.fold_left register_cond states js
+			in
+			SMap.fold complement_states unstable_ctx [state_empty]
+		) else
+			[state_empty]
+	in
+	min_conds
+;;
+

@@ -82,7 +82,12 @@ type ('a, 'b) flooder_setup = {
 		where nm is the cached value of childs
  **)
 
-let default_flooder_node_init empty_value = fun n -> empty_value, NodeMap.empty
+let default_flooder_node_init empty_value = 
+	fun n -> empty_value, NodeMap.empty
+;;
+let default_flooder_update_cache n (v,nm) n' (v',_) =
+	(v, NodeMap.add n' v' nm)
+;;
 
 let union_value nm =
 	NodeMap.fold (fun _ -> ctx_union) nm ctx_empty
@@ -95,9 +100,6 @@ let inter_value nm =
 		match r with
 		  None -> ctx_empty
 		| Some c -> c
-;;
-let update_cache n (v,nm) n' (v',_) =
-	(v, NodeMap.add n' v' nm)
 ;;
 
 
@@ -582,7 +584,7 @@ let key_procs (gA:#graph) max_nkp ignore_proc leafs =
     in  
 	let t0 = Sys.time ()
 	in
-    let flood_values = gA#rflood PSSet.equal init update_cache update_value leafs
+    let flood_values = gA#rflood PSSet.equal init default_flooder_update_cache update_value leafs
 	in
 	print_endline ("****** systime: "^string_of_float (Sys.time () -. t0)^"s");
 	print_endline ("Visited nodes: "^string_of_int !total_count);
@@ -894,7 +896,7 @@ let min_conts_flooder =
 		match n, n' with
 		  NodeSol _, NodeProc _
 		| NodeObj _, NodeSol _
-		| NodeProc _, NodeObj _ -> update_cache n v n' v'
+		| NodeProc _, NodeObj _ -> default_flooder_update_cache n v n' v'
 		| NodeObj _, NodeObj _ -> v (* ignore Cont rels *)
 		| _ -> failwith "wrong abstract structure graph."
 	and update_value n (ctx, nm) =
@@ -906,7 +908,7 @@ let min_conts_flooder =
 			in
 			SMap.add a (ISet.singleton i) ctx'
 	in {
-	equality = (=);
+	equality = ctx_equal;
 	node_init = default_flooder_node_init ctx_empty;
 	update_cache = update_cache;
 	update_value = update_value;
@@ -942,20 +944,19 @@ let ua_glc_setup = {
 	conts = oa_glc_setup.conts;
 };;
 
-let coop_priority_ua_glc_setup = {
-	conts_flooder = ua_glc_setup.conts_flooder;
-	conts = fun glc_ctx (a,i,j) ctx ->
-		let coop_resolver = Ph_cooperativity.resolve !Ph_instance.cooperativities
-		in
-		let is = ua_glc_setup.conts glc_ctx (a,i,j) ctx
-		in
-		if SMap.mem a !Ph_instance.cooperativities then (
-			let ctx = ctx_union glc_ctx ctx
-			in
-			let i_list = coop_resolver ctx a
-			in
-			ISet.union (iset_of_list i_list) is)
-		else 
-			is
+
+(**
+	Simple flooders
+**)
+
+let allprocs_flooder =
+	let update_value n (ps, nm) = match n with
+		  NodeSol _ | NodeObj _ -> union_value nm
+		| NodeProc ai -> ctx_add_proc ai (union_value nm)
+	in {
+	equality = ctx_equal;
+	node_init = default_flooder_node_init ctx_empty;
+	update_cache = default_flooder_update_cache;
+	update_value = update_value;
 };;
 

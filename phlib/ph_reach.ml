@@ -97,7 +97,7 @@ let color_nodes_connected_to_trivial_sols (gA: #glc) =
 		new_v
 	in
 
-	let values = gA#rflood (=) init update_cache push gA#leafs
+	let values = gA#rflood (=) init default_flooder_update_cache push gA#leafs
 	in
 	(*let dbg_value n (g,_) =
 		dbg ("Green("^string_of_node n^") = "^string_of_bool g)
@@ -126,7 +126,7 @@ let unordered_over_approx env get_Sols =
 
 
 
-let unordered_ua env get_Sols glc_setup =
+let unordered_ua ?validate:(validate = fun _ -> true) env get_Sols glc_setup =
 	let gB_iterator = new glc_generator glc_setup env.ctx env.pl get_Sols
 	in
 	let rec __check gB =
@@ -148,7 +148,8 @@ let unordered_ua env get_Sols glc_setup =
 				gB#set_auto_conts true;
 				gB#commit ();
 				__check gB
-			) else true
+			) else 
+				validate gB
 		)
 	in
 	let rec iter_gBs () =
@@ -176,11 +177,63 @@ let local_reachability env =
 ;;
 
 let coop_priority_reachability env =
+	let is_cooperative a = SMap.mem a !Ph_instance.cooperativities
+	in
+	let validate_ua_glc (glc:#glc) =
+		(* associate to each nodes the children processes *)
+		let child_procs = glc#call_rflood allprocs_flooder glc#leafs
+		in
+		(* iter over cooperative objectives and check their solutions *)
+		let validate_obj obj =
+			if is_cooperative (obj_sort obj) then (
+				(* TODO: conds bj is static; use cache *)
+				let conds = Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities
+								env.ph (obj_bounce_proc obj)
+				in
+				(*prerr_endline (". conds = [" 
+									^ (String.concat " ; " (List.map string_of_state conds))
+									^ " ]");*)
+				let validate_sol nsol =
+					prerr_endline ("checking "^string_of_node nsol);
+					let (obj, ps) = match nsol with NodeSol x -> x | _ -> assert false
+					and allprocs_sol = fst (Hashtbl.find child_procs nsol)
+					in
+					prerr_endline (". allprocs_sol = " ^ string_of_ctx allprocs_sol);
+					(* check only with conds that are coherent with ps *)
+					let cond_select cond = PSet.for_all (fun (a,i) -> try SMap.find a cond == i
+						with Not_found -> failwith "invalid cond (coop_priority_reachability)") ps
+					in
+					let conds = List.filter cond_select conds
+					in
+					prerr_endline (". conds = [" 
+										^ (String.concat " ; " (List.map string_of_state conds))
+										^ " ]");
+					(* check that cond includes allprocs_sol *)
+					let cond_match cond =
+						let cap a i =
+							try
+								let js = ctx_get a allprocs_sol
+								in
+								ISet.cardinal js <= 1 && ISet.choose js == i
+							with Not_found -> true
+						in
+						SMap.for_all cap cond
+					in
+					List.for_all cond_match conds
+				in
+				let sols = List.filter (function NodeSol _ -> true | _ -> false)
+					(glc#childs (NodeObj obj))
+				in
+				List.for_all validate_sol sols
+			) else true
+		in
+		ObjSet.for_all validate_obj glc#objs
+	in
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
 	if not (unordered_over_approx env get_Sols) then
 		False
-	else if unordered_ua env get_Sols coop_priority_ua_glc_setup then
+	else if unordered_ua ~validate:validate_ua_glc env get_Sols ua_glc_setup then
 		True
 	else
 		Inconc
