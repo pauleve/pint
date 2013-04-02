@@ -78,6 +78,8 @@ OSX_W=/tmp/osx-pint/pint-$(RELNAME)
 OSX_W_BIN=/tmp/osx-pint/pint-$(RELNAME)/pint
 OSX_W_SHARE=$(OSX_W_BIN)/share
 OSX_BINS=phc ph-stat ph-stable ph-reach ph-exec ph2thomas
+
+# should be called using ./dist/osx/do.sh
 dist-osx: phc phstat phstable phreach phexec ph2thomas
 	-rm -rf $(OSX_W)
 	install -d $(OSX_W_BIN)
