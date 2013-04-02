@@ -129,13 +129,34 @@ let unordered_over_approx env get_Sols =
 let unordered_ua ?validate:(validate = fun _ -> true) env get_Sols glc_setup =
 	let gB_iterator = new glc_generator glc_setup env.ctx env.pl get_Sols
 	in
+	(*let i = ref 0 in*)
 	let rec __check gB =
 		if gB#has_impossible_objs then (
-			prerr_endline ("has_impossible_objs! "^
+			dbg ("has_impossible_objs! "^
 				(String.concat ";" (List.map string_of_obj gB#get_impossible_objs)));
-			let objs = gB#analyse_impossible_objs gB_iterator#multisols_objs
+			(*
+			let cout = open_out ("/tmp/glc"^string_of_int !i^".dot")
 			in
-			gB_iterator#change_objs objs;
+			i := !i + 1;
+			output_string cout gB#to_dot;
+			close_out cout;*)
+			let ms_objs =  gB_iterator#multisols_objs
+			in
+			let objs = gB#analyse_impossible_objs ms_objs
+			in
+			let rec push_ancestors ms_objs objs =
+				let ms_objs = ObjSet.diff ms_objs objs
+				in
+				let objs = gB#ancestors ms_objs objs
+				in
+				if not (ObjSet.is_empty objs) then ( 
+					objs::push_ancestors ms_objs objs;
+				) else [objs]
+			in
+			let seq_objs = objs::push_ancestors ms_objs objs
+			in
+			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
+						(List.rev seq_objs);
 			false
 		) else if gB#has_loops then (
 			dbg "has_loops!";

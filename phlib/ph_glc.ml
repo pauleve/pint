@@ -738,9 +738,32 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		if self#increase_ctx self#all_procs then self#saturate_ctx
 	
 
+	method ancestors candidates objs =
+		let sources = ObjSet.fold (fun obj -> NodeSet.add (NodeObj obj)) objs NodeSet.empty
+		in
+		let is_candidate = function NodeObj obj -> ObjSet.mem obj candidates | _ -> false
+		and is_source n = NodeSet.mem n sources
+		in
+		let init n = if is_source n then (true, false) else (false, is_candidate n)
+		and update_cache n (coloured, is_ms) n' (coloured', is_ms') =
+			if (not is_ms') && (not coloured) && coloured' then
+				(true,is_ms)
+			else
+				(coloured,is_ms)
+		and update_value n (coloured, is_ms) = coloured
+		in
+		let flood_values = self#rflood (=) init update_cache update_value sources
+		in
+		let get_responsibles n (coloured, is_ms) r =
+			if coloured && is_ms then ObjSet.add (obj_from_node n) r else r
+		in
+		let r = Hashtbl.fold get_responsibles flood_values ObjSet.empty
+		in
+		dbg ("Ancestors: "^String.concat ", " (List.map string_of_obj (ObjSet.elements r)));
+		r
 
 	method analyse_impossible_objs ms_objs =
-		prerr_endline ("multisols objs: "^string_of_set string_of_obj ObjSet.elements ms_objs);
+		dbg ("multisols objs: "^string_of_set string_of_obj ObjSet.elements ms_objs);
 		let im_nobjs = self#impossible_nobjs
 		in
 		(*
@@ -766,7 +789,7 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		let flood_values = self#rflood (=) init update_cache update_value im_nobjs
 		in
 		let get_responsibles n (coloured, is_ms) r =
-			if coloured && is_ms then n::r 
+			if coloured && is_ms then ObjSet.add (obj_from_node n) r
 			else (
 				(if coloured then match n with
 					    NodeObj obj -> if List.mem (obj_bounce_proc obj) pl then 
@@ -775,15 +798,15 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 				r
 			)
 		in
-		let r = Hashtbl.fold get_responsibles flood_values []
+		let r = Hashtbl.fold get_responsibles flood_values ObjSet.empty
 		in
-		prerr_endline ("Responsibles: "^String.concat ", " (List.map string_of_node r));
-		List.map obj_from_node r
+		dbg ("Responsibles: "^String.concat ", " (List.map string_of_obj (ObjSet.elements r)));
+		r
 	
 	method analyse_loop loop ms_objs =
 		let r = List.filter (function NodeObj obj -> ObjSet.mem obj ms_objs | _ -> false) loop
 		in
-		prerr_endline ("Loop responsibles: "^String.concat ", " (List.map string_of_node r));
+		dbg ("Loop responsibles: "^String.concat ", " (List.map string_of_node r));
 		List.map obj_from_node r
 end;;
 
@@ -807,7 +830,7 @@ let empty_choices_queue () =
 	q
 ;;
 
-module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = compare end)
+module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = ObjMap.compare compare end)
 
 
 class glc_generator glc_setup ctx pl get_Sols =
@@ -851,7 +874,7 @@ class glc_generator glc_setup ctx pl get_Sols =
 	method push_choices choices =
 		if not (ObjMapSet.mem choices known_choices) then (
 			known_choices <- ObjMapSet.add choices known_choices;
-			prerr_endline ("::: pushing choices "^string_of_choices choices);
+			dbg ("::: pushing choices "^string_of_choices choices);
 			queue <- choices::queue
 			(*Queue.push choices queue*)
 		) else
@@ -863,7 +886,7 @@ class glc_generator glc_setup ctx pl get_Sols =
 				let n = ObjMap.find obj choices
 				in
 				(* TODO: handle overflow *)
-				ObjMap.add obj (n+1) choices
+				ObjMap.add obj ((n+1) mod List.length (get_Sols obj)) choices
 			with Not_found ->
 				ObjMap.add obj 1 choices
 		in
@@ -875,7 +898,7 @@ class glc_generator glc_setup ctx pl get_Sols =
 		(*let choices = Queue.pop queue*)
 		let choices = List.hd queue
 		in
-		prerr_endline ("::: playing choices "^string_of_choices choices);
+		dbg ("::: playing choices "^string_of_choices choices);
 		current_choices <- choices;
 		queue <- List.tl queue;
 		let gB = new glc glc_setup ctx pl (self#get_Sols choices)
