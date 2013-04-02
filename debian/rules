@@ -11,7 +11,7 @@ build-stamp:
 	dh_testdir
 	touch build-stamp
 	python setup.py --share-path /usr/share/pint
-	make
+	LDFLAGS=-L$(HOME)/tmp/r-mathlib/usr/lib CFLAGS=-I$(HOME)/tmp/r-mathlib/usr/include make
 
 clean:
 	dh_testdir
