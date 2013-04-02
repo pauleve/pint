@@ -5,8 +5,8 @@ type: :task
 component: phreach
 release: 
 reporter: LP <lp@inzenet.org>
-status: :unstarted
-disposition: 
+status: :closed
+disposition: :fixed
 creation_time: 2012-10-16 12:13:33.758080 Z
 references: []
 
@@ -15,4 +15,8 @@ log_events:
 - - 2012-10-16 12:13:35.093902 Z
   - LP <lp@inzenet.org>
   - created
+  - ""
+- - 2013-04-02 15:18:20.952332 Z
+  - LP <lp@inzenet.org>
+  - closed with disposition fixed
   - ""

@@ -5,8 +5,8 @@ type: :bugfix
 component: phreach
 release: phd
 reporter: LP <lp@inzenet.org>
-status: :unstarted
-disposition: 
+status: :closed
+disposition: :fixed
 creation_time: 2011-09-12 17:50:57.310622 Z
 references: []
 
@@ -16,3 +16,7 @@ log_events:
   - LP <lp@inzenet.org>
   - created
   - ""
+- - 2013-04-02 15:20:28.576271 Z
+  - LP <lp@inzenet.org>
+  - closed with disposition fixed
+  - Cannot reproduce anymore
