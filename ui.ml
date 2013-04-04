@@ -49,6 +49,7 @@ let setup_opt_initial_procs opt =
 let common_cmdopts = [
 	("--no-debug", Arg.Clear Debug.dodebug, "Disable debugging");
 	("--debug", Arg.Set Debug.dodebug, "Enable debugging");
+	("--debug-level", Arg.Set_int Debug.debuglevel, "Maximum debug level");
 	("--version", Arg.Unit (fun () ->
 			print_endline ("Pint version "^Distenv.version);
 			ignore(exit 0)), "Print Pint version and quit");

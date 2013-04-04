@@ -874,11 +874,11 @@ class glc_generator glc_setup ctx pl get_Sols =
 	method push_choices choices =
 		if not (ObjMapSet.mem choices known_choices) then (
 			known_choices <- ObjMapSet.add choices known_choices;
-			dbg ("::: pushing choices "^string_of_choices choices);
+			dbg ~level:1 ("::: pushing choices "^string_of_choices choices);
 			queue <- choices::queue
 			(*Queue.push choices queue*)
 		) else
-			dbg ("skip "^string_of_choices choices)
+			dbg ~level:1 ("skip "^string_of_choices choices)
 
 	method change_objs objs =
 		let change_obj choices obj =
@@ -898,7 +898,7 @@ class glc_generator glc_setup ctx pl get_Sols =
 		(*let choices = Queue.pop queue*)
 		let choices = List.hd queue
 		in
-		dbg ("::: playing choices "^string_of_choices choices);
+		dbg ~level:1 ("::: playing choices "^string_of_choices choices);
 		current_choices <- choices;
 		queue <- List.tl queue;
 		let gB = new glc glc_setup ctx pl (self#get_Sols choices)

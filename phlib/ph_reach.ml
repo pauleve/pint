@@ -132,7 +132,7 @@ let unordered_ua ?validate:(validate = fun _ -> true) env get_Sols glc_setup =
 	(*let i = ref 0 in*)
 	let rec __check gB =
 		if gB#has_impossible_objs then (
-			dbg ("has_impossible_objs! "^
+			dbg ~level:1 ("has_impossible_objs! "^
 				(String.concat ";" (List.map string_of_obj gB#get_impossible_objs)));
 			(*
 			let cout = open_out ("/tmp/glc"^string_of_int !i^".dot")
@@ -159,7 +159,7 @@ let unordered_ua ?validate:(validate = fun _ -> true) env get_Sols glc_setup =
 						(List.rev seq_objs);
 			false
 		) else if gB#has_loops then (
-			dbg "has_loops!";
+			dbg ~level:1 "has_loops!";
 			let objs = gB#analyse_loop gB#last_loop gB_iterator#multisols_objs
 			in
 			gB_iterator#change_objs objs;

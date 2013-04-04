@@ -36,7 +36,9 @@ knowledge of the CeCILL license and that you accept its terms.
 *)
 
 let dodebug = ref false;;
+let debuglevel = ref 1;;
 
-let dbg_noendl msg = if !dodebug then (prerr_string msg; flush stderr) else ();;
-let dbg msg = dbg_noendl (msg^"\n");;
+let dbg_noendl ?level:(level = 5) msg =
+	if !dodebug && (level <= !debuglevel) then (prerr_string msg; flush stderr) else ();;
+let dbg ?level:(level = 5) msg = dbg_noendl ~level:level (msg^"\n");;
 
