@@ -22,157 +22,157 @@
 
 %%% Fonctions standard
 
-% Fonctions pour Process Hitting
-gene(A,P) :- sort(A,P), not cooperative_sort(A).
+%% Fonctions pour Process Hitting
+gene(A,AP) :- sort(A,AP), not cooperative_sort(A).
 is_gene(A) :- gene(A,_).
-is_process(A,I) :- gene(A,P), I = 0..P.
-is_bounce(A,I,J) :- is_process(A,I), is_process(A,J), I != J.
+is_process(A,AI) :- gene(A,AP), AI=0..AP.
+is_bounce(A,AI,AJ) :- is_process(A,AI), is_process(A,AJ), AI!=AJ.
 
-cooperative_sort(CS,P) :- cooperative_sort(CS), sort(CS,P).
+cooperative_sort(CS,AP) :- cooperative_sort(CS), sort(CS,AP).
 is_cs(CS) :- cooperative_sort(CS,_).  % cs = cooperative sort
 is_gene_or_cs(A) :- is_gene(A).
 is_gene_or_cs(CS) :- is_cs(CS).
 cs_of(A,CS) :- cooperation(CS,A,_,_).
-is_process_of_cs(CS,I) :- cooperative_sort(CS,P), I = 0..P.
-is_bounce_of_cs(CS,I,J) :- is_process_of_cs(CS,I), is_process_of_cs(CS,J), I != J.
+is_process_of_cs(CS,AI) :- cooperative_sort(CS,AP), AI=0..AP.
+is_bounce_of_cs(CS,AI,AJ) :- is_process_of_cs(CS,AI), is_process_of_cs(CS,AJ), AI!=AJ.
 
-% Fonctions pour le modèle de Thomas
+%% Fonctions pour le modèle de Thomas
 is_predec(A,B) :- edge(A,_,_,B).
-% Compatibilité
+is_predec_pos(A,B) :- edge(A,"positive",_,B).
+is_predec_neg(A,B) :- edge(A,"negative",_,B).
+%% Compatibilité
 edge(A,"positive",X,B) :- edge(A,"+",X,B).
 edge(A,"negative",X,B) :- edge(A,"-",X,B).
+edge(A,"unsigned",X,B) :- edge(A,"?",X,B).
 
-% Fonctions concernant la paramétrisation
-gene_levels(A,0..I) :- gene(A,I).
+%% Fonctions concernant la paramétrisation
+gene_levels(A,0..AI) :- gene(A,AI).
+temp_less_active(A,PA1,PA2) :- param_label(A,PA1), param_label(A,PA2,B),
+  not param_label(A,PA1,B), is_predec_pos(B,A).
+temp_less_active(A,PA1,PA2) :- param_label(A,PA1,B), param_label(A,PA2),
+  not param_label(A,PA2,B), is_predec_neg(B,A).
+less_active(A,PA1,PA2) :- temp_less_active(A,PA1,PA2), not temp_less_active(A,PA2,PA1).
 
-temp_less_active(A,P1,P2) :- param_label(A,P1), param_label(A,P2,B), not param_label(A,P1,B).
-less_active(A,P1,P2) :- temp_less_active(A,P1,P2), not temp_less_active(A,P2,P1).
-
-temp_exists_more_active(A,P) :- less_active(A,P,_).
-max_active(A,P) :- param_label(A,P), not temp_exists_more_active(A,P).
-temp_exists_less_active(A,P) :- less_active(A,_,P).
-min_active(A,P) :- param_label(A,P), not temp_exists_less_active(A,P).
-
-%is_param(P) :- param_label(_,P).
+temp_exists_more_active(A,PA) :- less_active(A,PA,_).
+max_active(A,PA) :- param_label(A,PA), not temp_exists_more_active(A,PA).
+temp_exists_less_active(A,PA) :- less_active(A,_,PA).
+min_active(A,PA) :- param_label(A,PA), not temp_exists_less_active(A,PA).
 
 
 
 %%% Contraintes d'intégrité
 
-% Sur le Process Hitting
-:- sort(_,P), P <= 0.
+%% Sur le Process Hitting
+:- sort(_,P), P<=0.
 
-:- action(A,I,_,_,_), not is_process(A,I), not is_process_of_cs(A,I).
-:- action(_,_,B,J,K), not is_bounce(B,J,K), not is_bounce_of_cs(B,J,K).
-:- action(_,_,B,J,K), #abs(J-K) != 1, is_gene(B).
-:- action(A,I,A,J,K), I != J.
+:- action(A,AI,_,_,_), not is_process(A,AI), not is_process_of_cs(A,AI).
+:- action(_,_,B,BJ,BK), not is_bounce(B,BJ,BK), not is_bounce_of_cs(B,BJ,BK).
+:- action(_,_,B,BJ,BK), #abs(BJ-BK)!=1, is_gene(B).
+:- action(A,AI,A,AJ,AK), AI!=AJ.
 
 is_cs_debug(CS) :- cooperation(CS,_,_,_).
 :- is_cs(CS), not is_cs_debug(CS).
 :- is_cs_debug(CS), not is_cs(CS).
-:- cooperation(_,A,I,_), not is_process(A,I), not is_process_of_cs(A,I).
+:- cooperation(_,A,AI,_), not is_process(A,AI), not is_process_of_cs(A,AI).
 %:- cooperation(CS,A,I1,J), cooperation(CS,A,I2,J), I1 != I2. % Non -> cas de représentations de plusieurs processus
-at_least_one_cooperation_debug(CS,A,J) :- is_process(A,I), is_process_of_cs(CS,J), cs_of(A,CS), cooperation(CS,A,I,J).
-:- is_process_of_cs(CS,J), is_gene(A), cs_of(A,CS), not at_least_one_cooperation_debug(CS,A,J).
+at_least_one_cooperation_debug(CS,A,CSJ) :- is_process(A,AI), is_process_of_cs(CS,CSJ),
+  cs_of(A,CS), cooperation(CS,A,AI,CSJ).
+:- is_process_of_cs(CS,CSJ), is_gene(A), cs_of(A,CS),
+  not at_least_one_cooperation_debug(CS,A,CSJ).
 
-% Sur le Graphe des Interactions (Thomas)
-:- edge(A,_,I,_), not is_process(A,I).
+%% Sur le Graphe des Interactions (Thomas)
+:- edge(A,_,AI,_), not is_process(A,AI).
 :- edge(_,_,_,B), not is_gene(B).
-:- edge(_,S,_,_), S != "positive", S != "negative", S != "+", S != "-".
+:- edge(_,S,_,_), S!="positive", S!="negative", S!="unsigned", S!="+", S!="-", S!="?".
 :- edge(_,"?",_).
 
-% Sur les paramètres
+%% Sur les paramètres
 :- param_label(B,_), not is_gene(B).
 :- param_label(_,P), P <= 0.
-:- param_label(B,P,_), not param_label(B,P).
+:- param_label(B,PB,_), not param_label(B,PB).
 :- param_label(_,_,A), not is_gene(A).
 :- param_label(B,_,A), not is_predec(A,B).
-:- param(A,P,_), not param_label(A,P).
-:- param(A,_,I), not gene_levels(A,I).
+:- param(A,PA,_), not param_label(A,PA).
+:- param(A,_,AI), not gene_levels(A,AI).
 
 
 
 %%% Résolution de l'énumération des paramètres possibles
-% Reprendre la valeur des paramètres inférés
-infered_param(A,P) :- param(A,P,_).
-enum_param(A,P,V) :- infered_param(A,P), param(A,P,V).
-% Au moins une valeur par paramètre
-1 {enum_param(A,P,V) : gene_levels(A,V)} :- is_gene(A), param_label(A,P), not infered_param(A,P).
-%% Restriction aux plages trouvées pour les paramètres déjà inférés
-% Non : pas de comportements supplémentaires
-%infered_param(A,P) :- param(A,P,_).
-%:- enum_param(A,P,V), infered_param(A,P), not param(A,P,V).
-% Bornes supérieure et inférieure
+
+%% Reprendre la valeur des paramètres inférés
+infered_param(A,PA) :- param(A,PA,_).
+enum_param(A,PA,AV) :- infered_param(A,PA), param(A,PA,AV).
+%% Au moins une valeur par paramètre
+1 {enum_param(A,PA,AV) : gene_levels(A,AV)} :- is_gene(A), param_label(A,PA),
+  not infered_param(A,PA).
+%% Pas de trou dans les intervalles
+exists_param_more(A,PA,AI) :- enum_param(A,PA,AI), enum_param(A,PA,AJ), AI<AJ.
+param_max(A,PA,AI) :- enum_param(A,PA,AI), not exists_param_more(A,PA,AI).
+exists_param_less(A,PA,AI) :- enum_param(A,PA,AI), enum_param(A,PA,AJ), AJ<AI.
+param_min(A,PA,AI) :- enum_param(A,PA,AI), not exists_param_less(A,PA,AI).
+:- param_min(A,PA,AMin), param_max(A,PA,AMax), AI=AMin..AMax, not enum_param(A,PA,AI).
+
+
+
+%%% Contraintes biologiques
+
+%% Bornes supérieure et inférieure
 temp_has_predec(A) :- is_predec(_,A).
-enum_param(A,P,0) :- min_active(A,P), temp_has_predec(A).
-enum_param(A,P,I) :- gene(A,I), max_active(A,P), temp_has_predec(A).
-% Pas de trou dans les intervalles
-exists_param_more(A,P,I) :- enum_param(A,P,I), enum_param(A,P,J), I < J.
-param_max(A,P,I) :- enum_param(A,P,I), not exists_param_more(A,P,I).
-exists_param_less(A,P,I) :- enum_param(A,P,I), enum_param(A,P,J), J < I.
-param_min(A,P,I) :- enum_param(A,P,I), not exists_param_less(A,P,I).
-:- param_min(A,P,Min), param_max(A,P,Max), I = Min..Max, not enum_param(A,P,I).
-% Ordre entre les paramètres
+temp_min_active_ok(A) :- enum_param(A,PA,0), min_active(A,PA).
+temp_max_active_ok(A) :- enum_param(A,PA,AI), gene(A,AI), max_active(A,PA).
+:- temp_has_predec(A), not temp_min_active_ok(A).
+:- temp_has_predec(A), not temp_max_active_ok(A).
 %% Monotonicité [Def 3.5 de Bernot et al.] (Moins activé => inférieur ou égal)
-param_inf(A,P1,P2) :- param_min(A,P1,Min1), param_max(A,P1,Max1), param_min(A,P2,Min2), param_max(A,P2,Max2), Min1 <= Min2, Max1 <= Max2.
-:- less_active(A,P1,P2), not param_inf(A,P1,P2).
+param_inf(A,PA1,PA2) :- param_min(A,PA1,AMin1), param_max(A,PA1,AMax1), param_min(A,PA2,AMin2),
+  param_max(A,PA2,AMax2), AMin1<=AMin2, AMax1<=AMax2.
+:- less_active(A,PA1,PA2), not param_inf(A,PA1,PA2).
 %% Activation [Def 3.4 de Bernot et al.] (Plus activé => au moins un strictement supérieur)
-param_str_inf(A,P1,P2) :- param_min(A,P1,Min1), param_max(A,P1,Max1), param_min(A,P2,Min2), param_max(A,P2,Max2), Min1 < Min2, Max1 <= Max2.
-param_str_inf(A,P1,P2) :- param_min(A,P1,Min1), param_max(A,P1,Max1), param_min(A,P2,Min2), param_max(A,P2,Max2), Min1 <= Min2, Max1 < Max2.
-temp_activation_ok(A,B) :- is_predec(B,A), param_label(A,P1), param_label(A,P2), param_label(A,P2,B), not param_label(A,P1,B), param_str_inf(A,P1,P2).
+param_str_inf(A,PA1,PA2) :- param_min(A,PA1,AMin1), param_max(A,PA1,AMax1),
+  param_min(A,PA2,AMin2), param_max(A,PA2,AMax2), AMin1<AMin2, AMax1<=AMax2.
+param_str_inf(A,PA1,PA2) :- param_min(A,PA1,AMin1), param_max(A,PA1,AMax1),
+  param_min(A,PA2,AMin2), param_max(A,PA2,AMax2), AMin1<=AMin2, AMax1<AMax2.
+temp_activation_ok(A,B) :- is_predec(B,A), param_label(A,PA1), param_label(A,PA2),
+  param_label(A,PA2,B), not param_label(A,PA1,B), param_str_inf(A,PA1,PA2).
+temp_activation_ok(A,B) :- is_predec(B,A), param_label(A,PA1), param_label(A,PA2),
+  param_label(A,PA2,B), not param_label(A,PA1,B), param_str_inf(A,PA2,PA1).
 :- is_gene(A), is_predec(B,A), not temp_activation_ok(A,B).
 
-% Paramètres simples uniquement
-%% À activer si souhaité
+
+
+%%% Paramètres simples uniquement
+%% Activé dans le programme principal
 %:- enum_param(A,P,I), enum_param(A,P,J), I != J, not infered_param(A,P).
 
-% Respect de la dynamique du PH
-%% Contexte
-% Niveaux +/−
-levels_plus(A,B,I) :- edge(A,"positive",T,B), gene(A,P), I = T..P.
-levels_plus(A,B,I) :- edge(A,"negative",T,B), I = 0..T-1.
-levels_minus(A,B,I) :- edge(A,"negative",T,B), gene(A,P), I = T..P.
-levels_minus(A,B,I) :- edge(A,"positive",T,B), I = 0..T-1.
-% Context^b_{a,A,B}   % Contexte
-sContext(A,P,B,I) :- levels_plus(B,A,I), param_label(A,P,B).
-sContext(A,P,B,I) :- param_label(A,P), levels_minus(B,A,I), not param_label(A,P,B).
-sContext(A,P,B,I) :- gene(B,L), I = 0..L, param_label(A,P), not is_predec(B,A).
-temp_context_cs(A,P,CS,B,I) :- cooperation(CS,B,J,I), sContext(A,P,B,J).
-temp_context_cs_neg(A,P,CS,I) :- param_label(A,P), is_process_of_cs(CS,I), cs_of(B,CS), not temp_context_cs(A,P,CS,B,I).
-sContext(A,P,CS,I) :- param_label(A,P), is_process_of_cs(CS,I), not temp_context_cs_neg(A,P,CS,I).
-% Actions possibles
-exists_action(A,P,I,J) :- action(C,K,A,I,J), sContext(A,P,C,K).
-% Contraintes
-:- is_bounce(A,I,J), not enum_param(A,P,I), not exists_action(A,P,I,J), I < KMin, param_min(A,P,KMin), J > I, #abs(I - J) == 1.
-:- is_bounce(A,I,J), not enum_param(A,P,I), not exists_action(A,P,I,J), I > KMin, param_min(A,P,KMin), J < I, #abs(I - J) == 1.
-%debug_NOT_VALID1(A,P,I,J) :- is_bounce(A,I,J), not enum_param(A,P,I), not exists_action(A,P,I,J), I < KMin, param_min(A,P,KMin), J > I, #abs(I - J) == 1.
-%debug_NOT_VALID2(A,P,I,J) :- is_bounce(A,I,J), not enum_param(A,P,I), not exists_action(A,P,I,J), I > KMin, param_min(A,P,KMin), J < I, #abs(I - J) == 1.
 
-%%% Autres ?
+
+%%% Respect de la dynamique du PH
+
+%% Contexte : Niveaux_+/−
+levels(A,B,AI) :- edge(A,_,AT,B), gene(A,AP), AI=AT..AP.
+ulevels(A,B,AI) :- edge(A,_,AT,B), AI=0..AT-1.
+%% Contecte : Context^b_{a,A,B}
+sContext(A,PA,B,BI) :- levels(B,A,BI), param_label(A,PA,B).
+sContext(A,PA,B,BI) :- param_label(A,PA), ulevels(B,A,BI), not param_label(A,PA,B).
+sContext(A,PA,B,BI) :- gene(B,BL), BI=0..BL, param_label(A,PA), not is_predec(B,A).
+temp_context_cs(A,PA,CS,B,CSI) :- cooperation(CS,B,BJ,CSI), sContext(A,PA,B,BJ).
+temp_context_cs_neg(A,PA,CS,CSI) :- param_label(A,PA), is_process_of_cs(CS,CSI), cs_of(B,CS),
+  not temp_context_cs(A,PA,CS,B,CSI).
+sContext(A,PA,CS,CSI) :- param_label(A,PA), is_process_of_cs(CS,CSI),
+  not temp_context_cs_neg(A,PA,CS,CSI).
+%% Actions possibles
+exists_action(A,PA,AI,AJ) :- action(C,CK,A,AI,AJ), sContext(A,PA,C,CK).
+%% Contraintes
+:- is_bounce(A,AI,AJ), sContext(A,PA,A,AI), not enum_param(A,PA,AI),
+  not exists_action(A,PA,AI,AJ), AI<AKMin, param_min(A,PA,AKMin), AJ>AI, #abs(AI-AJ)==1.
+:- is_bounce(A,AI,AJ), sContext(A,PA,A,AI), not enum_param(A,PA,AI),
+  not exists_action(A,PA,AI,AJ), AI>AKMin, param_min(A,PA,AKMin), AJ<AI, #abs(AI-AJ)==1.
+
 
 
 %%% Affichage des solutions
 #hide.
 
-% Inférence des paramètres
-%#show gene_levels/2.
-%#show temp_less_active/3.
-%#show less_active/3.
-
-%#show temp_has_predec/1.
-%#show max_active/2.
-%#show min_active/2.
-
-%#show param/3.
 #show enum_param/3.
-
-%#show param_label/3.
-%#show sContext/4.
-%#show exists_action/4.
-
 #show result/1.
 #show error/1.
-
-%#show debug_NOT_VALID1/4.
-%#show debug_NOT_VALID2/4.
 
