@@ -240,12 +240,12 @@ let build_edgesb edges =
 	edgesb
 ;;
 
-let string_AB_of_params (nodes, edges) param =
+let string_active_of_params (nodes, edges) param =
 	let edgesb = build_edgesb edges
 	in
   let iterator n c =
     ("k_ " ^ n ^ ", {")
-    ^ (string_of_list ";" id c)
+    ^ (string_of_list ";" id (List.sort compare c))
     ^ "}  =  {"
     ^ (string_of_list " " string_of_int (Hashtbl.find_all param (n, c)))
 	^ "}\n"
@@ -254,7 +254,7 @@ let string_AB_of_params (nodes, edges) param =
   			(List.map (fun c -> iterator n (List.sort compare c)) (powerset (Hashtbl.find_all edgesb n)))) nodes)
 ;;
 
-let string_active_of_params (nodes, edges) param =
+let string_AB_of_params (nodes, edges) param =
 	let edgesb = build_edgesb edges
 	in
 	let active l a =
@@ -271,7 +271,7 @@ let string_active_of_params (nodes, edges) param =
 	in
 	let iterator n c =
 	("k_ " ^ n ^ ", {")
-	^ (string_of_list ";" id (active c n))
+	^ (string_of_list ";" id (List.sort compare (active c n)))
 	^ "}  =  {"
 	^ (string_of_list " " string_of_int (Hashtbl.find_all param (n, c)))
 	^ "}\n"
