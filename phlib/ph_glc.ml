@@ -770,7 +770,7 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 			rflood from impossible_nobjs:
 				- colors parents
 				- stop if parent is an ms_objs
-				- failure if exists bounce(P) \in pl coloured and not in ms_objs 
+				- TODO: really? failure if exists bounce(P) \in pl coloured and not in ms_objs 
 				- fetch coloured ms_objs
 		*)
 		let is_ms_objs = function NodeObj obj -> ObjSet.mem obj ms_objs
@@ -790,13 +790,13 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		in
 		let get_responsibles n (coloured, is_ms) r =
 			if coloured && is_ms then ObjSet.add (obj_from_node n) r
-			else (
+			else r (*TODO: not sure to get the point of the following test
 				(if coloured then match n with
 					    NodeObj obj -> if List.mem (obj_bounce_proc obj) pl then 
 												failwith "ROOT is coloured!!"
 					  | _ -> ());
 				r
-			)
+			*)
 		in
 		let r = Hashtbl.fold get_responsibles flood_values ObjSet.empty
 		in
