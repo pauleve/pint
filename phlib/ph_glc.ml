@@ -355,8 +355,10 @@ object(self)
 		in
 		let ins = NodeSet.fold fold_n ns RankedNodeSet.empty
 		in
-		flood (-1) (ins, ns);
-		dbg_noendl "\n";
+		if not (RankedNodeSet.is_empty ins) then
+			(flood (-1) (ins, ns);
+			dbg_noendl "\n")
+		else dbg "skip";
 		values
 
 	val mutable last_loop = []
@@ -668,9 +670,10 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		in
 		let my_objs = new_objs
 		in
+		if Hashtbl.length conts_flood > 0 then (
 		new_objs <- [];
 		List.iter register_cont my_objs;
-		if new_objs <> [] then self#commit ())
+		if new_objs <> [] then self#commit ()))
 
 	method init_obj obj nobj =
 		let aBS = get_Sols obj
