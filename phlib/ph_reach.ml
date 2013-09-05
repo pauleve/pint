@@ -211,9 +211,9 @@ let coop_priority_reachability env =
 				let conds = Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities
 								env.ph (obj_bounce_proc obj)
 				in
-				(*prerr_endline (". conds = [" 
+				prerr_endline ("+ conds for "^string_of_proc (obj_bounce_proc obj)^" = [" 
 									^ (String.concat " ; " (List.map string_of_state conds))
-									^ " ]");*)
+									^ " ]");
 				let validate_sol nsol =
 					prerr_endline ("checking "^string_of_node nsol);
 					let (obj, ps) = match nsol with NodeSol x -> x | _ -> assert false
@@ -240,7 +240,7 @@ let coop_priority_reachability env =
 						in
 						SMap.for_all cap cond
 					in
-					List.for_all cond_match conds
+					match conds with [] -> false | _ -> List.for_all cond_match conds
 				in
 				let sols = List.filter (function NodeSol _ -> true | _ -> false)
 					(glc#childs (NodeObj obj))
