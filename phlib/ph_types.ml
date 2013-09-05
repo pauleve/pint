@@ -122,7 +122,7 @@ let string_of_actions actions =
 (* STATE *)
 type state = int SMap.t
 
-let string_of_state ?show_zero:(show_zero=false) s =
+let string_of_state ?show_zero:(show_zero=true) s =
 	let folder a i str =
 		if show_zero || i <> 0 then
 			str ^ (if str <> "" then ";" else "")
