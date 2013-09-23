@@ -354,7 +354,7 @@ let prism_of_ph (ps,hits) ctx =
 						[],[sync^prism_is_state a i^" -> true;"],[],[]
 					) else (
 						[raz hitid^": bool init false;"],
-						[sync^prism_is_state a i^"-> ("^raz hitid^"'=false);"],
+						[sync^prism_is_state a i^" -> ("^raz hitid^"'=false);"],
 						[],[hitid]
 					)
 				and mod_b =
@@ -367,12 +367,11 @@ let prism_of_ph (ps,hits) ctx =
 						in
 						[hc ^": [1.."^sa_const hitid^"] init 1;"],
 						[
-						sync^prism_is_state b j^" & "^raz hitid^" -> ("^hc^"'=2);";
+						sync^prism_is_state b j^" & "^raz hitid^" -> "^str_r^"("^hc^"'=2);";
 						sync^prism_is_state b j^" & !"^raz hitid^" & "^hc^"<"^sa_const hitid^
-								" -> ("^hc^"'="^hc^"+1);"
+								" -> "^str_r^"("^hc^"'="^hc^"+1);"
 						;sync^prism_is_state b j^" & !"^raz hitid^" & "^hc^"="^sa_const hitid^
-								" -> "^
-								prism_set_state b k^" & %%;"],
+								" -> "^str_r^prism_set_state b k^" & %%;"],
 						[hc],[]
 					)
 				in
