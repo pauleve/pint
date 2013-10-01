@@ -1,8 +1,11 @@
+## Pint - Process Hitting tools
+
+Distributed under [CeCCIL licence](http://cecill.info/licences/Licence_CeCILL_V2-en.html).
+
 #### Download
 
 Binary packages for Ubuntu/Debian or Mac OS X, as well as Pint source code can be downloaded
 from [github.com/pauleve/pint/releases](https://github.com/pauleve/pint/releases/).
-The latest version of Pint is {{ site.pint_version }}.
 
 
 #### Runtime requirements
