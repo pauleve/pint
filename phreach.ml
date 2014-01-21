@@ -80,7 +80,7 @@ in
 let do_list_keys = !opt_list_keys
 and do_extract_graph = !opt_extract_graph <> ""
 in
-let do_reach = not (do_list_keys or do_extract_graph)
+let do_reach = not (do_list_keys || do_extract_graph)
 in
 
 let ph, ctx = Ph_util.parse !Ui.opt_channel_in

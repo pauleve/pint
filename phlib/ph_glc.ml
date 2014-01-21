@@ -648,25 +648,27 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		let register_cont obj = 
 			let nobj = NodeObj obj
 			in
-			let ctx = fst (Hashtbl.find conts_flood nobj)
-			and a,i,j = obj
-			in
-			let make_cont i' =
-				let obj' = (a,i',j)
+			try
+				let ctx = fst (Hashtbl.find conts_flood nobj)
+				and a,i,j = obj
 				in
-				let nto = NodeObj obj'
+				let make_cont i' =
+					let obj' = (a,i',j)
+					in
+					let nto = NodeObj obj'
+					in
+					(if not (self#has_obj obj') then self#init_obj obj' nto);
+					if not (self#has_child nto nobj) then
+						self#add_child nto nobj
 				in
-				(if not (self#has_obj obj') then self#init_obj obj' nto);
-				if not (self#has_child nto nobj) then
-					self#add_child nto nobj
-			in
-			let ais = self#conts obj ctx
-			in
-			let ais = ISet.remove j (ISet.remove i ais)
-			in
-			dbg ("cont("^string_of_obj (a,i,j)^")="
-					^a^"_"^string_of_iset ais);(*^ " ("^string_of_ctx ctx^")");*)
-			ISet.iter make_cont ais
+				let ais = self#conts obj ctx
+				in
+				let ais = ISet.remove j (ISet.remove i ais)
+				in
+				dbg ("cont("^string_of_obj (a,i,j)^")="
+						^a^"_"^string_of_iset ais);(*^ " ("^string_of_ctx ctx^")");*)
+				ISet.iter make_cont ais
+			with Not_found -> ()
 		in
 		let my_objs = new_objs
 		in
