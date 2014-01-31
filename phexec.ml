@@ -39,9 +39,6 @@ open Ui;;
 
 open Ph_types;;
 
-Random.self_init ();;
-R.set_seed (Random.bits ()) (Random.bits ());;
-
 let opt_args = ref []
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts
@@ -82,6 +79,8 @@ in
 
 (* start plots *)
 SMap.iter (fun a i -> plotter 0. (a,i)) state;
+
+Ph_machine.init_random ();
 
 (* execute *)
 let state = Ph_machine.execute (Ph_machine.create_env ph) state duration plotter;

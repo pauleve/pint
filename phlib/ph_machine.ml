@@ -49,6 +49,11 @@ type plotter = (float -> Ph_types.process -> unit)
 let get_key ai bj = if ai < bj then (ai,bj) else (bj,ai)
 ;;
 
+let init_random () =
+	Random.self_init ();
+	R.set_seed (Random.bits ()) (Random.bits ())
+;;
+
 (*
 let string_of_reaction (j,f,j') = string_of_procs j^ " -> "^string_of_procs j;;
 let string_of_reactions l = "{ "^String.concat ", " (List.map string_of_reaction l)^"}";;
@@ -172,7 +177,7 @@ let execute env state duration plotter =
 			let (t,s,r), (bj,bk) = reduce env (t,s,r)
 			in
 			(if t > duration then raise Halt);
-			prerr_string (string_of_float t^"\r"); flush stderr;
+			dbg_noendl (string_of_float t^"\r");
 			plotter t bk;
 			execute (t,s,r)
 		with Halt -> s
