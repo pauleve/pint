@@ -24,6 +24,9 @@ val spim_of_ph : Ph_types.ph -> Ph_types.ctx -> string
 (** Returns the Tina translation of the given Process Hitting. *)
 val tina_of_ph : Ph_types.ph -> Ph_types.ctx -> string
 
+(** Returns the PEP translation of the given Process Hitting. *)
+val pep_of_ph : Ph_types.ph -> Ph_types.ctx -> string
+
 
 (** Stochastic parameters to strict timed interval conversion options:
 	[alpha] is the confidence coefficient;

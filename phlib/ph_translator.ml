@@ -612,6 +612,59 @@ let romeo_of_ph opts (ps,hits) ctx =
 	^ "\n</TPN>\n"
 ;;
 
+let pep_of_ph (ps, hits) ctx =
+	let idx_of_place places proc =
+		try
+			(PMap.find proc places, places)
+		with Not_found -> (
+			let idx = 1 + PMap.cardinal places
+			in
+			let places = PMap.add proc idx places
+			in
+			(idx, places)
+		)
+	in
+	let register_action (b,j) (((a,i),_),k) (id, places, transitions, tp, pt) =
+		let ai, bj, bk = (a,i), (b,j), (b,k)
+		in
+		let action = Hit (ai, bj, k)
+		in
+		let (id_ai, places) = idx_of_place places ai
+		in
+		let (id_bj, places) = idx_of_place places bj
+		in
+		let (id_bk, places) = idx_of_place places bk
+		in
+		let sid = string_of_int id
+		and sai = string_of_int id_ai
+		and sbj = string_of_int id_bj
+		and sbk = string_of_int id_bk
+		in
+		let transitions = (sid^"\""^string_of_action action^"\"0@0")
+							:: transitions
+		and tp =
+			(sid^"<"^sbk)::(if ai = bj then tp else ((sid^"<"^sai)::tp))
+		and pt = 
+			(sbj^">"^sid)::(if ai = bj then pt else ((sai^">"^sid)::pt))
+		in
+		(id+1, places, transitions, tp, pt)
+	in
+	let (_, places, transitions, tp, pt) = Hashtbl.fold register_action hits
+											(1, PMap.empty, [], [], [])
+	in
+	let register_proc ai id places =
+		(string_of_int id^"\""^string_of_proc ai^"\"0@0"
+				^(if ctx_has_proc ai ctx then "M1" else "M0"))::places
+	in
+	let places = PMap.fold register_proc places []
+	in
+	"PEP\nPTNet\nFORMAT_N\n"
+	^ "PL\n" ^ (String.concat "\n" places) ^ "\n"
+	^ "TR\n" ^ (String.concat "\n" transitions) ^ "\n"
+	^ "TP\n" ^ (String.concat "\n" tp) ^ "\n"
+	^ "PT\n" ^ (String.concat "\n" pt) ^ "\n"
+;;
+
 let tina_of_ph (ps,hits) ctx =
 	let init_state = state_of_ctx ctx
 	in
