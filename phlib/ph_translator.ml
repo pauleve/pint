@@ -624,7 +624,7 @@ let pep_of_ph (ps, hits) ctx =
 			(idx, places)
 		)
 	in
-	let register_action (b,j) (((a,i),_),k) (id, places, transitions, tp, pt) =
+	let register_action (b,j) (((a,i),_),k) (id, places, transitions, tp, pt, ra) =
 		let ai, bj, bk = (a,i), (b,j), (b,k)
 		in
 		let action = Hit (ai, bj, k)
@@ -642,15 +642,16 @@ let pep_of_ph (ps, hits) ctx =
 		in
 		let transitions = (sid^"\""^string_of_action action^"\"0@0")
 							:: transitions
-		and tp =
-			(sid^"<"^sbk)::(if ai = bj then tp else ((sid^"<"^sai)::tp))
-		and pt = 
-			(sbj^">"^sid)::(if ai = bj then pt else ((sai^">"^sid)::pt))
+		and tp = (sid^"<"^sbk)::tp
+		and pt = (sbj^">"^sid)::pt
+		(*and tp = (sid^"<"^sbj)::tp
+		and pt = (sbk^">"^sid)::pt*)
+		and ra = if ai = bj then ra else (sid^"<"^sai)::ra
 		in
-		(id+1, places, transitions, tp, pt)
+		(id+1, places, transitions, tp, pt, ra)
 	in
-	let (_, places, transitions, tp, pt) = Hashtbl.fold register_action hits
-											(1, PMap.empty, [], [], [])
+	let (_, places, transitions, tp, pt, ra) = Hashtbl.fold register_action hits
+											(1, PMap.empty, [], [], [], [])
 	in
 	let register_proc ai id places =
 		(string_of_int id^"\""^string_of_proc ai^"\"0@0"
@@ -663,6 +664,7 @@ let pep_of_ph (ps, hits) ctx =
 	^ "TR\n" ^ (String.concat "\n" transitions) ^ "\n"
 	^ "TP\n" ^ (String.concat "\n" tp) ^ "\n"
 	^ "PT\n" ^ (String.concat "\n" pt) ^ "\n"
+	^ "RA\n" ^ (String.concat "\n" ra) ^ "\n"
 ;;
 
 let tina_of_ph (ps,hits) ctx =
