@@ -601,6 +601,7 @@ let key_procs (gA:#graph) max_nkp ignore_proc leafs =
 type glc_setup = {
 	conts_flooder: (ctx, ctx NodeMap.t) flooder_setup;
 	conts: ctx -> objective -> ctx -> ISet.t;
+	saturate_procs: ctx -> PSet.t -> PSet.t;
 }
 
 class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
@@ -740,7 +741,8 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		) else false
 	
 	method saturate_ctx =
-		if self#increase_ctx self#all_procs then self#saturate_ctx
+		if self#increase_ctx (glc_setup.saturate_procs self#ctx self#all_procs) 
+			then self#saturate_ctx
 	
 
 	method ancestors candidates objs =
@@ -964,12 +966,12 @@ let max_conts_flooder =
 
 let oa_glc_setup = {
 	conts_flooder = min_conts_flooder;
-	conts = fun _ (a,_,_) ctx -> try ctx_get a ctx with Not_found -> ISet.empty;
+	conts = (fun _ (a,_,_) ctx -> try ctx_get a ctx with Not_found -> ISet.empty);
+	saturate_procs = (fun _ a -> a);
 };;
 
-let ua_glc_setup = {
+let ua_glc_setup = {oa_glc_setup with
 	conts_flooder = max_conts_flooder;
-	conts = oa_glc_setup.conts;
 };;
 
 

@@ -189,7 +189,11 @@ in
 		gA#build;
 		gA
 	and build_saturated_glc () =
-		let glc_setup = ua_glc_setup
+		let glc_setup = 
+			if !opt_coop_priority then
+				coop_priority_ua_glc_setup
+			else 
+				ua_glc_setup
 		in
 		let gB = new glc glc_setup env.ctx env.pl get_Sols
 		in

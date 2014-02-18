@@ -18,6 +18,9 @@ returns the semi-decision (ternary) of the concretizability of sequence of local
 *)
 val local_reachability : env -> Ph_types.ternary
 
+
+val coop_priority_ua_glc_setup : Ph_glc.glc_setup
+
 (** (WiP) [coop_priority_reachability ph s w]
 returns the semi-decision (ternary) of the concretizability of objective sequence [w] in the state [s] in the process hitting [ph].
 *)

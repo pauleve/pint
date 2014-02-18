@@ -197,6 +197,31 @@ let local_reachability env =
 		Inconc
 ;;
 
+let merge_sort_indexes ps a =
+	let fold_index ps j =
+		PSet.add (a,j) ps
+	in
+	List.fold_left fold_index ps
+;;
+
+let coop_priority_augment_procs ctx ps =
+	(* for each cooperative sort, add processes corresponding to 
+			parent processes *)
+	let ctx = (ctx_union ctx (procs_to_ctx ps))
+	in
+	let fold_cooperativity a _ ps =
+		let js = Ph_cooperativity.resolve !Ph_instance.cooperativities ctx a
+		in
+		merge_sort_indexes ps a js
+	in
+	SMap.fold fold_cooperativity !Ph_instance.cooperativities ps
+;;
+
+let coop_priority_ua_glc_setup = {ua_glc_setup with 
+	saturate_procs = coop_priority_augment_procs}
+;;
+
+
 let coop_priority_reachability env =
 	let is_cooperative a = SMap.mem a !Ph_instance.cooperativities
 	in
@@ -254,7 +279,8 @@ let coop_priority_reachability env =
 	in
 	if not (unordered_over_approx env get_Sols) then
 		False
-	else if unordered_ua ~validate:validate_ua_glc env get_Sols ua_glc_setup then
+	else if unordered_ua ~validate:validate_ua_glc env get_Sols 
+							coop_priority_ua_glc_setup then
 		True
 	else
 		Inconc
