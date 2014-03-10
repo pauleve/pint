@@ -226,7 +226,7 @@ let coop_priority_ua_glc_setup = {ua_glc_setup with
 ;;
 
 
-let coop_priority_reachability env =
+let coop_priority_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
 	let is_cooperative a = SMap.mem a !Ph_instance.cooperativities
 	in
 	let validate_ua_glc (glc:#glc) =
@@ -283,7 +283,7 @@ let coop_priority_reachability env =
 	in
 	if not (unordered_over_approx env get_Sols) then
 		False
-	else if unordered_ua ~validate:validate_ua_glc env get_Sols 
+	else if unordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC env get_Sols 
 							coop_priority_ua_glc_setup then
 		True
 	else

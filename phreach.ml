@@ -227,7 +227,11 @@ in
 		else if !opt_graph = "first_ua" then
 			let pGLC = ref Ph_reach.NullGLC
 			in
-			ignore(Ph_reach.local_reachability ~saveGLC:pGLC env);
+			ignore
+				(if !opt_coop_priority then
+					Ph_reach.coop_priority_reachability ~saveGLC:pGLC env
+				else
+					Ph_reach.local_reachability ~saveGLC:pGLC env);
 			match !pGLC with
 				GLC glc -> glc
 			| NullGLC -> failwith "No GLC satisfies the under-approximation"
