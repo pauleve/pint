@@ -124,9 +124,11 @@ let unordered_over_approx env get_Sols =
 	__unordered_over_approx env gA
 ;;
 
+type refGLC = NullGLC | GLC of glc;;
 
-
-let unordered_ua ?validate:(validate = fun _ -> true) env get_Sols glc_setup =
+let unordered_ua ?validate:(validate = fun _ -> true) 
+			?saveGLC:(saveGLC = ref NullGLC)
+			env get_Sols glc_setup =
 	let gB_iterator = new glc_generator glc_setup env.ctx env.pl get_Sols
 	in
 	(*let i = ref 0 in*)
@@ -174,24 +176,26 @@ let unordered_ua ?validate:(validate = fun _ -> true) env get_Sols glc_setup =
 		)
 	in
 	let rec iter_gBs () =
-		if gB_iterator#has_next then
+		if gB_iterator#has_next then (
 			let gB = gB_iterator#next
 			in
 			dbg "!! unordered underapprox";
 			gB#debug ();
-			(if __check gB then raise Found);
-			iter_gBs ()
-		else false
+			if __check gB then (
+				saveGLC := GLC gB;
+				raise Found
+			) else iter_gBs ()
+		)
 	in
-	try iter_gBs () with Found -> true
+	try iter_gBs (); false with Found -> true
 ;;
 
-let local_reachability env =
+let local_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
 	if not (unordered_over_approx env get_Sols) then
 		False
-	else if unordered_ua env get_Sols ua_glc_setup then
+	else if unordered_ua ~saveGLC:saveGLC env get_Sols ua_glc_setup then
 		True
 	else
 		Inconc
@@ -319,6 +323,4 @@ let top_trimmed_cwA env gA =
 	in
 	NodeSet.iter check_node gA#nodes
 ;;
-
-let test = local_reachability;;
 

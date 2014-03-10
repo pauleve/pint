@@ -1,5 +1,4 @@
-(*
-Copyright or © or Copr. Loïc Paulevé, Morgan Magnin, Olivier Roux (2010)
+(* Copyright or © or Copr. Loïc Paulevé, Morgan Magnin, Olivier Roux (2010)
 
 loic.pauleve@irccyn.ec-nantes.fr
 morgan.magnin@irccyn.ec-nantes.fr
@@ -64,7 +63,7 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 			"\tDisable static reduction of causality abstract structre");
 		("--extract-graph", Arg.Set_string opt_extract_graph, 
 				"<graph.dot>\tExport abstract structure graph");
-		("--graph", Arg.Symbol (["verbose";"trimmed";"nkp-trimmed";"saturated"],
+		("--graph", Arg.Symbol (["verbose";"trimmed";"nkp-trimmed";"saturated";"first_ua"],
 				(fun x -> opt_graph := x)), "\tGraph to export");
 	]
 and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
@@ -225,6 +224,13 @@ in
 			gA
 		else if !opt_graph = "saturated" then
 			build_saturated_glc ()
+		else if !opt_graph = "first_ua" then
+			let pGLC = ref Ph_reach.NullGLC
+			in
+			ignore(Ph_reach.local_reachability ~saveGLC:pGLC env);
+			match !pGLC with
+				GLC glc -> glc
+			| NullGLC -> failwith "No GLC satisfies the under-approximation"
 		else
 			failwith "invalid graph argument"
 	in
@@ -239,7 +245,6 @@ in
 				Ph_reach.coop_priority_reachability env
 			else
 				Ph_reach.local_reachability env
-		| "test" -> Ph_reach.test env
 		| _ -> failwith "Unknown method."
 	in
 	print_endline (string_of_ternary decision)

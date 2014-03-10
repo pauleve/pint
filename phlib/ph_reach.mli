@@ -13,10 +13,12 @@ type env = {
 val init_env : Ph_types.ph -> Ph_types.ctx -> Ph_types.process list -> env
 val update_env : env -> Ph_types.ctx -> Ph_types.process list -> env
 
+type refGLC = NullGLC | GLC of Ph_glc.glc;;
+
 (** [local_reachability env]
 returns the semi-decision (ternary) of the concretizability of sequence of local reachability as configured in [env].
 *)
-val local_reachability : env -> Ph_types.ternary
+val local_reachability : ?saveGLC:refGLC ref -> env -> Ph_types.ternary
 
 
 val coop_priority_ua_glc_setup : Ph_glc.glc_setup
@@ -33,6 +35,4 @@ val get_Sols : env -> Ph_types.objective -> Ph_types.PSet.t list
 
 val bot_trimmed_cwA : env -> #Ph_glc.glc -> Ph_glc.glc
 val top_trimmed_cwA : env -> #Ph_glc.graph -> unit
-
-val test : env -> Ph_types.ternary
 
