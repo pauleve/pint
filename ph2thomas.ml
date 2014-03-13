@@ -171,7 +171,7 @@ in
 print_string (string_of_params ig params);
 flush_all ();
 
-if !opt_enum or !opt_fullenum then (
+if !opt_enum || !opt_fullenum then (
 	let asp_data = asp_data ^ (Ph2thomas_param.asp_for_enum ig params)
 	in
 	debug_asp asp_data;

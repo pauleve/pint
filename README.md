@@ -25,17 +25,16 @@ Some of the tools may require [python](http://python.org).
 - [CamlIDL](http://caml.inria.fr/pub/old_caml_site/camlidl/)
 - [Facile](http://www.recherche.enac.fr/opti/facile/distrib)
 - [Python](http://python.org)
-- [libRmath](http://www.r-project.org) from R - debian/ubuntu: `r-mathlib`
+- (optional) [libRmath](http://www.r-project.org) from R - debian/ubuntu: `r-mathlib`
 
 
 ##### Notes on libRmath requirement
 
 Pint requires the libRmath standalone library for the stochastic simulation and parameters
 inference from time interval specifications.
-You can disable this functionnality by applying the patch
-`patches/disable-R-bindings.patch`:
+You can disable this functionnality with the following command:
 
-	$ patch -p0 patches/disable-R-bindings.patch
+	$ python setup.py --disable-R
 
 Most distributions provide a libRmath package (or include the libRmath.so library in the R package).
 
@@ -51,7 +50,14 @@ If you compile R from sources, after the configure step:
 
 In the root directory of sources:
 
-	$ python setup.py
+	$ python setup.py --enable-R
+
+or
+
+	$ python setup.py --disable-R
+
+then
+
 	$ make
 
 If you installed libRmath in a custom location, use `CFLAGS` and `LDFLAGS` environment variables to indicate it:

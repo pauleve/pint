@@ -1,0 +1,9 @@
+
+SOURCES := \
+	r.ml\
+
+
+BINDINGS_SOURCES := $(SOURCES:%=bindings/%)
+export BINDINGS_SOURCES
+
+# vi:set syntax=make:
