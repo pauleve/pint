@@ -90,7 +90,7 @@ in
 
 (if do_list_keys then
 	let is_sort_cooperative a = 
-		(try String.sub a 0 6 = "__coop" with Invalid_argument _ -> false) 
+		(try String.sub a 0 1 = "_" with Invalid_argument _ -> false) 
 			|| SMap.mem a !Ph_instance.cooperativities
 	in
 	let ignore_proc ai = if !opt_nkp_coop then false else is_sort_cooperative (fst ai)
