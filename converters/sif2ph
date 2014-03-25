@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+
+import sys
+
+if len(sys.argv) > 1:
+    inp = open(sys.argv[1])
+else:
+    inp = sys.stdin
+
+
+def format_name(name):
+    name = name.replace(":", "_")
+    for c in "@(),.|":
+        name = name.replace(c, "")
+    return name
+
+def get_act(value):
+    if value in ["ACTIVATION", "act"]:
+        return "+"
+    elif value in ["INHIBITION", "inh"]:
+        return "-"
+    print("Unknown sign %s" % value)
+
+
+class PH:
+    def __init__(self):
+        self.sorts = {}
+        self.brn = []
+
+    def register_sif_sort(self, name, l=2):
+        name = format_name(name)
+        self.sorts[name] = 2
+        return name
+
+    def register_sif_regulation(self, line):
+        parts = line.strip().split()
+        if len(parts) != 3:
+            print(parts)
+        [a, sign, b] = parts
+        a = self.register_sif_sort(a)
+        b = self.register_sif_sort(b)
+        sign = get_act(sign)
+        self.brn.append("%s 1 -> %s %s" % (a, sign, b))
+
+    def text(self):
+        buf = ""
+        for (a, l) in self.sorts.items():
+            buf += "process %s %d\n" % (a, l-1)
+        buf += "\nBRN(["
+        buf += ";\n\t".join(self.brn)
+        buf += "])\n\n"
+        return buf
+
+model = PH()
+for line in inp:
+    model.register_sif_regulation(line)
+print(model.text())
+
+
