@@ -63,7 +63,7 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 			"\tDisable static reduction of causality abstract structre");
 		("--output-glc", Arg.Set_string opt_extract_graph, 
 				"<graph.dot>\tExport the Graph of Local Causality (GLC)");
-		("--glc", Arg.Symbol (["verbose";"trimmed";"nkp-trimmed";"saturated";"first_ua"],
+		("--glc", Arg.Symbol (["verbose";"trimmed";"cutsets-trimmed";"saturated";"first_ua"],
 				(fun x -> opt_graph := x)), "\tGLC to export");
 	]
 and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
@@ -104,7 +104,7 @@ in
     let gA = bot_trimmed_cwA env gA
     in  
 	let gA = if !opt_cutsets_n_reduce then
-		let gA = cleanup_gA_for_nkp gA
+		let gA = cleanup_gA_for_cutsets gA
 		in
 		top_trimmed_cwA env gA;
 		gA else gA
@@ -113,7 +113,7 @@ in
 	print_endline ("#procs = "^string_of_int gA#count_procs);
 	print_endline ("#objs = "^string_of_int gA#count_objs);
 
-    let (d_nkp, index_proc) = key_procs gA !opt_cutsets_n ignore_proc gA#leafs
+    let (d_nkp, index_proc) = cutsets gA !opt_cutsets_n ignore_proc gA#leafs
 	in
 
 	(* TODO
@@ -215,10 +215,10 @@ in
 			in
 			top_trimmed_cwA env gA;
 			gA
-		else if !opt_graph = "nkp-trimmed" then
+		else if !opt_graph = "cutsets-trimmed" then
 			let gA = bot_trimmed_cwA env (build_glc ())
 			in  
-			let gA = cleanup_gA_for_nkp gA
+			let gA = cleanup_gA_for_cutsets gA
 			in
 			top_trimmed_cwA env gA;
 			gA

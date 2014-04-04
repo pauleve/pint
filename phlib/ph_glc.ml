@@ -474,7 +474,7 @@ let scc_dead_rel childs scc =
 	) else None
 ;;
 
-let rec cleanup_gA_for_nkp gA =
+let rec cleanup_gA_for_cutsets gA =
 	prerr_endline ("--");
 	let sccs = gA#tarjan_SCCs false gA#leafs
 	in
@@ -489,10 +489,10 @@ let rec cleanup_gA_for_nkp gA =
 		List.iter (fun c -> gA#remove_child c n) dead_childs
 	in
 	match todel with [] -> gA
-	| _ -> (List.iter apply todel; cleanup_gA_for_nkp gA)
+	| _ -> (List.iter apply todel; cleanup_gA_for_cutsets gA)
 ;;
 
-let key_procs (gA:#graph) max_nkp ignore_proc leafs =
+let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 
 	let proc_index = Hashtbl.create (gA#count_procs)
 	and index_proc = Hashtbl.create (gA#count_procs)
