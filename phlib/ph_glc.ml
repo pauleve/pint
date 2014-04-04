@@ -445,7 +445,7 @@ end;;
 
 
 (**
- * Key processes
+ * Cutsets
  *)
 
 module PSSet = KSets.Make(struct type t = int let compare = compare end);;
@@ -470,7 +470,12 @@ let scc_dead_rel childs scc =
 		in
 		let objs = List.filter entry_objectives scc
 		in
-		match objs with [n] -> Some (n, dead_childs n) | _ -> None
+		match objs with 
+		  [n] -> (
+				let cs = dead_childs n in
+				match cs with [] -> None | _ -> Some (n, cs)
+			)
+		| _ -> None
 	) else None
 ;;
 

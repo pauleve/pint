@@ -42,8 +42,7 @@ open Ph_reach;;
 
 let opt_method = ref "static"
 and opt_args = ref []
-and opt_cutsets = ref false
-and opt_cutsets_n = ref 1
+and opt_cutsets_n = ref 0
 and opt_cutsets_n_coop = ref false
 and opt_cutsets_n_reduce = ref true
 and opt_extract_graph = ref ""
@@ -55,15 +54,14 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 				(fun x -> opt_method := x)), "\tMethod");
 		("--coop-priority", Arg.Set opt_coop_priority, 
 									"\tAssume hits on cooperative sorts of higher priority");
-		("--cutsets", Arg.Set opt_cutsets, "\tCompute cut sets");
-		("--cutsets-n", Arg.Set_int opt_cutsets_n, "n\tMaximum size of cutsets (default: 1)");
+		("--cutsets", Arg.Set_int opt_cutsets_n, "\tCompute cutsets with given maximum size");
 		("--cutsets-include-coop", Arg.Set opt_cutsets_n_coop, 
 			"\tConsider cooperativities in cutsets (default: false)");
 		("--no-cutsets-reduce", Arg.Clear opt_cutsets_n_reduce, 
 			"\tDisable static reduction of causality abstract structre");
 		("--output-glc", Arg.Set_string opt_extract_graph, 
 				"<graph.dot>\tExport the Graph of Local Causality (GLC)");
-		("--glc", Arg.Symbol (["verbose";"trimmed";"cutsets-trimmed";"saturated";"first_ua"],
+		("--glc", Arg.Symbol (["verbose";"trimmed";"cutsets";"saturated";"first_ua"],
 				(fun x -> opt_graph := x)), "\tGLC to export");
 	]
 and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
@@ -76,7 +74,7 @@ in
 let pl = Ui.proclist_from_stringlist !opt_args
 in
 
-let do_cutsets = !opt_cutsets
+let do_cutsets = !opt_cutsets_n > 0
 and do_extract_graph = !opt_extract_graph <> ""
 in
 let do_reach = not (do_cutsets || do_extract_graph)
@@ -215,7 +213,7 @@ in
 			in
 			top_trimmed_cwA env gA;
 			gA
-		else if !opt_graph = "cutsets-trimmed" then
+		else if !opt_graph = "cutsets" then
 			let gA = bot_trimmed_cwA env (build_glc ())
 			in  
 			let gA = cleanup_gA_for_cutsets gA
