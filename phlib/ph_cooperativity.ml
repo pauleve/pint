@@ -89,7 +89,7 @@ let local_fixed_points register (ps, hits) =
 					in
 					List.fold_left cross_conds [] conds
 				in
-				List.fold_left register_cond states js
+				List.flatten (List.map (register_cond states) js)
 			in
 			SMap.fold complement_states unstable_ctx [state_empty]
 		) else
