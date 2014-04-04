@@ -192,6 +192,8 @@ in
 			else 
 				ua_glc_setup
 		in
+		let _, get_Sols = Ph_reach.unordered_over_approx env get_Sols
+		in
 		let gB = new glc glc_setup env.ctx env.pl get_Sols
 		in
 		gB#build;
