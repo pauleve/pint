@@ -42,10 +42,10 @@ open Ph_reach;;
 
 let opt_method = ref "static"
 and opt_args = ref []
-and opt_list_keys = ref false
-and opt_nkp = ref 1
-and opt_nkp_coop = ref false
-and opt_nkp_reduce = ref true
+and opt_cutsets = ref false
+and opt_cutsets_n = ref 1
+and opt_cutsets_n_coop = ref false
+and opt_cutsets_n_reduce = ref true
 and opt_extract_graph = ref ""
 and opt_graph = ref "verbose"
 and opt_coop_priority = ref false
@@ -53,18 +53,18 @@ in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("--method", Arg.Symbol (["static";"test"],
 				(fun x -> opt_method := x)), "\tMethod");
-		("--list-keys", Arg.Set opt_list_keys, "\tList Key Processes");
 		("--coop-priority", Arg.Set opt_coop_priority, 
 									"\tAssume hits on cooperative sorts of higher priority");
-		("--nkp", Arg.Set_int opt_nkp, "n\tMaximum size of key processes tuples (default: 1)");
-		("--nkp-include-coop", Arg.Set opt_nkp_coop, 
-			"\tConsider cooperativities as potential key processes (default: false)");
-		("--no-nkp-reduce", Arg.Clear opt_nkp_reduce, 
+		("--cutsets", Arg.Set opt_cutsets, "\tCompute cut sets");
+		("--cutsets-n", Arg.Set_int opt_cutsets_n, "n\tMaximum size of cutsets (default: 1)");
+		("--cutsets-include-coop", Arg.Set opt_cutsets_n_coop, 
+			"\tConsider cooperativities in cutsets (default: false)");
+		("--no-cutsets-reduce", Arg.Clear opt_cutsets_n_reduce, 
 			"\tDisable static reduction of causality abstract structre");
-		("--extract-graph", Arg.Set_string opt_extract_graph, 
-				"<graph.dot>\tExport abstract structure graph");
-		("--graph", Arg.Symbol (["verbose";"trimmed";"nkp-trimmed";"saturated";"first_ua"],
-				(fun x -> opt_graph := x)), "\tGraph to export");
+		("--output-glc", Arg.Set_string opt_extract_graph, 
+				"<graph.dot>\tExport the Graph of Local Causality (GLC)");
+		("--glc", Arg.Symbol (["verbose";"trimmed";"nkp-trimmed";"saturated";"first_ua"],
+				(fun x -> opt_graph := x)), "\tGLC to export");
 	]
 and usage_msg = "ph-reach [opts] <a> <i> [<b> <j> [...]]"
 and anon_fun arg = opt_args := !opt_args@[arg]
@@ -76,10 +76,10 @@ in
 let pl = Ui.proclist_from_stringlist !opt_args
 in
 
-let do_list_keys = !opt_list_keys
+let do_cutsets = !opt_cutsets
 and do_extract_graph = !opt_extract_graph <> ""
 in
-let do_reach = not (do_list_keys || do_extract_graph)
+let do_reach = not (do_cutsets || do_extract_graph)
 in
 
 let ph, ctx = Ph_util.parse !Ui.opt_channel_in
@@ -88,12 +88,12 @@ in
 let env = Ph_reach.init_env ph ctx pl
 in
 
-(if do_list_keys then
+(if do_cutsets then
 	let is_sort_cooperative a = 
 		(try String.sub a 0 1 = "_" with Invalid_argument _ -> false) 
 			|| SMap.mem a !Ph_instance.cooperativities
 	in
-	let ignore_proc ai = if !opt_nkp_coop then false else is_sort_cooperative (fst ai)
+	let ignore_proc ai = if !opt_cutsets_n_coop then false else is_sort_cooperative (fst ai)
 	in
 		
 	(* compute graph *)
@@ -103,7 +103,7 @@ in
     gA#build;
     let gA = bot_trimmed_cwA env gA
     in  
-	let gA = if !opt_nkp_reduce then
+	let gA = if !opt_cutsets_n_reduce then
 		let gA = cleanup_gA_for_nkp gA
 		in
 		top_trimmed_cwA env gA;
@@ -113,7 +113,7 @@ in
 	print_endline ("#procs = "^string_of_int gA#count_procs);
 	print_endline ("#objs = "^string_of_int gA#count_objs);
 
-    let (d_nkp, index_proc) = key_procs gA !opt_nkp ignore_proc gA#leafs
+    let (d_nkp, index_proc) = key_procs gA !opt_cutsets_n ignore_proc gA#leafs
 	in
 
 	(* TODO
