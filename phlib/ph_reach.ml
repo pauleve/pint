@@ -144,27 +144,17 @@ let unordered_ua ?validate:(validate = fun _ -> true)
 			close_out cout;*)
 			let ms_objs =  gB_iterator#multisols_objs
 			in
-			let objs = gB#analyse_impossible_objs ms_objs
-			in
-			let rec push_ancestors ms_objs objs =
-				let ms_objs = ObjSet.diff ms_objs objs
-				in
-				let objs = gB#ancestors ms_objs objs
-				in
-				if not (ObjSet.is_empty objs) then ( 
-					objs::push_ancestors ms_objs objs;
-				) else [objs]
-			in
-			let seq_objs = objs::push_ancestors ms_objs objs
+			let seq_objs = gB#avoid_impossible_objs ms_objs
 			in
 			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
 						(List.rev seq_objs);
 			false
 		) else if gB#has_loops then (
 			dbg ~level:1 "has_loops!";
-			let objs = gB#analyse_loop gB#last_loop gB_iterator#multisols_objs
+			let seq_objs = gB#avoid_loop gB_iterator#multisols_objs gB#last_loop
 			in
-			gB_iterator#change_objs objs;
+			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
+						seq_objs;
 			false
 		) else (
 			if not gB#auto_conts then (

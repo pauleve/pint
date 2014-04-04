@@ -59,6 +59,9 @@ module NodeMap = Map.Make (NodeOrd)
 
 module RankedNodeSet = Set.Make(struct type t = int * node let compare = compare end)
 
+let rec nodeset_of_list = function [] -> NodeSet.empty
+							| h::t -> NodeSet.add h (nodeset_of_list t);;
+
 let string_of_nodeset = string_of_set string_of_node NodeSet.elements;;
 
 exception Found
@@ -773,20 +776,19 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		in
 		dbg ("Ancestors: "^String.concat ", " (List.map string_of_obj (ObjSet.elements r)));
 		r
+	
 
-	method analyse_impossible_objs ms_objs =
-		dbg ("multisols objs: "^string_of_set string_of_obj ObjSet.elements ms_objs);
-		let im_nobjs = self#impossible_nobjs
-		in
-		(*
-			rflood from impossible_nobjs:
-				- colors parents
-				- stop if parent is an ms_objs
-				- TODO: really? failure if exists bounce(P) \in pl coloured and not in ms_objs 
-				- fetch coloured ms_objs
+	method first_objs_may_avoid_nodes ms_objs bad_nodes =
+		(** return objectives in ms_objs that may avoid the given nodes *)
+		(* algorithm:
+			rflood from nodes:
+			- colors parents
+			- TODO: really? failure if exists bounce(P) \in pl coloured and not in ms_objs 
+			- fetch coloured ms_objs
+			TODO: improve by checking there exists a choice actually avoidings the nodes
 		*)
-		let is_ms_objs = function NodeObj obj -> ObjSet.mem obj ms_objs
-			| _ -> false
+		dbg ("multisols objs: "^string_of_set string_of_obj ObjSet.elements ms_objs);
+		let is_ms_objs = function NodeObj obj -> ObjSet.mem obj ms_objs | _ -> false
 		in
 		(* the node n with value v receive update from node n' with value v' *)
 		let update_cache n (coloured, is_ms) n' (coloured', is_ms') =
@@ -796,30 +798,42 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 				(coloured,is_ms)
 		and update_value n (coloured, is_ms) = coloured
 		in
-		let init n = if NodeSet.mem n im_nobjs then (true, false) else (false, is_ms_objs n)
+		let init n = (NodeSet.mem n bad_nodes, is_ms_objs n)
 		in
-		let flood_values = self#rflood (=) init update_cache update_value im_nobjs
+		let flood_values = self#rflood (=) init update_cache update_value bad_nodes
 		in
 		let get_responsibles n (coloured, is_ms) r =
-			if coloured && is_ms then ObjSet.add (obj_from_node n) r
-			else r (*TODO: not sure to get the point of the following test
-				(if coloured then match n with
-					    NodeObj obj -> if List.mem (obj_bounce_proc obj) pl then 
-												failwith "ROOT is coloured!!"
-					  | _ -> ());
-				r
-			*)
+			if coloured && is_ms then ObjSet.add (obj_from_node n) r else r 
 		in
-		let r = Hashtbl.fold get_responsibles flood_values ObjSet.empty
+		Hashtbl.fold get_responsibles flood_values ObjSet.empty
+
+	method objs_may_avoid_nodes ms_objs bad_nodes =
+		let rec push_ancestors ms_objs objs =
+			let ms_objs = ObjSet.diff ms_objs objs
+			in
+			let objs = self#ancestors ms_objs objs
+			in
+			if not (ObjSet.is_empty objs) then ( 
+				objs::push_ancestors ms_objs objs;
+			) else [objs]
 		in
-		dbg ("Responsibles: "^String.concat ", " (List.map string_of_obj (ObjSet.elements r)));
-		r
+		let objs = self#first_objs_may_avoid_nodes ms_objs bad_nodes
+		in
+		objs::push_ancestors ms_objs objs
+
+	method avoid_impossible_objs ms_objs =
+		self#objs_may_avoid_nodes ms_objs self#impossible_nobjs
 	
-	method analyse_loop loop ms_objs =
-		let r = List.filter (function NodeObj obj -> ObjSet.mem obj ms_objs | _ -> false) loop
+	method avoid_loop ms_objs loop =
+		let loop = nodeset_of_list loop
 		in
-		dbg ("Loop responsibles: "^String.concat ", " (List.map string_of_node r));
-		List.map obj_from_node r
+		let objs0 = NodeSet.fold (fun n objs -> match n with
+									  NodeObj obj -> if ObjSet.mem obj ms_objs 
+														  then ObjSet.add obj objs
+														  else objs
+									| _ -> objs) loop ObjSet.empty
+		in
+		objs0::self#objs_may_avoid_nodes ms_objs loop
 end;;
 
 
@@ -856,7 +870,7 @@ class glc_generator glc_setup ctx pl get_Sols =
 	val mutable multisols_objs = ObjSet.empty
 	method multisols_objs = multisols_objs
 
-	val mutable known_choices = ObjMapSet.empty
+	val mutable known_choices = ObjMapSet.add ObjMap.empty ObjMapSet.empty
 
 	method get_Sols choices obj =
 		let aBS = get_Sols obj
