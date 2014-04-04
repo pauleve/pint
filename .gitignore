@@ -8,9 +8,6 @@ a.out
 *.cmxa
 *.cmx
 ._*
-test
-runs
-test_pseudomonas
 pint.top
 phlib/ph_parser.ml
 phlib/ph_parser.mli
@@ -42,3 +39,4 @@ debian/*.log
 debian/tmp
 debian/substvars
 debian/files
+bindings/Makefile.inc

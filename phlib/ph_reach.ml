@@ -109,19 +109,27 @@ let color_nodes_connected_to_trivial_sols (gA: #glc) =
 	Hashtbl.fold folder values NodeSet.empty
 ;;
 
-let __unordered_over_approx env (gA: #glc) =
-	let nodes = color_nodes_connected_to_trivial_sols gA
+let restricted_sols_factory all_sols nodes =
+	let register_node n rsols = match n with
+		  NodeSol (obj, ps) -> 
+		  	ObjMap.add obj (ps::try ObjMap.find obj rsols 
+									with Not_found -> []) rsols
+		| _ -> rsols
 	in
-	List.for_all (fun ai -> NodeSet.mem (NodeProc ai) nodes) env.pl
+	let rsols = NodeSet.fold register_node nodes ObjMap.empty
+	in
+	fun obj -> try ObjMap.find obj rsols with Not_found -> all_sols obj
 ;;
-
 
 let unordered_over_approx env get_Sols =
 	let gA = new glc oa_glc_setup env.ctx env.pl get_Sols
 	in
 	gA#build;
 	gA#debug ();
-	__unordered_over_approx env gA
+	let nodes = color_nodes_connected_to_trivial_sols gA
+	in
+	List.for_all (fun ai -> NodeSet.mem (NodeProc ai) nodes) env.pl, 
+	restricted_sols_factory get_Sols nodes
 ;;
 
 type refGLC = NullGLC | GLC of glc;;
@@ -183,9 +191,11 @@ let unordered_ua ?validate:(validate = fun _ -> true)
 let local_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
-	if not (unordered_over_approx env get_Sols) then
+	let uua, restr_sols = unordered_over_approx env get_Sols
+	in
+	if not uua then
 		False
-	else if unordered_ua ~saveGLC:saveGLC env get_Sols ua_glc_setup then
+	else if unordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
 		True
 	else
 		Inconc
@@ -271,7 +281,9 @@ let coop_priority_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
 	in
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
-	if not (unordered_over_approx env get_Sols) then
+	let uua, get_Sols = unordered_over_approx env get_Sols
+	in
+	if not uua then
 		False
 	else if unordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC env get_Sols 
 							coop_priority_ua_glc_setup then
