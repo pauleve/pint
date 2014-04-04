@@ -596,8 +596,8 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 	in
     let flood_values = gA#rflood PSSet.equal init default_flooder_update_cache update_value leafs
 	in
-	print_endline ("****** systime: "^string_of_float (Sys.time () -. t0)^"s");
-	print_endline ("Visited nodes: "^string_of_int !total_count);
+	dbg ("****** systime: "^string_of_float (Sys.time () -. t0)^"s");
+	dbg ("Visited nodes: "^string_of_int !total_count);
 	(flood_values, index_proc)
 ;;
 

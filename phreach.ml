@@ -107,9 +107,9 @@ in
 		top_trimmed_cwA env gA;
 		gA else gA
 	in
-	print_endline ("#nodes = "^string_of_int gA#count_nodes);
-	print_endline ("#procs = "^string_of_int gA#count_procs);
-	print_endline ("#objs = "^string_of_int gA#count_objs);
+	prerr_endline ("#nodes = "^string_of_int gA#count_nodes);
+	prerr_endline ("#procs = "^string_of_int gA#count_procs);
+	prerr_endline ("#objs = "^string_of_int gA#count_objs);
 
     let (d_nkp, index_proc) = cutsets gA !opt_cutsets_n ignore_proc gA#leafs
 	in
@@ -157,7 +157,7 @@ in
 			in
 			let n = PSSet.cardinal pss
 			in
-			print_endline ("# "^string_of_int n^" key process(es) for "^string_of_proc ai^":");
+			prerr_endline ("# "^string_of_int n^" key process(es) for "^string_of_proc ai^":");
 			let elts = PSSet.elements pss
 			in
 			let elts = List.map resolve_ps elts
