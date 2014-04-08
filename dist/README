@@ -6,3 +6,6 @@ $ make release
 $ git push
 $ git push --tags
 
+2. On Mac OS X
+$ ./dist/osx/do.sh
+

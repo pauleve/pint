@@ -97,7 +97,7 @@ dist-osx: phc phstat phstable phreach phexec ph2thomas
 	install -m 644 examples/* $(OSX_W)/examples
 	install -m 644 dist/osx/README $(OSX_W)
 	-rm -f /tmp/pint-$(RELNAME).dmg
-	hdiutil create -srcfolder $(OSX_W) -volname pint-$(RELNAME) -fs HFS+ /tmp/pint-$(RELNAME).dmg
+	hdiutil create -srcfolder $(OSX_W) -volname pint-$(RELNAME) -fs HFS+ ../pint-$(RELNAME).dmg
 
 dist-deb:
 	dpkg-buildpackage -d	
