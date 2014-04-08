@@ -73,9 +73,8 @@ OSX_DMG=../pint-$(RELNAME).dmg
 #dist-osx: $(OXS_BINS)
 dist-osx:
 	-rm -rf $(OSX_W)
-	make DESTDIR="$(OSX_W)" PREFIX="$(OSX_PREFIX)" \
-		PINT_SHARE_PATH="$(OSX_SHARE)" \
-		$(addsuffix _install,$(OSX_TARGETS)) misc_install
+	make $(OSX_TARGETS)
+	make DESTDIR="$(OSX_W)" PREFIX="$(OSX_PREFIX)" PINT_SHARE_PATH="$(OSX_SHARE)" $(addsuffix _install,$(OSX_TARGETS)) misc_install
 	#install -d $(OSX_W_BIN)
 	#install -m 755 $(OSX_BINS:%=bin/%) $(MISC_TOOLS) $(OSX_W_BIN)
 	install -m 644 dist/osx/*.dylib $(OSX_BIN)
