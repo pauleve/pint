@@ -73,7 +73,7 @@ pre-release:
 
 release:
 	git tag $(RELNAME)
-	git archive -o /tmp/pint-$(RELNAME).zip --prefix pint-$(RELNAME)/ $(RELBRANCH)
+	git archive -o ../pint-$(RELNAME).zip --prefix pint-$(RELNAME)/ $(RELBRANCH)
 
 OSX_W=/tmp/osx-pint/pint-$(RELNAME)
 OSX_W_BIN=/tmp/osx-pint/pint-$(RELNAME)/pint
