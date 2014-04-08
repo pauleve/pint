@@ -68,6 +68,7 @@ install: phc-install phstat-install phstable-install phreach-install phexec-inst
 pre-release:
 	sed -i 's/:.*##VERSION##/: "$(RELNAME)",##VERSION##/' setup.py
 	DEBEMAIL="loic.pauleve@ens-cachan.org" DEBFULLNAME="Loic Pauleve" debchange -v $(RELNAME) Release $(RELNAME)
+	DEBEMAIL="loic.pauleve@ens-cachan.org" DEBFULLNAME="Loic Pauleve" debchange -r --distribution unstable
 	git commit -a -m "release $(RELNAME)"
 
 release:

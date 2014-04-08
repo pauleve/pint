@@ -2,7 +2,7 @@ Source: pint
 Section: science
 Priority: optional
 Maintainer: Loic Pauleve <loic.pauleve@ens-cachan.org>
-Build-Depends: debhelper (>= 4.0.0), ocaml (>= 4.0), camlidl, r-mathlib, ocaml-facile
+Build-Depends: debhelper (>= 4.0.0), ocaml (>= 4.0), camlidl, r-mathlib, libfacile-ocaml-dev
 Standards-Version: 3.6.0
 
 Package: pint
