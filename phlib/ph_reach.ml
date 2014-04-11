@@ -188,17 +188,50 @@ let unordered_ua ?validate:(validate = fun _ -> true)
 	try iter_gBs (); false with Found -> true
 ;;
 
-let local_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
+let ordered_ua
+		?saveGLC:(saveGLC = ref NullGLC)
+		?validate:(validate = fun _ -> true)
+		env get_Sols glc_setup =
+	let build_next_ctx glc ps =
+		let ctx = procs_to_ctx (glc#all_procs)
+		in
+		ctx_override ctx ps
+	in
+	let rec _ordered_ua ctx = function [] -> true
+	| aj::pl ->
+		let validate_oua glc =
+			if validate glc then
+				match pl with [] -> true
+				| _ ->
+					let lps = glc#lastprocs aj
+					in
+					let next_ctxs = List.map (build_next_ctx glc) lps
+					in
+					List.for_all (fun ctx -> _ordered_ua ctx pl) next_ctxs
+			else false
+		in
+		unordered_ua ~validate:validate_oua ~saveGLC:saveGLC 
+				{env with ctx = ctx, pl = [aj]} get_Sols glc_setup
+	in
+	_ordered_ua env.ctx ctx.pl
+;;
+
+
+let local_reachability 
+		?saveGLC:(saveGLC = ref NullGLC) env =
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
 	let uua, restr_sols = unordered_over_approx env get_Sols
 	in
 	if not uua then
 		False
-	else if unordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
+	else if ordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
 		True
-	else
-		Inconc
+	else match env.pl with [] | [a1] -> Inconc | _ ->
+		if unordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
+			True
+		else
+			Inconc
 ;;
 
 let merge_sort_indexes ps a =
@@ -285,11 +318,15 @@ let coop_priority_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
 	in
 	if not uua then
 		False
-	else if unordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC env get_Sols 
-							coop_priority_ua_glc_setup then
+	else if ordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC 
+				env restr_sols ua_glc_setup then
 		True
-	else
-		Inconc
+	else match env.pl with [] | [a1] -> Inconc | _ ->
+		if unordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC
+				env restr_sols ua_glc_setup then
+			True
+		else
+			Inconc
 ;;
 
 let get_Sols env = Ph_bounce_seq.get_aBS env.ph env.bs_cache

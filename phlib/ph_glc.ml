@@ -834,6 +834,53 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 									| _ -> objs) loop ObjSet.empty
 		in
 		objs0::self#objs_may_avoid_nodes ms_objs loop
+	
+	method lastprocs aj =
+		let visited_nodes = ref NodeSet.empty
+		in
+		let rec admissible_sols n =
+			if NodeSet.mem n !visited_nodes then
+				[]
+			else (
+				visited_nodes := NodeSet.add n !visited_nodes;
+				match n with
+				  NodeSol (_, ps) -> [ps]
+				| NodeObj _ ->
+					let nodes = self#childs n
+					in
+					List.flatten (List.map admissible_sols nodes)
+				| _ -> []
+			)
+		in
+		let asols = admissible_sols (NodeProc aj)
+		and a = fst aj
+		in
+		let fold_hitter ps action =
+			let bj = hitter action
+			in
+			if fst bj <> a then PSet.add bj ps else ps
+		in
+		let filter_actions actions =
+			let sol = List.fold_left fold_hitter PSet.empty actions
+			in
+			List.exists (PSet.equal sol) asols
+		in
+		let fold_objectives n ps = match n with 
+			  NodeObj obj ->
+			  	let lhs = glc_setup.concrete_ph.lasthitters ~filter:filter_actions obj
+				in
+			  	PSet.union ps lhs
+			| _ -> ps
+		in
+		let lhs = NodeSet.fold fold_objectives !visited_nodes PSet.empty
+		in
+		let ps0 = PSet.singleton aj
+		in
+		let fold_hitter ai lps =
+			PSet.add ai ps0::lps
+		in
+		PSet.fold fold_hitter lhs []
+
 end;;
 
 
