@@ -14,7 +14,6 @@ LDFLAGS := -L.
 
 PACKS := oUnit
 
-OCAML_DEFAULT_DIRS := +oUnit
 OCAMLFLAGS = -I phlib
 
 include OCamlMakefile
