@@ -754,7 +754,11 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 		) else false
 	
 	method saturate_ctx =
-		if self#increase_ctx (glc_setup.saturate_procs self#ctx self#all_procs) 
+		let procs = self#all_procs
+		in
+		let procs = match pl with [ai] -> PSet.remove ai procs | _ -> procs
+		in
+		if self#increase_ctx (glc_setup.saturate_procs self#ctx procs) 
 			then self#saturate_ctx
 	
 
