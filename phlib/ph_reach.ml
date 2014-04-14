@@ -331,11 +331,11 @@ let coop_priority_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
 	if not uua then
 		False
 	else if ordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC 
-				env get_Sols ua_glc_setup then
+				env get_Sols coop_priority_ua_glc_setup then
 		True
 	else match env.pl with [] | [_] -> Inconc | _ ->
 		if unordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC
-				env get_Sols ua_glc_setup then
+				env get_Sols coop_priority_ua_glc_setup then
 			True
 		else
 			Inconc
