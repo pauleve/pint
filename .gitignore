@@ -40,3 +40,6 @@ debian/tmp
 debian/substvars
 debian/files
 bindings/Makefile.inc
+tests/pinttest
+*.log
+*.cache

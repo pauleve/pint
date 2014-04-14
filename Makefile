@@ -26,12 +26,17 @@ clean:
 	make -f target/phc clean
 	make -f target/pinttop clean
 	make -f target/pintlib clean
+	make -f tests/Makefile clean
 
 apidoc:
 	rm -f docs/api/*
 	ocamldoc -sort -html -d docs/api -I bindings -I pintlib -I phlib \
 		-t "Pint OCaml API" \
 		bindings/r.mli pintlib/*.mli phlib/*.mli *.mli
+
+test: all
+	make -f tests/Makefile
+	cd tests && ./pinttests
 
 
 RELNAME=$(shell date -I)
