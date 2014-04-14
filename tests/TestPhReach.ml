@@ -5,9 +5,15 @@ open Ph_types
 
 open TestCommon
 
-let test_phreach ?ctx:(ctx="") model reach opts expected =
-	let test_output cout =
-		assert_equal (cs_next_word cout) (string_of_ternary expected)
+let phreach_exe = "../ph-reach"
+
+let test_phreach ?length:(length=OUnitTest.Short)
+		?ctx:(ctx="") ?opts:(opts=[]) model reach expected =
+	let expected = string_of_ternary expected
+	in
+	let foutput cout =
+		assert_equal (cs_next_word cout) expected
+			~printer:(fun a -> a)
 	in
 
 	let args = opts @ ["-i"; model]
@@ -16,28 +22,27 @@ let test_phreach ?ctx:(ctx="") model reach opts expected =
 	in
 
 	let test ctxt =
-		assert_command ~ctxt:ctxt ~foutput:test_output "../ph-reach" args
+		assert_command ~ctxt ~foutput phreach_exe args
 	in
-	test_case ~length:OUnitTest.Short test
+	test_case ~length test
 
 let tests =
-	"TestPhReach" >:::
-	[
+	"TestPhReach" >::: [
 		"CoopPrioMetazoan" >: 
 			test_phreach "models/metazoan-3prio-flattening.ph"
 						~ctx:"a 1, f 1, c 0" 
 						["a"; "0"]
-						["--coop-priority"]
+						~opts:["--coop-priority"]
 						True;
 		"CoopPrioTCR1" >:
 			test_phreach "models/tcrsig94-TCS.ph"
 						~ctx:"cd45 1, cd28 1, tcrlig 1"
 						["ap1"; "1"]
-						["--coop-priority"]
+						~opts:["--coop-priority"]
 						True;
 		"CoopPrioInconc1" >:
 			test_phreach "models/1-02.ph" ["bp"; "1"; "z"; "1"]
-						["--coop-priority"]
+						~opts:["--coop-priority"]
 						Inconc;
 	]
 
