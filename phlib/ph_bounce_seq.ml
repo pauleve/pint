@@ -120,7 +120,7 @@ let get_BS ph cache obj =
 	)
 ;;
 
-let lasthitters ?filter:(filter = fun _ -> true) ph cache obj =
+let lasthitters cache ph ?filter:(filter = fun _ -> true) obj =
 	let fold_actions ps = function [] -> PSet.empty
 		| actions -> 
 			PSet.add (hitter (List.nth actions (List.length actions - 1))) ps

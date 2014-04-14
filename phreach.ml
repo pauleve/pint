@@ -95,7 +95,7 @@ in
 	in
 		
 	(* compute graph *)
-    let gA = new glc oa_glc_setup env.ctx env.pl (get_Sols env)
+    let gA = new glc oa_glc_setup env.ctx env.pl env.concrete (get_Sols env)
     in  
     gA#set_auto_conts false;
     gA#build;
@@ -180,7 +180,7 @@ in
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 	in
 	let build_glc () =
-		let gA = new glc oa_glc_setup env.ctx env.pl get_Sols
+		let gA = new glc oa_glc_setup env.ctx env.pl env.concrete get_Sols
 		in
 		gA#set_auto_conts false;
 		gA#build;
@@ -194,7 +194,7 @@ in
 		in
 		let _, get_Sols = Ph_reach.unordered_over_approx env get_Sols
 		in
-		let gB = new glc glc_setup env.ctx env.pl get_Sols
+		let gB = new glc glc_setup env.ctx env.pl env.concrete get_Sols
 		in
 		gB#build;
 		gB#saturate_ctx;

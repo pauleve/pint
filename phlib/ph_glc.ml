@@ -606,13 +606,17 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 	GLC
 *)
 
+type _concrete_ph = {
+	lasthitters: ?filter:(action list -> bool) -> objective -> PSet.t;
+}
+
 type glc_setup = {
 	conts_flooder: (ctx, ctx NodeMap.t) flooder_setup;
 	conts: ctx -> objective -> ctx -> ISet.t;
 	saturate_procs: ctx -> PSet.t -> PSet.t;
 }
 
-class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
+class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as g
 
 	method setup = glc_setup
 
@@ -836,6 +840,7 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		objs0::self#objs_may_avoid_nodes ms_objs loop
 	
 	method lastprocs aj =
+		prerr_endline ("/lastprocs "^string_of_proc aj^"/");
 		let visited_nodes = ref NodeSet.empty
 		in
 		let rec admissible_sols n =
@@ -852,9 +857,12 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 				| _ -> []
 			)
 		in
-		let asols = admissible_sols (NodeProc aj)
+		let asols = List.flatten (List.map admissible_sols 
+									(self#childs (NodeProc aj)))
 		and a = fst aj
 		in
+		prerr_endline ("  admissible solutions: "^
+			String.concat " ; " (List.map string_of_procs asols));
 		let fold_hitter ps action =
 			let bj = hitter action
 			in
@@ -867,7 +875,7 @@ class glc glc_setup ctx pl get_Sols = object(self) inherit graph as g
 		in
 		let fold_objectives n ps = match n with 
 			  NodeObj obj ->
-			  	let lhs = glc_setup.concrete_ph.lasthitters ~filter:filter_actions obj
+			  	let lhs = concrete_ph.lasthitters ~filter:filter_actions obj
 				in
 			  	PSet.union ps lhs
 			| _ -> ps
@@ -906,7 +914,7 @@ let empty_choices_queue () =
 module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = ObjMap.compare compare end)
 
 
-class glc_generator glc_setup ctx pl get_Sols =
+class glc_generator glc_setup ctx pl concrete_ph get_Sols =
 	object(self)
 	val mutable has_next = true
 	(*val queue = empty_choices_queue ()*)
@@ -974,7 +982,7 @@ class glc_generator glc_setup ctx pl get_Sols =
 		dbg ~level:1 ("::: playing choices "^string_of_choices choices);
 		current_choices <- choices;
 		queue <- List.tl queue;
-		let gB = new glc glc_setup ctx pl (self#get_Sols choices)
+		let gB = new glc glc_setup ctx pl concrete_ph (self#get_Sols choices)
 		in 
 		gB#build;
 		gB#saturate_ctx;

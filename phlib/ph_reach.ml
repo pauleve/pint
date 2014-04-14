@@ -44,21 +44,21 @@ type env = {
 	ctx : ctx;
 	pl : process list;
 	bs_cache : Ph_bounce_seq.bs_cache;
+	concrete : _concrete_ph;
 }
 
-let init_env ph ctx pl = {
+let init_env ph ctx pl =
+	let cache = Ph_bounce_seq.new_bs_cache ()
+	in {
 		ph = ph;
 		ctx = ctx;
 		pl = pl;
-		bs_cache = Ph_bounce_seq.new_bs_cache ();
-};;
-
-let update_env env ctx pl = {
-		ph = env.ph;
-		ctx = ctx;
-		pl = pl;
-		bs_cache = env.bs_cache;
-};;
+		bs_cache = cache;
+		concrete = {
+			lasthitters = Ph_bounce_seq.lasthitters cache ph;
+		}
+	}
+;;
 
 let color_nodes_connected_to_trivial_sols (gA: #glc) =
 	(** each node is associated to a couple
@@ -122,7 +122,7 @@ let restricted_sols_factory all_sols nodes =
 ;;
 
 let unordered_over_approx env get_Sols =
-	let gA = new glc oa_glc_setup env.ctx env.pl get_Sols
+	let gA = new glc oa_glc_setup env.ctx env.pl env.concrete get_Sols
 	in
 	gA#build;
 	gA#debug ();
@@ -137,7 +137,7 @@ type refGLC = NullGLC | GLC of glc;;
 let unordered_ua ?validate:(validate = fun _ -> true) 
 			?saveGLC:(saveGLC = ref NullGLC)
 			env get_Sols glc_setup =
-	let gB_iterator = new glc_generator glc_setup env.ctx env.pl get_Sols
+	let gB_iterator = new glc_generator glc_setup env.ctx env.pl env.concrete get_Sols
 	in
 	(*let i = ref 0 in*)
 	let rec __check gB =
@@ -195,7 +195,9 @@ let ordered_ua
 	let build_next_ctx glc ps =
 		let ctx = procs_to_ctx (glc#all_procs)
 		in
-		ctx_override ctx ps
+		let ctx = ctx_override ctx ps
+		in
+		ctx_override_by_ctx glc#ctx ctx
 	in
 	let rec _ordered_ua ctx = function [] -> true
 	| aj::pl ->
@@ -205,15 +207,20 @@ let ordered_ua
 				| _ ->
 					let lps = glc#lastprocs aj
 					in
+					prerr_endline ("lastprocs("^string_of_proc aj^") = {"^
+								(String.concat "}, {" 
+									(List.map string_of_procs lps))^" }");
+					assert (lps <> []);
 					let next_ctxs = List.map (build_next_ctx glc) lps
 					in
 					List.for_all (fun ctx -> _ordered_ua ctx pl) next_ctxs
 			else false
 		in
+		prerr_endline ("// underapprox for "^string_of_proc aj^" from "^string_of_ctx ctx);
 		unordered_ua ~validate:validate_oua ~saveGLC:saveGLC 
-				{env with ctx = ctx, pl = [aj]} get_Sols glc_setup
+				{env with ctx = ctx; pl = [aj]} get_Sols glc_setup
 	in
-	_ordered_ua env.ctx ctx.pl
+	_ordered_ua env.ctx env.pl
 ;;
 
 
@@ -227,7 +234,7 @@ let local_reachability
 		False
 	else if ordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
 		True
-	else match env.pl with [] | [a1] -> Inconc | _ ->
+	else match env.pl with [] | [_] -> Inconc | _ ->
 		if unordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
 			True
 		else
@@ -319,11 +326,11 @@ let coop_priority_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
 	if not uua then
 		False
 	else if ordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC 
-				env restr_sols ua_glc_setup then
+				env get_Sols ua_glc_setup then
 		True
-	else match env.pl with [] | [a1] -> Inconc | _ ->
+	else match env.pl with [] | [_] -> Inconc | _ ->
 		if unordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC
-				env restr_sols ua_glc_setup then
+				env get_Sols ua_glc_setup then
 			True
 		else
 			Inconc
@@ -335,7 +342,7 @@ let get_Sols env = Ph_bounce_seq.get_aBS env.ph env.bs_cache
 let bot_trimmed_cwA env gA =
 	let nodes = color_nodes_connected_to_trivial_sols gA
 	in
-	let gA' = new glc gA#setup env.ctx env.pl (get_Sols env)
+	let gA' = new glc gA#setup env.ctx env.pl env.concrete (get_Sols env)
 	in
 	gA#iter (fun node child -> 
 				if NodeSet.mem node nodes && NodeSet.mem child nodes then

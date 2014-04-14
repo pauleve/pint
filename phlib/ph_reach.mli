@@ -7,11 +7,11 @@ type env = {
 	ctx : Ph_types.ctx;
 	pl : Ph_types.process list;
 	bs_cache : Ph_bounce_seq.bs_cache;
+	concrete : Ph_glc._concrete_ph;
 }
 
 
 val init_env : Ph_types.ph -> Ph_types.ctx -> Ph_types.process list -> env
-val update_env : env -> Ph_types.ctx -> Ph_types.process list -> env
 
 type refGLC = NullGLC | GLC of Ph_glc.glc;;
 
