@@ -608,6 +608,7 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 
 type _concrete_ph = {
 	lasthitters: ?filter:(action list -> bool) -> objective -> PSet.t;
+	process_cond: process -> state list;
 }
 
 type glc_setup = {
@@ -882,10 +883,15 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 		in
 		let lhs = NodeSet.fold fold_objectives !visited_nodes PSet.empty
 		in
-		let ps0 = PSet.singleton aj
+		let merge_cond ps state =
+			let state = merge_state_with_ps state ps
+			in
+			procs_of_state state
 		in
 		let fold_hitter ai lps =
-			PSet.add ai ps0::lps
+			let conds = concrete_ph.process_cond ai
+			in
+			List.map (merge_cond [ai;aj]) conds @ lps
 		in
 		PSet.fold fold_hitter lhs []
 

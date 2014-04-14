@@ -56,6 +56,7 @@ let init_env ph ctx pl =
 		bs_cache = cache;
 		concrete = {
 			lasthitters = Ph_bounce_seq.lasthitters cache ph;
+			process_cond = (fun _ -> [state_empty]);
 		}
 	}
 ;;
@@ -320,6 +321,10 @@ let coop_priority_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
 		ObjSet.for_all validate_obj glc#objs
 	in
 	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
+	and concrete = {env.concrete with process_cond =
+		Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities env.ph
+	} in
+	let env = {env with concrete = concrete}
 	in
 	let uua, get_Sols = unordered_over_approx env get_Sols
 	in

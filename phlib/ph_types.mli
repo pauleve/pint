@@ -101,6 +101,12 @@ val state_value : state -> sort -> sortidx
 (** Converts a set into a list of processes. *)
 val list_of_state : state -> process list
 
+(** Converts a state to a set of processes. *)
+val procs_of_state : state -> PSet.t
+
+(** Empty state *)
+val state_empty : state
+
 
 (** Context type *)
 type ctx = ISet.t SMap.t

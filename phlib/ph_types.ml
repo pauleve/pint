@@ -149,11 +149,16 @@ let merge_state_with_ps state =
 ;;
 let state_value state a = try SMap.find a state with Not_found -> invalid_arg ("Unknown sort '"^a^"'")
 ;;
-let list_of_state state =
-	let folder a i ls = (a,i)::ls
+let list_of_state = SMap.bindings;;
+
+let procs_of_state state =
+	let folder a i ps =
+		PSet.add (a,i) ps
 	in
-	SMap.fold folder state []
+	SMap.fold folder state PSet.empty
 ;;
+
+let state_empty = SMap.empty;;
 
 (** Context *)
 type ctx = ISet.t SMap.t
