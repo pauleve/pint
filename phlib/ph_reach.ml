@@ -208,7 +208,7 @@ let ordered_ua
 				| _ ->
 					let lps = glc#lastprocs aj
 					in
-					prerr_endline ("lastprocs("^string_of_proc aj^") = {"^
+					dbg ("lastprocs("^string_of_proc aj^") = {"^
 								(String.concat "}, {" 
 									(List.map string_of_procs lps))^" }");
 					assert (lps <> []);
@@ -217,7 +217,7 @@ let ordered_ua
 					List.for_all (fun ctx -> _ordered_ua ctx pl) next_ctxs
 			else false
 		in
-		prerr_endline ("// underapprox for "^string_of_proc aj^" from "^string_of_ctx ctx);
+		dbg ("// underapprox for "^string_of_proc aj^" from "^string_of_ctx ctx);
 		unordered_ua ~validate:validate_oua ~saveGLC:saveGLC 
 				{env with ctx = ctx; pl = [aj]} get_Sols glc_setup
 	in
@@ -281,22 +281,22 @@ let coop_priority_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
 				let conds = Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities
 								env.ph (obj_bounce_proc obj)
 				in
-				prerr_endline ("+ conds for "^string_of_proc (obj_bounce_proc obj)^" = [" 
+				dbg ("+ conds for "^string_of_proc (obj_bounce_proc obj)^" = [" 
 									^ (String.concat " ; " (List.map string_of_state conds))
 									^ " ]");
 				let validate_sol nsol =
-					prerr_endline ("checking "^string_of_node nsol);
+					dbg ("checking "^string_of_node nsol);
 					let (obj, ps) = match nsol with NodeSol x -> x | _ -> assert false
 					and allprocs_sol = fst (Hashtbl.find child_procs nsol)
 					in
-					prerr_endline (". allprocs_sol = " ^ string_of_ctx allprocs_sol);
+					dbg (". allprocs_sol = " ^ string_of_ctx allprocs_sol);
 					(* check only with conds that are coherent with ps *)
 					let cond_select cond = PSet.for_all (fun (a,i) -> try SMap.find a cond == i
 						with Not_found -> failwith "invalid cond (coop_priority_reachability)") ps
 					in
 					let conds = List.filter cond_select conds
 					in
-					prerr_endline (". conds = [" 
+					dbg (". conds = [" 
 										^ (String.concat " ; " (List.map string_of_state conds))
 										^ " ]");
 					(* check that cond includes allprocs_sol *)

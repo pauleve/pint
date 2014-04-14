@@ -457,7 +457,7 @@ let scc_dead_rel childs scc =
 	let c = List.length scc
 	in
 	if c > 2 then (
-		prerr_endline ("|SCC|="^string_of_int c);
+		dbg ("|SCC|="^string_of_int c);
 		let scc_idx = List.fold_left (fun s n -> NodeSet.add n s) NodeSet.empty scc
 		in
 		let entry_objectives n =
@@ -483,7 +483,7 @@ let scc_dead_rel childs scc =
 ;;
 
 let rec cleanup_gA_for_cutsets gA =
-	prerr_endline ("--");
+	dbg ("--");
 	let sccs = gA#tarjan_SCCs false gA#leafs
 	in
 	let handle_scc todel scc =
@@ -841,7 +841,7 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 		objs0::self#objs_may_avoid_nodes ms_objs loop
 	
 	method lastprocs aj =
-		prerr_endline ("/lastprocs "^string_of_proc aj^"/");
+		dbg ("/lastprocs "^string_of_proc aj^"/");
 		let visited_nodes = ref NodeSet.empty
 		in
 		let rec admissible_sols n =
@@ -862,7 +862,7 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 									(self#childs (NodeProc aj)))
 		and a = fst aj
 		in
-		prerr_endline ("  admissible solutions: "^
+		dbg ("  admissible solutions: "^
 			String.concat " ; " (List.map string_of_procs asols));
 		let fold_hitter ps action =
 			let bj = hitter action
