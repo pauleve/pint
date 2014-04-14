@@ -14,8 +14,6 @@ SOURCES := \
 	ph_util.mli\
 	ph_util.ml\
 	ph_fixpoint.ml\
-	ph_static.mli\
-	ph_static.ml\
 	ph_bounce_seq.ml\
 	ph_glc.ml\
 	ph_reach.mli\
