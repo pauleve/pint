@@ -27,7 +27,7 @@ bindings/r.ml
 bindings/r.mli
 bindings/r_stubs.c
 ph-*
-docs/api/*
+docs/api
 bin/ph-reach
 bin/ph2thomas
 bin/phc
