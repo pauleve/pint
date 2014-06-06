@@ -47,6 +47,8 @@ let opt_language = ref "dump"
 and opt_output = ref ""
 and opt_romeo_ctl = ref ""
 and opt_romeo_ctl_file = ref ""
+and opt_coop_priority = ref false
+and opt_ptnet_context = ref false
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), "\tOutput language");
@@ -55,6 +57,10 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 				"<proc>\tExport CTL formula for reachability of proc (romeo)");
 		("--romeo-ctl-file", Arg.Set_string opt_romeo_ctl_file, 
 				"<filename>\tfilename for CTL export (romeo)");
+		("--coop-priority", Arg.Set opt_coop_priority, 
+									"\tAssume hits on cooperative sorts of higher priority");
+		("--contextual-ptnet", Arg.Set opt_ptnet_context, 
+									"\tContextual petri net");
 	]
 and usage_msg = "phc"
 in
@@ -63,7 +69,9 @@ in
 Arg.parse cmdopts anon_fun usage_msg;
 let opts = {
 	alpha = 0.05;
-	round_fi = Param.round_fi_ex
+	round_fi = Param.round_fi_ex;
+	coop_priority = !opt_coop_priority;
+	contextual_ptnet = !opt_ptnet_context;
 }
 in
 let languages = [
@@ -73,7 +81,7 @@ let languages = [
 	("prism_mdp", prism_mdp_of_ph);
 	("romeo", romeo_of_ph opts);
 	("tina", tina_of_ph);
-	("pep", pep_of_ph);
+	("pep", pep_of_ph opts);
 	("biocham", biocham_of_ph);
 	("kappa", kappa_of_ph);
 ]

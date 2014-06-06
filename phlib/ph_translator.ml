@@ -39,7 +39,9 @@ open Ph_types;;
 
 type opts = {
 	alpha: float; (* 1-confidence *)
-	round_fi: float * float -> int * int (* firing interval rounding *)
+	round_fi: float * float -> int * int; (* firing interval rounding *)
+	coop_priority: bool;
+	contextual_ptnet: bool;
 }
 
 type piproc_arg_action = ArgReset | ArgUpdate of (string * string) list;;
@@ -612,7 +614,7 @@ let romeo_of_ph opts (ps,hits) ctx =
 	^ "\n</TPN>\n"
 ;;
 
-let pep_of_ph (ps, hits) ctx =
+let pep_of_ph opts (ps, hits) ctx =
 	let idx_of_place places proc =
 		try
 			(PMap.find proc places, places)
@@ -624,31 +626,68 @@ let pep_of_ph (ps, hits) ctx =
 			(idx, places)
 		)
 	in
-	let register_action (b,j) (((a,i),_),k) (id, places, transitions, tp, pt, ra) =
-		let ai, bj, bk = (a,i), (b,j), (b,k)
+	let idx_of_places places =
+		let fold_proc (idxs, places) proc =
+			let idx, places = idx_of_place places proc
+			in
+			(idx::idxs, places)
 		in
-		let action = Hit (ai, bj, k)
-		in
-		let (id_ai, places) = idx_of_place places ai
-		in
-		let (id_bj, places) = idx_of_place places bj
-		in
-		let (id_bk, places) = idx_of_place places bk
-		in
+		List.fold_left fold_proc ([], places)
+	in
+	let is_sort_cooperative a = 
+		(try String.sub a 0 1 = "_" with Invalid_argument _ -> false) 
+			|| SMap.mem a !Ph_instance.cooperativities
+	in
+	let register_transition bj bk (id, places, transitions, tp, pt, ra) cond =
 		let sid = string_of_int id
-		and sai = string_of_int id_ai
-		and sbj = string_of_int id_bj
-		and sbk = string_of_int id_bk
+		and saction = string_of_state cond ^ " -> " ^ string_of_proc bj 
+								^ " " ^ string_of_proc bk
 		in
-		let transitions = (sid^"\""^string_of_action action^"\"0@0")
-							:: transitions
-		and tp = (sid^"<"^sbk)::tp
+		let transitions = (sid^"\""^saction^"\"0@0")::transitions
+		and procs = List.filter (fun (a,i) -> not (is_sort_cooperative a)) 
+						(list_of_state cond)
+		in
+		let idxs, places = idx_of_places places procs
+		in
+		let id_bj, places = idx_of_place places bj
+		in
+		let id_bk, places = idx_of_place places bk
+		in
+		let sbj = string_of_int id_bj
+		and sbk = string_of_int id_bk
+		and sidxs = List.map string_of_int idxs
+		in
+		let tp = (sid^"<"^sbk)::tp
 		and pt = (sbj^">"^sid)::pt
-		(*and tp = (sid^"<"^sbj)::tp
-		and pt = (sbk^">"^sid)::pt*)
-		and ra = if ai = bj then ra else (sid^"<"^sai)::ra
+		in
+		let (tp, pt, ra) = 
+			if opts.contextual_ptnet then
+				let ra = ra @ List.map (fun sai -> sid^"<"^sai) sidxs
+				in
+				tp, pt, ra
+			else
+				let tp = tp @ List.map (fun sai -> sid^"<"^sai) sidxs
+				and pt = pt @ List.map (fun sai -> sai^">"^sid) sidxs
+				in
+				tp, pt, ra
 		in
 		(id+1, places, transitions, tp, pt, ra)
+	in
+	let register_action (b,j) (((a,i),_),k) (id, places, transitions, tp, pt, ra) =
+		if opts.coop_priority && is_sort_cooperative b then
+			(id, places, transitions, tp, pt, ra)
+		else
+		let ai, bj, bk = (a,i), (b,j), (b,k)
+		in
+		let conds =
+			if opts.coop_priority && is_sort_cooperative a then
+				Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities (ps, hits) ai
+			else if ai = bj then
+				[]
+			else
+				[SMap.singleton a i]
+		in
+		List.fold_left (register_transition bj bk) (id, places, transitions, tp, pt, ra) conds
 	in
 	let (_, places, transitions, tp, pt, ra) = Hashtbl.fold register_action hits
 											(1, PMap.empty, [], [], [], [])
@@ -664,7 +703,8 @@ let pep_of_ph (ps, hits) ctx =
 	^ "TR\n" ^ (String.concat "\n" transitions) ^ "\n"
 	^ "TP\n" ^ (String.concat "\n" tp) ^ "\n"
 	^ "PT\n" ^ (String.concat "\n" pt) ^ "\n"
-	^ "RA\n" ^ (String.concat "\n" ra) ^ "\n"
+	^ (if opts.contextual_ptnet then "RA\n" ^ (String.concat "\n" ra) ^ "\n"
+		else "")
 ;;
 
 let tina_of_ph (ps,hits) ctx =
