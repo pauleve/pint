@@ -683,7 +683,7 @@ let pep_of_ph opts (ps, hits) ctx =
 			if opts.coop_priority && is_sort_cooperative a then
 				Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities (ps, hits) ai
 			else if ai = bj then
-				[]
+				[SMap.empty]
 			else
 				[SMap.singleton a i]
 		in
@@ -794,4 +794,37 @@ let asp_of_ph (ps, hits) _ =
 		  "\"" ^ (fst target) ^ "\"," ^ (string_of_int (snd target)) ^ "," ^ (string_of_int bounce) ^
 		  ").\n")) hits ""
 ;;
+
+let bn_of_ph (ps, hits) _ =
+	let reg = !Ph_instance.cooperativities
+	in
+	let exclude_cooperativities = List.filter (fun (a,_) -> not (SMap.mem a reg))
+	in
+	let bn_of_proc (a,i) = 
+		(if i = 0 then "!" else "")^a
+	in
+	let bn_of_cond c = String.concat " & " (List.map bn_of_proc c)
+	in
+	let bn_of_sort a = 
+		let conds = Ph_cooperativity.local_fixed_points ~level1:true 
+											reg (ps,hits) (a,1)
+		in
+		let conds = List.map list_of_state conds
+		in
+		let conds = List.map exclude_cooperativities conds
+		in
+		let conds = List.map bn_of_cond conds
+		in
+		a ^ ": "^
+			match conds with
+			  [""] -> a
+			| [c] -> c
+			| _ -> ("("^(String.concat ") | (" conds)^")")
+	and nodes = List.map fst (exclude_cooperativities ps)
+	in
+	"targets: factors\n"
+	^ (String.concat "\n" (List.map bn_of_sort nodes))
+	^ "\n"
+;;
+
 

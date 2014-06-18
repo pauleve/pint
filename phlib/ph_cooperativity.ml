@@ -53,7 +53,7 @@ let resolve register ctx =
 	resolve_sort
 ;;
 
-let local_fixed_points register (ps, hits) =
+let local_fixed_points ?level1:(level1=false) register (ps, hits) =
 	let state_empty = SMap.empty
 	and state_add_proc (a,i) = SMap.add a i
 	and state_inter =
@@ -62,8 +62,8 @@ let local_fixed_points register (ps, hits) =
 		in
 		SMap.fold inter
 	in
-	let rec min_conds (a,i) = 
-		if SMap.mem a register then (
+	let rec min_conds level1 (a,i) = 
+		if level1 || SMap.mem a register then (
 			let register_hit ctx ((hitter,_),_) = ctx_add_proc hitter ctx
 			in
 			let ai_hits = Hashtbl.find_all hits (a,i)
@@ -77,7 +77,7 @@ let local_fixed_points register (ps, hits) =
 				let js = List.filter (fun j -> not (ISet.mem j is)) (Util.range 0 lb)
 				in
 				let register_cond conds j =
-					let bj_conds = List.map (state_add_proc (b,j)) (min_conds (b,j))
+					let bj_conds = List.map (state_add_proc (b,j)) (min_conds false (b,j))
 					in
 					let merge cond conds bj_cond =
 						try
@@ -95,6 +95,6 @@ let local_fixed_points register (ps, hits) =
 		) else
 			[state_empty]
 	in
-	min_conds
+	min_conds level1
 ;;
 

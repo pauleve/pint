@@ -41,7 +41,7 @@ knowledge of the CeCILL license and that you accept its terms.
 open Ph_translator;;
 
 let languages = ["dump"; "spim"; "prism"; "prism_mdp"; "romeo"; "tina"; "pep"; 
-					"biocham"; "kappa"];;
+					"biocham"; "kappa";"bn"];;
 
 let opt_language = ref "dump"
 and opt_output = ref ""
@@ -84,6 +84,7 @@ let languages = [
 	("pep", pep_of_ph opts);
 	("biocham", biocham_of_ph);
 	("kappa", kappa_of_ph);
+	("bn", bn_of_ph);
 ]
 in
 let translator = List.assoc !opt_language languages
