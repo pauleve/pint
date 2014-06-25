@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+
+"""
+Quick'n dirty conversion from automata network to process hitting.
+In a near future, pint will support .an directly and this script will die.
+"""
+
+import sys
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    if "->" in line:
+        tr, cond = line.split(" when ")
+        (a, i, j) = tr.replace("->"," ").split()
+        if " and " in cond:
+            coop = [c.split("=") for c in cond.split(" and ")]
+            sorts = [c[0] for c in coop]
+            state = [c[1] for c in coop]
+            print("COOPERATIVITY([%s] -> %s %s %s, [[%s]])" \
+                % (";".join(sorts), a, i, j, ";".join(state)))
+                        
+            pass
+        else:
+            print("%s -> %s %s %s" % (cond.replace("=", " "), a, i, j))
+            
+    else:
+        p = line.replace("[","").replace("]","").replace(",","").split()
+        a = p[0]
+        l_a = p[-1]
+        print("process %s %s" % (a, l_a))
+
+
+
+
+

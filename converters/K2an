@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+
+import itertools
+
+class V(dict):
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+class ValSet(set):
+    def domain(self):
+        d = set()
+        for v in self:
+            d.update(v.keys())
+        return list(sorted(d))
+
+    def simplify(self, sd):
+        vs = self
+        for d in itertools.permutations(self.domain()):
+            vs = DDD(vs, d, sd).valset()
+        return vs
+
+    def filter(self, a, i):
+        return ValSet([v for v in self if a not in v or v[a] == i])
+
+
+class DDD:
+    TOP = 1
+    BOT = 2
+    def __init__(self, vs, d, sd):
+        self.v = {}
+        if len(vs) == 0:
+            self.a = DDD.BOT
+        elif len(d) == 0:
+            self.a = DDD.TOP
+        else:
+            self.a = d[0]
+            self.v = {}
+            for i in sd[self.a]:
+                self.v[i] = DDD(vs.filter(self.a, i), d[1:], sd)
+            self.simplify()
+
+    def __repr__(self):
+        if self.a == DDD.BOT:
+            return "BOT"
+        elif self.a == DDD.TOP:
+            return "TOP"
+        else:
+            return "<%s: %s>" % (self.a, self.v)
+
+    def __eq__(self, x):
+        return x.a == self.a and x.v == self.v
+
+    def simplify(self):
+        alleq = True
+        for i in self.v.keys():
+            if self.v[i] != self.v[0]:
+                alleq = False
+                break
+        if alleq:
+            self.a = self.v[0].a
+            self.v = self.v[0].v
+
+    def valset(self):
+        if self.a == DDD.BOT:
+            return ValSet()
+        if self.a == DDD.TOP:
+            return ValSet([V()])
+        i_nontop = []
+        for i in self.v.keys():
+            if self.v[i].a != DDD.TOP:
+                i_nontop.append(i)
+        implicit = len(i_nontop) == 1
+        fvs = ValSet()
+        for i in self.v.keys():
+            vs = self.v[i].valset()
+            if implicit and i in i_nontop:
+                pass
+            else:
+                for v in vs:
+                    v[self.a] = i
+            fvs.update(vs)
+        return fvs
+
+
+def load_parameters(fd):
+    K = {}
+    sd = {}
+    mode = 0
+    for line in fd:
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("parameters for "):
+            p = line.split()
+            a = p[2]
+            bs = p[4].split(",")
+            mode = 1
+            K[a] = dict([(i, ValSet()) for i in sd[a]])
+        elif mode == 0:
+            a, i = line.split()
+            sd[a] = list(range(int(i)+1))
+        elif mode == 1:
+            x = list(map(int, line.split()))
+            K[a][x[-1]].add(V([(bs[j],x[j]) for j in range(len(bs))]))
+
+    return (sd, K)
+
+
+
+if __name__ == "__main__":
+    import sys
+    #sd = {"a": [0, 1], "b": [0, 1]}
+    #vs = ValSet([V({"a": 0, "b": 0}), V({"a":1, "b":0}), V({"a":1, "b":1})])
+    #print(vs.simplify(sd))
+    (sd, K) = load_parameters(sys.stdin)
+
+    for a in sorted(sd.keys()):
+        print("%s [%s]" % (a, ", ".join(map(str,sd[a]))))
+    print()
+    for a in sorted(sd.keys()):
+        if a not in K:
+            continue
+        for incr in [1, -1]:
+            if incr > 0:
+                r = sd[a][1:]
+            else:
+                r = sd[a][:-1]
+            for i in r:
+                myK = ValSet()
+                if incr > 0:
+                    ri = sd[a][i:]
+                else:
+                    ri = sd[a][:i+1]
+                for j in ri:
+                    myK.update(K[a][j].filter(a, i-incr))
+                changed = True
+                while changed:
+                    myK2 = myK.simplify(sd)
+                    changed = myK2 != myK
+                    myK = myK2
+                for v in myK:
+                    sv = " and ".join(["%s=%s" % (b,j) for (b,j) in
+                                        sorted(v.items()) if b != a])
+                    print("%s %d -> %d when %s" % (a,i-incr,i,sv))
+                print()
+        print()
+
+
+
