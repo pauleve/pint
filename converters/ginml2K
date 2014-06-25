@@ -102,8 +102,12 @@ for node in nodes:
         i = p.getAttribute("idActiveInteractions").split()
         y = dict([(b,0) for b in bs])
         for j in i:
-            b = j.split(":")[0]
-            v = int(j.split(":")[2])
+            z = j.split(":")
+            b = z[0]
+            if len(z) == 3:
+                v = int(z[2])
+            else:
+                v = 1
             y[b] = v
         x = tuple([y[b] for b in bs])
         P[x] = k
