@@ -141,7 +141,9 @@ if __name__ == "__main__":
                 for v in myK:
                     sv = " and ".join(["%s=%s" % (b,j) for (b,j) in
                                         sorted(v.items()) if b != a])
-                    print("%s %d -> %d when %s" % (a,i-incr,i,sv))
+                    if sv:
+                        sv = " when %s" % sv
+                    print("%s %d -> %d%s" % (a,i-incr,i,sv))
                 print()
         print()
 

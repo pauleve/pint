@@ -12,9 +12,15 @@ for line in sys.stdin:
     if not line:
         continue
     if "->" in line:
-        tr, cond = line.split(" when ")
+        if " when " not in line:
+            tr = line
+            cond = None
+        else:
+            tr, cond = line.split(" when ")
         (a, i, j) = tr.replace("->"," ").split()
-        if " and " in cond:
+        if cond is None:
+            print("%s %s -> %s %s %s" % (a, i, a, i, j))
+        elif " and " in cond:
             coop = [c.split("=") for c in cond.split(" and ")]
             sorts = [c[0] for c in coop]
             state = [c[1] for c in coop]
