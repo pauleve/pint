@@ -49,7 +49,21 @@ Unsupported (TODO):
 - transition/CDATA
 """
 
-inputname = sys.argv[1]
+args = sys.argv[1:]
+
+opts = {
+    "full-ctx": True,
+}
+
+if "--no-full-ctx" in args:
+    opts["full-ctx"] = False
+    args.remove("--no-full-ctx")
+
+if len(args) != 1:
+    print("Usage: %s [--no-full-ctx] file.bcx" % sys.argv[0], file=sys.stderr)
+    sys.exit(1)
+
+inputname = args[0]
 outputname = inputname.replace(".bcx","")+".ph"
 
 bcx = parse(inputname)
@@ -145,8 +159,9 @@ for sort_actions in dactions.values() :
 		print("COOPERATIVITY_KEEP(%s, %s, 1, 0)" % (a["state_matching"], tr(a["target"])))
 
 init_procs = ["%s 1" % tr(a) for a in PermNodes]
-# add frontiers
-init_procs += ["%(sort)s 0, %(sort)s 1" %{"sort": tr(n)} for n in nodes]
+if opts["full-ctx"]:
+    # add frontiers
+    init_procs += ["%(sort)s 0, %(sort)s 1" %{"sort": tr(n)} for n in nodes]
 
 print()
 print("initial_context %s" % ", ".join(init_procs))
