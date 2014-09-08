@@ -638,8 +638,12 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 		trivial_nsols <- t
 
 	method has_loops =
-		List.exists (fun ai -> self#has_loop_from (NodeProc ai)) pl
-
+		let ns = nodeset_of_list (List.map (fun p -> NodeProc p) pl)
+		in
+		let sccs = self#tarjan_SCCs true ns
+		in
+		List.exists (function 
+			[] | [_] -> false | scc -> (last_loop <- scc; true)) sccs
 
 	val mutable auto_conts = true
 	method set_auto_conts t = auto_conts <- t
