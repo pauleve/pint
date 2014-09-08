@@ -1,24 +1,5 @@
 (** Process Hitting related types and associated operations. *)
 
-module SSet : Set.S with type elt = string
-module ISet : Set.S with type elt = int
-module IMap : Map.S with type key = int
-
-(** ISet from int list. *)
-val iset_of_list : int list -> ISet.t
-
-val string_of_set : 
-	?lbracket:string -> ?rbracket:string -> ?delim:string ->
-		('a -> string) -> ('b -> 'a list) -> 'b -> string
-
-(** String representation of an int Set. *)
-val string_of_iset : ISet.t -> string
-
-type ternary = True | False | Inconc
-
-(** String representation of ternary. *)
-val string_of_ternary : ternary -> string
-
 type sort = string
 type sortidx = int
 type process = sort * sortidx
@@ -108,7 +89,7 @@ val state_empty : state
 
 
 (** Context type *)
-type ctx = ISet.t PintTypes.SMap.t
+type ctx = PintTypes.ISet.t PintTypes.SMap.t
 
 (** Check ctx equality *)
 val ctx_equal : ctx -> ctx -> bool
@@ -116,11 +97,14 @@ val ctx_equal : ctx -> ctx -> bool
 (** Empty context *)
 val ctx_empty : ctx
 
+(** Returns the set of sorts in the context *)
+val ctx_sorts : ctx -> PintTypes.SSet.t
+
 (** Get indexes of the given sort in the given context. *)
-val ctx_get : sort -> ctx -> ISet.t
+val ctx_get : sort -> ctx -> PintTypes.ISet.t
 
 (** Same as previous but return empty set if sort is not present in the context keys. *)
-val ctx_safe_get : sort -> ctx -> ISet.t
+val ctx_safe_get : sort -> ctx -> PintTypes.ISet.t
 
 (** [ctx_has_proc p ctx] retruns true iff [p] is present in [ctx]. *)
 val ctx_has_proc : process -> ctx -> bool

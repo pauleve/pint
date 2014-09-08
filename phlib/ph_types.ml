@@ -41,31 +41,9 @@ knowledge of the CeCILL license and that you accept its terms.
 
 open PintTypes;;
 
-module SSet = Set.Make (struct type t = string let compare = compare end);;
-module ISet = Set.Make (struct type t = int let compare = compare end);;
-module IMap = Map.Make (struct type t = int let compare = compare end);;
-
-let rec iset_of_list = function [] -> ISet.empty | h::t -> ISet.add h (iset_of_list t);;
-
-let string_of_set
-		?lbracket:(lb="{ ") ?rbracket:(rb=" }") ?delim:(dl=", ")
-		string_of_element elements_getter set =
-	let content = String.concat dl
-		(List.map string_of_element (elements_getter set))
-	in
-	lb^content^rb
-;;
-
-let string_of_iset = string_of_set string_of_int ISet.elements
-;;
-	
-
 (**
  Process Hitting types
 **)
-
-type ternary = True | False | Inconc;;
-let string_of_ternary = function True -> "True" | False -> "False" | Inconc -> "Inconc";;
 
 type sort = string
 type sortidx = int
@@ -223,6 +201,13 @@ let procs_to_ctx ps =
 		SMap.add a is ctx
 	in
 	PSet.fold group ps SMap.empty
+;;
+
+let ctx_sorts ctx =
+	let register_sort a _ sorts =
+		SSet.add a sorts
+	in
+	SMap.fold register_sort ctx SSet.empty
 ;;
 
 let state_of_ctx ctx =

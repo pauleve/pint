@@ -20,6 +20,7 @@ SOURCES := \
 	ph_reach.ml\
 	ph_machine.mli\
 	ph_machine.ml\
+	ph_thomas.ml\
 
 LIBS := str nums facile
 

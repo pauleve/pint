@@ -34,7 +34,26 @@ type sign_t = Positive | Negative
 
 module IG =
 struct
+	type res_t = SSet.t
 	type t = ((string * int * sign_t) list) SMap.t
+
+	let regulators ig a =
+		let fold_regulation bs (b, _, _) =
+			SSet.add b bs
+		in
+		List.fold_left fold_regulation SSet.empty ig
+
+	let ctx_for_resources ig ps a res =
+		let fold_regulation ctx (b, th, s) =
+			let l = List.assoc b ps
+			in
+			match (s, SSet.mem b res) with
+			  (Positive, true) | (Negative, false) ->
+					SMap.add b (iset_of_list (Util.range th l)) ctx
+			| (Positive, false) | (Negative, true) ->
+					SMap.add b (iset_of_list (Util.range 0 (th-1))) ctx
+		in
+		List.fold_left fold_regulation SMap.empty (SMap.find a ig)
 
 end
 

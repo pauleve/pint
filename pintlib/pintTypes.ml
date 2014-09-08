@@ -28,5 +28,25 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 *)
 
+module SSet = Set.Make (struct type t = string let compare = compare end);;
 module SMap = Map.Make (struct type t = string let compare = compare end);;
+module ISet = Set.Make (struct type t = int let compare = compare end);;
+module IMap = Map.Make (struct type t = int let compare = compare end);;
+
+let rec iset_of_list = function [] -> ISet.empty | h::t -> ISet.add h (iset_of_list t);;
+
+let string_of_set
+		?lbracket:(lb="{ ") ?rbracket:(rb=" }") ?delim:(dl=", ")
+		string_of_element elements_getter set =
+	let content = String.concat dl
+		(List.map string_of_element (elements_getter set))
+	in
+	lb^content^rb
+;;
+
+let string_of_iset = string_of_set string_of_int ISet.elements
+;;
+
+type ternary = True | False | Inconc;;
+let string_of_ternary = function True -> "True" | False -> "False" | Inconc -> "Inconc";;
 

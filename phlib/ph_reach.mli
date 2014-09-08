@@ -18,7 +18,7 @@ type refGLC = NullGLC | GLC of Ph_glc.glc;;
 (** [local_reachability env]
 returns the semi-decision (ternary) of the concretizability of sequence of local reachability as configured in [env].
 *)
-val local_reachability : ?saveGLC:refGLC ref -> env -> Ph_types.ternary
+val local_reachability : ?saveGLC:refGLC ref -> env -> PintTypes.ternary
 
 
 val coop_priority_ua_glc_setup : Ph_glc.glc_setup
@@ -26,7 +26,7 @@ val coop_priority_ua_glc_setup : Ph_glc.glc_setup
 (** (WiP) [coop_priority_reachability ph s w]
 returns the semi-decision (ternary) of the concretizability of objective sequence [w] in the state [s] in the process hitting [ph].
 *)
-val coop_priority_reachability : ?saveGLC:refGLC ref -> env -> Ph_types.ternary
+val coop_priority_reachability : ?saveGLC:refGLC ref -> env -> PintTypes.ternary
 
 val color_nodes_connected_to_trivial_sols :
   #Ph_glc.glc -> Ph_glc.NodeSet.t
