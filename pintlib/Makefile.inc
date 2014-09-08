@@ -1,5 +1,7 @@
 
 SOURCES := \
+	pintTypes.mli\
+	pintTypes.ml\
 	debug.mli\
 	debug.ml\
 	param.mli\
@@ -7,6 +9,8 @@ SOURCES := \
 	kSets.ml\
 	util.mli\
 	util.ml\
+	interactionGraph.ml\
+
 
 LIBS := 
 

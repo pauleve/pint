@@ -1,7 +1,6 @@
 (** Process Hitting related types and associated operations. *)
 
 module SSet : Set.S with type elt = string
-module SMap : Map.S with type key  = string
 module ISet : Set.S with type elt = int
 module IMap : Map.S with type key = int
 
@@ -81,7 +80,7 @@ val bounce : action -> int
 val bounce2 : action -> process
 
 
-type state = sortidx SMap.t
+type state = sortidx PintTypes.SMap.t
 
 (** String representation of a state. By default, state *)
 val string_of_state : ?show_zero:bool -> state -> string
@@ -109,7 +108,7 @@ val state_empty : state
 
 
 (** Context type *)
-type ctx = ISet.t SMap.t
+type ctx = ISet.t PintTypes.SMap.t
 
 (** Check ctx equality *)
 val ctx_equal : ctx -> ctx -> bool

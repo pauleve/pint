@@ -39,8 +39,9 @@ knowledge of the CeCILL license and that you accept its terms.
  TODO: move to commonlib
 **)
 
+open PintTypes;;
+
 module SSet = Set.Make (struct type t = string let compare = compare end);;
-module SMap = Map.Make (struct type t = string let compare = compare end);;
 module ISet = Set.Make (struct type t = int let compare = compare end);;
 module IMap = Map.Make (struct type t = int let compare = compare end);;
 

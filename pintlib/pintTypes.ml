@@ -1,10 +1,5 @@
 (*
-Copyright or © or Copr. Loïc Paulevé (2013)
-
-loic.pauleve@ens-cachan.org
-
-This software is a computer program whose purpose is to provide Process
-Hitting related tools.
+Copyright Loïc Paulevé <loic.pauleve@ens-cachan.org> (2014)
 
 This software is governed by the CeCILL license under French law and
 abiding by the rules of distribution of free software.  You can  use, 
@@ -33,14 +28,5 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 *)
 
-(** [resolve !Ph_instance.cooperativities ctx ab] returns the set of process indexes that are
-		coherent with ctx *)
-val resolve: (Ph_types.sort list * (Ph_types.sortidx list -> int)) PintTypes.SMap.t
-					-> Ph_types.ctx -> Ph_types.sort -> Ph_types.sortidx list
-
-
-(** [local_fixed_points !Ph_instance.cooperativities ph ai] returns the list of semi-global states
-		which are sufficient to ensure ai (local) stability *)
-val local_fixed_points: ?level1:bool -> 'a PintTypes.SMap.t -> Ph_types.ph -> Ph_types.process -> Ph_types.state list
-
+module SMap = Map.Make (struct type t = string let compare = compare end);;
 

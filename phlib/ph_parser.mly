@@ -1,10 +1,21 @@
 %{
 open Debug;;
 
+open PintTypes;;
 open Ph_types;;
+open InteractionGraph;;
 
-type regulation_sign = Positive | Negative
-type regulation_t = Regulation of (string * int * regulation_sign * string * stochatime)
+type regulation_t = Regulation of (string * int * sign_t * string * stochatime)
+
+let interactiongraph_of_regulations regs =
+	let fold_regulation ig = function
+		Regulation (a, th, s, b, _) ->
+			let preds = try SMap.find b ig with Not_found -> []
+			in
+			SMap.add a ((a,th,s)::preds) ig
+	in
+	List.fold_left fold_regulation SMap.empty regs
+;;
 
 let cooperativities = ref [];;
 let __coop_counter = ref 0;;
@@ -286,6 +297,9 @@ let macro_regulation = function
 ;;
 let macro_brn do_unregulated = function
 [Arg_Regulations regulations] -> (fun ctx ->
+
+	Ph_instance.interaction_graph := 
+			interactiongraph_of_regulations	regulations;
 
 	let folder (regulations, genes, regulated) = function
 		Regulation (a,t,s,b,stoch) ->

@@ -36,6 +36,7 @@ knowledge of the CeCILL license and that you accept its terms.
 *)
 
 open Debug;;
+open PintTypes;;
 open Ph_types;;
 
 (** Process Hitting **)
