@@ -33,11 +33,14 @@ let active_actions ph ctx a =
 	(* filter actions in the context *)
 	List.filter (function Hit (bk, _, _) -> ctx_has_proc bk ctx) actions
 
+let ph_remove_actions (ps, hits) rm_actions =
+	failwith "Not implememented yet"
 
 let constrain_ph ph a res values =
 	let ig = !Ph_instance.interaction_graph
 	in
 	let ctx = InteractionGraph.IG.ctx_for_resources ig (fst ph) a res
+	and regs = InteractionGraph.IG.regulators ig a
 	in
 	let actions = active_actions ph ctx a
 	in
@@ -45,9 +48,23 @@ let constrain_ph ph a res values =
 									not (List.mem i values)) actions
 	in
 	if rm_actions <> [] then
-		(* build cooperative sort for res if not already existing *)
-		(* follow rules for removing each action *)
-		failwith "Not implemented yet"
+		let ph = ph_remove_actions ph rm_actions
+		in
+		if SSet.cardinal regs = 1 then ph else
+		(* group actions per hitter *)
+		let group_actions g = function Hit (bk, aj, i) ->
+			let actions = try PMap.find bk g with Not_found -> []
+			in
+			PMap.add bk (Hit (bk, aj, i)::actions) g
+		in
+		let g_rm_actions = List.fold_left group_actions PMap.empty rm_actions
+		in
+		(* build cooperative hit (hitter ^ not (res)) -> a i j
+			ensure that there is one solution *)
+		let fold_rm_actions bk actions ph =
+			failwith "Not implemented yet"
+		in
+		PMap.fold fold_rm_actions g_rm_actions ph
 	else ph
 
 

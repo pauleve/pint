@@ -41,7 +41,7 @@ struct
 		let fold_regulation bs (b, _, _) =
 			SSet.add b bs
 		in
-		List.fold_left fold_regulation SSet.empty ig
+		List.fold_left fold_regulation SSet.empty (SMap.find a ig)
 
 	let ctx_for_resources ig ps a res =
 		let fold_regulation ctx (b, th, s) =
