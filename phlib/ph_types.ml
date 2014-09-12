@@ -56,11 +56,6 @@ let pintstring_of_proc (a,i) = a^" "^string_of_int i;;
 
 let string_of_procs = string_of_set string_of_proc PSet.elements;;
 
-type stochatime = 
-	  Instantaneous
-	| RateSA of (float * int)
-	| FiringInterval of (float*float*float) 
-
 type rate = (float * int) option
 
 let rsa_of_stochatime = function

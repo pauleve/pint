@@ -74,7 +74,7 @@ cooperation(CS,A,AI,CSJ) :- ecs(CS), ep(A,AI), ecs_p(CSJ).
 
 
 %%% Affichage des solutions
-#hide.
+%#hide.
 
 %#show sort/2.
 %#show is_cs/1.

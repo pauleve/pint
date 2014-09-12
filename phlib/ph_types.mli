@@ -24,17 +24,12 @@ val string_of_procs : PSet.t -> string
 	RateSA (rate, stochasticity_absorption) or
 	FiringInterval (d1, d2, confidence_coefficient)
 *)
-type stochatime = 
-	  Instantaneous
-	| RateSA of (float * int)
-	| FiringInterval of (float*float*float) 
-
 type rate = (float * int) option
 
 (** Returns the rate and stochasticity absorption factor for the given parameter or None if the rate is infinite. *)
-val rsa_of_stochatime : stochatime -> rate
+val rsa_of_stochatime : PintTypes.stochatime -> rate
 
-type hits = (process, (process * stochatime) * sortidx) Hashtbl.t
+type hits = (process, (process * PintTypes.stochatime) * sortidx) Hashtbl.t
 type ph = process list * hits
 
 type action = Hit of (process * process * int)

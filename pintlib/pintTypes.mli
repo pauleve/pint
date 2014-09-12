@@ -20,3 +20,7 @@ type ternary = True | False | Inconc
 val string_of_ternary : ternary -> string
 
 
+type stochatime = 
+	  Instantaneous
+	| RateSA of (float * int)
+	| FiringInterval of (float*float*float) 

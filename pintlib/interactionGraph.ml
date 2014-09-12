@@ -31,6 +31,7 @@ knowledge of the CeCILL license and that you accept its terms.
 open PintTypes;;
 
 type sign_t = Positive | Negative
+type regulation_t = Regulation of (string * int * sign_t * string * stochatime)
 
 module IG =
 struct

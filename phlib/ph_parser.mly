@@ -5,7 +5,6 @@ open PintTypes;;
 open Ph_types;;
 open InteractionGraph;;
 
-type regulation_t = Regulation of (string * int * sign_t * string * stochatime)
 
 let interactiongraph_of_regulations regs =
 	let fold_regulation ig = function
@@ -494,12 +493,14 @@ let precall_macro = function
 %left OR
 %left NOT
 
-/* test */
 %start main
 %type <Ph_types.ph * Ph_types.ctx> main
 
 %start processlist
 %type <Ph_types.process list> processlist
+
+%start interaction_graph
+%type <InteractionGraph.regulation_t list> interaction_graph
 
 %%
 
@@ -594,6 +595,7 @@ regulation_list_t:
 	| regulation SEMI	{ [$1] }
 	| regulation SEMI regulation_list_t	{ $1::$3 }
 ;
+
 name_list: LBRACKET name_list_t RBRACKET { $2 };
 name_list_t:
 	  Name { [$1] }
@@ -649,5 +651,8 @@ main :
   			let ret = (init_content ph, compute_init_context ph $3) in reset_parser(); ret }
 | content footer { let ph = init_ph $1 in
 			let ret = (init_content ph, compute_init_context ph $2) in reset_parser(); ret }
+;
+
+interaction_graph : regulation_list_t Eof { $1 }
 ;
 %%

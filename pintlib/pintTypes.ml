@@ -50,3 +50,7 @@ let string_of_iset = string_of_set string_of_int ISet.elements
 type ternary = True | False | Inconc;;
 let string_of_ternary = function True -> "True" | False -> "False" | Inconc -> "Inconc";;
 
+type stochatime = 
+	  Instantaneous
+	| RateSA of (float * int)
+	| FiringInterval of (float*float*float) 

@@ -35,9 +35,13 @@ knowledge of the CeCILL license and that you accept its terms.
 *)
 
 open Debug;;
+open PintTypes;;
 open Ph_types;;
 
+open InteractionGraph;;
+
 let opt_dotfile = ref ""
+and opt_igfile = ref ""
 and opt_asp = ref ""
 and opt_format = ref "active"
 and opt_enum = ref false
@@ -48,6 +52,8 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		"<graph.dot>\tExport the interaction graph to the given file.");
 	("--debug-asp", Arg.Set_string  opt_asp, 
 		"<file.lp>\tExport the generated ASP program.");
+	("--ig", Arg.Set_string opt_igfile,
+		"<graph.ig>\tUse the interaction graph from given file instead of inference");
 	("--format", Arg.Symbol (["active"; "AB"; "iter"], (fun x -> opt_format := x)),
 		("\tParameter format (default: "^ (!opt_format) ^")."));
 	("--enumerate", Arg.Set opt_enum, "\tPerform parameterization enumeration.");
@@ -75,6 +81,45 @@ in
 check_clingo ();
 let asp_path = Filename.concat Distenv.pint_share_path "contrib/ph2thomas"
 in
+
+
+let input_ig filename =
+	let cin = open_in filename
+	in
+	let lexbuf = Lexing.from_channel cin
+	in
+	let show_position () =
+		let pos = Lexing.lexeme_start_p lexbuf
+		in
+		"Line " ^ string_of_int pos.Lexing.pos_lnum ^
+		  " char " ^ string_of_int 
+				(pos.Lexing.pos_cnum - pos.Lexing.pos_bol) ^ ": "
+	in
+	try
+		let regulations = Ph_parser.interaction_graph Ph_lexer.lexer lexbuf
+		in
+		let edges = Hashtbl.create (List.length regulations)
+		in
+		let fold_regulation nodes = function
+			Regulation (a, t, s, b, _) -> (
+				let s_s = match s with Positive -> "+" | Negative -> "-"
+				in
+				Hashtbl.add edges (a, b) (s_s, t);
+				SSet.add a (SSet.add b nodes)
+			)
+		in
+		let nodes = List.fold_left fold_regulation SSet.empty regulations
+		in
+		close_in cin;
+		(SSet.elements nodes, edges)
+	with Parsing.Parse_error ->
+		failwith (show_position () ^ "Syntax error")
+	| Failure msg ->
+		failwith (show_position () ^ msg)
+	| e -> 
+		failwith (show_position () ^ Printexc.to_string e)
+in
+
 
 let debug_asp data =
 	if !opt_asp <> "" then
@@ -137,12 +182,16 @@ let asp_data = asp_data ^ asp_coop
 in
 debug_asp asp_data;
 
-dbg "Inferring Interaction Graph...";
-let igin = run_process_io
-	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferIG.lp")^" -")
-		asp_data
-in
-let ig = Ph2thomas_ig.input_graph igin
+let ig = 
+	if !opt_igfile = "" then (
+		dbg "Inferring Interaction Graph...";
+		let igin = run_process_io
+			("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferIG.lp")^" -")
+			asp_data
+		in
+		Ph2thomas_ig.input_graph igin
+	) else 
+		input_ig !opt_igfile
 in
 (if !opt_dotfile <> "" then
 	let cout = open_out !opt_dotfile

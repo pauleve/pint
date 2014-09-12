@@ -64,7 +64,6 @@ if len(args) != 1:
     sys.exit(1)
 
 inputname = args[0]
-outputname = inputname.replace(".bcx","")+".ph"
 
 bcx = parse(inputname)
 
