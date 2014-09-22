@@ -111,3 +111,8 @@ let cross_forward (handler, merger, stopper) selectors =
 	cross_forward [] (List.rev selectors)
 ;;
 
+
+let rec list_lassoc b = function [] -> raise Not_found
+	| (a,c)::t -> if b = c then a else list_lassoc b t
+;;
+

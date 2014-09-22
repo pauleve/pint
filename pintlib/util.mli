@@ -15,6 +15,9 @@ val dump_to_file : string -> string -> unit
 (** [list_remove a l] removes all [a] occurences in [l]. *)
 val list_remove : 'a -> 'a list -> 'a list
 
+(** [list_lassoc b l] acts like List.assoc with flipped key/value. *)
+val list_lassoc : 'a -> ('b * 'a) list -> 'b
+
 (** [index_of a l] returns the first index of [a] occurrence in [l].
 	Raises [Not_found] if [a] is not present in [l]. *)
 val index_of : 'a -> 'a list -> int

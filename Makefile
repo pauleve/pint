@@ -1,5 +1,7 @@
-all: pint phstable phreach phc libpint phstat phexec ph2thomas
+all: pint pint-export phstable phreach phc libpint phstat phexec ph2thomas
 
+pint-export:
+	make -f target/pint-export
 phc:
 	make -f target/phc
 pint:

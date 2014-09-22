@@ -32,7 +32,7 @@ for line in sys.stdin:
             print("%s -> %s %s %s" % (cond.replace("=", " "), a, i, j))
             
     else:
-        p = line.replace("[","").replace("]","").replace(",","").split()
+        p = line.replace("[","").replace("]","").replace(","," ").split()
         a = p[0]
         l_a = p[-1]
         print("process %s %s" % (a, l_a))

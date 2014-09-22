@@ -8,4 +8,5 @@ fi
 	-I "$PINT_PATH/bindings" \
 	-I "$PINT_PATH/pintlib" \
 	-I "$PINT_PATH/phlib" \
+	-I "$PINT_PATH/anlib" \
 "$@"

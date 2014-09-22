@@ -32,6 +32,7 @@ bin/ph-reach
 bin/ph2thomas
 bin/phc
 bin/ph-exec
+bin/pint-export
 gen
 build
 build-stamp
