@@ -122,14 +122,14 @@ gi_edge(B,"-",BI+1,A) :- ea(A), eb(B), b_process(BI), b_process(BI+1), bounce_to
   bounce_to(BI+1,AI,AK), AJ>AK, not auto_action.
 %% Conclusion du cas A -> A
 gi_edge(A,"+",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), bounce_to(AI,AI,AJ),
-  bounce_to(AI+1,AI+1,AK), AJ<AK, auto_action.
+  bounce_to(AI+1,AI+1,AK), AK>=AI+1, AJ<=AI, auto_action, no_reg(A).
 gi_edge(A,"-",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), bounce_to(AI,AI,AJ),
-  bounce_to(AI+1,AI+1,AK), AJ>AK, auto_action.
+  bounce_to(AI+1,AI+1,AK), AK<AI+1, AJ>AI, auto_action, no_reg(A).
 %% Conclusion du cas A -> A (B ≠ A mais observation des groupes de régulateurs)
 gi_edge(A,"+",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), b_process(BI),
-  bounce_to(BI,AI,AJ), bounce_to(BI,AI+1,AK), AJ<AK, not auto_action.
+  bounce_to(BI,AI,AJ), bounce_to(BI,AI+1,AK), AK>=AI+1, AJ<=AI, not auto_action.
 gi_edge(A,"-",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), b_process(BI),
-  bounce_to(BI,AI,AJ), bounce_to(BI,AI+1,AK), AJ>AK, not auto_action.
+  bounce_to(BI,AI,AJ), bounce_to(BI,AI+1,AK), AK<AI+1, AJ>AI, not auto_action.
 
 
 
@@ -139,4 +139,5 @@ gi_edge(A,"-",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), b_process(BI),
 #show ea/1.
 #show eb/1.
 #show gi_edge/4.
+%#show gi_edge_debug/6.
 
