@@ -1,4 +1,5 @@
 
+open PintTypes
 open AutomataNetwork
 
 type opts = {
@@ -86,5 +87,60 @@ let pep_of_an opts an ctx =
 		else "")
 ;;
 
+let prism_of_an an ctx =
+	let a_counter = ref 0
+	and a2i = ref SMap.empty
+	in
+	let index a =
+		try SMap.find a !a2i 
+		with Not_found -> (
+			a_counter := !a_counter + 1;
+			a2i := SMap.add a !a_counter !a2i;
+			!a_counter
+		)
+	in
+	let modname a = 
+		let i = index a
+		in
+		"A"^string_of_int i
+	and varname a =
+		let i = index a
+		in
+		"s"^string_of_int i
+	in
+	let prism_state (a,i) =
+		varname a ^ "=" ^ string_of_int i
+	and prism_state' (a,i) = 
+		varname a ^ "'=" ^ string_of_int i
+	in
+	let prism_of_transition a i (j, conds) =
+		"\t[] " ^ (String.concat " & " (List.map prism_state ((a,i)::conds)))
+			^ " -> (" ^ prism_state' (a,j)^");\n"
+	in
+	let prism_of_transitions a i =
+		let transitions = LSMap.find (a,i) an.transitions
+		in
+		String.concat "" (List.map (prism_of_transition a i) transitions)
+	in
+	let prism_of_automaton (a, spec) =
+		let ls = snd (List.split spec)
+		in
+		"// automaton \""^a^"\"\n"
+		^ "module "^modname a^"\n"
+		^ "\t// "
+			^ (String.concat "; " (List.map 
+					(fun (s_i, i) -> string_of_int i^"=\""
+										^string_of_sig_state s_i^"\"") spec))
+			^"\n"
+		^ "\t"^varname a^": [0.."^string_of_int (List.length spec - 1)^"]"
+		^ " init "^string_of_int (ISet.choose (SMap.find a ctx))^";\n\n"
+		^ (String.concat "\n" (List.map (prism_of_transitions a) ls))
+		^ "\n\nendmodule"
+	in
+	"mdp\n\n"
+	^ (String.concat "\n\n" 
+		(List.map prism_of_automaton (SMap.bindings an.automata)))
+	^"\n\n"
+;;
 
 

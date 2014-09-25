@@ -1,8 +1,8 @@
 
 open An_export;;
 
-let languages = ["pep"]
-and opt_language = ref "pep"
+let languages = ["pep";"prism"]
+and opt_language = ref ""
 
 and opt_output = ref ""
 
@@ -26,6 +26,7 @@ let opts = {
 in
 let languages = [
 	("pep", pep_of_an opts);
+	("prism", prism_of_an);
 ]
 in
 let translator = List.assoc !opt_language languages

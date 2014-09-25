@@ -49,7 +49,7 @@ let declare_automaton an a sigstates =
 								sigstates
 	in
 	{(*an with*)
-		automata = SMap.add a sigassoc an.automata;
+		automata = SMap.add a (List.rev sigassoc) an.automata;
 		transitions = tr;
 	}
 
