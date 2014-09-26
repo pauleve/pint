@@ -158,6 +158,77 @@ in
 let ph, ctx = Ph_util.parse !Ui.opt_channel_in
 in
 
+let parents a =
+	let is = Util.range 0 (List.assoc a (fst ph))
+	in
+	let fold p i =
+		let fold_hit p (((b,_),_),_) =
+			SSet.add b p
+		in
+		let hits = Hashtbl.find_all (snd ph) (a,i)
+		in
+		List.fold_left fold_hit p hits
+	in
+	List.fold_left fold SSet.empty is
+in
+let rec predecessors known a =
+	let pa = parents a
+	in
+	let todo = SSet.diff pa known
+	in
+	let known = SSet.union known todo
+	in
+	let fold b pa =
+		let pb = predecessors known b
+		in
+		SSet.union pa pb
+	in
+	SSet.fold fold todo pa
+in
+let list_auto_fixed_points coops =
+	let sorts = fst (List.split (fst ph))
+	in
+	let components = List.filter (fun a -> not (List.mem a coops)) sorts
+	in
+	let predecessors = 
+		predecessors 
+			(List.fold_left (fun s a -> SSet.add a s) SSet.empty components)
+	in
+	let fpa a =
+		let ls = SSet.add a (predecessors a)
+		in
+		let register_action bj ((ai,_),_) hits =
+			if SSet.mem (fst bj) ls && SSet.mem (fst ai) ls then
+				(ai,bj)::hits
+			else hits
+		in
+		let hits = Hashtbl.fold register_action (snd ph) []
+		and defs = List.filter (fun (a,l) -> SSet.mem a ls) (fst ph)
+		in
+		let fps = Ph_fixpoint.fixpoints (defs, hits)
+		in
+		let get_a ps =
+			let ps = PSet.filter (fun (b,_) -> a = b) ps
+			in
+			PSet.choose ps
+		in
+		List.map (fun fp -> (get_a fp, fp)) fps
+	in
+	List.flatten (List.map fpa components)
+in
+let asp_of_fixed_points fps =
+	let asp_of_fp (buf, n) ((a,i), ps) =
+		let atom (b,j) =
+			"phi("^a^","^string_of_int i^","^string_of_int n
+				^","^b^","^string_of_int j^")"
+		in
+		let facts = List.map atom (PSet.elements ps)
+		in
+		(buf^(String.concat "\n" facts)^"\n"), (n+1)
+	in
+	fst (List.fold_left asp_of_fp ("\n% Local fixed points\n", 0) fps)
+in
+
 let asp_data = Ph_translator.asp_of_ph ph ctx
 in
 debug_asp asp_data;
@@ -175,10 +246,15 @@ Ph2thomas_coop.input_clauses clauses (run_process_io
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop2.lp")^" -")
 		asp_data);*)
 
-let asp_coop = Ph2thomas_coop.asp_of_clauses clauses
+let coops = Ph2thomas_coop.cooperative_sorts clauses
 in
-
-let asp_data = asp_data ^ asp_coop
+let asp_coop = Ph2thomas_coop.asp_of_clauses clauses coops
+in
+let fps = list_auto_fixed_points coops
+in
+let asp_fps = asp_of_fixed_points fps
+in
+let asp_data = asp_data ^ asp_coop ^ asp_fps
 in
 debug_asp asp_data;
 

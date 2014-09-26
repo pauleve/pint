@@ -166,14 +166,7 @@ let create_clauses () =
 	Hashtbl.create 3
 ;;
 
-let input_clauses clauses entree =
-	(** Lecture effective des clauses **)
-	(input_clauses entree clauses ["ecs" ; "cooperation" ; "cannot_be_cs" ; "error"]);
-	close_in entree
-;;
-
-let asp_of_clauses clauses =
-
+let check_errors clauses =
 	(* Vérification de l'absence d'erreurs *)
 	if Hashtbl.mem clauses "error" then (
 	  let err_args = Hashtbl.find clauses "error" in
@@ -181,14 +174,23 @@ let asp_of_clauses clauses =
 		  let err_compl = end_string err_args ((after_s err_text) + 1) in
 			prerr_endline ("Error in the model: \"" ^ (fst err_text) ^ "\", with args: " ^ err_compl) ;
 			raise Result_error
-	);
-  
-	(** Traitement des clauses **)
-	let cooperative_sorts = List.map
-		(fun c -> let s1 = parse_for_string c in fst s1)
-		(Hashtbl.find_all clauses "ecs")
-	in
+	)
+;;
 
+let input_clauses clauses entree =
+	(** Lecture effective des clauses **)
+	(input_clauses entree clauses ["ecs" ; "cooperation" ; "cannot_be_cs" ; "error"]);
+	close_in entree;
+	check_errors clauses
+;;
+
+let cooperative_sorts clauses =
+	List.map (fun c -> let s1 = parse_for_string c in fst s1)
+				(Hashtbl.find_all clauses "ecs")
+;;
+
+let asp_of_clauses clauses cooperative_sorts =
+	(** Traitement des clauses **)
 	let cooperations =
 	  let get_cooperation s =
 		let cs = parse_for_string s in
