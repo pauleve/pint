@@ -113,6 +113,29 @@ bounce_to(BI,AI,AI) :- ea(A), a_process(AI), b_process(BI), sigma(BI,AI,_,_),
 
 
 
+%%% Vérification des Phi
+%% phi_not_included(BI,AI,N) <=> sigma_select \notin sigma'_N
+%%                           <=> \exists b_i \in sigma_select, b_i \notin sigma'_N
+phi_not_included(BI,AI,N) :- ea(A), a_process(AI), b_process(BI), sigma_select(D,DI),
+  not phi(A,AI,N,D,DI), phi(_,_,N,_,_).  %, auto_action.
+phi_not_included(BI,AI,N) :- ea(A), a_process(AI), b_process(BI), phi(_,_,N,_,_),
+  not phi(A,AI,N,A,AI).  %, auto_action.
+phi_not_included(BI,AI,N) :- ea(A), eb(B), a_process(AI), b_process(BI), phi(_,_,N,_,_),
+  not phi(A,AI,N,B,BI).  %, auto_action.
+%% phi_included(BI,AI,N) <=> \not phi_not_included(A,AI,N)
+%%                       <=> sigma_select \subset sigma'_N
+phi_included(BI,AI) :- ea(A), a_process(AI), b_process(BI), phi(A,AI,N,_,_),
+  not phi_not_included(BI,AI,N).
+%% Nouveaux bounce_to
+bounce_to_with_phi(BI,AI,AJ) :- ea(A), a_process(AI), a_process(AJ), b_process(BI),
+  sigma(BI,AI,C,CI), action(C,CI,A,AI,AJ).  %, auto_action.
+exists_bounce_with_phi(BI,AI) :- bounce_to(BI,AI,AJ), AI!=AJ.  %, auto_action.
+bounce_to_with_phi(BI,AI,AI) :- ea(A), a_process(AI), b_process(BI), sigma(BI,AI,_,_),
+  phi_included(BI,AI),   % Ajout pour Phi
+  not exists_bounce_with_phi(BI,AI).  %, auto_action.
+
+
+
 %%% Conclusion
 
 %% Conclusion du cas B -> A
@@ -121,15 +144,15 @@ gi_edge(B,"+",BI+1,A) :- ea(A), eb(B), b_process(BI), b_process(BI+1), bounce_to
 gi_edge(B,"-",BI+1,A) :- ea(A), eb(B), b_process(BI), b_process(BI+1), bounce_to(BI,AI,AJ),
   bounce_to(BI+1,AI,AK), AJ>AK, not auto_action.
 %% Conclusion du cas A -> A
-gi_edge(A,"+",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), bounce_to(AI,AI,AJ),
-  bounce_to(AI+1,AI+1,AK), AK>=AI+1, AJ<=AI, auto_action, no_reg(A).
-gi_edge(A,"-",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), bounce_to(AI,AI,AJ),
-  bounce_to(AI+1,AI+1,AK), AK<AI+1, AJ>AI, auto_action, no_reg(A).
+gi_edge(A,"+",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), bounce_to_with_phi(AI,AI,AJ),
+  bounce_to_with_phi(AI+1,AI+1,AK), AK>=AI+1, AJ<=AI, auto_action.  %, no_reg(A). % TODO
+gi_edge(A,"-",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), bounce_to_with_phi(AI,AI,AJ),
+  bounce_to_with_phi(AI+1,AI+1,AK), AK<AI+1, AJ>AI, auto_action.  %, no_reg(A). % TODO
 %% Conclusion du cas A -> A (B ≠ A mais observation des groupes de régulateurs)
 gi_edge(A,"+",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), b_process(BI),
-  bounce_to(BI,AI,AJ), bounce_to(BI,AI+1,AK), AK>=AI+1, AJ<=AI, not auto_action.
+  bounce_to_with_phi(BI,AI,AJ), bounce_to_with_phi(BI,AI+1,AK), AK>=AI+1, AJ<=AI, not auto_action.
 gi_edge(A,"-",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), b_process(BI),
-  bounce_to(BI,AI,AJ), bounce_to(BI,AI+1,AK), AK<AI+1, AJ>AI, not auto_action.
+  bounce_to_with_phi(BI,AI,AJ), bounce_to_with_phi(BI,AI+1,AK), AK<AI+1, AJ>AI, not auto_action.
 
 
 
