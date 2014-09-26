@@ -4,7 +4,7 @@ SOURCES := \
 	an_export.ml\
 	an_parser.mly\
 	an_lexer.mll\
-	an_input.mll\
+	an_input.ml\
 
 
 #LIBS := 
