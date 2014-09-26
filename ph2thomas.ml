@@ -219,8 +219,8 @@ in
 let asp_of_fixed_points fps =
 	let asp_of_fp (buf, n) ((a,i), ps) =
 		let atom (b,j) =
-			"phi("^a^","^string_of_int i^","^string_of_int n
-				^","^b^","^string_of_int j^")"
+			"phi(\""^a^"\","^string_of_int i^",\""^string_of_int n
+				^"\",\""^b^"\","^string_of_int j^")."
 		in
 		let facts = List.map atom (PSet.elements ps)
 		in
