@@ -185,7 +185,7 @@ let rec predecessors known a =
 	in
 	SSet.fold fold todo pa
 in
-let list_auto_fixed_points coops =
+let list_auto_fixed_points coops procs =
 	let sorts = fst (List.split (fst ph))
 	in
 	let components = List.filter (fun a -> not (List.mem a coops)) sorts
@@ -194,18 +194,21 @@ let list_auto_fixed_points coops =
 		predecessors 
 			(List.fold_left (fun s a -> SSet.add a s) SSet.empty components)
 	in
-	let fpa a =
+	let fpa (a,i) =
 		let ls = SSet.add a (predecessors a)
 		in
 		let register_action bj ((ai,_),_) hits =
-			if SSet.mem (fst bj) ls && SSet.mem (fst ai) ls then
+			if SSet.mem (fst bj) ls && SSet.mem (fst ai) ls 
+				&& ((fst bj) = a && (snd bj) == i || (fst bj <> a))
+				&& ((fst ai) = a && (snd ai) == i || (fst ai <> a))
+			then
 				(ai,bj)::hits
 			else hits
 		in
 		let hits = Hashtbl.fold register_action (snd ph) []
 		and defs = List.filter (fun (a,l) -> SSet.mem a ls) (fst ph)
 		in
-		let fps = Ph_fixpoint.fixpoints (defs, hits)
+		let fps = Ph_fixpoint.fixpoints ~restrict:[(a,i)] (defs, hits)
 		in
 		let get_a ps =
 			let ps = PSet.filter (fun (b,_) -> a = b) ps
@@ -214,7 +217,7 @@ let list_auto_fixed_points coops =
 		in
 		List.map (fun fp -> (get_a fp, fp)) fps
 	in
-	List.flatten (List.map fpa components)
+	List.flatten (List.map fpa procs)
 in
 let asp_of_fixed_points fps =
 	let asp_of_fp (buf, n) ((a,i), ps) =
@@ -233,7 +236,7 @@ let asp_data = Ph_translator.asp_of_ph ph ctx
 in
 debug_asp asp_data;
 
-let clauses = Ph2thomas_coop.create_clauses ()
+let clauses = Ph2thomas_asp.create_clauses ()
 in
 Ph2thomas_coop.input_clauses clauses (run_process_io 
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop.lp")^" -")
@@ -250,11 +253,37 @@ let coops = Ph2thomas_coop.cooperative_sorts clauses
 in
 let asp_coop = Ph2thomas_coop.asp_of_clauses clauses coops
 in
-let fps = list_auto_fixed_points coops
+
+let asp_data = asp_data ^ asp_coop
+in
+debug_asp asp_data;
+
+let clauses = Ph2thomas_asp.create_clauses ()
+in
+let cin = run_process_io
+	("clingo 0 --verbose=0 "^(Filename.concat asp_path "need_phi.lp")^" -")
+		asp_data
+in
+Ph2thomas_asp.input_clauses cin clauses ["need_phi"];
+close_in cin;
+let need_phis = Hashtbl.find_all clauses "need_phi"
+in
+let parse_need_phi s =
+	let a = Ph2thomas_asp.parse_for_string s
+	in
+	let i = Ph2thomas_asp.parse_for_word_at s (Ph2thomas_asp.after_s a)
+	in
+	(fst a, int_of_string (fst i))
+in
+let procs = List.map parse_need_phi need_phis
+in
+prerr_endline ("need_phi for "^string_of_procs (procs_of_ps procs));
+
+let fps = list_auto_fixed_points coops procs
 in
 let asp_fps = asp_of_fixed_points fps
 in
-let asp_data = asp_data ^ asp_coop ^ asp_fps
+let asp_data = asp_data ^ asp_fps
 in
 debug_asp asp_data;
 

@@ -1,5 +1,6 @@
 
 SOURCES := \
+	ph2thomas_asp.ml\
 	ph2thomas_coop.ml\
 	ph2thomas_ig.ml\
 	ph2thomas_param.ml\

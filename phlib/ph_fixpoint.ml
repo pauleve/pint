@@ -83,8 +83,6 @@ let _fixpoints pl (sorts_def, hits) =
 		let ps = Hashtbl.fold fold_vs v_arrays PSet.empty
 		in
 		(*print_endline (string_of_procs ps);*)
-		prerr_string ".";
-		flush stderr;
 		sols := ps::!sols
 	in
 	ignore(Goals.solve ((goal &&~ Goals.atomic register_sol &&~ Goals.fail) ||~ Goals.success));
