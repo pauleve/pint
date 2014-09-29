@@ -201,6 +201,7 @@ let list_auto_fixed_points coops procs =
 			if SSet.mem (fst bj) ls && SSet.mem (fst ai) ls 
 				&& ((fst bj) = a && (snd bj) == i || (fst bj <> a))
 				&& ((fst ai) = a && (snd ai) == i || (fst ai <> a))
+				&& ((fst bj) <> (fst ai) || (fst bj) = a)
 			then
 				(ai,bj)::hits
 			else hits
