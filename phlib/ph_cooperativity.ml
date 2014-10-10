@@ -179,7 +179,7 @@ let separate_levels sigma_n n idx_from_state top =
 	in
 	(idx_top, idx_bot)
 
-let build_cooperation ?coop_label:(coop_label=None) ?rsa:(rsa=Instantaneous) get_sort_max sigma =
+let build_cooperation ?coop_label:(coop_label=None) ?rsa:(rsa=Instantaneous) get_sort_max =
 	let rec cooperative_matching patch op =
 		match op with
 		  SM (sigma, top) -> 
@@ -240,5 +240,5 @@ let build_cooperation ?coop_label:(coop_label=None) ?rsa:(rsa=Instantaneous) get
 			in
 			sigma_n, (top, bot), patch
 	in
-	cooperative_matching ([],[]) sigma
+	cooperative_matching ([],[])
 

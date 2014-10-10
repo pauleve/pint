@@ -52,8 +52,6 @@ let ph_filter_actions (ps, hits) ai filter =
 	List.iter (fun v -> Hashtbl.add hits ai v) actions
 
 let ph_remove_actions (ps, hits) rm_actions =
-	let hits = Hashtbl.copy hits
-	in
 	let gactions = group_actions (function Hit (_, ai, _) -> ai) rm_actions
 	in
 	let handle ai rm_actions =
@@ -61,8 +59,7 @@ let ph_remove_actions (ps, hits) rm_actions =
 		in
 		ph_filter_actions (ps, hits) ai filter
 	in
-	PMap.iter handle gactions;
-	(ps, hits)
+	PMap.iter handle gactions
 
 let ph_compl_ctx (ps, hits) ctx =
 	let fold a is ctx =
@@ -74,8 +71,25 @@ let ph_compl_ctx (ps, hits) ctx =
 	in
 	SMap.fold fold ctx ctx_empty
 
-let ph_ctx_cooperation ph ctx =
-	failwith "Not implemented yet"
+let ph_ctx_cooperation (ps, hits) ctx =
+	let sm_single (a, is) =
+		SM ([a], [ISet.elements is])
+	in
+	let rec build_sm = function [] -> failwith "cannot handle empty context"
+		| ais::[] -> sm_single ais
+		| ais::t -> 
+			SM_And (sm_single ais, build_sm t)
+	in
+	let sm = build_sm (SMap.bindings ctx)
+	in
+	let sigma, (top, bot), patch = 
+		Ph_cooperativity.build_cooperation (fun a -> List.assoc a ps) sm
+	in
+	let ps = fst patch @ ps
+	in
+	List.iter (function (Hit (bk, ai, j), rsa) ->
+							Hashtbl.add hits ai ((bk,rsa),j)) (snd patch);
+	(ps, hits), (sigma, top)
 
 
 let constrained_ph ph a res values =
@@ -89,9 +103,8 @@ let constrained_ph ph a res values =
 	let rm_actions = List.filter (function Hit (_, _, i) ->
 									not (List.mem i values)) actions
 	in
-	if rm_actions = [] then ph else
-		let ph = ph_remove_actions ph rm_actions
-		in
+	if rm_actions = [] then ph else (
+		ph_remove_actions ph rm_actions;
 		if SSet.cardinal regs = 1 then ph else
 		let g_rm_actions = group_actions (function Hit (bk, _, _) -> bk) rm_actions
 		in
@@ -99,18 +112,18 @@ let constrained_ph ph a res values =
 			ensure that there is one solution *)
 		let fold_rm_actions bk actions ph =
 			if ctx_has_proc bk ctx then ph else
+			(* 1. build cooperative sort for bk ^ not(ctx) *)
 			let ctx = ph_compl_ctx ph ctx
 			in
 			let ctx = ctx_add_proc bk ctx
 			in
-			(* 1. build cooperative sort for bk ^ not(ctx) *)
-			let c, top = ph_ctx_cooperation ph ctx 
+			let ph, (c, top) = ph_ctx_cooperation ph ctx 
 			in
 			(* 2. add hits *)
 			List.iter (fun k -> List.iter (function Hit (_, ai, j) ->
 								Hashtbl.add (snd ph) ai (((c,k),Instantaneous),j)) actions) top;
 			ph
 		in
-		PMap.fold fold_rm_actions g_rm_actions ph
+		PMap.fold fold_rm_actions g_rm_actions ph)
 
 
