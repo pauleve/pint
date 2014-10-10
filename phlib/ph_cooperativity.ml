@@ -36,6 +36,19 @@ knowledge of the CeCILL license and that you accept its terms.
 open PintTypes;;
 open Ph_types;;
 
+let regulators register a =
+	let rec deps_sort a =
+		try
+			let deps = fst (SMap.find a register)
+			in
+			let fold_dep deps b =
+				SSet.union deps (deps_sort b)
+			in
+			List.fold_left fold_dep SSet.empty deps
+		with Not_found -> SSet.singleton a
+	in
+	deps_sort a
+
 let resolve register ctx =
 	let rec resolve (sorts, f) =
 		let values_list = List.map resolve_sort sorts

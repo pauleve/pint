@@ -71,17 +71,7 @@ let ph_compl_ctx (ps, hits) ctx =
 	in
 	SMap.fold fold ctx ctx_empty
 
-let ph_ctx_cooperation (ps, hits) ctx =
-	let sm_single (a, is) =
-		SM ([a], [ISet.elements is])
-	in
-	let rec build_sm = function [] -> failwith "cannot handle empty context"
-		| ais::[] -> sm_single ais
-		| ais::t -> 
-			SM_And (sm_single ais, build_sm t)
-	in
-	let sm = build_sm (SMap.bindings ctx)
-	in
+let ph_cooperation (ps, hits) sm =
 	let sigma, (top, bot), patch = 
 		Ph_cooperativity.build_cooperation (fun a -> List.assoc a ps) sm
 	in
@@ -110,19 +100,27 @@ let constrained_ph ph a res values =
 		in
 		(* build cooperative hit (hitter ^ not (res)) -> a i j
 			ensure that there is one solution *)
-		let fold_rm_actions bk actions ph =
-			if ctx_has_proc bk ctx then ph else
-			(* 1. build cooperative sort for bk ^ not(ctx) *)
+		let fold_rm_actions (b,k) actions ph =
+			let rb = Ph_cooperativity.regulators !Ph_instance.cooperativities b
+			in
 			let ctx = ph_compl_ctx ph ctx
 			in
-			let ctx = ctx_add_proc bk ctx
+			let fold_ctx d is ph =
+				if SSet.mem d rb then ph else
+				let sm = 
+					if compare b d <= 0 then
+					SM ([b;d], Util.cross_list [ISet.elements is;[k]])
+					else
+					SM ([d;b], Util.cross_list [[k];ISet.elements is])
+				in
+				let ph, (c, top) = ph_cooperation ph sm
+				in
+				(* 2. add hits *)
+				List.iter (fun k -> List.iter (function Hit (_, ai, j) ->
+									Hashtbl.add (snd ph) ai (((c,k),Instantaneous),j)) actions) top;
+				ph
 			in
-			let ph, (c, top) = ph_ctx_cooperation ph ctx 
-			in
-			(* 2. add hits *)
-			List.iter (fun k -> List.iter (function Hit (_, ai, j) ->
-								Hashtbl.add (snd ph) ai (((c,k),Instantaneous),j)) actions) top;
-			ph
+			SMap.fold fold_ctx ctx ph
 		in
 		PMap.fold fold_rm_actions g_rm_actions ph)
 

@@ -53,3 +53,5 @@ val build_cooperation: ?coop_label:string option -> ?rsa:PintTypes.stochatime ->
 						-> Ph_types.state_matching_t
 			-> string * (int list * int list) * (Ph_types.process list * (Ph_types.action * PintTypes.stochatime) list)
 
+val regulators: Ph_instance.cooperativities_t -> string -> PintTypes.SSet.t
+
