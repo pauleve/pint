@@ -111,17 +111,13 @@ let compute_init_context ph procs =
 	let ctx = apply_settings ctx0
 	in
 	(* apply cooperativities *)
-	let fold c (sigma, idx) ctx =
-		let ctx_c = List.map (fun a -> ISet.elements (SMap.find a ctx)) sigma
+	let fold c _ ctx =
+		let is = Ph_cooperativity.resolve !Ph_instance.cooperativities ctx c
 		in
-		let states_c = Util.cross_list (List.rev ctx_c)
+		let fold ps i =
+			PSet.add (c,i) ps
 		in
-		let fold procs_c state_c =
-			let i = idx state_c
-			in
-			PSet.add (c,i) procs_c
-		in
-		let procs_c = List.fold_left fold PSet.empty states_c
+		let procs_c = List.fold_left fold PSet.empty is
 		in
 		dbg ("- init cooperativity: "^string_of_procs procs_c);
 		ctx_override ctx procs_c
