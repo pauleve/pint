@@ -125,3 +125,18 @@ let constrained_ph ph a res values =
 		PMap.fold fold_rm_actions g_rm_actions ph)
 
 
+open Ph_reach
+
+let is_worthy_process env  =
+	let glc_setup = Ph_glc.ua_glc_setup
+		(* TODO: add intermediate targets for non-Boolean components *)
+	and get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
+	in
+	let _, get_Sols = unordered_over_approx env get_Sols
+	in
+	let gB = new Ph_glc.glc glc_setup env.ctx env.pl env.concrete get_Sols
+	in
+	gB#build;
+	gB#saturate_ctx;
+	gB#has_proc
+

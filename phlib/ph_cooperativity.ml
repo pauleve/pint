@@ -65,7 +65,14 @@ let resolve register ctx =
 			ISet.elements (ctx_get a ctx)
 	in
 	resolve_sort
-;;
+
+let coherent_ctx register ctx =
+	let resolve_coop c _ ctx =
+		let il = resolve register ctx c
+		in
+		SMap.add c (ISet.singleton (List.hd il)) ctx
+	in
+	SMap.fold resolve_coop register ctx
 
 let local_fixed_points ?level1:(level1=false) register (ps, hits) =
 	let state_empty = SMap.empty

@@ -55,3 +55,5 @@ val build_cooperation: ?coop_label:string option -> ?rsa:PintTypes.stochatime ->
 
 val regulators: Ph_instance.cooperativities_t -> string -> PintTypes.SSet.t
 
+val coherent_ctx: Ph_instance.cooperativities_t -> Ph_types.ctx -> Ph_types.ctx
+
