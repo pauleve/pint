@@ -27,12 +27,6 @@ let reset_parser () =
 	Ph_instance.reset ();
 ;;
 
-let new_coop () =
-	let n = SMap.cardinal !Ph_instance.cooperativities
-	in
-	"__coop" ^ (string_of_int n)
-;;
-
 let default_rsa () = 
 	match directive.default_rate with
 	  None -> Instantaneous
@@ -170,15 +164,6 @@ let update (mps,actions) (regexps, rate) =
 	MACROS
 ***)
 
-type anostate = int list
-
-type state_matching_t =
-	  SM of (string list * anostate list)
-	| SM_Not of state_matching_t
-	| SM_And of (state_matching_t * state_matching_t)
-	| SM_Or of (state_matching_t * state_matching_t)
-;;
-
 type macro_arg_t =
 	  Arg_Name of string
 	| Arg_Int of int
@@ -192,76 +177,17 @@ type macro_arg_t =
 	| Arg_StateMatching of state_matching_t
 ;;
 
-let reflection_name sigma = String.concat "" sigma
-;;
-let build_reflection ?coop_label:(coop_label=None) (mps,actions) = function
-  [a] -> (a, ([a], (function [s] -> s | _ -> invalid_arg "idx_from_state singleton"))), (mps,actions)
-| sigma -> 
-	let sigma_n = reflection_name sigma ^ (match coop_label with None -> "" | Some l -> "__"^l)
+let build_reflection ?coop_label:(coop_label=None) (mps,actions) sigma =
+	let (record, append) = Ph_cooperativity.build_reflection 
+													~coop_label 
+													~rsa:(default_rsa ())
+													(get_sort_max mps) sigma
 	in
-	if SMap.mem sigma_n mps then
-		((sigma_n, SMap.find sigma_n !Ph_instance.cooperativities), (mps,actions))
-	else (
-		let sigma_len = List.length sigma
-		in
-		let rec build_idx_sizes n prec_size =
-			let my_size = if n = sigma_len-1 then 1 
-				else ((1+get_sort_max mps (List.nth sigma (n+1))) * prec_size)
-			and n' = n-1
-			in
-			(if n' < -1 then [] else build_idx_sizes (n-1) my_size)
-			@ [my_size]
-		in
-		let idx_sizes = build_idx_sizes (sigma_len-1) 1
-		in
-		let lsigma = List.hd idx_sizes - 1
-		and idx_sizes = List.tl idx_sizes
-		in
-		let sigma_p = (sigma_n, lsigma)
-		in
-		let idx_from_state state =
-			let rec idx_from_state n = function
-				  [] -> 0
-				| i::tail -> i*(List.nth idx_sizes n) + idx_from_state (n+1) tail
-			in
-			idx_from_state 0 state
-		in
+	let mps, actions = match append with None -> (mps, actions) 
+						| Some ((a,i), hs) -> SMap.add a i mps, actions @ hs
+	in
+	record, (mps, actions)
 
-		let get_sort_processes a = Util.range 0 (get_sort_max mps a)
-		in
-		let _S = Util.cross_list (List.map get_sort_processes (List.rev sigma))
-		in
-
-		let folder hsigma z =
-			let n = Util.index_of z sigma
-			in
-			let folder hsigma i =
-				let my_S = List.filter (fun state -> List.nth state n <> i) _S
-				in
-				let make_hit state =
-					let shift = (i - List.nth state n)*(List.nth idx_sizes n)
-					and state_id = idx_from_state state
-					in
-					let state'_id = state_id + shift
-					in
-					Hit ((z,i), (sigma_n,state_id), state'_id)
-				in
-				hsigma @ List.map make_hit my_S
-			in
-			List.fold_left folder hsigma (Util.range 0 (SMap.find z mps))
-		in
-		let hsigma = List.fold_left folder [] sigma
-		in
-		let mps = SMap.add (fst sigma_p) (snd sigma_p) mps
-		and actions = ph_add_hits actions (default_rsa ()) hsigma
-		in
-		let record = sigma_n, (sigma, idx_from_state)
-		in
-		Ph_instance.cooperativities := SMap.add (fst record) (snd record)
-											!Ph_instance.cooperativities;
-		(record, (mps,actions))
-	)
-;;
 
 let macro_regulation = function
 	  [Arg_Regulation regulation] -> (fun (mps,actions) ->
@@ -352,7 +278,6 @@ let rec macro_cooperativity ?coop_label:(coop_label=None) autoremove = function
 
 	let m_default_rsa = default_rsa ()
 	in
-
 	(* remove existing hits from sorts in sm to processes (sort,l_true|l_false) *)
 	let rec matching_names = function
 		  SM (sigma, _) -> sigma
@@ -366,69 +291,14 @@ let rec macro_cooperativity ?coop_label:(coop_label=None) autoremove = function
 			not (List.mem b names && a = sort &&
 				(i == l_true && j == l_false || i == l_false && j == l_true)))
 	in
-	let separate_levels mps sigma_n idx_from_state top =
-		let idx_top = List.map idx_from_state top
-		in
-		let n = SMap.find sigma_n mps
-		in
-		let idx_bot = List.filter (fun i -> not (List.mem i idx_top)) (Util.range 0 n)
-		in
-		idx_top, idx_bot
+	let mps, actions = ctx
 	in
-
-	(* build reflections *)
-	let rec cooperative_matching ctx op = match op with
-		  SM (sigma, top) -> 
-		  	let (sigma_n, (sigma, idx_from_state)), ctx = build_reflection ~coop_label:coop_label ctx sigma
-			in
-			sigma_n, separate_levels (fst ctx) sigma_n idx_from_state top, ctx
-
-		| SM_Not sm ->
-			let sigma_n, (top,bot), ctx = cooperative_matching ctx sm
-			in
-			sigma_n, (bot, top), ctx
-
-		| SM_And (sm1, sm2) 
-		| SM_Or (sm1, sm2) ->
-			let sig1, (top1,bot1), ctx = cooperative_matching ctx sm1
-			in
-			let sig2, (top2,bot2), ctx = cooperative_matching ctx sm2
-			in
-			let sigma_n = new_coop ()
-				^ (match coop_label with None -> "" | Some l -> "__"^l)
-			in
-			let dirs = [
-				(sig1, top1, 0, 2);(sig1, top1, 1, 3);
-				(sig1, bot1, 2, 0);(sig1, bot1, 3, 1);
-				(sig2, top2, 0, 1);(sig2, top2, 2, 3);
-				(sig2, bot2, 1, 0);(sig2, bot2, 3, 2);
-			]
-			in
-			let register sigN j k actions s =
-				(Hit ((sigN,s), (sigma_n,j), k), m_default_rsa)::actions
-			in
-			let folder actions (sigN, levels, j, k) =
-				List.fold_left (register sigN j k) actions levels
-			in
-			let ctx = SMap.add sigma_n 3 (fst ctx), List.fold_left folder (snd ctx) dirs
-			in
-
-			Ph_instance.cooperativities := SMap.add sigma_n ([sig1;sig2], 
-				function [s1;s2] ->
-					let r1 = if List.mem s1 top1 then 2 else 0
-					and r2 = if List.mem s2 top2 then 1 else 0
-					in
-					r1 + r2
-				| _ -> invalid_arg "__coop idx_from_state")
-					!Ph_instance.cooperativities;
-			let (top, bot) = match op with
-				  SM_And _ -> ([3], [0;1;2])
-				| SM_Or _ -> ([1;2;3], [0])
-				| _ -> invalid_arg "match op"
-			in
-			sigma_n, (top, bot), ctx
+	let sigma_n, (top, bot), patch = Ph_cooperativity.build_cooperation
+											~rsa:m_default_rsa 
+											(get_sort_max mps) sm
 	in
-	let sigma_n, (top, bot), ctx = cooperative_matching ctx sm
+	let mps = List.fold_left (fun mps (a,i) -> SMap.add a i mps) mps (fst patch)
+	and actions = actions @ (snd patch)
 	in
 
 	(* setup cooperativities *)
@@ -437,9 +307,8 @@ let rec macro_cooperativity ?coop_label:(coop_label=None) autoremove = function
 	let h'coop = coop_hits (sort,l_false) l_true top
 				@ coop_hits (sort,l_true) l_false bot
 	in
-	let ps, actions = ctx
-	in
-	ps, ph_add_hits actions m_default_rsa h'coop
+	mps, ph_add_hits actions m_default_rsa h'coop
+
 )
 | Arg_Name label::params ->
 	macro_cooperativity ~coop_label:(Some label) autoremove params

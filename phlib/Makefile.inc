@@ -2,11 +2,11 @@
 SOURCES := \
 	ph_types.mli\
 	ph_types.ml\
+	ph_instance.mli\
+	ph_instance.ml\
 	ph_cooperativity.mli\
 	ph_cooperativity.ml\
 	ph_useropts.ml\
-	ph_instance.mli\
-	ph_instance.ml\
 	ph_parser.mly\
 	ph_lexer.mll\
 	ph_translator.mli\
