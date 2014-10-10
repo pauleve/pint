@@ -11,7 +11,7 @@ let interactiongraph_of_regulations regs =
 		Regulation (a, th, s, b, _) ->
 			let preds = try SMap.find b ig with Not_found -> []
 			in
-			SMap.add a ((a,th,s)::preds) ig
+			SMap.add b ((a,th,s)::preds) ig
 	in
 	List.fold_left fold_regulation SMap.empty regs
 ;;
