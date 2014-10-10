@@ -16,9 +16,6 @@ let interactiongraph_of_regulations regs =
 	List.fold_left fold_regulation SMap.empty regs
 ;;
 
-let cooperativities = ref [];;
-let __coop_counter = ref 0;;
-
 type options_t = {
 	mutable autoinit : bool;
 }
@@ -27,8 +24,13 @@ let options = {
 }
 
 let reset_parser () =
-	cooperativities := [];
-	__coop_counter := 0
+	Ph_instance.reset ();
+;;
+
+let new_coop () =
+	let n = SMap.cardinal !Ph_instance.cooperativities
+	in
+	"__coop" ^ (string_of_int n)
 ;;
 
 let default_rsa () = 
@@ -109,7 +111,7 @@ let compute_init_context ph procs =
 	let ctx = apply_settings ctx0
 	in
 	(* apply cooperativities *)
-	let fold ctx (c, (sigma, idx)) =
+	let fold c (sigma, idx) ctx =
 		let ctx_c = List.map (fun a -> ISet.elements (SMap.find a ctx)) sigma
 		in
 		let states_c = Util.cross_list (List.rev ctx_c)
@@ -128,12 +130,9 @@ let compute_init_context ph procs =
 	let ctx =
 		if !Ph_useropts.autoinit = (Some true) ||
 			!Ph_useropts.autoinit = None && options.autoinit then
-			List.fold_left fold ctx (List.rev !cooperativities)
+			SMap.fold fold !Ph_instance.cooperativities ctx
 		else ctx
 	in
-	let register_coop set (c, cfg) = SMap.add c cfg set
-	in
-	Ph_instance.cooperativities := List.fold_left register_coop SMap.empty !cooperativities;
 	(* re-apply settings (force cooperative states) *)
 	apply_settings ctx
 ;;
@@ -205,7 +204,7 @@ let build_reflection ?coop_label:(coop_label=None) (mps,actions) = function
 	let sigma_n = reflection_name sigma ^ (match coop_label with None -> "" | Some l -> "__"^l)
 	in
 	if SMap.mem sigma_n mps then
-		((sigma_n, List.assoc sigma_n !cooperativities), (mps,actions))
+		((sigma_n, SMap.find sigma_n !Ph_instance.cooperativities), (mps,actions))
 	else (
 		let sigma_len = List.length sigma
 		in
@@ -262,7 +261,8 @@ let build_reflection ?coop_label:(coop_label=None) (mps,actions) = function
 		in
 		let record = sigma_n, (sigma, idx_from_state)
 		in
-		cooperativities := record::!cooperativities;
+		Ph_instance.cooperativities := SMap.add (fst record) (snd record)
+											!Ph_instance.cooperativities;
 		(record, (mps,actions))
 	)
 ;;
@@ -398,10 +398,9 @@ let rec macro_cooperativity ?coop_label:(coop_label=None) autoremove = function
 			in
 			let sig2, (top2,bot2), ctx = cooperative_matching ctx sm2
 			in
-			let sigma_n = "__coop" ^ (string_of_int !__coop_counter)
+			let sigma_n = new_coop ()
 				^ (match coop_label with None -> "" | Some l -> "__"^l)
-			in __coop_counter := !__coop_counter + 1;
-
+			in
 			let dirs = [
 				(sig1, top1, 0, 2);(sig1, top1, 1, 3);
 				(sig1, bot1, 2, 0);(sig1, bot1, 3, 1);
@@ -417,13 +416,15 @@ let rec macro_cooperativity ?coop_label:(coop_label=None) autoremove = function
 			in
 			let ctx = SMap.add sigma_n 3 (fst ctx), List.fold_left folder (snd ctx) dirs
 			in
-			cooperativities := (sigma_n, ([sig1;sig2], 
+
+			Ph_instance.cooperativities := SMap.add sigma_n ([sig1;sig2], 
 				function [s1;s2] ->
 					let r1 = if List.mem s1 top1 then 2 else 0
 					and r2 = if List.mem s2 top2 then 1 else 0
 					in
 					r1 + r2
-				| _ -> invalid_arg "__coop idx_from_state"))::!cooperativities;
+				| _ -> invalid_arg "__coop idx_from_state")
+					!Ph_instance.cooperativities;
 			let (top, bot) = match op with
 				  SM_And _ -> ([3], [0;1;2])
 				| SM_Or _ -> ([1;2;3], [0])
