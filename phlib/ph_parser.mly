@@ -23,10 +23,6 @@ let options = {
 	autoinit = true;
 }
 
-let reset_parser () =
-	Ph_instance.reset ();
-;;
-
 let default_rsa () = 
 	match directive.default_rate with
 	  None -> Instantaneous
@@ -514,9 +510,9 @@ footer :
 
 main :
   headers content footer { let ph = init_ph $2 in 
-  			let ret = (init_content ph, compute_init_context ph $3) in reset_parser(); ret }
+  			(init_content ph, compute_init_context ph $3)}
 | content footer { let ph = init_ph $1 in
-			let ret = (init_content ph, compute_init_context ph $2) in reset_parser(); ret }
+			(init_content ph, compute_init_context ph $2)}
 ;
 
 interaction_graph : regulation_list_t Eof { $1 }
