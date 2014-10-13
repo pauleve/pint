@@ -8,7 +8,7 @@ let test_worth env ai =
 		Ph_cooperativity.coherent_ctx !Ph_instance.cooperativities env.ctx}
 	in
 	print_endline ("is it worth to reach "^string_of_proc ai^"? ");
-	print_endline (string_of_bool (Ph_thomas.is_worthy_process env ai))
+	print_endline (string_of_bool (is_worthy_process env ai))
 
 in
 let model = "e1.ph"

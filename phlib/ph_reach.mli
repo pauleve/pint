@@ -39,3 +39,6 @@ val top_trimmed_cwA : env -> #Ph_glc.graph -> unit
 val unordered_over_approx : env -> (Ph_types.objective ->Ph_types.PSet.t list) ->
 								(bool * (Ph_types.objective ->Ph_types.PSet.t list))
 
+val is_worthy_process : env -> Ph_types.process -> bool
+
+
