@@ -1,44 +1,37 @@
-all: pint pint-export phstable phreach phc libpint phstat phexec ph2thomas
 
-pint-export:
-	make -f target/pint-export
-phc:
-	make -f target/phc
-pint:
-	make -f target/pinttop
-libpint:
-	make -f target/pintlib
-phstat:
-	make -f target/phstat
-phstable:
-	make -f target/phstable
-phreach:
-	make -f target/phreach
-phexec:
-	make -f target/phexec
-ph2thomas:
-	make -f target/ph2thomas
+TARGETS=pint-config pinttop pint-export ph-stable ph-reach phc libpint ph-stat ph-exec ph2thomas
 
-clean:
-	make -f target/phexec clean
-	make -f target/ph2thomas clean
-	make -f target/phreach clean
-	make -f target/phstable clean
-	make -f target/phstat clean
-	make -f target/phc clean
-	make -f target/pinttop clean
-	make -f target/pintlib clean
+MISC_TOOLS = \
+	converters/bcx2ph\
+	converters/CNA2ph\
+	converters/ginml2ph\
+	converters/ginml2K\
+	converters/K2an\
+	converters/an2ph\
+
+
+all: $(TARGETS)
+
+$(TARGETS):
+	make -f target/$@
+
+%_clean:
+	make -f target/$* clean
+
+test: all
+	make -f tests/Makefile
+	cd tests && ./pinttests
+
+test_clean:
 	make -f tests/Makefile clean
+
+clean: $(addsuffix _clean,$(TARGETS)) test_clean
 
 apidoc:
 	rm -f docs/api/*
 	ocamldoc -sort -html -d docs/api -I bindings -I pintlib -I phlib \
 		-t "Pint OCaml API" \
 		bindings/r.mli pintlib/*.mli phlib/*.mli *.mli
-
-test: all
-	make -f tests/Makefile
-	cd tests && ./pinttests
 
 
 RELNAME=$(shell date -I)
@@ -47,30 +40,15 @@ RELBRANCH=master
 PREFIX=/usr
 DESTDIR=
 
-phc-install: phc
-	make -f target/phc PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
-#pint-install: pint
-#	make -f target/pinttop PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
-libpint-install: libpint
-	make -f target/pintlib PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
-phstat-install: phstat
-	make -f target/phstat PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
-phstable-install: phstable
-	make -f target/phstable PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
-phreach-install: phreach
-	make -f target/phreach PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
-phexec-install: phexec
-	make -f target/phexec PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
-ph2thomas-install: ph2thomas
-	make -f target/ph2thomas PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
+%_install: %
+	make -f target/$* PREFIX=$(PREFIX) DESTDIR=$(DESTDIR) install
 
-MISC_TOOLS = converters/bcx2ph converters/CNA2ph converters/ginml2ph
 misc-install:
 	for i in $(MISC_TOOLS); do \
 		install -m 0755 $$i $(DESTDIR)$(PREFIX)/bin; \
 	done
 
-install: phc-install phstat-install phstable-install phreach-install phexec-install ph2thomas-install misc-install
+install: $(addsuffix _install,$(TARGETS))
 
 pre-release:
 	sed -i 's/:.*##VERSION##/: "$(RELNAME)",##VERSION##/' setup.py
@@ -85,10 +63,10 @@ release:
 OSX_W=/tmp/osx-pint/pint-$(RELNAME)
 OSX_W_BIN=/tmp/osx-pint/pint-$(RELNAME)/pint
 OSX_W_SHARE=$(OSX_W_BIN)/share
-OSX_BINS=phc ph-stat ph-stable ph-reach ph-exec ph2thomas
+OSX_BINS=phc ph-stat ph-stable ph-reach ph-exec ph2thomas pint-config pint-export
 
 # should be called using ./dist/osx/do.sh
-dist-osx: phc phstat phstable phreach phexec ph2thomas
+dist-osx: $(OXS_BINS)
 	-rm -rf $(OSX_W)
 	install -d $(OSX_W_BIN)
 	install -m 755 $(OSX_BINS:%=bin/%) $(MISC_TOOLS) $(OSX_W_BIN)

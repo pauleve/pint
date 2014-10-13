@@ -4,15 +4,9 @@ include Makefile.common
 
 SOURCES = \
 	$(DIST_SOURCES) \
-	$(BINDINGS_SOURCES)\
-	$(PINTLIB_SOURCES) \
-	$(PHLIB_SOURCES) \
-	$(UI_SOURCES) \
-	phexec.ml
+	pintconfig.ml
 
-LIBS := $(PHLIB_LIBS) unix
-
-RESULT = ph-exec
+RESULT = bin/pint-config
 
 install:
 	install -d $(DESTDIR)$(PREFIX)/bin
