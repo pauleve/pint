@@ -61,30 +61,33 @@ release:
 	git archive -o ../pint-$(RELNAME).zip --prefix pint-$(RELNAME)/ $(RELBRANCH)
 
 OSX_W=/tmp/osx-pint/pint-$(RELNAME)
-OSX_W_BIN=/tmp/osx-pint/pint-$(RELNAME)/pint
-OSX_W_SHARE=$(OSX_W_BIN)/share
-OSX_BINS=phc ph-stat ph-stable ph-reach ph-exec ph2thomas pint-config pint-export
+OSX_PREFIX=/pint
+OSX_SHARE=$(OSX_PREFIX)/share
+OSX_ROOT=$(OSX_W)$(OSX_PREFIX)
+OSX_BIN=$(OSX_ROOT)/bin
+OSX_TARGETS=phc ph-stat ph-stable ph-reach ph-exec ph2thomas pint-config pint-export
 OSX_DMG=../pint-$(RELNAME).dmg
 
 # should be called using ./dist/osx/do.sh
 #dist-osx: $(OXS_BINS)
 dist-osx:
 	-rm -rf $(OSX_W)
-	make DESTDIR="$(OSX_W)" PREFIX="/pint" PINT_SHARE_PATH="/share" \
-		$(addsuffix _install,$(OSX_BINS)) misc_install
+	make DESTDIR="$(OSX_W)" PREFIX="$(OSX_PREFIX)" \
+		PINT_SHARE_PATH="$(OSX_SHARE)" \
+		$(addsuffix _install,$(OSX_TARGETS)) misc_install
 	#install -d $(OSX_W_BIN)
 	#install -m 755 $(OSX_BINS:%=bin/%) $(MISC_TOOLS) $(OSX_W_BIN)
-	install -m 644 dist/osx/*.dylib $(OSX_W_BIN)
-	for i in $(OSX_BINS); do \
-		install -m 755 -b -B .mac dist/osx/wrapper.sh $(OSX_W_BIN)/$$i; \
+	install -m 644 dist/osx/*.dylib $(OSX_BIN)
+	for i in $(OSX_TARGETS); do \
+		install -m 755 -b -B .mac dist/osx/wrapper.sh $(OSX_BIN)/$$i; \
 	done
 	#install -d $(OSX_W_SHARE)/contrib/ph2thomas
 	#install -m 644 contrib/ph2thomas/*.lp $(OSX_W_SHARE)/contrib/ph2thomas
-	OSX_BINS="$(OSX_BINS)" MISC_TOOLS="$(MISC_TOOLS)" ./dist/osx/gen_install.sh > $(OSX_W_BIN)/install.sh
-	chmod 655 $(OSX_W_BIN)/install.sh
-	install -d $(OSX_W)/examples
-	install -m 644 examples/* $(OSX_W)/examples
-	install -m 644 dist/osx/README $(OSX_W)
+	MISC_TOOLS="$(MISC_TOOLS)" ./dist/osx/gen_install.sh > $(OSX_ROOT)/install.sh
+	chmod 655 $(OSX_ROOT)/install.sh
+	install -d $(OSX_ROOT)/examples
+	install -m 644 examples/* $(OSX_ROOT)/examples
+	install -m 644 dist/osx/README $(OSX_ROOT)
 	-rm -f $(OSX_DMG)
 	hdiutil create -srcfolder $(OSX_W) -volname pint-$(RELNAME) -fs HFS+ $(OSX_DMG)
 	-rm -rf $(OSX_W)
