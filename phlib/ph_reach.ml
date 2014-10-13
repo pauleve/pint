@@ -377,7 +377,7 @@ let top_trimmed_cwA env gA =
 ;;
 
 
-let is_worthy_process env  =
+let worth_glc env  =
 	let mvsorts = List.filter 
 		(fun (a,i) -> i > 1 && not (SMap.mem a !Ph_instance.cooperativities))
 			(fst env.ph)
@@ -403,5 +403,7 @@ let is_worthy_process env  =
 	in
 	gB#build;
 	gB#saturate_ctx;
-	gB#has_proc
+	gB
+
+let is_process_worth gB = gB#has_proc
 
