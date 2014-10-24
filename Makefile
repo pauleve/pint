@@ -9,6 +9,7 @@ MISC_TOOLS = \
 	converters/K2an\
 	converters/an2ph\
 
+.PHONY: $(TARGETS)
 
 all: $(TARGETS)
 
