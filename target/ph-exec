@@ -1,0 +1,22 @@
+all: nc
+
+include Makefile.common
+
+SOURCES = \
+	$(DIST_SOURCES) \
+	$(BINDINGS_SOURCES)\
+	$(PINTLIB_SOURCES) \
+	$(PHLIB_SOURCES) \
+	$(UI_SOURCES) \
+	phexec.ml
+
+LIBS := $(PHLIB_LIBS) unix
+
+RESULT = bin/ph-exec
+
+install:
+	install -d $(DESTDIR)$(PREFIX)/bin
+	install -m 0755 $(RESULT) $(DESTDIR)$(PREFIX)/bin
+
+include OCamlMakefile
+# vi:set syntax=make:
