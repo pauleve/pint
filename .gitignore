@@ -33,6 +33,7 @@ bin/ph2thomas
 bin/phc
 bin/ph-exec
 bin/pint-export
+bin/pint-config
 gen
 build
 build-stamp
