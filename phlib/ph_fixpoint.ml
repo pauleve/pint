@@ -86,7 +86,7 @@ let _fixpoints pl (sorts_def, hits) =
 		sols := ps::!sols
 	in
 	ignore(Goals.solve ((goal &&~ Goals.atomic register_sol &&~ Goals.fail) ||~ Goals.success));
-	prerr_newline ();
+	(*prerr_newline ();*)
 	!sols
 ;;
 let fixpoints ?restrict:(pl=[]) args =

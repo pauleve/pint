@@ -237,6 +237,9 @@ let asp_data = Ph_translator.asp_of_ph ph ctx
 in
 debug_asp asp_data;
 
+let t0 = tic ()
+in
+
 let clauses = Ph2thomas_asp.create_clauses ()
 in
 Ph2thomas_coop.input_clauses clauses (run_process_io 
@@ -278,7 +281,7 @@ let parse_need_phi s =
 in
 let procs = List.map parse_need_phi need_phis
 in
-prerr_endline ("need_phi for "^string_of_procs (procs_of_ps procs));
+dbg ("need_phi for "^string_of_procs (procs_of_ps procs));
 
 let fps = list_auto_fixed_points coops procs
 in
@@ -290,7 +293,7 @@ debug_asp asp_data;
 
 let ig = 
 	if !opt_igfile = "" then (
-		dbg "Inferring Interaction Graph...";
+		dbg ~level:1 "Inferring Interaction Graph...";
 		let igin = run_process_io
 			("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferIG.lp")^" -")
 			asp_data
@@ -299,6 +302,7 @@ let ig =
 	) else 
 		input_ig !opt_igfile
 in
+toc ~label:"IG inference" t0;
 (if !opt_dotfile <> "" then
 	let cout = open_out !opt_dotfile
 	in
@@ -309,11 +313,12 @@ let asp_data = asp_data ^ (Ph2thomas_ig.asp_of_graph ig)
 in
 debug_asp asp_data;
 
-dbg "Inferring Parameters..";
+dbg ~level:1 "Inferring Parameters..";
 let pin = run_process_io
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferK.lp")^" -")
 		asp_data
 in
+toc ~label:"K inference" t0;
 let params = Ph2thomas_param.input_params pin ig
 in
 let string_of_params = 

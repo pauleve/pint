@@ -42,3 +42,14 @@ let dbg_noendl ?level:(level = 5) msg =
 	if !dodebug && (level <= !debuglevel) then (prerr_string msg; flush stderr) else ();;
 let dbg ?level:(level = 5) msg = dbg_noendl ~level:level (msg^"\n");;
 
+let tic = Sys.time;;
+let toc ?level:(level=1) ?label:(label = "") t =
+	if !dodebug then
+	let t = Sys.time () -. t
+	in
+	dbg ~level ((if label = "" then "" else (label^" - "))^
+				"execution time: "^string_of_float t^"s")
+;;
+
+
+

@@ -12,3 +12,6 @@ val dbg : ?level:int -> string -> unit
 (** [dbg_noendl] prints [msg] to standard error channel. *)
 val dbg_noendl : ?level:int -> string -> unit
 
+val tic : unit -> float
+val toc : ?level:int -> ?label:string -> float -> unit
+
