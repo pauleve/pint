@@ -162,12 +162,10 @@ for target_sort, OR in interactions.items() :
 		continue
 	elif len(OR) == 1 and len(OR[0]) == 1 :
 		(hitter_sort, hitter_level, hitter_positive) = OR[0][0]
-		if hitter_positive :
-			print("%s %s -> %s %s %s" % (hitter_sort, hitter_level, target_sort, 1 - hitter_level, hitter_level))
-			print("%s %s -> %s %s %s" % (hitter_sort, 1 - hitter_level, sort, hitter_level, 1 - hitter_level))
-		else :
-			print("%s %s -> %s %s %s" % (hitter_sort, hitter_level, target_sort, hitter_level, 1 - hitter_level))
-			print("%s %s -> %s %s %s" % (hitter_sort, 1 - hitter_level, sort, 1 - hitter_level, hitter_level))
+		if not hitter_positive:
+			hitter_level = 1 - hitter_level
+		print("%s %s -> %s %s %s" % (hitter_sort, hitter_level, target_sort, 1 - hitter_level, hitter_level))
+		print("%s %s -> %s %s %s" % (hitter_sort, 1 - hitter_level, target_sort, hitter_level, 1 - hitter_level))
 	else :
 		hitter_sorts = set()
 		for o in OR :
@@ -181,14 +179,12 @@ for target_sort, OR in interactions.items() :
 
 		falses, trues = separate_values(hitter_sorts, values, OR)
 
-		print(sort, OR, file=sys.stderr)
+		print(target_sort, OR, file=sys.stderr)
 
-		for (target_level, bounce_level, values) in [(0,1,trues),(1,0,falses)] :
-			print("COOPERATIVITY([%s] -> %s %d %d, [%s])" % (
+		print("COOPERATIVITY([%s] in [%s], %s, 1, 0)" % (
 						";".join(hitter_sorts),
-						target_sort, target_level, bounce_level,
-						";".join(["[%s]" % ";".join(map(str, value)) for value in values])
-					))
+						";".join(["[%s]" % ";".join(map(str, value)) for value in trues]),
+						target_sort))
 
 print()
 
