@@ -239,7 +239,6 @@ debug_asp asp_data;
 
 let t0 = tic ()
 in
-dbg ~level:1 (string_of_float t0);
 
 let clauses = Ph2thomas_asp.create_clauses ()
 in
