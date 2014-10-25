@@ -259,44 +259,42 @@ in
 debug_asp asp_data;
 
 toc ~label:"sorts split" t0;
-let t0 = tic ()
-in
-
-let clauses = Ph2thomas_asp.create_clauses ()
-in
-let p = run_process_io
-	("clingo 0 --verbose=0 "^(Filename.concat asp_path "need_phi.lp")^" -")
-		asp_data
-in
-Ph2thomas_asp.input_clauses (fst p) clauses ["need_phi"];
-ignore(Unix.close_process p);
-let need_phis = Hashtbl.find_all clauses "need_phi"
-in
-let parse_need_phi s =
-	let a = Ph2thomas_asp.parse_for_string s
-	in
-	let i = Ph2thomas_asp.parse_for_word_at s (Ph2thomas_asp.after_s a)
-	in
-	(fst a, int_of_string (fst i))
-in
-let procs = List.map parse_need_phi need_phis
-in
-dbg ("need_phi for "^string_of_procs (procs_of_ps procs));
-
-let fps = list_auto_fixed_points coops procs
-in
-let asp_fps = asp_of_fixed_points fps
-in
-let asp_data = asp_data ^ asp_fps
-in
-debug_asp asp_data;
-
-toc ~label:"local fixed points" t0;
-let t0 = tic ()
-in
 let ig = 
 	if !opt_igfile = "" then (
 		dbg ~level:1 "Inferring Interaction Graph...";
+
+		let t0 = tic ()
+		in
+		let clauses = Ph2thomas_asp.create_clauses ()
+		in
+		let p = run_process_io
+			("clingo 0 --verbose=0 "^(Filename.concat asp_path "need_phi.lp")^" -")
+				asp_data
+		in
+		Ph2thomas_asp.input_clauses (fst p) clauses ["need_phi"];
+		ignore(Unix.close_process p);
+		let need_phis = Hashtbl.find_all clauses "need_phi"
+		in
+		let parse_need_phi s =
+			let a = Ph2thomas_asp.parse_for_string s
+			in
+			let i = Ph2thomas_asp.parse_for_word_at s (Ph2thomas_asp.after_s a)
+			in
+			(fst a, int_of_string (fst i))
+		in
+		let procs = List.map parse_need_phi need_phis
+		in
+		dbg ("need_phi for "^string_of_procs (procs_of_ps procs));
+		let fps = list_auto_fixed_points coops procs
+		in
+		let asp_fps = asp_of_fixed_points fps
+		in
+		let asp_data = asp_data ^ asp_fps
+		in
+		debug_asp asp_data;
+		toc ~label:"local fixed points" t0;
+		let t0 = tic ()
+		in
 		let p = run_process_io
 			("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferIG.lp")^" -")
 			asp_data
