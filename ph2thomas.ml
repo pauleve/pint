@@ -46,6 +46,7 @@ and opt_asp = ref ""
 and opt_format = ref "active"
 and opt_enum = ref false
 and opt_fullenum = ref false
+and opt_test = ref false
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 	("--dot", Arg.Set_string  opt_dotfile, 
@@ -58,6 +59,7 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("\tParameter format (default: "^ (!opt_format) ^")."));
 	("--enumerate", Arg.Set opt_enum, "\tPerform parameterization enumeration.");
 	("--full-enumerate", Arg.Set opt_fullenum, "\tPerform parameterization enumeration, including intervals.");
+	("--test", Arg.Set opt_test, "\tTest new implementation");
 	]
 and usage_msg = "ph2thomas [opts]"
 in
@@ -239,7 +241,6 @@ debug_asp asp_data;
 
 let t0 = tic ()
 in
-
 let cooperative_sorts =
 	let fold (a,i) ((_,_),j) cs =
 		if abs(j - i) > 1 then
@@ -255,6 +256,8 @@ in
 let cooperative_sorts = SSet.elements cooperative_sorts
 and components = List.fold_left (fun s a -> SSet.add a s) SSet.empty components
 in
+let asp_coop = 
+if !opt_test then (
 let coop_fixed_points =
 	let predecessors = predecessors components
 	in
@@ -295,17 +298,8 @@ let fold_coop_asp asp (a, fps) =
 	in
 	asp ^ String.concat "" (List.map asp_of_ps fps)
 in
-let asp_coop = List.fold_left fold_coop_asp "" coop_fixed_points
-in
-
-let asp_data = asp_data ^ asp_coop
-in
-toc ~label:"sorts split" t0;
-debug_asp asp_data;
-
-(*
-let t0 = tic ()
-in
+List.fold_left fold_coop_asp "" coop_fixed_points
+) else (
 let clauses = Ph2thomas_asp.create_clauses ()
 in
 let p = run_process_io 
@@ -317,13 +311,13 @@ ignore(Unix.close_process p);
 
 let coops = Ph2thomas_coop.cooperative_sorts clauses
 in
-let asp_coop = Ph2thomas_coop.asp_of_clauses clauses coops
+Ph2thomas_coop.asp_of_clauses clauses coops
+)
 in
 let asp_data = asp_data ^ asp_coop
 in
 debug_asp asp_data;
 toc ~label:"sorts split" t0;
-*)
 
 let ig = 
 	if !opt_igfile = "" then (
