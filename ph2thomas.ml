@@ -240,6 +240,72 @@ debug_asp asp_data;
 let t0 = tic ()
 in
 
+let cooperative_sorts =
+	let fold (a,i) ((_,_),j) cs =
+		if abs(j - i) > 1 then
+			SSet.add a cs
+		else cs
+	in
+	Hashtbl.fold fold (snd ph) SSet.empty
+in
+let sorts = fst (List.split (fst ph))
+in
+let components = List.filter (fun a -> not (SSet.mem a cooperative_sorts)) sorts
+in
+let cooperative_sorts = SSet.elements cooperative_sorts
+and components = List.fold_left (fun s a -> SSet.add a s) SSet.empty components
+in
+let coop_fixed_points =
+	let predecessors = predecessors components
+	in
+	let fpa a =
+		let ls = SSet.add a (predecessors a)
+		in
+		let register_action bj ((ai,_),_) hits =
+			if SSet.mem (fst bj) ls && SSet.mem (fst ai) ls 
+				&& not (SSet.mem (fst bj) components)
+			then 
+				(ai,bj)::hits
+			else hits
+		in
+		let hits = Hashtbl.fold register_action (snd ph) []
+		and defs = List.filter (fun (a,l) -> SSet.mem a ls) (fst ph)
+		in
+		let fps = Ph_fixpoint.fixpoints (defs, hits)
+		in
+		(a, fps)
+	in
+	List.map fpa cooperative_sorts
+in
+let fold_coop_asp asp (a, fps) =
+	let asp = asp ^ "cooperative_sort(\""^a^"\").\n" 
+	in
+	let asp_of_ps ps =
+		let ps = PSet.elements ps
+		in
+		let i = List.assoc a ps
+		in
+		let ps = List.filter (fun (b,_) -> b <> a) ps
+		in
+		let asp_of_p (b,j) =
+			"cooperation(\""^a^"\",\""^b^"\","^string_of_int j^","
+					^string_of_int i^").\n"
+		in
+		String.concat "" (List.map asp_of_p ps)
+	in
+	asp ^ String.concat "" (List.map asp_of_ps fps)
+in
+let asp_coop = List.fold_left fold_coop_asp "" coop_fixed_points
+in
+
+let asp_data = asp_data ^ asp_coop
+in
+toc ~label:"sorts split" t0;
+debug_asp asp_data;
+
+(*
+let t0 = tic ()
+in
 let clauses = Ph2thomas_asp.create_clauses ()
 in
 let p = run_process_io 
@@ -253,12 +319,12 @@ let coops = Ph2thomas_coop.cooperative_sorts clauses
 in
 let asp_coop = Ph2thomas_coop.asp_of_clauses clauses coops
 in
-
 let asp_data = asp_data ^ asp_coop
 in
 debug_asp asp_data;
-
 toc ~label:"sorts split" t0;
+*)
+
 let ig = 
 	if !opt_igfile = "" then (
 		dbg ~level:1 "Inferring Interaction Graph...";
@@ -285,7 +351,7 @@ let ig =
 		let procs = List.map parse_need_phi need_phis
 		in
 		dbg ("need_phi for "^string_of_procs (procs_of_ps procs));
-		let fps = list_auto_fixed_points coops procs
+		let fps = list_auto_fixed_points cooperative_sorts procs
 		in
 		let asp_fps = asp_of_fixed_points fps
 		in
