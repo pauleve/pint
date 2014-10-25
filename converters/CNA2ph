@@ -42,8 +42,97 @@ knowledge of the CeCILL license and that you accept its terms.
 import os
 import sys
 
+import itertools
+
+class V(dict):
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+class ValSet(set):
+    def domain(self):
+        d = set()
+        for v in self:
+            d.update(v.keys())
+        return list(sorted(d))
+
+    def simplify(self, sd, max_ite=None):
+        vs = self
+        for d in itertools.permutations(self.domain()):
+            vs = DDD(vs, d, sd).valset()
+            if max_ite is not None:
+                max_ite -= 1
+                if max_ite == 0:
+                    break
+        return vs
+
+    def filter(self, a, i):
+        return ValSet([v for v in self if a not in v or v[a] == i])
+
+
+class DDD:
+    TOP = 1
+    BOT = 2
+    def __init__(self, vs, d, sd):
+        self.v = {}
+        if len(vs) == 0:
+            self.a = DDD.BOT
+        elif len(d) == 0:
+            self.a = DDD.TOP
+        else:
+            self.a = d[0]
+            self.v = {}
+            for i in sd[self.a]:
+                self.v[i] = DDD(vs.filter(self.a, i), d[1:], sd)
+            self.simplify()
+
+    def __repr__(self):
+        if self.a == DDD.BOT:
+            return "BOT"
+        elif self.a == DDD.TOP:
+            return "TOP"
+        else:
+            return "<%s: %s>" % (self.a, self.v)
+
+    def __eq__(self, x):
+        return x.a == self.a and x.v == self.v
+
+    def simplify(self):
+        alleq = True
+        for i in self.v.keys():
+            if self.v[i] != self.v[0]:
+                alleq = False
+                break
+        if alleq:
+            self.a = self.v[0].a
+            self.v = self.v[0].v
+
+    def valset(self):
+        if self.a == DDD.BOT:
+            return ValSet()
+        if self.a == DDD.TOP:
+            return ValSet([V()])
+        i_nontop = []
+        for i in self.v.keys():
+            if self.v[i].a != DDD.TOP:
+                i_nontop.append(i)
+        implicit = len(i_nontop) == 1
+        fvs = ValSet()
+        for i in self.v.keys():
+            vs = self.v[i].valset()
+            if implicit and i in i_nontop:
+                pass
+            else:
+                for v in vs:
+                    v[self.a] = i
+            fvs.update(vs)
+        return fvs
+
+
+
 reaction_file = sys.argv[1]
 assert (os.path.basename(reaction_file) == "reactions"), "Give the file 'reactions' as parameter"
+
+MAX_COOP = 4
 
 def explode_line( line ) :
 	row = {}
@@ -156,6 +245,7 @@ def separate_values( names, values, OR ) :
 
 	return (falses, trues)
 
+
 for target_sort, OR in interactions.items() :
 	if [] in OR :
 		assert OR == [[]]
@@ -181,10 +271,42 @@ for target_sort, OR in interactions.items() :
 
 		print(target_sort, OR, file=sys.stderr)
 
-		print("COOPERATIVITY([%s] in [%s], %s, 1, 0)" % (
-						";".join(hitter_sorts),
-						";".join(["[%s]" % ";".join(map(str, value)) for value in trues]),
-						target_sort))
+		if len(hitter_sorts) <= MAX_COOP:
+			sm = "[%s] in [%s]" % (
+					";".join(hitter_sorts),
+					";".join(["[%s]" % ";".join(map(str, value)) for value in trues]))
+
+		else:
+			sd = dict([(a, [0,1]) for a in hitter_sorts])
+			def b2d(b):
+				return dict([(hitter_sorts[n],i) for n, i in enumerate(b)])
+			vs = ValSet([V(b2d(b)) for b in trues])
+			vs = vs.simplify(sd, max_ite=100)
+
+			def group(v):
+				gv = []
+				for i, x in enumerate(v):
+					if i % MAX_COOP == 0:
+						g = []
+						gv.append(g)
+					g.append(x)
+				return gv
+
+			def v2expr(v):
+				gv = group(list(sorted(v.items())))
+				e = " and ".join(["[%s] in [[%s]]" \
+					% (";".join(x[0] for x in v), ";".join(str(x[1]) for x in v)) \
+						for v in gv])
+				if len(gv) > 1:
+					e = "(%s)" % e
+				return e
+			def vs2expr(vs):
+				return " or ".join(map(v2expr, vs))
+
+			sm = vs2expr(vs)
+
+		print("COOPERATIVITY(%s, %s, 1, 0)" % (sm, target_sort))
+
 
 print()
 
