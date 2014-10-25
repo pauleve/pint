@@ -376,3 +376,34 @@ let top_trimmed_cwA env gA =
 	NodeSet.iter check_node gA#nodes
 ;;
 
+
+let worth_glc env  =
+	let mvsorts = List.filter 
+		(fun (a,i) -> i > 1 && not (SMap.mem a !Ph_instance.cooperativities))
+			(fst env.ph)
+	in
+	let mvsorts = List.fold_left (fun set (a,_) -> SSet.add a set) 
+						SSet.empty mvsorts
+	in
+	let saturate_procs_by_objs =
+		let fold_obj obj ps =
+			if SSet.mem (obj_sort obj) mvsorts then
+				PSet.union ps (Ph_bounce_seq.targets env.bs_cache env.ph obj)
+			else ps
+		in
+		ObjSet.fold fold_obj
+	in
+	let glc_setup = {Ph_glc.ua_glc_setup with
+		saturate_procs_by_objs = saturate_procs_by_objs}
+	and get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
+	in
+	let _, get_Sols = unordered_over_approx env get_Sols
+	in
+	let gB = new Ph_glc.glc glc_setup env.ctx env.pl env.concrete get_Sols
+	in
+	gB#build;
+	gB#saturate_ctx;
+	gB
+
+let is_process_worth gB = gB#has_proc
+

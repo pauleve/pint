@@ -33,10 +33,22 @@ open PintTypes;;
 type sign_t = Positive | Negative
 type regulation_t = Regulation of (string * int * sign_t * string * stochatime)
 
+let string_of_sign = function Positive -> "+" | Negative -> "-"
+
 module IG =
 struct
 	type res_t = SSet.t
 	type t = ((string * int * sign_t) list) SMap.t
+
+	let to_string ig =
+		let string_of_regulation a regs buf =
+			buf ^ (String.concat ";\n" (List.map
+				(fun (b, i, s) ->
+					b ^ " " ^ string_of_int i ^ " -> "
+						^ string_of_sign s ^ " " ^ a) regs))
+			^ ";\n"
+		in
+		SMap.fold string_of_regulation ig ""
 
 	let regulators ig a =
 		let fold_regulation bs (b, _, _) =

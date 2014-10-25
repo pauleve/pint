@@ -14,7 +14,7 @@ LDFLAGS := -L.
 
 PACKS := oUnit
 
-OCAMLFLAGS = -I phlib
+OCAMLFLAGS = -I pintlib -I phlib
 
 include OCamlMakefile
 

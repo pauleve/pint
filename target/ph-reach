@@ -8,11 +8,9 @@ SOURCES = \
 	$(PINTLIB_SOURCES) \
 	$(PHLIB_SOURCES) \
 	$(UI_SOURCES) \
-	phexec.ml
+	phreach.ml
 
-LIBS := $(PHLIB_LIBS) unix
-
-RESULT = ph-exec
+RESULT = bin/ph-reach
 
 install:
 	install -d $(DESTDIR)$(PREFIX)/bin

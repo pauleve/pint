@@ -131,6 +131,20 @@ let lasthitters cache ph ?filter:(filter = fun _ -> true) obj =
 	List.fold_left fold_actions PSet.empty bs
 ;;
 
+let targets cache ph obj =
+	let fold_actions ps actions =
+		let fold_action ps action =
+			PSet.add (target action) ps
+		in
+		List.fold_left fold_action ps actions
+	in
+	let bs = get_BS ph cache obj
+	in
+	List.fold_left fold_actions PSet.empty bs
+
+
+
+
 (** BS^ **)
 
 let string_of_aBS aBS_obj = "[ "^(String.concat "; " 

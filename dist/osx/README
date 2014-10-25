@@ -3,7 +3,7 @@ INSTRUCTIONS FOR Mac OS X Users
 
 Copy pint and examples folders to your home directory.
 
-Using Terminal, you can execute command-line binaries within pint directory, 
+Using Terminal, you can execute command-line binaries within ./bin directory, 
 or run sudo ./install.sh to install them into /usr/local/bin.
 
 

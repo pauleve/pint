@@ -4,13 +4,9 @@ include Makefile.common
 
 SOURCES = \
 	$(DIST_SOURCES) \
-	$(BINDINGS_SOURCES)\
-	$(PINTLIB_SOURCES) \
-	$(PHLIB_SOURCES) \
-	$(UI_SOURCES) \
-	phreach.ml
+	pintconfig.ml
 
-RESULT = ph-reach
+RESULT = bin/pint-config
 
 install:
 	install -d $(DESTDIR)$(PREFIX)/bin

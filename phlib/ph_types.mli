@@ -174,3 +174,12 @@ val obj_bounce_proc : objective -> process
 val obj_reach : state -> process -> objective
 
 
+type anostate = int list
+
+type state_matching_t =
+	  SM of (string list * anostate list)
+	| SM_Not of state_matching_t
+	| SM_And of (state_matching_t * state_matching_t)
+	| SM_Or of (state_matching_t * state_matching_t)
+;;
+

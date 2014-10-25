@@ -254,4 +254,3 @@ in
 	in
 	print_endline (string_of_ternary decision)
 )
-

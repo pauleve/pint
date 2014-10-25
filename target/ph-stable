@@ -10,7 +10,7 @@ SOURCES = \
 	$(UI_SOURCES) \
 	phstable.ml
 
-RESULT = ph-stable
+RESULT = bin/ph-stable
 
 install:
 	install -d $(DESTDIR)$(PREFIX)/bin

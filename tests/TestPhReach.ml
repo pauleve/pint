@@ -1,6 +1,7 @@
 
 open OUnit2
 
+open PintTypes
 open Ph_types
 
 open TestCommon
@@ -12,7 +13,7 @@ let test_phreach ?length:(length=OUnitTest.Short)
 	let expected = string_of_ternary expected
 	in
 	let foutput cout =
-		assert_equal (cs_next_word cout) expected
+		assert_equal expected (cs_next_word cout)
 			~printer:(fun a -> a)
 	in
 

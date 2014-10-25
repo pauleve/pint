@@ -44,3 +44,16 @@ val resolve: (Ph_types.sort list * (Ph_types.sortidx list -> int)) PintTypes.SMa
 val local_fixed_points: ?level1:bool -> 'a PintTypes.SMap.t -> Ph_types.ph -> Ph_types.process -> Ph_types.state list
 
 
+val build_reflection: ?coop_label:string option -> ?rsa:PintTypes.stochatime -> (string -> int)
+						-> string list
+			-> (string * (string list * (Ph_types.sortidx list -> int)))
+				* (Ph_types.process * (Ph_types.action * PintTypes.stochatime) list) option
+
+val build_cooperation: ?coop_label:string option -> ?rsa:PintTypes.stochatime -> (string -> int)
+						-> Ph_types.state_matching_t
+			-> string * (int list * int list) * (Ph_types.process list * (Ph_types.action * PintTypes.stochatime) list)
+
+val regulators: Ph_instance.cooperativities_t -> string -> PintTypes.SSet.t
+
+val coherent_ctx: Ph_instance.cooperativities_t -> Ph_types.ctx -> Ph_types.ctx
+

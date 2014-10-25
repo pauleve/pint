@@ -8,9 +8,11 @@ SOURCES = \
 	$(PINTLIB_SOURCES) \
 	$(PHLIB_SOURCES) \
 	$(UI_SOURCES) \
-	phstat.ml
+	phexec.ml
 
-RESULT = ph-stat
+LIBS := $(PHLIB_LIBS) unix
+
+RESULT = bin/ph-exec
 
 install:
 	install -d $(DESTDIR)$(PREFIX)/bin

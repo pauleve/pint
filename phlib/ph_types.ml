@@ -299,3 +299,12 @@ let obj_bounce_proc (a, _, j) = (a,j);;
 let obj_reach s (a,i) = (a, state_value s a, i);;
 
 
+type anostate = int list
+
+type state_matching_t =
+	  SM of (string list * anostate list)
+	| SM_Not of state_matching_t
+	| SM_And of (state_matching_t * state_matching_t)
+	| SM_Or of (state_matching_t * state_matching_t)
+;;
+
