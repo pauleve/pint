@@ -12,7 +12,7 @@ SOURCES = \
 	$(PH2THOMAS_SOURCES) \
 	ph2thomas.ml
 
-LIBS := $(PINTLIB_LIBS) $(PHLIB_LIBS) unix
+LIBS := $(PINTLIB_LIBS) $(PHLIB_LIBS)
 
 RESULT = bin/ph2thomas
 

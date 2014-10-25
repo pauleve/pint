@@ -152,7 +152,7 @@ let run_process_io cmdline input_data =
 	in
 	output_string pout input_data;
 	close_out pout;
-	pin
+	pin, pout
 in
 
 let ph, ctx = Ph_util.parse !Ui.opt_channel_in
@@ -239,19 +239,16 @@ debug_asp asp_data;
 
 let t0 = tic ()
 in
+dbg ~level:1 (string_of_float t0);
 
 let clauses = Ph2thomas_asp.create_clauses ()
 in
-Ph2thomas_coop.input_clauses clauses (run_process_io 
-	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop.lp")^" -")
-		asp_data);
-(*
-Ph2thomas_coop.input_clauses clauses (run_process_io 
-	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop1.lp")^" -")
-		asp_data);
-Ph2thomas_coop.input_clauses clauses (run_process_io 
-	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop2.lp")^" -")
-		asp_data);*)
+let p = run_process_io 
+		("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop.lp")^" -")
+		asp_data
+in
+Ph2thomas_coop.input_clauses clauses (fst p);
+ignore(Unix.close_process p);
 
 let coops = Ph2thomas_coop.cooperative_sorts clauses
 in
@@ -262,14 +259,18 @@ let asp_data = asp_data ^ asp_coop
 in
 debug_asp asp_data;
 
+toc ~label:"sorts split" t0;
+let t0 = tic ()
+in
+
 let clauses = Ph2thomas_asp.create_clauses ()
 in
-let cin = run_process_io
+let p = run_process_io
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "need_phi.lp")^" -")
 		asp_data
 in
-Ph2thomas_asp.input_clauses cin clauses ["need_phi"];
-close_in cin;
+Ph2thomas_asp.input_clauses (fst p) clauses ["need_phi"];
+ignore(Unix.close_process p);
 let need_phis = Hashtbl.find_all clauses "need_phi"
 in
 let parse_need_phi s =
@@ -291,18 +292,24 @@ let asp_data = asp_data ^ asp_fps
 in
 debug_asp asp_data;
 
+toc ~label:"local fixed points" t0;
+let t0 = tic ()
+in
 let ig = 
 	if !opt_igfile = "" then (
 		dbg ~level:1 "Inferring Interaction Graph...";
-		let igin = run_process_io
+		let p = run_process_io
 			("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferIG.lp")^" -")
 			asp_data
 		in
-		Ph2thomas_ig.input_graph igin
+		let ig = Ph2thomas_ig.input_graph (fst p)
+		in
+		ignore(Unix.close_process p);
+		toc ~label:"IG inference" t0;
+		ig
 	) else 
 		input_ig !opt_igfile
 in
-toc ~label:"IG inference" t0;
 (if !opt_dotfile <> "" then
 	let cout = open_out !opt_dotfile
 	in
@@ -314,13 +321,17 @@ in
 debug_asp asp_data;
 
 dbg ~level:1 "Inferring Parameters..";
-let pin = run_process_io
+let t0 = tic ()
+in
+
+let p = run_process_io
 	("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinferK.lp")^" -")
 		asp_data
 in
-toc ~label:"K inference" t0;
-let params = Ph2thomas_param.input_params pin ig
+let params = Ph2thomas_param.input_params (fst p) ig
 in
+ignore(Unix.close_process p);
+toc ~label:"K inference" t0;
 let string_of_params = 
 	match !opt_format with
 		  "AB" -> Ph2thomas_param.string_AB_of_params
@@ -335,6 +346,8 @@ if !opt_enum || !opt_fullenum then (
 	let asp_data = asp_data ^ (Ph2thomas_param.asp_for_enum ig params)
 	in
 	debug_asp asp_data;
+	let t0 = tic ()
+	in
 	let cmdline = "clingo 0 --verbose=1 "^(Filename.concat asp_path "phenumK.lp")^" -"
 	in
 	dbg cmdline;
@@ -346,5 +359,6 @@ if !opt_enum || !opt_fullenum then (
 	);
 	output_string pout asp_data;
 	ignore(Unix.close_process_out pout);
+	toc ~label:"K enumeration" t0
 )
 

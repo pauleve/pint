@@ -22,7 +22,7 @@ SOURCES := \
 	ph_machine.ml\
 	ph_thomas.ml\
 
-LIBS := str nums facile
+LIBS := str nums facile unix
 
 PHLIB_SOURCES := $(SOURCES:%=phlib/%)
 export PHLIB_SOURCES

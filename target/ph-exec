@@ -10,7 +10,7 @@ SOURCES = \
 	$(UI_SOURCES) \
 	phexec.ml
 
-LIBS := $(PHLIB_LIBS) unix
+LIBS := $(PHLIB_LIBS)
 
 RESULT = bin/ph-exec
 

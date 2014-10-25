@@ -42,13 +42,13 @@ let dbg_noendl ?level:(level = 5) msg =
 	if !dodebug && (level <= !debuglevel) then (prerr_string msg; flush stderr) else ();;
 let dbg ?level:(level = 5) msg = dbg_noendl ~level:level (msg^"\n");;
 
-let tic = Sys.time;;
+let tic = Unix.gettimeofday;;
 let toc ?level:(level=1) ?label:(label = "") t =
 	if !dodebug then
-	let t = Sys.time () -. t
+	let t = tic () -. t
 	in
-	dbg ~level ((if label = "" then "" else (label^" - "))^
-				"execution time: "^string_of_float t^"s")
+	dbg ~level ((if label = "" then "execution time" else label)^": "
+				^string_of_float t^"s")
 ;;
 
 
