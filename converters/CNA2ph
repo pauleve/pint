@@ -131,8 +131,10 @@ class DDD:
 
 reaction_file = sys.argv[1]
 assert (os.path.basename(reaction_file) == "reactions"), "Give the file 'reactions' as parameter"
-
-MAX_COOP = 4
+if len(sys.argv) > 2:
+    MAX_COOP = int(sys.argv[2])
+else:
+    MAX_COOP = 3
 
 def explode_line( line ) :
 	row = {}
