@@ -277,13 +277,25 @@ for target_sort, OR in interactions.items() :
 			sm = "[%s] in [%s]" % (
 					";".join(hitter_sorts),
 					";".join(["[%s]" % ";".join(map(str, value)) for value in trues]))
+			v = 1
 
 		else:
 			sd = dict([(a, [0,1]) for a in hitter_sorts])
+
 			def b2d(b):
 				return dict([(hitter_sorts[n],i) for n, i in enumerate(b)])
-			vs = ValSet([V(b2d(b)) for b in trues])
-			vs = vs.simplify(sd, max_ite=100)
+
+			tvs = ValSet([V(b2d(b)) for b in trues])
+			tvs = tvs.simplify(sd, max_ite=100)
+			fvs = ValSet([V(b2d(b)) for b in falses])
+			fvs = fvs.simplify(sd, max_ite=100)
+
+			if len(tvs) > len(fvs):
+			    vs = fvs
+			    v = 0
+			else:
+			    vs = tvs
+			    v = 1
 
 			def group(v):
 				gv = []
@@ -307,7 +319,7 @@ for target_sort, OR in interactions.items() :
 
 			sm = vs2expr(vs)
 
-		print("COOPERATIVITY(%s, %s, 1, 0)" % (sm, target_sort))
+		print("COOPERATIVITY(%s, %s, %d, %d)" % (sm, target_sort, v, 1-v))
 
 
 print()
