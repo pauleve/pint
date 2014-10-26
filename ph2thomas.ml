@@ -259,7 +259,7 @@ in
 let asp_coop = 
 if !opt_test then (
 let coop_fixed_points =
-	let predecessors = predecessors components
+	let predecessors = parents (*predecessors components*)
 	in
 	let fpa a =
 		let ls = SSet.add a (predecessors a)
