@@ -44,7 +44,9 @@ type node =
 	| NodeObj of objective
 
 let string_of_node = function                                         
-	  NodeSol (obj,ps,_) -> "Sol["^string_of_obj obj^"/"^string_of_procs ps^"]"
+	  NodeSol (obj,ps,interm) -> 
+	  	"Sol["^string_of_obj obj^"/"^string_of_procs ps
+						^" via "^string_of_iset interm^"]"
 	| NodeObj obj -> "Obj["^string_of_obj obj^"]"
 	| NodeProc p -> "Proc["^string_of_proc p^"]"
 ;;
@@ -154,7 +156,8 @@ object(self)
 			in
 			let sols = if solrels == [] then sols else 
 				(sol^"Sol("^string_of_obj obj^") = [ "^
-					(String.concat "; " (List.map (function NodeSol (_,ps,_) -> string_of_procs ps
+					(String.concat "; " (List.map (function NodeSol (_,ps,interm) -> string_of_procs ps
+													^ " via "^ string_of_iset interm
 												| _ -> failwith "invalid solrels") solrels))^" ]"^eol)::sols
 			and conts = if contrels == [] then conts else
 				(sol^"Cont("^string_of_obj obj^") = [ "^
@@ -1047,7 +1050,13 @@ let min_conts_flooder =
 
 let max_conts_flooder =
 	let update_value n (ctx,nm) = match n with
-		  NodeSol _ -> union_value nm
+		  NodeSol (obj,_,interm) -> 
+			let ctx = union_value nm
+			and a = obj_sort obj
+			in
+			let is = ctx_safe_get a ctx
+			in
+			SMap.add a (ISet.union is interm) ctx
 		| NodeObj _ -> union_value nm
 		| NodeProc (a,i) -> 
 			let ctx' = union_value nm
