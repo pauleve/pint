@@ -126,12 +126,16 @@ temp_is_attractor(AF,AK,AJ) :- ka(A), sH(_,_,A,AJ,AK), sL_foc(AF), #abs(AF-AK)<#
 not_attractor :- ka(A), sH(_,_,A,AJ,AK), sL_foc(AF), not temp_is_attractor(AF,AK,AJ).
 attractor :- not not_attractor.
 
+%% Unique processus focal ?
+temp_not_unique :- sL_foc(X), sL_foc(Y), X<Y.
+
 
 
 %%% Conclusion
 exists_sL_foc :- sL_foc(_).
 cannot_infer :- not exists_sL_foc.
 cannot_infer :- not attractor.
+cannot_infer :- temp_not_unique.
 result("no") :- cannot_infer.
 result("ok") :- not cannot_infer.
 
