@@ -67,16 +67,6 @@ at_least_one_cooperation_debug(CS,A,CSJ) :- is_process(A,AI), is_process_of_cs(C
 :- is_process_of_cs(CS,CSJ), is_gene(A), cs_of(A,CS),
   not at_least_one_cooperation_debug(CS,A,CSJ).
 
-%% Propriété 3 : bien-formé pour l'inférence des paramètres
-:- is_ig_predec(B,A), levels(B,A,BI), levels(B,A,BJ), is_ph_pred(C,A), is_ph_predec(B,C),
-  is_cs(C), action(B,BI,C,CK,CL), not action(B,BJ,C,CK,CL).
-:- is_ig_predec(B,A), ulevels(B,A,BI), ulevels(B,A,BJ), is_ph_pred(C,A), is_ph_predec(B,C),
-  is_cs(C), action(B,BI,C,CK,CL), not action(B,BJ,C,CK,CL).
-:- is_ig_predec(B,A), levels(B,A,BI), levels(B,A,BJ), B!=A, action(B,BI,A,AK,AL),
-  not action(B,BJ,A,AK,AL).
-:- is_ig_predec(B,A), ulevels(B,A,BI), ulevels(B,A,BJ), B!=A, action(B,BI,A,AK,AL),
-  not action(B,BJ,A,AK,AL).
-
 % Sur le Graphe des Interactions (Thomas)
 :- edge(A,_,AI,_), not is_process(A,AI).
 :- edge(_,_,_,B), not is_gene(B).
@@ -89,6 +79,59 @@ at_least_one_cooperation_debug(CS,A,CSJ) :- is_process(A,AI), is_process_of_cs(C
 :- kB(SB), ka(A), not is_ig_predec(SB,A).
 :- kA(SA), kB(SA).
 :- ka(A), is_ig_predec(SB,A), not kA(SB), not kB(SB).
+
+
+
+%% Propriété 4 : bien-formé pour l'inférence des paramètres
+ext_cooperation(A,AI,CS,CSJ) :- cooperation(CS,A,AI,CSJ).
+ext_cooperation(A,AI,CSB,CSBJ) :- ext_cooperation(A,AI,CSA,CSAJ),
+  ext_cooperation(CSA,CSAJ,CSB,CSBJ).
+differs_ext_cooperation(A,CS,CSI,CSJ) :- ext_cooperation(A,AI,CS,CSI),
+  ext_cooperation(A,AJ,CS,CSJ), AI!=AJ.
+not_same_ext_cooperation(B,CS,CSI,CSJ) :- ext_cooperation(B,BI,CS,CSI),
+  ext_cooperation(B,BJ,CS,CSJ), differs_ext_cooperation(A,CS,CSI,CSJ),
+  A!=B.
+same_ext_cooperation(B,CS,CSI,CSJ) :- ext_cooperation(B,BI,CS,CSI),
+  ext_cooperation(B,BJ,CS,CSJ), not not_same_ext_cooperation(B,CS,CSI,CSJ).
+
+%*
+old_not_valid(B,C,A,BI,BJ,CK,CL) :- is_ig_predec(B,A), levels(B,A,BI), levels(B,A,BJ), is_ph_pred(C,A), is_ph_predec(B,C), is_cs(C), action(B,BI,C,CK,CL), not action(B,BJ,C,CK,CL).
+old_not_valid(B,C,A,BI,BJ,CK,CL) :- is_ig_predec(B,A), ulevels(B,A,BI), ulevels(B,A,BJ), is_ph_pred(C,A), is_ph_predec(B,C), is_cs(C), action(B,BI,C,CK,CL), not action(B,BJ,C,CK,CL).
+old_not_valid(B,A,BI,BJ,AK,AL) :- is_ig_predec(B,A), levels(B,A,BI), levels(B,A,BJ), B!=A, action(B,BI,A,AK,AL), not action(B,BJ,A,AK,AL).
+old_not_valid(B,A,BI,BJ,AK,AL) :- is_ig_predec(B,A), ulevels(B,A,BI), ulevels(B,A,BJ), B!=A, action(B,BI,A,AK,AL), not action(B,BJ,A,AK,AL).
+*%
+
+%new_not_valid(B,C,A,BI,BJ,CI,CJ,AK,AL)
+:- is_ig_predec(B,A),
+  is_ph_predec(C,A), is_ph_pred(B,C), is_cs(C),
+  levels(B,A,BI), levels(B,A,BJ),
+  ext_cooperation(B,BI,C,CI), ext_cooperation(B,BJ,C,CJ),
+  same_ext_cooperation(B,C,CI,CJ),
+  action(C,CI,A,AK,AL), not action(C,CJ,A,AK,AL).
+
+%new_not_valid(B,A,BI,BJ,AK,AL)
+:- is_ig_predec(B,A),
+  levels(B,A,BI), levels(B,A,BJ), B!=A,
+  action(B,BI,A,AK,AL), not action(B,BJ,A,AK,AL).
+%new_not_valid(B,A,BI,BJ,AK,AL)
+:- is_ig_predec(B,A),
+  ulevels(B,A,BI), ulevels(B,A,BJ), B!=A,
+  action(B,BI,A,AK,AL), not action(B,BJ,A,AK,AL).
+
+
+
+%*
+% Ancienne version
+:- is_ig_predec(B,A), levels(B,A,BI), levels(B,A,BJ), is_ph_pred(C,A), is_ph_predec(B,C),
+  is_cs(C), action(B,BI,C,CK,CL), not action(B,BJ,C,CK,CL).
+:- is_ig_predec(B,A), ulevels(B,A,BI), ulevels(B,A,BJ), is_ph_pred(C,A), is_ph_predec(B,C),
+  is_cs(C), action(B,BI,C,CK,CL), not action(B,BJ,C,CK,CL).
+:- is_ig_predec(B,A), levels(B,A,BI), levels(B,A,BJ), B!=A, action(B,BI,A,AK,AL),
+  not action(B,BJ,A,AK,AL).
+:- is_ig_predec(B,A), ulevels(B,A,BI), ulevels(B,A,BJ), B!=A, action(B,BI,A,AK,AL),
+  not action(B,BJ,A,AK,AL).
+*%
+%%%% TODO
 
 
 
@@ -153,4 +196,11 @@ error(A) :- ka(A), not attractor.
 
 #show result/1.
 #show error/1.
+
+#show ext_cooperation/4.
+#show old_not_valid/7.
+#show old_not_valid/6.
+#show new_not_valid/9.
+#show new_not_valid/6.
+#show sContext/2.
 
