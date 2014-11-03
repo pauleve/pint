@@ -103,7 +103,7 @@ at_least_one_cooperation_debug(CS,A,CSJ) :- is_process(A,AI), is_process_of_cs(C
 infered_param(A,PA) :- param(A,PA,_).
 enum_param(A,PA,AV) :- infered_param(A,PA), param(A,PA,AV).
 %% Au moins une valeur par paramètre
-1 {enum_param(A,PA,AV) : gene_levels(A,AV)} :- is_gene(A), param_label(A,PA),
+1 {enum_param(A,PA,AV) : gene_levels(A,AV)} 1 :- is_gene(A), param_label(A,PA),
   not infered_param(A,PA).
 %% Pas de trou dans les intervalles
 exists_param_more(A,PA,AI) :- enum_param(A,PA,AI), enum_param(A,PA,AJ), AI<AJ.
@@ -162,17 +162,27 @@ sContext(A,PA,CS,CSI) :- param_label(A,PA), is_process_of_cs(CS,CSI),
 %% Actions possibles
 exists_action(A,PA,AI,AJ) :- action(C,CK,A,AI,AJ), sContext(A,PA,C,CK).
 %% Contraintes
-:- is_bounce(A,AI,AJ), sContext(A,PA,A,AI), not enum_param(A,PA,AI),
-  not exists_action(A,PA,AI,AJ), AI<AKMin, param_min(A,PA,AKMin), AJ>AI, #abs(AI-AJ)==1.
-:- is_bounce(A,AI,AJ), sContext(A,PA,A,AI), not enum_param(A,PA,AI),
-  not exists_action(A,PA,AI,AJ), AI>AKMin, param_min(A,PA,AKMin), AJ<AI, #abs(AI-AJ)==1.
+% Propriété 5 (Parameter validity)
+not_compatible(A,PA) :- is_bounce(A,AI,AJ), sContext(A,PA,A,AI),
+  not enum_param(A,PA,AI), not exists_action(A,PA,AI,AJ), AI<AKMin,
+  param_min(A,PA,AKMin), AJ>AI, #abs(AI-AJ)==1.
+not_compatible(A,PA) :- is_bounce(A,AI,AJ), sContext(A,PA,A,AI),
+  not enum_param(A,PA,AI), not exists_action(A,PA,AI,AJ), AI>AKMin,
+  param_min(A,PA,AKMin), AJ<AI, #abs(AI-AJ)==1.
+
+result_param(A,PA,AI) :- enum_param(A,PA,AI), not not_compatible(A,PA).
 
 
 
 %%% Affichage des solutions
 #hide.
 
-#show enum_param/3.
+%#show enum_param/3.
+#show result_param/3.
 #show result/1.
 #show error/1.
+
+%:- enum_param(A,P,I), enum_param(A,P,J), I != J, not infered_param(A,P).
+
+%#show infered_param/2.
 
