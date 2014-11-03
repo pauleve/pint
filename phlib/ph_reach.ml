@@ -68,7 +68,7 @@ let color_nodes_connected_to_trivial_sols (gA: #glc) =
 		where nm is the cached value of childs *)
 
 	let init = function
-		  NodeSol (obj, ps) -> (PSet.is_empty ps, NodeMap.empty)
+		  NodeSol (obj, ps, _) -> (PSet.is_empty ps, NodeMap.empty)
 		| _ -> (false, NodeMap.empty)
 
 	(* the node n with value v receives update from node n' with value v' *)
@@ -78,7 +78,7 @@ let color_nodes_connected_to_trivial_sols (gA: #glc) =
 		  	let exists_green n' g r = r || g
 			in
 			NodeMap.fold exists_green nm false
-		| NodeSol (obj, ps) -> (* all childs are green *)
+		| NodeSol (obj, ps, _) -> (* all childs are green *)
 			let proc_is_green p =
 				try NodeMap.find (NodeProc p) nm
 				with Not_found -> false
@@ -113,8 +113,8 @@ let color_nodes_connected_to_trivial_sols (gA: #glc) =
 
 let restricted_sols_factory all_sols nodes =
 	let register_node n rsols = match n with
-		  NodeSol (obj, ps) -> 
-		  	ObjMap.add obj (ps::try ObjMap.find obj rsols 
+		  NodeSol (obj, ps, interm) -> 
+		  	ObjMap.add obj ((ps,interm)::try ObjMap.find obj rsols 
 									with Not_found -> []) rsols
 		| _ -> rsols
 	in
@@ -287,7 +287,7 @@ let coop_priority_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
 									^ " ]");
 				let validate_sol nsol =
 					dbg ("checking "^string_of_node nsol);
-					let (obj, ps) = match nsol with NodeSol x -> x | _ -> assert false
+					let (obj, ps, _) = match nsol with NodeSol x -> x | _ -> assert false
 					and allprocs_sol = fst (Hashtbl.find child_procs nsol)
 					in
 					dbg (". allprocs_sol = " ^ string_of_ctx allprocs_sol);

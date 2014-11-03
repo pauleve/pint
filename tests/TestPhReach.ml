@@ -6,7 +6,7 @@ open Ph_types
 
 open TestCommon
 
-let phreach_exe = "../ph-reach"
+let phreach_exe = "../bin/ph-reach"
 
 let test_phreach ?length:(length=OUnitTest.Short)
 		?ctx:(ctx="") ?opts:(opts=[]) model reach expected =
@@ -29,6 +29,10 @@ let test_phreach ?length:(length=OUnitTest.Short)
 
 let tests =
 	"TestPhReach" >::: [
+		"Intermediary1" >:
+			test_phreach "models/interm1.ph" 
+						["d";"2"]
+						Inconc;
 		"CoopPrioMetazoan" >: 
 			test_phreach "models/metazoan-3prio-flattening.ph"
 						~ctx:"a 1, f 1, c 0" 

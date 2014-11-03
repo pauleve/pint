@@ -40,11 +40,13 @@ open Ph_types;;
 
 type node =
 	  NodeProc of process
-	| NodeSol of (objective * PSet.t)
+	| NodeSol of (objective * PSet.t * ISet.t)
 	| NodeObj of objective
 
 let string_of_node = function                                         
-	  NodeSol (obj,ps) -> "Sol["^string_of_obj obj^"/"^string_of_procs ps^"]"
+	  NodeSol (obj,ps,interm) -> 
+	  	"Sol["^string_of_obj obj^"/"^string_of_procs ps
+						^" via "^string_of_iset interm^"]"
 	| NodeObj obj -> "Obj["^string_of_obj obj^"]"
 	| NodeProc p -> "Proc["^string_of_proc p^"]"
 ;;
@@ -154,7 +156,8 @@ object(self)
 			in
 			let sols = if solrels == [] then sols else 
 				(sol^"Sol("^string_of_obj obj^") = [ "^
-					(String.concat "; " (List.map (function NodeSol (_,ps) -> string_of_procs ps
+					(String.concat "; " (List.map (function NodeSol (_,ps,interm) -> string_of_procs ps
+													^ " via "^ string_of_iset interm
 												| _ -> failwith "invalid solrels") solrels))^" ]"^eol)::sols
 			and conts = if contrels == [] then conts else
 				(sol^"Cont("^string_of_obj obj^") = [ "^
@@ -204,7 +207,7 @@ object(self)
 			let dobj = dot_of_obj obj
 			in
 			let dot_of_rel = function
-				NodeSol (_,ps) ->
+				NodeSol (_,ps,_) ->
 					let dsol = "pintsol"^string_of_int !solcounter
 					in
 					let def = dsol^"[label=\"\",shape=circle,fixedsize=true,width=0.1,height=0.1];\n"
@@ -627,6 +630,7 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 	val mutable new_objs = []
 	val mutable trivial_nsols = NodeSet.empty
 	val mutable impossible_nobjs = NodeSet.empty
+	val mutable intermediate_procs = PSet.empty
 	method impossible_nobjs = impossible_nobjs
 	method get_trivial_nsols () = trivial_nsols
 	method leafs = NodeSet.union trivial_nsols impossible_nobjs
@@ -701,8 +705,8 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 		let aBS = get_Sols obj
 		in
 		if aBS == [] then impossible_nobjs <- NodeSet.add nobj impossible_nobjs;
-		let register_sol ps =
-			let nsol = NodeSol (obj, ps)
+		let register_sol (ps,interm) =
+			let nsol = NodeSol (obj, ps, interm)
 			in
 			self#add_child nsol nobj;
 			if PSet.is_empty ps then (trivial_nsols <- NodeSet.add nsol trivial_nsols);
@@ -713,6 +717,12 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 				self#add_child np nsol
 			in
 			PSet.iter register_proc ps;
+			let a = obj_sort obj
+			in
+			let register_interm i =
+				intermediate_procs <- PSet.add (a,i) intermediate_procs
+			in
+			ISet.iter register_interm interm
 		in
 		List.iter register_sol aBS;
 		new_objs <- obj::new_objs
@@ -760,7 +770,7 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 		) else false
 	
 	method saturate_ctx =
-		let procs = self#all_procs
+		let procs = PSet.union self#all_procs intermediate_procs
 		in
 		let procs = match pl with [ai] -> PSet.remove ai procs | _ -> procs
 		in
@@ -864,7 +874,7 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 			else (
 				visited_nodes := NodeSet.add n !visited_nodes;
 				match n with
-				  NodeSol (_, ps) -> [ps]
+				  NodeSol (_, ps,_) -> [ps]
 				| NodeObj _ ->
 					let nodes = self#childs n
 					in
@@ -1040,7 +1050,13 @@ let min_conts_flooder =
 
 let max_conts_flooder =
 	let update_value n (ctx,nm) = match n with
-		  NodeSol _ -> union_value nm
+		  NodeSol (obj,_,interm) -> 
+			let ctx = union_value nm
+			and a = obj_sort obj
+			in
+			let is = ctx_safe_get a ctx
+			in
+			SMap.add a (ISet.union is interm) ctx
 		| NodeObj _ -> union_value nm
 		| NodeProc (a,i) -> 
 			let ctx' = union_value nm

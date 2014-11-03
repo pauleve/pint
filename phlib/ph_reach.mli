@@ -31,13 +31,13 @@ val coop_priority_reachability : ?saveGLC:refGLC ref -> env -> PintTypes.ternary
 val color_nodes_connected_to_trivial_sols :
   #Ph_glc.glc -> Ph_glc.NodeSet.t
 
-val get_Sols : env -> Ph_types.objective -> Ph_types.PSet.t list
+val get_Sols : env -> Ph_types.objective -> (Ph_types.PSet.t * PintTypes.ISet.t) list
 
 val bot_trimmed_cwA : env -> #Ph_glc.glc -> Ph_glc.glc
 val top_trimmed_cwA : env -> #Ph_glc.graph -> unit
 
-val unordered_over_approx : env -> (Ph_types.objective ->Ph_types.PSet.t list) ->
-								(bool * (Ph_types.objective ->Ph_types.PSet.t list))
+val unordered_over_approx : env -> (Ph_types.objective -> (Ph_types.PSet.t * PintTypes.ISet.t) list) ->
+								(bool * (Ph_types.objective -> (Ph_types.PSet.t * PintTypes.ISet.t) list))
 
 val worth_glc : env -> Ph_glc.glc
 val is_process_worth : #Ph_glc.glc -> Ph_types.process -> bool

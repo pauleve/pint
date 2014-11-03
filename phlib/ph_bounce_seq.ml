@@ -42,7 +42,7 @@ open Ph_types;;
 
 type bs_cache = {
 	_BS : (objective, action list list) Hashtbl.t;
-	aBS : (objective, PSet.t list) Hashtbl.t;
+	aBS : (objective, (PSet.t * ISet.t) list) Hashtbl.t;
 	tBS : (objective * PSet.t, process * PSet.t) Hashtbl.t;
 }
 
@@ -148,19 +148,25 @@ let targets cache ph obj =
 (** BS^ **)
 
 let string_of_aBS aBS_obj = "[ "^(String.concat "; " 
-		(List.map string_of_procs aBS_obj))^" ]"
+		(List.map (fun (ps,_) -> string_of_procs ps) aBS_obj))^" ]"
 ;;
 let compute_aBS ph obj =
-	let push_path results ps =
-		ps::List.filter (fun ps' -> not(PSet.subset ps ps')) results
-	and push_action ps = function Hit ((a,i),_,_) ->
+	let g = obj_bounce obj
+	in
+	let push_path results psi =
+		let ps = fst psi in
+		psi::List.filter (fun (ps',_) -> not(PSet.subset ps ps')) results
+	and push_action (ps,interm)  = function Hit ((a,i),_,k) ->
 		(* register hitter iff has different sort *)
-		if a <> obj_sort obj then (PSet.add (a,i) ps) else ps
-	and longer_path results ps =
-		List.exists (fun ps' -> PSet.subset ps' ps) results
+		(if a <> obj_sort obj then (PSet.add (a,i) ps) else ps),
+		(if g <> k then ISet.add k interm else interm)
+	and longer_path results psi =
+		let ps = fst psi in
+		List.exists (fun (ps',_) -> PSet.subset ps' ps) results
 	in
 	dbg_noendl ("- computing aBS("^string_of_obj obj^")...");
-	let aBS_obj = __compute_bounce_sequence push_path push_action longer_path [] PSet.empty ph obj
+	let aBS_obj = __compute_bounce_sequence push_path push_action longer_path [] 
+					(PSet.empty, ISet.empty) ph obj
 	in
 	(if !dodebug then dbg (" "^string_of_aBS aBS_obj));
 	aBS_obj
