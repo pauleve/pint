@@ -47,6 +47,7 @@ and opt_format = ref "active"
 and opt_enum = ref false
 and opt_fullenum = ref false
 and opt_test = ref false
+and opt_verify = ref false
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 	("--dot", Arg.Set_string  opt_dotfile, 
@@ -60,6 +61,7 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 	("--enumerate", Arg.Set opt_enum, "\tPerform parameterization enumeration.");
 	("--full-enumerate", Arg.Set opt_fullenum, "\tPerform parameterization enumeration, including intervals.");
 	("--test", Arg.Set opt_test, "\tTest new implementation");
+	("--verify", Arg.Set opt_verify, "\tVerify model validity before inference");
 	]
 and usage_msg = "ph2thomas [opts]"
 in
@@ -376,6 +378,22 @@ in
 let asp_data = asp_data ^ (Ph2thomas_ig.asp_of_graph ig)
 in
 debug_asp asp_data;
+
+
+if !opt_verify then (
+dbg ~level:1 "Verify PH is well-formed..";
+let t0 = tic ()
+in
+let p = run_process_io
+	("clingo 0 --verbose=0 "^(Filename.concat asp_path
+			"well-formed-for-K-inference.lp")^" -")
+		asp_data
+in
+ignore(Ph2thomas_param.input_params (fst p) ig);
+ignore(Unix.close_process p);
+toc ~label:"Well-formed verification" t0
+);
+
 
 dbg ~level:1 "Inferring Parameters..";
 let t0 = tic ()
