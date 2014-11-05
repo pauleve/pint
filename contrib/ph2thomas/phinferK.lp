@@ -144,10 +144,3 @@ error(A) :- ka(A), not attractor.
 #show result/1.
 #show error/1.
 
-#show ext_cooperation/4.
-#show old_not_valid/7.
-#show old_not_valid/6.
-#show new_not_valid/9.
-#show new_not_valid/6.
-#show sContext/2.
-
