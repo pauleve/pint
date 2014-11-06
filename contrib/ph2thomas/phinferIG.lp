@@ -156,6 +156,12 @@ gi_edge(A,"-",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), b_process(BI),
 
 
 
+% Optimisation
+exists_answer :- gi_edge(_,_,_,_).
+:- not exists_answer.
+
+
+
 %%% Affichage des solutions
 #hide.
 
