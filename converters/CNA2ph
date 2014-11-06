@@ -74,8 +74,6 @@ class DDD:
     BOT = 2
     def __init__(self, vs, d, sd):
         self.v = {}
-        self.h = 0
-        self.size = 1
         if len(vs) == 0:
             self.a = DDD.BOT
         elif len(d) == 0:
@@ -86,43 +84,6 @@ class DDD:
             for i in sd[self.a]:
                 self.v[i] = DDD(vs.filter(self.a, i), d[1:], sd)
             self.simplify()
-            if self.v:
-                self.h = 1 + max([v.h for v in self.v.values()])
-            for v in self.v.values():
-                self.size += v.size
-
-    def remove_bots(self):
-        if self.a in [DDD.TOP, DDD.BOT]:
-            return
-        self.size = 1
-        k = list(self.v.keys())
-        for i in k:
-            self.v[i].remove_bots()
-            if self.v[i].a == DDD.BOT:
-                del self.v[i]
-            else:
-                self.size += self.v[i].size
-        if len(self.v) == 0:
-            self.a = DDD.BOT
-            self.h = 0
-        else:
-            self.h = 1 + max([v.h for v in self.v.values()])
-
-
-    @classmethod
-    def build_reduced(celf, vs, sd, max_ite=None):
-        _d = list(sd.keys())
-        ddd = None
-        for d in itertools.permutations(_d):
-            ddd_ = celf(vs, d, sd)
-            ddd_.remove_bots()
-            if ddd is None or ddd.size > ddd_.size:
-                ddd = ddd_
-            if max_ite is not None:
-                max_ite -= 1
-                if max_ite < 0:
-                    break
-        return ddd
 
     def __repr__(self):
         if self.a == DDD.BOT:
@@ -137,14 +98,13 @@ class DDD:
 
     def simplify(self):
         alleq = True
-        i0 = list(self.v.keys())[0]
         for i in self.v.keys():
-            if self.v[i] != self.v[i0]:
+            if self.v[i] != self.v[0]:
                 alleq = False
                 break
         if alleq:
-            self.a = self.v[i0].a
-            self.v = self.v[i0].v
+            self.a = self.v[0].a
+            self.v = self.v[0].v
 
     def valset(self):
         if self.a == DDD.BOT:
@@ -288,120 +248,78 @@ def separate_values( names, values, OR ) :
 	return (falses, trues)
 
 
-for target_sort, OR in sorted(interactions.items()) :
-        if [] in OR :
-                assert OR == [[]]
-                continue
-        elif len(OR) == 1 and len(OR[0]) == 1 :
-                (hitter_sort, hitter_level, hitter_positive) = OR[0][0]
-                if not hitter_positive:
-                        hitter_level = 1 - hitter_level
-                print("%s %s -> %s %s %s" % (hitter_sort, hitter_level, target_sort, 1 - hitter_level, hitter_level))
-                print("%s %s -> %s %s %s" % (hitter_sort, 1 - hitter_level, target_sort, hitter_level, 1 - hitter_level))
-        else :
-                hitter_sorts = set()
-                for o in OR :
-                        hitter_sorts.update([sort for (sort, _, _) in o])
-                hitter_sorts = list(hitter_sorts)
+for target_sort, OR in interactions.items() :
+	if [] in OR :
+		assert OR == [[]]
+		continue
+	elif len(OR) == 1 and len(OR[0]) == 1 :
+		(hitter_sort, hitter_level, hitter_positive) = OR[0][0]
+		if not hitter_positive:
+			hitter_level = 1 - hitter_level
+		print("%s %s -> %s %s %s" % (hitter_sort, hitter_level, target_sort, 1 - hitter_level, hitter_level))
+		print("%s %s -> %s %s %s" % (hitter_sort, 1 - hitter_level, target_sort, hitter_level, 1 - hitter_level))
+	else :
+		hitter_sorts = set()
+		for o in OR :
+			hitter_sorts.update([sort for (sort, _, _) in o])
+		hitter_sorts = list(hitter_sorts)
 
-                values = [[]]
-                for s in hitter_sorts :
-                        values = [v + [0] for v in values] \
-                                        + [v + [1] for v in values] 
+		values = [[]]
+		for s in hitter_sorts :
+			values = [v + [0] for v in values] \
+					+ [v + [1] for v in values] 
 
-                falses, trues = separate_values(hitter_sorts, values, OR)
+		falses, trues = separate_values(hitter_sorts, values, OR)
 
-                print(target_sort, OR, file=sys.stderr)
+		print(target_sort, OR, file=sys.stderr)
 
-                if len(hitter_sorts) <= MAX_COOP:
-                        sm = "[%s] in [%s]" % (
-                                        ";".join(hitter_sorts),
-                                        ";".join(["[%s]" % ";".join(map(str, value)) for value in trues]))
-                        v = 1
+		if len(hitter_sorts) <= MAX_COOP:
+			sm = "[%s] in [%s]" % (
+					";".join(hitter_sorts),
+					";".join(["[%s]" % ";".join(map(str, value)) for value in trues]))
+			v = 1
 
-                else:
-                        sd = dict([(a, [0,1]) for a in hitter_sorts])
-                        def b2d(b):
-                                return dict([(hitter_sorts[n],i) for n, i in enumerate(b)])
-                        tvs = ValSet([V(b2d(b)) for b in trues])
-                        fvs = ValSet([V(b2d(b)) for b in falses])
+		else:
+			sd = dict([(a, [0,1]) for a in hitter_sorts])
 
-                        def expand_v(v, d) :
-                            vd = list(set(d) - set(v.keys()))
-                            for e in itertools.product(*[sd[a] for a in vd]):
-                                v = V(v.copy())
-                                for i, a in enumerate(vd):
-                                    v[a] = e[i]
-                                yield v
+			def b2d(b):
+				return dict([(hitter_sorts[n],i) for n, i in enumerate(b)])
 
-                        def v2expr(v):
-                            v = list(sorted(v))
-                            return "[%s] in [[%s]]" \
-                                        % (";".join(x[0] for x in v), ";".join(str(x[1]) for x in v)) \
+			tvs = ValSet([V(b2d(b)) for b in trues])
+			tvs = tvs.simplify(sd, max_ite=100)
+			fvs = ValSet([V(b2d(b)) for b in falses])
+			fvs = fvs.simplify(sd, max_ite=100)
 
-                        def ddd2expr(ddd, mem=[]):
+			if len(tvs) > len(fvs):
+			    vs = fvs
+			    v = 0
+			else:
+			    vs = tvs
+			    v = 1
 
-                            expr = ""
-                            if ddd.h <= MAX_COOP:
-                                if mem:
-                                    expr = v2expr(mem) + " and "
-                                vs = ddd.valset()
-                                d = vs.domain()
-                                ts = []
-                                evs = ValSet()
-                                for v in vs:
-                                    evs.update(expand_v(v,d))
-                                for ev in evs:
-                                    ts.append("[%s]" % ";".join([str(ev[a]) for a in d]))
-                                expr += "[%s] in [%s]" \
-                                        % (";".join(d), ";".join(ts))
-                                return expr
+			def group(v):
+				gv = []
+				for i, x in enumerate(v):
+					if i % MAX_COOP == 0:
+						g = []
+						gv.append(g)
+					g.append(x)
+				return gv
 
-                            vs = list(ddd.v.keys())
-                            if len(vs) == 1:
-                                mem = mem + [(ddd.a, vs[0])]
-                                if len(mem) % MAX_COOP == 0:
-                                    expr += v2expr(mem)
-                                    mem = []
-                                if ddd.v[vs[0]].a != DDD.TOP:
-                                    if expr:
-                                        expr += " and "
-                                    if mem and len(ddd.v[vs[0]].v) > 1:
-                                        expr += v2expr(mem) + " and "
-                                        mem = []
-                                    expr += ddd2expr(ddd.v[vs[0]], mem)
-                                elif mem:
-                                    expr = v2expr(mem)
-                            else:
-                                exprs = []
-                                for i in vs:
-                                    memi = mem + [(ddd.a, i)]
-                                    n_expr = ""
-                                    if len(memi) % MAX_COOP == 0:
-                                        n_expr = v2expr(memi)
-                                        memi = []
-                                    if ddd.v[i].a != DDD.TOP:
-                                        if n_expr:
-                                            n_expr += " and "
-                                        n_expr += ddd2expr(ddd.v[i], memi)
-                                    elif memi:
-                                        n_expr = v2expr(memi)
-                                    exprs.append(n_expr)
-                                return "(" + " or ".join(exprs) + ")"
-                            return expr
+			def v2expr(v):
+				gv = group(list(sorted(v.items())))
+				e = " and ".join(["[%s] in [[%s]]" \
+					% (";".join(x[0] for x in v), ";".join(str(x[1]) for x in v)) \
+						for v in gv])
+				if len(gv) > 1:
+					e = "(%s)" % e
+				return e
+			def vs2expr(vs):
+				return " or ".join(map(v2expr, vs))
 
+			sm = vs2expr(vs)
 
-                        max_ite = 100
-                        ddd = DDD.build_reduced(tvs, sd, max_ite=max_ite)
-                        v = 1
-                        ddd_f = DDD.build_reduced(fvs, sd, max_ite=max_ite)
-                        if ddd.size > ddd_f.size:
-                            ddd = ddd_f
-                            v = 0
-                        sm = ddd2expr(ddd)
-                        print(sm, file=sys.stderr)
-
-                print("COOPERATIVITY(%s, %s, %d, %d)" % (sm, target_sort, v, 1-v))
+		print("COOPERATIVITY(%s, %s, %d, %d)" % (sm, target_sort, v, 1-v))
 
 
 print()
