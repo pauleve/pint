@@ -203,8 +203,8 @@ let list_auto_fixed_points coops procs =
 		in
 		let register_action bj ((ai,_),_) hits =
 			if SSet.mem (fst bj) ls && SSet.mem (fst ai) ls 
-				&& ((fst bj) = a && (snd bj) == i || (fst bj <> a))
-				&& ((fst ai) = a && (snd ai) == i || (fst ai <> a))
+				&& (bj = (a,i) || fst bj <> a)
+				&& (ai = (a,i) && (fst bj = a || not (List.mem (fst bj) components)) || fst ai <> a)
 				&& ((fst bj) <> (fst ai) || (fst bj) = a)
 			then
 				(ai,bj)::hits
@@ -321,7 +321,7 @@ in
 debug_asp asp_data;
 toc ~label:"sorts split" t0;
 
-let ig = 
+let ig, asp_data = 
 	if !opt_igfile = "" then (
 		dbg ~level:1 "Inferring Interaction Graph...";
 
@@ -365,9 +365,9 @@ let ig =
 		in
 		ignore(Unix.close_process p);
 		toc ~label:"IG inference" t0;
-		ig
+		ig, asp_data
 	) else 
-		input_ig !opt_igfile
+		input_ig !opt_igfile, asp_data
 in
 (if !opt_dotfile <> "" then
 	let cout = open_out !opt_dotfile
