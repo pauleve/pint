@@ -128,7 +128,15 @@ need_phi(A,AI) :- ea(A), is_gene(A), bounce_to(AI,AI,AI), sort(A,AP), AI<AP,
 need_phi(A,AI) :- ea(A), is_gene(A), bounce_to(AI,AI,AI), sort(A,AP), AI>0,
   bounce_to(AI-1,AI-1,AK), AK<AI, auto_action.
 
-:- ea(A), a_process(AI), not need_phi(A,AI).
+%:- ea(A), a_process(AI), not need_phi(A,AI).
+
+
+
+%%% Optimisation
+exists_need_phi :- need_phi(_,_).
+:- not exists_need_phi.
+
+
 
 %%% Optimisation ?
 %:- b_process(BI), a_process(AI), not bounce_to(BI,AI,AI).
