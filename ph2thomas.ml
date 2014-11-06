@@ -199,13 +199,17 @@ let list_auto_fixed_points coops procs =
 			(List.fold_left (fun s a -> SSet.add a s) SSet.empty components)
 	in
 	let fpa (a,i) =
-		let ls = SSet.add a (predecessors a)
+		let ls = predecessors a
+		in
+		let ls_nc = SSet.filter (fun a -> not (List.mem a components)) ls
+		in
+		let ls = SSet.add a ls
+		and ls_nc = SSet.add a ls_nc
 		in
 		let register_action bj ((ai,_),_) hits =
-			if SSet.mem (fst bj) ls && SSet.mem (fst ai) ls 
+			if SSet.mem (fst bj) ls_nc && SSet.mem (fst ai) ls 
 				&& (bj = (a,i) || fst bj <> a)
-				&& (ai = (a,i) && (fst bj = a || not (List.mem (fst bj) components)) || fst ai <> a)
-				&& ((fst bj) <> (fst ai) || (fst bj) = a)
+				&& (ai = (a,i) || fst ai <> a)
 			then
 				(ai,bj)::hits
 			else hits
