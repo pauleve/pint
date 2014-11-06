@@ -34,7 +34,8 @@ cs_of(A,CS) :- cooperation(CS,A,_,_).
 is_process_of_cs(CS,CSI) :- cooperative_sort(CS,CSP), CSI=0..CSP.
 is_process_or_process_of_cs(A,AI) :- gene(A,AP), AI=0..AP.
 is_process_or_process_of_cs(CS,CSI) :- cooperative_sort(CS,CSP), CSI=0..CSP.
-is_bounce_of_cs(CS,CSI,CSJ) :- is_process_of_cs(CS,CSI), is_process_of_cs(CS,CSJ), CSI!=CSJ.
+is_bounce_of_cs(CS,CSI,CSJ) :- is_process_of_cs(CS,CSI),
+  is_process_of_cs(CS,CSJ), CSI!=CSJ.
 is_bounce_or_bounce_of_cs(A,AJ,AK) :- is_bounce(A,AJ,AK).
 is_bounce_or_bounce_of_cs(CS,CSJ,CSK) :- is_bounce_of_cs(CS,CSJ,CSK).
 is_ph_predec(A,B) :- action(A,_,B,_,_).
@@ -55,15 +56,16 @@ is_cs_debug(CS) :- cooperation(CS,_,_,_).
 :- is_cs(CS), not is_cs_debug(CS).
 :- is_cs_debug(CS), not is_cs(CS).
 :- cooperation(_,A,AI,_), not is_process(A,AI), not is_process_of_cs(A,AI).
-at_least_one_cooperation_debug(CS,A,CSJ) :- is_process(A,AI), is_process_of_cs(CS,CSJ),
-  cs_of(A,CS), cooperation(CS,A,AI,CSJ).
-:- is_process_of_cs(CS,CSJ), is_gene(A), cs_of(A,CS), not at_least_one_cooperation_debug(CS,A,CSJ).
+at_least_one_cooperation_debug(CS,A,CSJ) :- is_process(A,AI),
+  is_process_of_cs(CS,CSJ), cs_of(A,CS), cooperation(CS,A,AI,CSJ).
+:- is_process_of_cs(CS,CSJ), is_gene(A), cs_of(A,CS),
+  not at_least_one_cooperation_debug(CS,A,CSJ).
 
 
 
 %%% Résolution de l'inférence du Graphe des Interactions
 
-%% Prédécesseurs dans le PH : influencent de façon directe ou à travers une/des SC
+%% Prédécesseurs dans le PH : influent de façon directe ou à travers une/des SC
 is_ph_pred(A,B) :- is_ph_predec(A,B).
 is_ph_pred(A,B) :- is_ph_pred(A,CS), is_ph_pred(CS,B), is_cs(CS).
 is_ph_pred_cs(CS,B) :- is_ph_pred(CS,B), is_cs(CS).
@@ -86,27 +88,29 @@ couple(AI,AI) :- a_process(AI), auto_action.
 %% gamma : prédécesseurs C infuençant A conjointement avec B et autres que B
 %%          (B non inclus et A non inclus sauf si auto_action)
 %%          (C ≠ B et A non inclus si A ≠ B)
-gamma(C,B,A) :- is_gene(C), is_gene(B), is_gene(A), is_ph_reg(B,A), is_ph_pred_cs(CS,A),
-  is_ph_pred(B,CS), is_ph_pred(C,CS), C!=B.
+gamma(C,B,A) :- is_gene(C), is_gene(B), is_gene(A), is_ph_reg(B,A),
+  is_ph_pred_cs(CS,A), is_ph_pred(B,CS), is_ph_pred(C,CS), C!=B.
 gamma(C,B,A) :- gamma(D,B,A), is_gene(C), is_ph_pred_cs(CS,A),
   is_ph_pred(C,CS), is_ph_pred(D,CS), C!=B, C!=D.
-gamma_cs(CS,B,A) :- is_cs(CS), is_gene(B), is_gene(A), is_ph_reg(B,A), is_ph_pred_cs(CS,A),
-  gamma(C,B,A), is_ph_pred(C,CS).
+gamma_cs(CS,B,A) :- is_cs(CS), is_gene(B), is_gene(A), is_ph_reg(B,A),
+  is_ph_pred_cs(CS,A), gamma(C,B,A), is_ph_pred(C,CS).
 
 %% Sélection d'une configuration des prédécesseurs
-1 {sigma_select(C,CI) : is_process(C,CI)} 1 :- gamma(C,B,A), eb(B), ea(A), C!=B, C!=A.
+1 {sigma_select(C,CI) : is_process(C,CI)} 1 :- gamma(C,B,A), eb(B), ea(A),
+  C!=B, C!=A.
 sigma(BI,AI,C,CI) :- couple(BI,AI), sigma_select(C,CI).
 sigma(BI,AI,B,BI) :- eb(B), couple(BI,AI).
 sigma(BI,AI,A,AI) :- ea(A), couple(BI,AI).
 %% Héritage aux SC
-temp_not_sigma(BI,AI,CS,CSI) :- ea(A), is_ph_pred_cs(CS,A), is_process_of_cs(CS,CSI),
-  is_ph_predec(C,CS), sigma(BI,AI,C,CJ), not cooperation(CS,C,CJ,CSI).
-sigma(BI,AI,CS,CSI) :- ea(A), eb(B), couple(BI,AI), is_process_of_cs(CS,CSI), is_ph_pred(CS,A),
-  not temp_not_sigma(BI,AI,CS,CSI).
+temp_not_sigma(BI,AI,CS,CSI) :- ea(A), is_ph_pred_cs(CS,A),
+  is_process_of_cs(CS,CSI), is_ph_predec(C,CS),
+  sigma(BI,AI,C,CJ), not cooperation(CS,C,CJ,CSI).
+sigma(BI,AI,CS,CSI) :- ea(A), eb(B), couple(BI,AI), is_process_of_cs(CS,CSI),
+  is_ph_pred(CS,A), not temp_not_sigma(BI,AI,CS,CSI).
 
 %% Recherche des bonds possibles autour d'un processus
-bounce_to(BI,AI,AJ) :- ea(A), a_process(AI), a_process(AJ), b_process(BI), sigma(BI,AI,C,CI),
-  action(C,CI,A,AI,AJ).
+bounce_to(BI,AI,AJ) :- ea(A), a_process(AI), a_process(AJ), b_process(BI),
+  sigma(BI,AI,C,CI), action(C,CI,A,AI,AJ).
 exists_bounce(BI,AI) :- bounce_to(BI,AI,AJ), AI!=AJ.
 bounce_to(BI,AI,AI) :- ea(A), a_process(AI), b_process(BI), sigma(BI,AI,_,_),
   not exists_bounce(BI,AI).
@@ -116,43 +120,46 @@ bounce_to(BI,AI,AI) :- ea(A), a_process(AI), b_process(BI), sigma(BI,AI,_,_),
 %%% Vérification des Phi
 %% phi_not_included(BI,AI,N) <=> sigma_select \notin sigma'_N
 %%                           <=> \exists b_i \in sigma_select, b_i \notin sigma'_N
-phi_not_included(BI,AI,N) :- ea(A), a_process(AI), b_process(BI), sigma_select(D,DI),
-  not phi(A,AI,N,D,DI), phi(_,_,N,_,_).  %, auto_action.
-phi_not_included(BI,AI,N) :- ea(A), a_process(AI), b_process(BI), phi(_,_,N,_,_),
-  not phi(A,AI,N,A,AI).  %, auto_action.
-phi_not_included(BI,AI,N) :- ea(A), eb(B), a_process(AI), b_process(BI), phi(_,_,N,_,_),
-  not phi(A,AI,N,B,BI).  %, auto_action.
+phi_not_included(BI,AI,N) :- ea(A), a_process(AI), b_process(BI),
+  sigma_select(D,DI), not phi(A,AI,N,D,DI), phi(_,_,N,_,_).
+phi_not_included(BI,AI,N) :- ea(A), a_process(AI), b_process(BI),
+  phi(_,_,N,_,_), not phi(A,AI,N,A,AI).
+phi_not_included(BI,AI,N) :- ea(A), eb(B), a_process(AI), b_process(BI),
+  phi(_,_,N,_,_), not phi(A,AI,N,B,BI).
 %% phi_included(BI,AI,N) <=> \not phi_not_included(A,AI,N)
 %%                       <=> sigma_select \subset sigma'_N
 phi_included(BI,AI) :- ea(A), a_process(AI), b_process(BI), phi(A,AI,N,_,_),
   not phi_not_included(BI,AI,N).
 %% Nouveaux bounce_to
-bounce_to_with_phi(BI,AI,AJ) :- ea(A), a_process(AI), a_process(AJ), b_process(BI),
-  sigma(BI,AI,C,CI), action(C,CI,A,AI,AJ).  %, auto_action.
-exists_bounce_with_phi(BI,AI) :- bounce_to(BI,AI,AJ), AI!=AJ.  %, auto_action.
-bounce_to_with_phi(BI,AI,AI) :- ea(A), a_process(AI), b_process(BI), sigma(BI,AI,_,_),
-  phi_included(BI,AI),   % Ajout pour Phi
-  not exists_bounce_with_phi(BI,AI).  %, auto_action.
+bounce_to_with_phi(BI,AI,AJ) :- ea(A), a_process(AI), a_process(AJ),
+  b_process(BI), sigma(BI,AI,C,CI), action(C,CI,A,AI,AJ).
+exists_bounce_with_phi(BI,AI) :- bounce_to(BI,AI,AJ), AI!=AJ.
+bounce_to_with_phi(BI,AI,AI) :- a_process(AI), b_process(BI), sigma(BI,AI,_,_),
+  phi_included(BI,AI), not exists_bounce_with_phi(BI,AI).
 
 
 
 %%% Conclusion
 
 %% Conclusion du cas B -> A
-gi_edge(B,"+",BI+1,A) :- ea(A), eb(B), b_process(BI), b_process(BI+1), bounce_to(BI,AI,AJ),
-  bounce_to(BI+1,AI,AK), AJ<AK, not auto_action.
-gi_edge(B,"-",BI+1,A) :- ea(A), eb(B), b_process(BI), b_process(BI+1), bounce_to(BI,AI,AJ),
-  bounce_to(BI+1,AI,AK), AJ>AK, not auto_action.
+gi_edge(B,"+",BI+1,A) :- ea(A), eb(B), b_process(BI), b_process(BI+1),
+  bounce_to(BI,AI,AJ), bounce_to(BI+1,AI,AK), AJ<AK, not auto_action.
+gi_edge(B,"-",BI+1,A) :- ea(A), eb(B), b_process(BI), b_process(BI+1),
+  bounce_to(BI,AI,AJ), bounce_to(BI+1,AI,AK), AJ>AK, not auto_action.
 %% Conclusion du cas A -> A
-gi_edge(A,"+",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), bounce_to_with_phi(AI,AI,AJ),
-  bounce_to_with_phi(AI+1,AI+1,AK), AK>=AI+1, AJ<=AI, auto_action.  %, no_reg(A). % TODO
-gi_edge(A,"-",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), bounce_to_with_phi(AI,AI,AJ),
-  bounce_to_with_phi(AI+1,AI+1,AK), AK<AI+1, AJ>AI, auto_action.  %, no_reg(A). % TODO
+gi_edge(A,"+",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1),
+  bounce_to_with_phi(AI,AI,AJ), bounce_to_with_phi(AI+1,AI+1,AK),
+  AK>=AI+1, AJ<=AI, auto_action.
+gi_edge(A,"-",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1),
+  bounce_to_with_phi(AI,AI,AJ), bounce_to_with_phi(AI+1,AI+1,AK),
+  AK<AI+1, AJ>AI, auto_action.
 %% Conclusion du cas A -> A (B ≠ A mais observation des groupes de régulateurs)
 gi_edge(A,"+",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), b_process(BI),
-  bounce_to_with_phi(BI,AI,AJ), bounce_to_with_phi(BI,AI+1,AK), AK>=AI+1, AJ<=AI, not auto_action.
+  bounce_to_with_phi(BI,AI,AJ), bounce_to_with_phi(BI,AI+1,AK),
+  AK>=AI+1, AJ<=AI, not auto_action.
 gi_edge(A,"-",AI+1,A) :- ea(A), a_process(AI), a_process(AI+1), b_process(BI),
-  bounce_to_with_phi(BI,AI,AJ), bounce_to_with_phi(BI,AI+1,AK), AK<AI+1, AJ>AI, not auto_action.
+  bounce_to_with_phi(BI,AI,AJ), bounce_to_with_phi(BI,AI+1,AK),
+  AK<AI+1, AJ>AI, not auto_action.
 
 
 
@@ -168,5 +175,4 @@ exists_answer :- gi_edge(_,_,_,_).
 #show ea/1.
 #show eb/1.
 #show gi_edge/4.
-%#show gi_edge_debug/6.
 

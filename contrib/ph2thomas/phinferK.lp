@@ -33,7 +33,8 @@ is_gene_or_cs(A) :- is_gene(A).
 is_gene_or_cs(CS) :- is_cs(CS).
 cs_of(A,CS) :- cooperation(CS,A,_,_).
 is_process_of_cs(CS,CSI) :- cooperative_sort(CS,CSP), CSI=0..CSP.
-is_bounce_of_cs(CS,CSI,CSJ) :- is_process_of_cs(CS,CSI), is_process_of_cs(CS,CSJ), CSI!=CSJ.
+is_bounce_of_cs(CS,CSI,CSJ) :- is_process_of_cs(CS,CSI),
+  is_process_of_cs(CS,CSJ), CSI!=CSJ.
 
 is_ph_predec(A,B) :- action(A,_,B,_,_).
 is_ph_pred(A,B) :- is_ph_predec(A,B).
@@ -42,9 +43,9 @@ is_ph_pred(A,B) :- is_ph_pred(A,CS), is_ph_pred(CS,B), is_cs(CS).
 %% Fonctions pour le modèle de Thomas
 is_ig_predec(A,B) :- edge(A,_,_,B).
 %% Compatibilité
-edge(A,"positive",X,B) :- edge(A,"+",X,B).
-edge(A,"negative",X,B) :- edge(A,"-",X,B).
-edge(A,"unsigned",X,B) :- edge(A,"?",X,B).
+%edge(A,"positive",X,B) :- edge(A,"+",X,B).
+%edge(A,"negative",X,B) :- edge(A,"-",X,B).
+%edge(A,"unsigned",X,B) :- edge(A,"?",X,B).
 
 
 
@@ -62,15 +63,15 @@ is_cs_debug(CS) :- cooperation(CS,_,_,_).
 :- is_cs(CS), not is_cs_debug(CS).
 :- is_cs_debug(CS), not is_cs(CS).
 :- cooperation(_,A,AI,_), not is_process(A,AI), not is_process_of_cs(A,AI).
-at_least_one_cooperation_debug(CS,A,CSJ) :- is_process(A,AI), is_process_of_cs(CS,CSJ),
-  cs_of(A,CS), cooperation(CS,A,AI,CSJ).
+at_least_one_cooperation_debug(CS,A,CSJ) :- is_process(A,AI),
+  is_process_of_cs(CS,CSJ), cs_of(A,CS), cooperation(CS,A,AI,CSJ).
 :- is_process_of_cs(CS,CSJ), is_gene(A), cs_of(A,CS),
   not at_least_one_cooperation_debug(CS,A,CSJ).
 
 % Sur le Graphe des Interactions (Thomas)
 :- edge(A,_,AI,_), not is_process(A,AI).
 :- edge(_,_,_,B), not is_gene(B).
-:- edge(_,S,_,_), S!="positive", S!="negative", S!="unsigned", S!="+", S!="-", S!="?".
+:- edge(_,S,_,_), S!="+", S!="-", S!="?".
 
 % Sur le paramètre
 :- ka(A), not is_gene(A).
@@ -112,8 +113,10 @@ sL_att(AK) :- ka(A), sH(_,_,A,_,AK).
 sL_foc(AJ) :- sL_att(AJ), ka(A), not sHJ(A,AJ).
 
 %% Les processus focaux sont attracteurs ?
-temp_is_attractor(AF,AK,AJ) :- ka(A), sH(_,_,A,AJ,AK), sL_foc(AF), #abs(AF-AK)<#abs(AF-AJ).
-not_attractor :- ka(A), sH(_,_,A,AJ,AK), sL_foc(AF), not temp_is_attractor(AF,AK,AJ).
+temp_is_attractor(AF,AK,AJ) :- ka(A), sH(_,_,A,AJ,AK), sL_foc(AF),
+  #abs(AF-AK)<#abs(AF-AJ).
+not_attractor :- ka(A), sH(_,_,A,AJ,AK), sL_foc(AF),
+  not temp_is_attractor(AF,AK,AJ).
 attractor :- not not_attractor.
 
 %% Unique processus focal ?
