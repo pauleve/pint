@@ -34,16 +34,17 @@ is_gene_or_cs(A) :- is_gene(A).
 is_gene_or_cs(CS) :- is_cs(CS).
 cs_of(A,CS) :- cooperation(CS,A,_,_).
 is_process_of_cs(CS,AI) :- cooperative_sort(CS,AP), AI=0..AP.
-is_bounce_of_cs(CS,AI,AJ) :- is_process_of_cs(CS,AI), is_process_of_cs(CS,AJ), AI!=AJ.
+is_bounce_of_cs(CS,AI,AJ) :- is_process_of_cs(CS,AI),
+  is_process_of_cs(CS,AJ), AI!=AJ.
 
 %% Fonctions pour le modèle de Thomas
 is_predec(A,B) :- edge(A,_,_,B).
-is_predec_pos(A,B) :- edge(A,"positive",_,B).
-is_predec_neg(A,B) :- edge(A,"negative",_,B).
+is_predec_pos(A,B) :- edge(A,"+",_,B).
+is_predec_neg(A,B) :- edge(A,"-",_,B).
 %% Compatibilité
-edge(A,"positive",X,B) :- edge(A,"+",X,B).
-edge(A,"negative",X,B) :- edge(A,"-",X,B).
-edge(A,"unsigned",X,B) :- edge(A,"?",X,B).
+%edge(A,"positive",X,B) :- edge(A,"+",X,B).
+%edge(A,"negative",X,B) :- edge(A,"-",X,B).
+%edge(A,"unsigned",X,B) :- edge(A,"?",X,B).
 
 %% Fonctions concernant la paramétrisation
 gene_levels(A,0..AI) :- gene(A,AI).
@@ -51,7 +52,8 @@ temp_less_active(A,PA1,PA2) :- param_label(A,PA1), param_label(A,PA2,B),
   not param_label(A,PA1,B), is_predec_pos(B,A).
 temp_less_active(A,PA1,PA2) :- param_label(A,PA1,B), param_label(A,PA2),
   not param_label(A,PA2,B), is_predec_neg(B,A).
-less_active(A,PA1,PA2) :- temp_less_active(A,PA1,PA2), not temp_less_active(A,PA2,PA1).
+less_active(A,PA1,PA2) :- temp_less_active(A,PA1,PA2),
+  not temp_less_active(A,PA2,PA1).
 
 temp_exists_more_active(A,PA) :- less_active(A,PA,_).
 max_active(A,PA) :- param_label(A,PA), not temp_exists_more_active(A,PA).
@@ -75,15 +77,15 @@ is_cs_debug(CS) :- cooperation(CS,_,_,_).
 :- is_cs_debug(CS), not is_cs(CS).
 :- cooperation(_,A,AI,_), not is_process(A,AI), not is_process_of_cs(A,AI).
 %:- cooperation(CS,A,I1,J), cooperation(CS,A,I2,J), I1 != I2. % Non -> cas de représentations de plusieurs processus
-at_least_one_cooperation_debug(CS,A,CSJ) :- is_process(A,AI), is_process_of_cs(CS,CSJ),
-  cs_of(A,CS), cooperation(CS,A,AI,CSJ).
+at_least_one_cooperation_debug(CS,A,CSJ) :- is_process(A,AI),
+  is_process_of_cs(CS,CSJ), cs_of(A,CS), cooperation(CS,A,AI,CSJ).
 :- is_process_of_cs(CS,CSJ), is_gene(A), cs_of(A,CS),
   not at_least_one_cooperation_debug(CS,A,CSJ).
 
 %% Sur le Graphe des Interactions (Thomas)
 :- edge(A,_,AI,_), not is_process(A,AI).
 :- edge(_,_,_,B), not is_gene(B).
-:- edge(_,S,_,_), S!="positive", S!="negative", S!="unsigned", S!="+", S!="-", S!="?".
+:- edge(_,S,_,_), S!="+", S!="-", S!="?".
 :- edge(_,"?",_).
 
 %% Sur les paramètres
@@ -110,12 +112,12 @@ exists_param_more(A,PA,AI) :- enum_param(A,PA,AI), enum_param(A,PA,AJ), AI<AJ.
 param_max(A,PA,AI) :- enum_param(A,PA,AI), not exists_param_more(A,PA,AI).
 exists_param_less(A,PA,AI) :- enum_param(A,PA,AI), enum_param(A,PA,AJ), AJ<AI.
 param_min(A,PA,AI) :- enum_param(A,PA,AI), not exists_param_less(A,PA,AI).
-:- param_min(A,PA,AMin), param_max(A,PA,AMax), AI=AMin..AMax, not enum_param(A,PA,AI).
+:- param_min(A,PA,AMin), param_max(A,PA,AMax), AI=AMin..AMax,
+  not enum_param(A,PA,AI).
 
 
 
 %%% Contraintes biologiques
-
 %% Bornes supérieure et inférieure
 temp_has_predec(A) :- is_predec(_,A).
 temp_min_active_ok(A) :- enum_param(A,PA,0), min_active(A,PA).
@@ -123,25 +125,21 @@ temp_max_active_ok(A) :- enum_param(A,PA,AI), gene(A,AI), max_active(A,PA).
 :- temp_has_predec(A), not temp_min_active_ok(A).
 :- temp_has_predec(A), not temp_max_active_ok(A).
 %% Monotonicité [Def 3.5 de Bernot et al.] (Moins activé => inférieur ou égal)
-param_inf(A,PA1,PA2) :- param_min(A,PA1,AMin1), param_max(A,PA1,AMax1), param_min(A,PA2,AMin2),
-  param_max(A,PA2,AMax2), AMin1<=AMin2, AMax1<=AMax2.
+param_inf(A,PA1,PA2) :- param_min(A,PA1,AMin1), param_max(A,PA1,AMax1),
+  param_min(A,PA2,AMin2), param_max(A,PA2,AMax2), AMin1<=AMin2, AMax1<=AMax2.
 :- less_active(A,PA1,PA2), not param_inf(A,PA1,PA2).
 %% Activation [Def 3.4 de Bernot et al.] (Plus activé => au moins un strictement supérieur)
 param_str_inf(A,PA1,PA2) :- param_min(A,PA1,AMin1), param_max(A,PA1,AMax1),
   param_min(A,PA2,AMin2), param_max(A,PA2,AMax2), AMin1<AMin2, AMax1<=AMax2.
 param_str_inf(A,PA1,PA2) :- param_min(A,PA1,AMin1), param_max(A,PA1,AMax1),
   param_min(A,PA2,AMin2), param_max(A,PA2,AMax2), AMin1<=AMin2, AMax1<AMax2.
-temp_activation_ok(A,B) :- is_predec(B,A), param_label(A,PA1), param_label(A,PA2),
-  param_label(A,PA2,B), not param_label(A,PA1,B), param_str_inf(A,PA1,PA2).
-temp_activation_ok(A,B) :- is_predec(B,A), param_label(A,PA1), param_label(A,PA2),
-  param_label(A,PA2,B), not param_label(A,PA1,B), param_str_inf(A,PA2,PA1).
+temp_activation_ok(A,B) :- is_predec(B,A),
+  param_label(A,PA1), param_label(A,PA2), param_label(A,PA2,B),
+  not param_label(A,PA1,B), param_str_inf(A,PA1,PA2).
+temp_activation_ok(A,B) :- is_predec(B,A),
+  param_label(A,PA1), param_label(A,PA2), param_label(A,PA2,B),
+  not param_label(A,PA1,B), param_str_inf(A,PA2,PA1).
 :- is_gene(A), is_predec(B,A), not temp_activation_ok(A,B).
-
-
-
-%%% Paramètres simples uniquement
-%% Activé dans le programme principal
-%:- enum_param(A,P,I), enum_param(A,P,J), I != J, not infered_param(A,P).
 
 
 
@@ -152,11 +150,13 @@ levels(A,B,AI) :- edge(A,_,AT,B), gene(A,AP), AI=AT..AP.
 ulevels(A,B,AI) :- edge(A,_,AT,B), AI=0..AT-1.
 %% Contecte : Context^b_{a,A,B}
 sContext(A,PA,B,BI) :- levels(B,A,BI), param_label(A,PA,B).
-sContext(A,PA,B,BI) :- param_label(A,PA), ulevels(B,A,BI), not param_label(A,PA,B).
-sContext(A,PA,B,BI) :- gene(B,BL), BI=0..BL, param_label(A,PA), not is_predec(B,A).
+sContext(A,PA,B,BI) :- param_label(A,PA), ulevels(B,A,BI),
+  not param_label(A,PA,B).
+sContext(A,PA,B,BI) :- gene(B,BL), BI=0..BL, param_label(A,PA),
+  not is_predec(B,A).
 temp_context_cs(A,PA,CS,B,CSI) :- cooperation(CS,B,BJ,CSI), sContext(A,PA,B,BJ).
-temp_context_cs_neg(A,PA,CS,CSI) :- param_label(A,PA), is_process_of_cs(CS,CSI), cs_of(B,CS),
-  not temp_context_cs(A,PA,CS,B,CSI).
+temp_context_cs_neg(A,PA,CS,CSI) :- param_label(A,PA), is_process_of_cs(CS,CSI),
+  cs_of(B,CS), not temp_context_cs(A,PA,CS,B,CSI).
 sContext(A,PA,CS,CSI) :- param_label(A,PA), is_process_of_cs(CS,CSI),
   not temp_context_cs_neg(A,PA,CS,CSI).
 %% Actions possibles
@@ -170,7 +170,14 @@ not_compatible(A,PA) :- is_bounce(A,AI,AJ), sContext(A,PA,A,AI),
   not enum_param(A,PA,AI), not exists_action(A,PA,AI,AJ), AI>AKMin,
   param_min(A,PA,AKMin), AJ<AI, #abs(AI-AJ)==1.
 
+%result_param(A,PA,AI) :- param(A,PA,AI).
 result_param(A,PA,AI) :- enum_param(A,PA,AI), not not_compatible(A,PA).
+%result_param(A,PA,AI) :- enum_param(A,PA,AI).
+
+
+
+%%% Contrainte : paramètres simples
+%:- enum_param(A,P,I), enum_param(A,P,J), I != J, not infered_param(A,P).
 
 
 
@@ -179,10 +186,4 @@ result_param(A,PA,AI) :- enum_param(A,PA,AI), not not_compatible(A,PA).
 
 %#show enum_param/3.
 #show result_param/3.
-#show result/1.
-#show error/1.
-
-%:- enum_param(A,P,I), enum_param(A,P,J), I != J, not infered_param(A,P).
-
-%#show infered_param/2.
 
