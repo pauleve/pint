@@ -46,7 +46,6 @@ and opt_asp = ref ""
 and opt_format = ref "active"
 and opt_enum = ref false
 and opt_fullenum = ref false
-and opt_test = ref false
 and opt_verify = ref false
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
@@ -60,7 +59,6 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("\tParameter format (default: "^ (!opt_format) ^")."));
 	("--enumerate", Arg.Set opt_enum, "\tPerform parameterization enumeration.");
 	("--full-enumerate", Arg.Set opt_fullenum, "\tPerform parameterization enumeration, including intervals.");
-	("--test", Arg.Set opt_test, "\tTest new implementation");
 	("--verify", Arg.Set opt_verify, "\tVerify model validity before inference");
 	]
 and usage_msg = "ph2thomas [opts]"
@@ -262,8 +260,6 @@ in
 let cooperative_sorts = SSet.elements cooperative_sorts
 and components = List.fold_left (fun s a -> SSet.add a s) SSet.empty components
 in
-let asp_coop = 
-if !opt_test then (
 let coop_fixed_points =
 	let predecessors = parents (*predecessors components*)
 	in
@@ -304,21 +300,7 @@ let fold_coop_asp asp (a, fps) =
 	in
 	asp ^ String.concat "" (List.map asp_of_ps fps)
 in
-List.fold_left fold_coop_asp "" coop_fixed_points
-) else (
-let clauses = Ph2thomas_asp.create_clauses ()
-in
-let p = run_process_io 
-		("clingo 0 --verbose=0 "^(Filename.concat asp_path "phinfercoop.lp")^" -")
-		asp_data
-in
-Ph2thomas_coop.input_clauses clauses (fst p);
-ignore(Unix.close_process p);
-
-let coops = Ph2thomas_coop.cooperative_sorts clauses
-in
-Ph2thomas_coop.asp_of_clauses clauses coops
-)
+let asp_coop = List.fold_left fold_coop_asp "" coop_fixed_points
 in
 let asp_data = asp_data ^ asp_coop
 in
