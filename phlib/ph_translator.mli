@@ -50,4 +50,5 @@ val pep_of_ph : opts -> Ph_types.ph -> Ph_types.ctx -> string
 	for each non-cooperative sort to be 1 *)
 val bn_of_ph : Ph_types.ph -> Ph_types.ctx -> string
 
-
+(** Returns the AN-Pint translation of the given Process Hitting. *)
+val an_of_ph : opts -> Ph_types.ph -> Ph_types.ctx -> string

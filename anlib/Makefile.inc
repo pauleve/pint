@@ -5,6 +5,7 @@ SOURCES := \
 	an_parser.mly\
 	an_lexer.mll\
 	an_input.ml\
+	an_stategraph.ml\
 
 
 #LIBS := 

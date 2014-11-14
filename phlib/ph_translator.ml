@@ -828,4 +828,55 @@ let bn_of_ph (ps, hits) _ =
 	^ "\n"
 ;;
 
+let an_of_ph opts (ps, hits) ctx =
+	let is_sort_cooperative a = 
+		(try String.sub a 0 1 = "_" with Invalid_argument _ -> false) 
+			|| SMap.mem a !Ph_instance.cooperativities
+	in
+	let an_of_proc (a,i) =
+		"\""^a^"\"="^string_of_int i
+	in
+	let an_of_transition (b,j) (b,k) cond =
+		let strans = "\""^b^"\" "^string_of_int j^" -> "^string_of_int k
+		and procs = List.filter (fun (a,i) -> not (is_sort_cooperative a)) 
+						(list_of_state cond)
+		in
+		match procs with
+		[] -> strans
+		| _ -> 
+			let scond = String.concat " and " (List.map an_of_proc procs)
+			in
+			strans ^ " when " ^ scond
+	in
+	let fold_action (b,j) (((a,i),_),k) an_transitions =
+		if opts.coop_priority && is_sort_cooperative b then
+			an_transitions
+		else
+		let ai, bj, bk = (a,i), (b,j), (b,k)
+		in
+		let conds =
+			if opts.coop_priority && is_sort_cooperative a then
+				Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities (ps, hits) ai
+			else if ai = bj then
+				[SMap.empty]
+			else
+				[SMap.singleton a i]
+		in
+		List.map (an_of_transition bj bk) conds @ an_transitions
+	in
+	let an_transitions = Hashtbl.fold fold_action hits []
+	in
+	let an_of_def (a,l) = 
+		"\""^a^"\" ["^(String.concat "," (List.map string_of_int (Util.range 0 l)))^"]"
+	in
+	let defs = List.map an_of_def ps
+	in
+	let procs = procs_of_ctx ctx
+	in
+	let procs = List.map an_of_proc (PSet.elements procs)
+	in
+	(String.concat "\n" defs) ^ "\n\n"
+	^ (String.concat "\n" an_transitions) ^ "\n\n"
+	^ "initial_context " ^ (String.concat ", " procs) ^ "\n"
+;;
 

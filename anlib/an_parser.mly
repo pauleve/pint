@@ -46,7 +46,7 @@ let ctx_of_siglocalstates an sls =
 %%
 
 main :
-  content Eof				{ ($1,Ph_types.ctx_empty) }
+  content Eof				{ ($1,ctx_of_siglocalstates $1 []) }
 | content initial_ctx Eof	{ ($1,ctx_of_siglocalstates $1 $2) }
 ;
 
