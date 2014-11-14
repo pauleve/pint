@@ -30,9 +30,9 @@ clean: $(addsuffix _clean,$(TARGETS)) test_clean
 
 apidoc:
 	rm -f docs/api/*
-	ocamldoc -sort -html -d docs/api -I bindings -I pintlib -I phlib \
+	ocamldoc -sort -html -d docs/api -I bindings -I pintlib -I anlib -I phlib \
 		-t "Pint OCaml API" \
-		bindings/r.mli pintlib/*.mli phlib/*.mli *.mli
+		bindings/r.mli pintlib/*.mli anlib/*.mli phlib/*.mli *.mli
 
 
 RELNAME=$(shell date -I)
