@@ -45,7 +45,6 @@ and opt_igfile = ref ""
 and opt_asp = ref ""
 and opt_format = ref "active"
 and opt_enum = ref false
-and opt_fullenum = ref false
 and opt_verify = ref false
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
@@ -58,7 +57,6 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 	("--format", Arg.Symbol (["active"; "AB"; "iter"], (fun x -> opt_format := x)),
 		("\tParameter format (default: "^ (!opt_format) ^")."));
 	("--enumerate", Arg.Set opt_enum, "\tPerform parameterization enumeration.");
-	("--full-enumerate", Arg.Set opt_fullenum, "\tPerform parameterization enumeration, including intervals.");
 	("--verify", Arg.Set opt_verify, "\tVerify model validity before inference");
 	]
 and usage_msg = "ph2thomas [opts]"
@@ -411,13 +409,8 @@ if !opt_enum || !opt_fullenum then (
 	in
 	let cmdline = "clingo 0 --verbose=1 "^(Filename.concat asp_path "phenumK.lp")^" -"
 	in
-	dbg cmdline;
 	let pout = Unix.open_process_out cmdline
 	in
-	(if not !opt_fullenum then
-		output_string pout 
-			":- enum_param(A,P,I), enum_param(A,P,J), I != J, not infered_param(A,P).\n"
-	);
 	output_string pout asp_data;
 	ignore(Unix.close_process_out pout);
 	toc ~label:"K enumeration" t0
