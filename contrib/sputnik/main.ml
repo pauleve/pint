@@ -1,5 +1,6 @@
 
 open PintTypes
+open Ph_types
 
 let test () =
 	print_endline ("Pint - Sputnik");
