@@ -8,6 +8,8 @@ MISC_TOOLS = \
 	converters/ginml2K\
 	converters/K2an\
 	converters/an2ph\
+	converters/bool2an\
+
 
 .PHONY: $(TARGETS)
 
