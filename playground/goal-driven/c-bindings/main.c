@@ -6,8 +6,8 @@
 
 int main(int argc, char* argv[]) {
 
-	if (argc != 4) {
-		fprintf(stderr, "Usage: %s <file.ph> <a> <i>\n", argv[0]);
+	if (argc != 6) {
+		fprintf(stderr, "Usage: %s <file.ph> <a> <i> <b> <j>\n", argv[0]);
 		return 1;
 	}
 
@@ -16,14 +16,16 @@ int main(int argc, char* argv[]) {
 	char* filename = argv[1];
 	char* a = argv[2];
 	int i = atoi(argv[3]);
+	char* b = argv[4];
+	int j = atoi(argv[5]);
 
 	value ph, ctx;
 
-	fprintf(stdout, "opening %s\n", filename);
 	ph_parse(filename, &ph, &ctx);
-	fprintf(stdout, "init_env with a=%s, i=%d\n", a, i);
 	value env = ph_init_env(ph, a, i);
-	fprintf(stdout, "done\n");
+	value glc = ph_worth_glc(env, ctx);
+	int w = ph_is_worth(glc, b, j);
+	fprintf(stdout, "worth to reach %s %d? %d\n", b, j, w);
 
 	return 0;
 }
