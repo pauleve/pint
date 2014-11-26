@@ -6,20 +6,24 @@
 
 int main(int argc, char* argv[]) {
 
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s <file.ph>\n", argv[0]);
+	if (argc != 4) {
+		fprintf(stderr, "Usage: %s <file.ph> <a> <i>\n", argv[0]);
 		return 1;
 	}
 
 	caml_startup(argv);
 
-	char* filename = strdup(argv[1]);
+	char* filename = argv[1];
+	char* a = argv[2];
+	int i = atoi(argv[3]);
+
+	value ph, ctx;
 
 	fprintf(stdout, "opening %s\n", filename);
-	value ph_ctx = ph_parse(filename);
-	value ph = Field(ph_ctx, 0);
-	int size = ph_size(ph);
-	fprintf(stdout, "ph as %d transitions\n", size);
+	ph_parse(filename, &ph, &ctx);
+	fprintf(stdout, "init_env with a=%s, i=%d\n", a, i);
+	value env = ph_init_env(ph, a, i);
+	fprintf(stdout, "done\n");
 
 	return 0;
 }
