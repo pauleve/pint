@@ -31,10 +31,13 @@ let top_ph stack =
 let pop_ph stack =
 	ignore(Stack.pop stack)
 
-let worth_glc ph ctx goal =
+let init_env ph ctx goal =
+	Ph_reach.init_env ph ctx [goal]
+
+let worth_glc env ctx =
 	let ctx = Ph_cooperativity.coherent_ctx !Ph_instance.cooperativities ctx
 	in
-	let env = Ph_reach.init_env ph ctx [goal]
+	let env = {env with Ph_reach.ctx = ctx}
 	in
 	Ph_reach.worth_glc env
 
