@@ -49,6 +49,7 @@ and opt_romeo_ctl = ref ""
 and opt_romeo_ctl_file = ref ""
 and opt_coop_priority = ref false
 and opt_ptnet_context = ref false
+and opt_mapfile = ref ""
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), "\tOutput language");
@@ -61,6 +62,8 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 									"\tAssume hits on cooperative sorts of higher priority");
 		("--contextual-ptnet", Arg.Set opt_ptnet_context, 
 									"\tContextual petri net");
+		("--mapfile", Arg.Set_string opt_mapfile, 
+									"\tOutput mapping of identifiers");
 	]
 and usage_msg = "phc"
 in
@@ -81,7 +84,7 @@ let languages = [
 	("prism_mdp", prism_mdp_of_ph);
 	("romeo", romeo_of_ph opts);
 	("tina", tina_of_ph);
-	("pep", pep_of_ph opts);
+	("pep", pep_of_ph opts ~mapfile:!opt_mapfile);
 	("biocham", biocham_of_ph);
 	("kappa", kappa_of_ph);
 	("bn", bn_of_ph);

@@ -615,7 +615,7 @@ let romeo_of_ph opts (ps,hits) ctx =
 	^ "\n</TPN>\n"
 ;;
 
-let pep_of_ph opts (ps, hits) ctx =
+let pep_of_ph ?mapfile:(mapfile="") opts (ps, hits) ctx =
 	let idx_of_place places proc =
 		try
 			(PMap.find proc places, places)
@@ -644,7 +644,7 @@ let pep_of_ph opts (ps, hits) ctx =
 		and saction = string_of_state cond ^ " -> " ^ string_of_proc bj 
 								^ " " ^ string_of_proc bk
 		in
-		let transitions = (id, (sid^"\""^saction^"\"0@0"))::transitions
+		let transitions = (id, (sid^"\""^saction^"\"0@0"), bk)::transitions
 		and procs = List.filter (fun (a,i) -> not (is_sort_cooperative a)) 
 						(list_of_state cond)
 		in
@@ -695,13 +695,32 @@ let pep_of_ph opts (ps, hits) ctx =
 	in
 	let register_proc ai id places =
 		(id, string_of_int id^"\""^string_of_proc ai^"\"0@0"
-				^(if ctx_has_proc ai ctx then "M1" else "M0"))::places
+				^(if ctx_has_proc ai ctx then "M1" else "M0"), ai)::places
 	in
 	let places = PMap.fold register_proc places []
 	in
-	let places = List.map snd (List.sort compare places)
-	and transitions = List.map snd (List.sort compare transitions)
+	let places = List.sort compare places
+	and transitions = List.sort compare transitions
 	in
+	let mid (_,a,_) = a
+	in
+	let mapplaces = List.map (fun (i,_,ai) -> (i,ai)) places
+	and maptransitions = List.map (fun (i,_,ai) -> (i,ai)) transitions
+	and places = List.map mid (List.sort compare places)
+	and transitions = List.map mid (List.sort compare transitions)
+	in
+	(if mapfile <> "" then
+		let string_of_map (id, (a,i)) = 
+					string_of_int id^" "^a^" "^string_of_int i
+		in
+		let mapdata = 
+			  string_of_int (List.length mapplaces)
+			^ "\n" ^ (String.concat "\n" (List.map string_of_map mapplaces))
+			^ "\n" ^ string_of_int (List.length maptransitions)
+			^ "\n" ^ (String.concat "\n" (List.map string_of_map maptransitions))
+		in
+		Util.dump_to_file mapfile mapdata
+	);
 	"PEP\nPTNet\nFORMAT_N\n"
 	^ "PL\n" ^ (String.concat "\n" places) ^ "\n"
 	^ "TR\n" ^ (String.concat "\n" transitions) ^ "\n"
