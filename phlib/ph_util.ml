@@ -54,6 +54,8 @@ let count_processes (ps, _) =
 ;;
 let count_actions (_, hits) = Hashtbl.length hits;;
 
+let ph_copy (ps, hits) = (ps, Hashtbl.copy hits);;
+
 let opt_initial_procs = Ph_useropts.initial_procs;;
 let parse channel_in =
 	let lexbuf = Lexing.from_channel channel_in

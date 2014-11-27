@@ -68,6 +68,22 @@ struct
 		in
 		List.fold_left fold_regulation SMap.empty (SMap.find a ig)
 
+	let extended_local_ctx ?safe:(safe=false) ig ps a gctx =
+		let fold_regulation ctx (b, th, _) =
+			let l = List.assoc b ps
+			and js = SMap.find b gctx
+			in
+			let above_th = ISet.for_all (fun j -> j >= th) js
+			in
+			(if safe then
+				assert (above_th || ISet.for_all (fun j -> j < th) js));
+			if above_th then
+				SMap.add b (iset_of_list (Util.range th l)) ctx
+			else
+				SMap.add b (iset_of_list (Util.range 0 (th-1))) ctx
+		in
+		List.fold_left fold_regulation SMap.empty (SMap.find a ig)
+
 end
 
 

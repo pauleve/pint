@@ -19,3 +19,6 @@ val count_processes : Ph_types.ph -> int
 (** Returns the  number of actions in the given Process Hitting. *)
 val count_actions : Ph_types.ph -> int
 
+(** Returns a copy of the given Process Hitting. *)
+val ph_copy : Ph_types.ph -> Ph_types.ph
+

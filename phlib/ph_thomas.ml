@@ -82,10 +82,8 @@ let ph_cooperation (ps, hits) sm =
 	(ps, hits), (sigma, top)
 
 
-let constrained_ph ph a res values =
-	let ig = !Ph_instance.interaction_graph
-	in
-	let ctx = InteractionGraph.IG.ctx_for_resources ig (fst ph) a res
+let constrained_ph ph ig a actx values =
+	let ctx = actx
 	and regs = InteractionGraph.IG.regulators ig a
 	in
 	let actions = active_actions ph ctx a
