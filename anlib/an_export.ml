@@ -34,7 +34,7 @@ let pep_of_an opts an ctx =
 						String.concat " and " 
 							(List.map (string_of_localstate an) conds))
 		in
-		let transitions = (sid^"\""^str^"\"")::transitions
+		let transitions = (id, sid^"\""^str^"\"")::transitions
 		and idxs, places = idx_of_places places conds
 		in
 		let id_ai, places = idx_of_place places (a,i)
@@ -73,10 +73,13 @@ let pep_of_an opts an ctx =
 			LSMap.fold fold_localstate an.transitions pep
 	in
 	let register_localstate ai id places =
-		(string_of_int id^"\""^string_of_localstate an ai^"\""
+		(id, string_of_int id^"\""^string_of_localstate an ai^"\""
 				^(if ctx_has_localstate ai ctx then "M1" else "M0"))::places
 	in
 	let places = LSMap.fold register_localstate places []
+	in
+	let places = List.map snd (List.sort compare places)
+	and transitions = List.map snd (List.sort compare transitions)
 	in
 	"PEP\nPTNet\nFORMAT_N\n"
 	^ "PL\n" ^ (String.concat "\n" places) ^ "\n"

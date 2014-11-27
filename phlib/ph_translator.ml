@@ -644,7 +644,7 @@ let pep_of_ph opts (ps, hits) ctx =
 		and saction = string_of_state cond ^ " -> " ^ string_of_proc bj 
 								^ " " ^ string_of_proc bk
 		in
-		let transitions = (sid^"\""^saction^"\"0@0")::transitions
+		let transitions = (id, (sid^"\""^saction^"\"0@0"))::transitions
 		and procs = List.filter (fun (a,i) -> not (is_sort_cooperative a)) 
 						(list_of_state cond)
 		in
@@ -694,10 +694,13 @@ let pep_of_ph opts (ps, hits) ctx =
 											(1, PMap.empty, [], [], [], [])
 	in
 	let register_proc ai id places =
-		(string_of_int id^"\""^string_of_proc ai^"\"0@0"
+		(id, string_of_int id^"\""^string_of_proc ai^"\"0@0"
 				^(if ctx_has_proc ai ctx then "M1" else "M0"))::places
 	in
 	let places = PMap.fold register_proc places []
+	in
+	let places = List.map snd (List.sort compare places)
+	and transitions = List.map snd (List.sort compare transitions)
 	in
 	"PEP\nPTNet\nFORMAT_N\n"
 	^ "PL\n" ^ (String.concat "\n" places) ^ "\n"
