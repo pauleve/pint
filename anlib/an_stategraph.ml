@@ -15,7 +15,7 @@ let required_bits_per_automaton an =
 	let fold_automata _ states b =
 		max (bits (List.length states)) b
 	in
-	SMap.fold fold_automata an.automata 0
+	Hashtbl.fold fold_automata an.automata 0
 
 let automata_index an = 
 	let fold_automata a _ (i, index) =
@@ -23,7 +23,7 @@ let automata_index an =
 		in
 		(i+1, index)
 	in
-	snd (SMap.fold fold_automata an.automata (0, SMap.empty))
+	snd (Hashtbl.fold fold_automata an.automata (0, SMap.empty))
 
 (*
 let index_automata aindex =
@@ -46,22 +46,21 @@ let encode_transitions base aindex an =
 		in
 		(fun sid -> extract_big_int sid (base*id) base), eq_big_int j
 	in
-	let fold_transitions (a,i) transitions etransitions =
+	let fold_transitions (a,i,j) conds etransitions =
 		let id = SMap.find a aindex
 		in
-		let encode_transition (j, conds) =
-			let conds = List.map prepare_cond ((a,i)::conds)
-			in
-			let precond sid = List.for_all 
+		let conds = LSSet.elements conds
+		in
+		let conds = List.map prepare_cond ((a,i)::conds)
+		in
+		let precond sid = List.for_all 
 				(fun (get_comp, test_comp) -> test_comp (get_comp sid))
 					conds
-			and shift = single_sid id (j-i)
-			in
-			precond, shift
+		and shift = single_sid id (j-i)
 		in
-		List.map encode_transition transitions @ etransitions
+		(precond, shift)::etransitions
 	in
-	LSMap.fold fold_transitions an.transitions []
+	Hashtbl.fold fold_transitions an.conditions []
 
 let sid_of_state base aindex state =
 	let fold a i sid =

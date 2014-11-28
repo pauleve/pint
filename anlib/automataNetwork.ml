@@ -8,20 +8,34 @@ type automaton_p = string
 type automaton_state = int
 type local_state = automaton_p * automaton_state
 
-type local_transition = (int * (local_state list))
-
+module LSSet = Set.Make (struct type t = local_state let compare = compare end)
 module LSMap = Map.Make (struct type t = local_state let compare = compare end)
 
+let lsset_of_list = set_of_list LSSet.empty LSSet.add
+
+type local_transition = (int * (local_state list))
+
+type transition = automaton_p 
+						* automaton_state 
+						* automaton_state 
+
 type t = {
-	automata: ((sig_automaton_state * automaton_state) list) SMap.t;
-	transitions: (local_transition list) LSMap.t
+	automata: (automaton_p, (sig_automaton_state * automaton_state) list) Hashtbl.t;
+	transitions: (local_state, ISet.t) Hashtbl.t;
+	conditions: (transition, LSSet.t) Hashtbl.t;
+}
+
+let empty_an ?size:(size=(20,50)) () = {
+	automata = Hashtbl.create (fst size);
+	transitions = Hashtbl.create (snd size);
+	conditions = Hashtbl.create (snd size);
 }
 
 let get_automaton_state_sig an a i =
-	Util.list_lassoc i (SMap.find a an.automata)
+	Util.list_lassoc i (Hashtbl.find an.automata a)
 
 let get_automaton_state_id an a sig_i =
-	List.assoc sig_i (SMap.find a an.automata)
+	List.assoc sig_i (Hashtbl.find an.automata a)
 
 let string_of_sig_state = function
 	  StateId i -> string_of_int i
@@ -33,35 +47,31 @@ let string_of_astate an a i =
 let string_of_localstate an (a,i) =
 	a^"="^string_of_astate an a i
 
-let empty_an () = {
-	automata = SMap.empty;
-	transitions = LSMap.empty;
-}
-
-let has_automaton an name = SMap.mem name an.automata
+let has_automaton an name = Hashtbl.mem an.automata name
 
 let declare_automaton an a sigstates =
 	assert (not (has_automaton an a));
-	let register_sig (sigassoc, tr, i) sig_i =
-		(sig_i,i)::sigassoc, LSMap.add (a,i) [] tr, i+1
+	let register_sig (sigassoc, i) sig_i =
+		Hashtbl.add an.transitions (a,i) ISet.empty;
+		(sig_i,i)::sigassoc, i+1
 	in
-	let sigassoc, tr, _ = List.fold_left register_sig ([], an.transitions, 0)
-								sigstates
+	let sigassoc, _ = List.fold_left register_sig ([], 0) sigstates
 	in
-	{(*an with*)
-		automata = SMap.add a (List.rev sigassoc) an.automata;
-		transitions = tr;
-	}
+	Hashtbl.add an.automata a (List.rev sigassoc)
 
 let declare_transition an a sig_i sig_j sig_conds =
 	let i = get_automaton_state_id an a sig_i
 	and j = get_automaton_state_id an a sig_j
-	and conds = List.map (fun (b,k) -> (b, get_automaton_state_id an b k)) sig_conds
+	and conds = List.fold_left
+					(fun lsset (b,sig_k) -> 
+							let k = get_automaton_state_id an b sig_k
+							in
+							LSSet.add (b,k) lsset) LSSet.empty sig_conds
 	in
-	let trs = LSMap.find (a,i) an.transitions
+	let trs = Hashtbl.find an.transitions (a,i)
 	in
-	{an with transitions = LSMap.add (a,i) ((j,conds)::trs) an.transitions}
-
+	Hashtbl.replace an.transitions (a,i) (ISet.add j trs);
+	Hashtbl.add an.conditions (a, i, j) conds
 
 let ctx_has_localstate = Ph_types.ctx_has_proc
 

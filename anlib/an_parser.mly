@@ -17,7 +17,7 @@ let ctx_of_siglocalstates an sls =
 			SMap.add a (ISet.singleton 0) ctx
 		else ctx
 	in
-	SMap.fold complete_ctx an.automata ctx
+	Hashtbl.fold complete_ctx an.automata ctx
 
 
 %}
@@ -52,11 +52,12 @@ main :
 
 content :
   content decl_automaton 	{ let a, states = $2 in 
-  								declare_automaton $1 a states }
+  								declare_automaton $1 a states; $1 }
 | content decl_transition 	{ let a, sigi, sigj, sigconds = $2 in
-								declare_transition $1 a sigi sigj sigconds }
-| decl_automaton			{ let a, states = $1 in
-								declare_automaton (empty_an ()) a states }
+								declare_transition $1 a sigi sigj sigconds; $1 }
+| decl_automaton			{ let an = empty_an () in
+								let a, states = $1 in
+									declare_automaton an a states; an }
 ;
 
 automaton:

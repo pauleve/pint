@@ -4,6 +4,8 @@ module SMap : Map.S with type key  = string
 module ISet : Set.S with type elt = int
 module IMap : Map.S with type key = int
 
+val set_of_list : 'a -> ('b -> 'a -> 'a) -> 'b list -> 'a
+
 (** ISet from int list. *)
 val iset_of_list : int list -> ISet.t
 

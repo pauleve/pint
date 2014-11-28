@@ -26,7 +26,9 @@ let pep_of_an opts an ctx =
 		in
 		List.fold_left fold_ls ([], places)
 	in
-	let register_transition a i j conds (id, places, transitions, tp, pt, ra) =
+	let register_transition (a,i,j) conds (id, places, transitions, tp, pt, ra) =
+		let conds = LSSet.elements conds
+		in
 		let sid = string_of_int id
 		and str = a ^ " " ^ (string_of_astate an a i)
 					^ " -> " ^ (string_of_astate an a j)
@@ -61,16 +63,10 @@ let pep_of_an opts an ctx =
 		in
 		(id+1, places, transitions, tp, pt, ra)
 	in
-	let fold_localstate (a,i) trs pep =
-		let fold_transition pep (j, conds) =
-			register_transition a i j conds pep
-		in
-		List.fold_left fold_transition pep trs
-	in
 	let pep = (1, LSMap.empty, [], [], [], [])
 	in
 	let (_, places, transitions, tp, pt, ra) = 
-			LSMap.fold fold_localstate an.transitions pep
+			Hashtbl.fold register_transition an.conditions pep
 	in
 	let register_localstate ai id places =
 		(id, string_of_int id^"\""^string_of_localstate an ai^"\""
@@ -116,19 +112,29 @@ let prism_of_an an ctx =
 	and prism_state' (a,i) = 
 		varname a ^ "'=" ^ string_of_int i
 	in
-	let prism_of_transition a i (j, conds) =
+	let prism_of_transition a i j conds =
+		let conds = LSSet.elements conds
+		in
 		"\t[] " ^ (String.concat " & " (List.map prism_state ((a,i)::conds)))
 			^ " -> (" ^ prism_state' (a,j)^");\n"
 	in
 	let prism_of_transitions a i =
-		let transitions = LSMap.find (a,i) an.transitions
+		let transitions = Hashtbl.find an.transitions (a,i)
 		in
-		String.concat "" (List.map (prism_of_transition a i) transitions)
+		let fold_jump j str_trs =
+			let conds_list = Hashtbl.find_all an.conditions (a,i,j)
+			in
+			let str_conds = List.map (prism_of_transition a i j) conds_list
+			in
+			str_trs ^ String.concat "" str_conds
+		in
+		ISet.fold fold_jump transitions ""
 	in
-	let prism_of_automaton (a, spec) =
+	let prism_of_automaton a spec str =
 		let ls = snd (List.split spec)
 		in
-		"// automaton \""^a^"\"\n"
+		str
+		^ "// automaton \""^a^"\"\n"
 		^ "module "^modname a^"\n"
 		^ "\t// "
 			^ (String.concat "; " (List.map 
@@ -138,12 +144,10 @@ let prism_of_an an ctx =
 		^ "\t"^varname a^": [0.."^string_of_int (List.length spec - 1)^"]"
 		^ " init "^string_of_int (ISet.choose (SMap.find a ctx))^";\n\n"
 		^ (String.concat "\n" (List.map (prism_of_transitions a) ls))
-		^ "\n\nendmodule"
+		^ "\n\nendmodule\n\n"
 	in
 	"mdp\n\n"
-	^ (String.concat "\n\n" 
-		(List.map prism_of_automaton (SMap.bindings an.automata)))
-	^"\n\n"
+	^ Hashtbl.fold prism_of_automaton an.automata ""
 ;;
 
 

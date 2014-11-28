@@ -33,6 +33,10 @@ module SMap = Map.Make (struct type t = string let compare = compare end);;
 module ISet = Set.Make (struct type t = int let compare = compare end);;
 module IMap = Map.Make (struct type t = int let compare = compare end);;
 
+let set_of_list set0 set_add =
+	List.fold_left (fun set elt -> set_add elt set) set0
+;;
+
 let rec iset_of_list = function [] -> ISet.empty | h::t -> ISet.add h (iset_of_list t);;
 
 let string_of_set
