@@ -407,3 +407,24 @@ let worth_glc env  =
 
 let is_process_worth gB = gB#has_proc
 
+let worth_ph env ph glc = 
+	let get_BS = Ph_bounce_seq.get_matching_BS ph env.bs_cache
+	in
+	let concrete_sol aset (obj,ps,interm) =
+		let fold_actions aset actions =
+			let fold_action aset action =
+				ASet.add action aset
+			in
+			List.fold_left fold_action aset actions
+		in
+		List.fold_left fold_actions aset (get_BS obj ps interm)
+	in
+	let actions = List.fold_left concrete_sol ASet.empty glc#extract_sols
+	in
+	let hits = Hashtbl.create (ASet.cardinal actions)
+	in
+	ASet.iter (function Hit (ai, bj, j') ->
+				Hashtbl.add hits bj ((ai,Instantaneous),j')) actions;
+	(fst ph, hits)
+
+

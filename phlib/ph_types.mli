@@ -33,6 +33,7 @@ type hits = (process, (process * PintTypes.stochatime) * sortidx) Hashtbl.t
 type ph = process list * hits
 
 type action = Hit of (process * process * int)
+module ASet : Set.S with type elt = action
 
 (** String representation of an action. *)
 val string_of_action : action -> string

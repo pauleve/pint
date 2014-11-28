@@ -638,6 +638,12 @@ class glc glc_setup ctx pl concrete_ph get_Sols = object(self) inherit graph as 
 	method ctx = current_ctx
 	method get_impossible_objs = NodeSet.fold (function NodeObj obj -> fun objs -> obj::objs
 													| _ -> fun objs -> objs) impossible_nobjs []
+	method extract_sols =
+		let register_node = function
+			  NodeSol sol -> fun sols -> sol::sols
+			| _ -> fun sols -> sols
+		in
+		NodeSet.fold register_node nodes []
 	
 	method set_trivial_nsols t =
 		trivial_nsols <- t

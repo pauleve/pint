@@ -121,6 +121,27 @@ let get_BS ph cache obj =
 	)
 ;;
 
+let get_matching_BS ph cache obj ps interm =
+	let paths = get_BS ph cache obj
+	in
+	let g = obj_bounce obj
+	and b = obj_sort obj
+	in
+	let causes =
+		let register_action (ps,interm) = function Hit ((a,i),_,k) ->
+			(if a <> b then PSet.add (a,i) ps else ps),
+			(if g <> k then ISet.add k interm else interm)
+		in
+		List.fold_left register_action (PSet.empty, ISet.empty)
+	in
+	List.filter (fun path -> 
+					let p_ps, p_interm = causes path
+					in
+					PSet.equal p_ps ps && ISet.equal p_interm interm)
+						paths
+;;
+
+
 let lasthitters cache ph ?filter:(filter = fun _ -> true) obj =
 	let fold_actions ps = function [] -> PSet.empty
 		| actions -> 

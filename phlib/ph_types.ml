@@ -76,6 +76,8 @@ type ph = process list * hits
 (* (a,i) * (b,j) * j' *)
 type action = Hit of (process * process * int)
 
+module ASet = Set.Make (struct type t = action let compare = compare end);;
+
 let hitter = function Hit (ai,_,_) -> ai;;
 let target = function Hit (_,bj,_) -> bj;;
 let bounce = function Hit (_,_,k) -> k;;
