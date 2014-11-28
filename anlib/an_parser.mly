@@ -1,25 +1,7 @@
 %{
-open Debug;;
-
-open PintTypes;;
-open AutomataNetwork;;
-
-let ctx_of_siglocalstates an sls =
-	let fold_localstate ctx (a,sig_i) =
-		let i = get_automaton_state_id an a sig_i
-		in
-		Ph_types.ctx_add_proc (a,i) ctx
-	in
-	let ctx = List.fold_left fold_localstate Ph_types.ctx_empty sls
-	in
-	let complete_ctx a _ ctx =
-		if not (SMap.mem a ctx) then
-			SMap.add a (ISet.singleton 0) ctx
-		else ctx
-	in
-	Hashtbl.fold complete_ctx an.automata ctx
-
-
+open Debug
+open PintTypes
+open AutomataNetwork
 %}
 
 %token <string> Label
@@ -42,6 +24,12 @@ let ctx_of_siglocalstates an sls =
 
 %start main
 %type <AutomataNetwork.t * Ph_types.ctx> main
+
+%start local_state
+%type <AutomataNetwork.sig_local_state> local_state
+
+%start local_state_list
+%type <AutomataNetwork.sig_local_state list> local_state_list
 
 %%
 
@@ -97,6 +85,6 @@ local_state_list:
 initial_ctx:
   Initial_state	local_state_list	{ $2 }
 | Initial_context local_state_list	{ $2 }
-
+;
 
 %%

@@ -5,7 +5,11 @@ SOURCES := \
 	an_parser.mly\
 	an_lexer.mll\
 	an_input.ml\
+	an_localpaths.ml\
+	localCausalityGraph.ml\
+	an_reach.ml\
 	an_stategraph.ml\
+	an_cli.ml\
 
 
 #LIBS := 

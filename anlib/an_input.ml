@@ -27,4 +27,12 @@ let parse channel_in =
 		failwith (show_position () ^ Printexc.to_string e)
 	)
 
+let parse_string entry data =
+	let lexing = Lexing.from_string data
+	in
+	try
+		entry An_lexer.lexer lexing
+	with Parsing.Parse_error ->
+		failwith ("Error while parsing '"^data^"'")
+
 

@@ -1,5 +1,5 @@
 
-TARGETS=pint-config pinttop pint-export ph-stable ph-reach phc libpint ph-stat ph-exec ph2thomas
+TARGETS=pint-config pinttop pint-export pint-lcg ph-stable ph-reach phc libpint ph-stat ph-exec ph2thomas
 
 MISC_TOOLS = \
 	converters/bcx2ph\

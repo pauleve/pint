@@ -3,6 +3,7 @@ open PintTypes
 
 type sig_automaton_p = string
 type sig_automaton_state = StateId of int | StateLabel of string
+type sig_local_state = sig_automaton_p * sig_automaton_state
 
 type automaton_p = string
 type automaton_state = int
@@ -18,6 +19,8 @@ type local_transition = (int * (local_state list))
 type transition = automaton_p 
 						* automaton_state 
 						* automaton_state 
+
+let tr_dest (_,_,j) = j
 
 type t = {
 	automata: (automaton_p, (sig_automaton_state * automaton_state) list) Hashtbl.t;
@@ -47,6 +50,15 @@ let string_of_astate an a i =
 let string_of_localstate an (a,i) =
 	a^"="^string_of_astate an a i
 
+let string_of_localstates an lsset =
+	String.concat ", " (List.map (string_of_localstate an) (LSSet.elements lsset))
+
+let string_of_ls (a,i) =
+	a^" "^string_of_int i
+
+let string_of_lsset lsset =
+	String.concat ", " (List.map string_of_ls (LSSet.elements lsset))
+
 let has_automaton an name = Hashtbl.mem an.automata name
 
 let declare_automaton an a sigstates =
@@ -73,6 +85,35 @@ let declare_transition an a sig_i sig_j sig_conds =
 	Hashtbl.replace an.transitions (a,i) (ISet.add j trs);
 	Hashtbl.add an.conditions (a, i, j) conds
 
+
+(**
+	Context
+**)
+
+let ctx_of_siglocalstates an sls =
+	let fold_localstate ctx (a,sig_i) =
+		let i = get_automaton_state_id an a sig_i
+		in
+		Ph_types.ctx_add_proc (a,i) ctx
+	in
+	let ctx = List.fold_left fold_localstate Ph_types.ctx_empty sls
+	in
+	let complete_ctx a _ ctx =
+		if not (SMap.mem a ctx) then
+			SMap.add a (ISet.singleton 0) ctx
+		else ctx
+	in
+	Hashtbl.fold complete_ctx an.automata ctx
+
 let ctx_has_localstate = Ph_types.ctx_has_proc
 
+let ctx_of_lsset ps =
+	let group (a,i) ctx =
+		let is = try SMap.find a ctx with Not_found -> ISet.empty
+		in
+		let is = ISet.add i is
+		in
+		SMap.add a is ctx
+	in
+	LSSet.fold group ps SMap.empty
 
