@@ -11,8 +11,6 @@ SOURCES := \
 	ph_lexer.mll\
 	ph_translator.mli\
 	ph_translator.ml\
-	ph_util.mli\
-	ph_util.ml\
 	ph_fixpoint.ml\
 	ph_bounce_seq.ml\
 	ph_glc.ml\
@@ -21,6 +19,8 @@ SOURCES := \
 	ph_machine.mli\
 	ph_machine.ml\
 	ph_thomas.ml\
+	ph_util.mli\
+	ph_util.ml\
 
 LIBS := str nums facile unix
 

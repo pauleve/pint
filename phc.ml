@@ -39,6 +39,7 @@ knowledge of the CeCILL license and that you accept its terms.
 ***)
 
 open Ph_translator;;
+open Ph_types;;
 
 let languages = ["dump"; "spim"; "prism"; "prism_mdp"; "romeo"; "tina"; "pep"; 
 					"biocham"; "kappa";"bn";"an"];;
@@ -50,6 +51,15 @@ and opt_romeo_ctl_file = ref ""
 and opt_coop_priority = ref false
 and opt_ptnet_context = ref false
 and opt_mapfile = ref ""
+and opt_goal = ref ([] : process list)
+in
+let setup_goal opt =
+	try
+		let goal = [Ph_parser.process Ph_lexer.lexer (Lexing.from_string opt)]
+		in
+		opt_goal := goal
+	with Parsing.Parse_error ->
+		failwith ("Error when parsing process '"^opt^"'")
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), "\tOutput language");
@@ -64,6 +74,9 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 									"\tContextual petri net");
 		("--mapfile", Arg.Set_string opt_mapfile, 
 									"\tOutput mapping of identifiers");
+		("--reduce-for-goal", Arg.String setup_goal, 
+			"<a i>\tReduce the model to include only transitions that may "
+			^ "be involved in the reachability of the given process");
 	]
 and usage_msg = "phc"
 in
@@ -95,6 +108,9 @@ let translator = List.assoc !opt_language languages
 in
 
 let ph, ctx = Ph_util.parse !Ui.opt_channel_in
+in
+let ph = if !opt_goal = [] then ph else
+	Ph_reach.reduce_ph_for_goal ph ctx !opt_goal
 in
 let data = translator ph ctx
 in

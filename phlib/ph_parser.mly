@@ -358,6 +358,9 @@ let precall_macro = function
 %start main
 %type <Ph_types.ph * Ph_types.ctx> main
 
+%start process
+%type <Ph_types.process> process
+
 %start processlist
 %type <Ph_types.process list> processlist
 

@@ -40,7 +40,7 @@ val unordered_over_approx : env -> (Ph_types.objective -> (Ph_types.PSet.t * Pin
 								(bool * (Ph_types.objective -> (Ph_types.PSet.t * PintTypes.ISet.t) list))
 
 val worth_glc : env -> Ph_glc.glc
-val worth_ph : env -> Ph_types.ph -> Ph_glc.glc -> Ph_types.ph
 val is_process_worth : #Ph_glc.glc -> Ph_types.process -> bool
 
+val reduce_ph_for_goal : Ph_types.ph -> Ph_types.ctx -> Ph_types.process list -> Ph_types.ph
 

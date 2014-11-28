@@ -407,7 +407,11 @@ let worth_glc env  =
 
 let is_process_worth gB = gB#has_proc
 
-let worth_ph env ph glc = 
+let reduce_ph_for_goal ph ctx goal =
+	let env = init_env ph ctx goal
+	in
+	let glc = worth_glc env
+	in
 	let get_BS = Ph_bounce_seq.get_matching_BS ph env.bs_cache
 	in
 	let concrete_sol aset (obj,ps,interm) =
