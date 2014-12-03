@@ -10,21 +10,31 @@ let dump_of_an an ctx =
 	let fold_defs a def_states buf =
 		let def_states = List.map fst def_states
 		in
-		buf ^
-		"\""^a^"\" ["^(String.concat ", "
-			(List.map string_of_sig_state def_states))^"]\n"
-	and fold_tr (a,i,j) cond buf = buf ^
-		"\""^a^"\" "^(string_of_astate an a i)^" -> "
+		(a, "\""^a^"\" ["^(String.concat ", "
+			(List.map string_of_sig_state def_states))^"]\n")::buf
+	and fold_tr (a,i,j) cond buf = 
+		let cond = LSSet.elements cond
+		in
+		((a,i,j,cond), "\""^a^"\" "^(string_of_astate an a i)^" -> "
 			^(string_of_astate an a j) ^
-		(if LSSet.is_empty cond then "" else
+		(if [] = cond then "" else
 			(" when "^String.concat " and "
-				(List.map (string_of_localstate an) (LSSet.elements cond))))
-		^ "\n"
+				(List.map (string_of_localstate an) cond)))
+		^ "\n")::buf
 	and lss = LSSet.elements (lsset_of_ctx ctx)
 	in
-	(Hashtbl.fold fold_defs an.automata "")
+	let defs = Hashtbl.fold fold_defs an.automata []
+	and trs = Hashtbl.fold fold_tr an.conditions []
+	in
+	let defs = List.sort compare defs
+	and trs = List.sort compare trs
+	in
+	let defs = List.map snd defs
+	and trs = List.map snd trs
+	in
+	(String.concat "" defs)
 	^ "\n"
-	^ (Hashtbl.fold fold_tr an.conditions "")
+	^ (String.concat "" trs)
 	^ "\n"
 	^ "initial_context " ^ (String.concat ", " (List.map (string_of_localstate an) lss))
 	^ "\n"
