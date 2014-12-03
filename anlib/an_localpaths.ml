@@ -94,35 +94,108 @@ let simple_acyclic_paths cache =
 
 
 let intermediates cache an obj =
-	let fold_paths ps path =
+	let fold_paths ps = function [] -> ps 
+		| _::path ->
 		let fold_tr ps (a,i,j) = LSSet.add (a,i) ps
 		in
-		List.fold_left fold_tr ps (List.tl path)
+		List.fold_left fold_tr ps path
 	in
 	let csols = simple_acyclic_paths cache an obj
 	in
 	List.fold_left fold_paths LSSet.empty csols
 
 
+let push_abstract_transition an goal (conds_list, interm) tr =
+	let conds = Hashtbl.find_all an.conditions tr
+	in
+	let push_conds prod conds =
+		List.map (fun conds' -> LSSet.union conds conds') conds_list @ prod
+	in
+	let conds_list = List.fold_left push_conds [] conds
+	in
+	conds_list,
+	let j = tr_dest tr
+	in
+	(if j <> goal then ISet.add j interm else interm)
 
-(*** abstract solutions for (a,i,j)
+
+let abstract_path an goal path =
+	let fold_tr = push_abstract_transition an goal
+	in
+	List.fold_left fold_tr ([LSSet.empty], ISet.empty) path
+
+
+let complete_abstract_solutions cache an obj =
+	let goal = tr_dest obj
+	in
+	let abstract_path = abstract_path an goal
+	in
+	let fold_paths apaths path =
+		let conds_list, interm = abstract_path path
+		in
+		List.map (fun conds -> (conds,interm)) conds_list
+		@ apaths
+	in
+	let csols = simple_acyclic_paths cache an obj
+	in
+	List.fold_left fold_paths [] csols
+
+
+let full_paths an ?(filter_conds = fun x -> x) path =
+	let full_tr tr =
+		let conds = Hashtbl.find_all an.conditions tr
+		in
+		let conds = filter_conds conds
+		in
+		List.map (fun cond -> (tr, cond)) conds
+	in
+	Util.cross_list (List.map full_tr path)
+
+
+let concrete_solutions cache an obj (conds, interm) =
+	let interm_of_path = function [] -> ISet.empty
+		| _::path ->
+			let fold_tr interm (_,i,_) = ISet.add i interm
+			in
+			List.fold_left fold_tr ISet.empty path
+	in
+	let filter_conds = List.filter (fun cond -> LSSet.subset cond conds)
+	in
+	let full_paths = full_paths an ~filter_conds
+	and merge_conds =
+		List.fold_left (fun conds (_, cond) -> LSSet.union conds cond)
+			LSSet.empty
+	in
+	let filter_fpath fpath =
+		LSSet.equal conds (merge_conds fpath)
+	in
+	let fold_csol msols path =
+		let interm' = interm_of_path path
+		in
+		if ISet.equal interm interm' then
+			List.filter filter_fpath (full_paths path) @ msols
+		else msols
+	in
+	let csols = simple_acyclic_paths cache an obj
+	in
+	List.fold_left fold_csol [] csols
+
+
+(*** min_abstract solutions for (a,i,j)
 For each local acyclic paths from i to j in a, only keep the union of the
 conditions of transitions.
 Only minimal abstract solutions are returned, together with the intermediate
 steps of at least one concrete path.
 *)
-let abstract_solutions an obj =
+let min_abstract_solutions an obj =
 	let goal = tr_dest obj
+	in
+	let push_tr = push_abstract_transition an goal
 	in
 	let sols = []
 	and sol0 = [LSSet.empty], ISet.empty
-	and append sols (conds_list,interm) (a,i,j) =
-		let conds = Hashtbl.find_all an.conditions (a,i,j)
-		in
-		let push_conds prod conds =
-			List.map (fun conds' -> LSSet.union conds conds') conds_list @ prod
-		in
-		let conds_list = List.fold_left push_conds [] conds
+	and append sols (conds_list,interm) tr =
+		let conds_list, interm = push_tr (conds_list,interm) tr
 		in
 		let conds_list = List.sort (fun c c' -> compare (LSSet.cardinal c) (LSSet.cardinal c'))
 							conds_list
@@ -140,7 +213,7 @@ let abstract_solutions an obj =
 		in
 		let conds_list = List.fold_left fold_conds [] conds_list
 		in
-		conds_list, (if j <> goal then ISet.add j interm else interm)
+		conds_list, interm
 	and register sols (conds_list,interm) =
 		List.map (fun conds -> (conds,interm)) conds_list
 		@
@@ -152,8 +225,8 @@ let abstract_solutions an obj =
 	in
 	enumerate_acyclic_paths register append discard sol0 sols an obj
 
-let abstract_solutions cache =
-	_cache_computation abstract_solutions cache.asol
+let min_abstract_solutions cache =
+	_cache_computation min_abstract_solutions cache.asol
 
 (*
 

@@ -8,6 +8,7 @@ ocamlopt \
 	-I "$PINT_PATH/bindings" \
 	-I "$PINT_PATH/pintlib" \
 	-I "$PINT_PATH/phlib" \
+	-I "$PINT_PATH/anlib" \
 	-cclib -lm -cclib -lRmath -cclib -lcamlidl\
 	-I +facile facile.cmxa\
 	nums.cmxa str.cmxa unix.cmxa pint.cmxa \

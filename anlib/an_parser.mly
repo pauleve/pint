@@ -50,10 +50,12 @@ content :
 
 automaton:
   Label { $1 }
+| Name	{ $1 }
 ;
 state_sig:
   Int	{ StateId $1 }
 | Label	{ StateLabel $1 }
+| Name	{ StateLabel $1 }
 ;
 
 decl_automaton:

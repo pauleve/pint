@@ -144,7 +144,7 @@ let worth_lcg env =
 	in
 	let glc_setup = {ua_glc_setup with
 		saturate_procs_by_objs = saturate_procs_by_objs}
-	and sols = An_localpaths.abstract_solutions env.sol_cache env.an
+	and sols = An_localpaths.complete_abstract_solutions env.sol_cache env.an
 	in
 	let _, sols = unordered_over_approx env sols
 	in
@@ -156,29 +156,45 @@ let worth_lcg env =
 
 let is_localstate_worth gB = gB#has_proc
 
-(*
-let reduce_an env =
-	let glc = worth_glc env
+let reduced_an env =
+	let module TRSet = Set.Make (struct 
+				type t = transition * LSSet.t
+				let compare (tr, conds) (tr', conds') =
+					let ctr = compare tr tr'
+					in
+					if ctr = 0 then LSSet.compare conds conds' else ctr
+			end)
 	in
-	let sols = An_localpaths.restricted_concrete_sols env.an env.sol_cache
+	let csols = An_localpaths.concrete_solutions env.sol_cache env.an
 	in
-	let concrete_sol aset (obj,ps,interm) =
-		let fold_actions aset actions =
-			let fold_action aset action =
-				ASet.add action aset
-			in
-			List.fold_left fold_action aset actions
+	let fold_fpath =
+		List.fold_left (fun trs tr -> TRSet.add tr trs) 
+	in
+	let fold_asol trs (obj, conds, interm) =
+		let fpaths = csols obj (conds, interm)
 		in
-		List.fold_left fold_actions aset (sols obj ps interm)
+		List.fold_left fold_fpath trs fpaths
 	in
-	let actions = List.fold_left concrete_sol ASet.empty glc#extract_sols
+	let lcg = worth_lcg env
 	in
-	let hits = Hashtbl.create (ASet.cardinal actions)
-	in 
-	ASet.iter (function Hit (ai, bj, j') ->
-				Hashtbl.add hits bj ((ai,Instantaneous),j')) actions;
-	(fst ph, hits)
-*)
+	let trs = List.fold_left fold_asol TRSet.empty lcg#extract_sols
+	in
+	let nb_tr = Hashtbl.length env.an.transitions / 2
+	and nb_conds = TRSet.cardinal trs
+	in
+	let an' = { automata = Hashtbl.copy env.an.automata;
+				transitions = Hashtbl.create nb_tr;
+				conditions = Hashtbl.create nb_conds }
+	in
+	let register_ftr ((a,i,j), cond) =
+		let trs = try Hashtbl.find an'.transitions (a,i)
+					with Not_found -> ISet.empty
+		in
+		Hashtbl.add an'.transitions (a,i) (ISet.add j trs);
+		Hashtbl.add an'.conditions (a,i,j) cond
+	in
+	TRSet.iter register_ftr trs;
+	an'
 
 (*
 

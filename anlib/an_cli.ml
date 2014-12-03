@@ -57,4 +57,9 @@ let process_input () =
 	in
 	an, ctx
 
+let parse_local_state an data =
+	let (a,sig_i) = An_input.parse_string An_parser.local_state data
+	in
+	(a, get_automaton_state_id an a sig_i)
+
 

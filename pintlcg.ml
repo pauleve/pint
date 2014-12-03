@@ -18,18 +18,15 @@ let args, abort = An_cli.parse cmdopts usage_msg
 let an, ctx = An_cli.process_input ()
 
 let goal = match args with 
-	  [str_ls] ->
-	  	let (a,sig_i) = An_input.parse_string An_parser.local_state str_ls
-		in
-		[(a, get_automaton_state_id an a sig_i)]
+	  [str_ls] -> [An_cli.parse_local_state an str_ls]
 	| _ -> abort ()
 
 let cache = An_localpaths.create_cache ()
 
-let abstract_sols = An_localpaths.abstract_solutions cache an
-
 let verbose_lcg () =
-	let lcg = new glc oa_glc_setup ctx goal abstract_sols
+	let sols = An_localpaths.min_abstract_solutions cache an
+	in
+	let lcg = new glc oa_glc_setup ctx goal sols
 	in
 	lcg#set_auto_conts false;
 	lcg#build;

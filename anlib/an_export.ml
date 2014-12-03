@@ -6,6 +6,26 @@ type opts = {
 	contextual_ptnet: bool;
 }
 
+let dump_of_an an ctx = 
+	let fold_defs a def_states buf =
+		let def_states = List.map fst def_states
+		in
+		buf ^ 
+		a^" ["^(String.concat ", " 
+			(List.map string_of_sig_state def_states))^"]\n"
+	and fold_tr (a,i,j) cond buf = buf ^
+		a^" "^(string_of_astate an a i)^" -> "
+			^(string_of_astate an a j) ^
+		(if LSSet.is_empty cond then "" else
+			(" when "^String.concat " and "
+				(List.map (string_of_localstate an) (LSSet.elements cond))))
+		^ "\n"
+	in
+	(Hashtbl.fold fold_defs an.automata "")
+	^ "\n" ^
+	(Hashtbl.fold fold_tr an.conditions "")
+
+
 let pep_of_an opts an ctx =
 	let idx_of_place places ls =
 		try
