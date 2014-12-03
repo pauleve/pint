@@ -90,7 +90,7 @@ let declare_transition an a sig_i sig_j sig_conds =
 	Context
 **)
 
-let ctx_of_siglocalstates an sls =
+let ctx_of_siglocalstates ?(complete=false) an sls =
 	let fold_localstate ctx (a,sig_i) =
 		let i = get_automaton_state_id an a sig_i
 		in
@@ -98,12 +98,14 @@ let ctx_of_siglocalstates an sls =
 	in
 	let ctx = List.fold_left fold_localstate Ph_types.ctx_empty sls
 	in
+	if complete then
 	let complete_ctx a _ ctx =
 		if not (SMap.mem a ctx) then
 			SMap.add a (ISet.singleton 0) ctx
 		else ctx
 	in
 	Hashtbl.fold complete_ctx an.automata ctx
+	else ctx
 
 let ctx_has_localstate = Ph_types.ctx_has_proc
 

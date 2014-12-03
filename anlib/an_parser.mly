@@ -34,8 +34,8 @@ open AutomataNetwork
 %%
 
 main :
-  content Eof				{ ($1,ctx_of_siglocalstates $1 []) }
-| content initial_ctx Eof	{ ($1,ctx_of_siglocalstates $1 $2) }
+  content Eof				{ ($1,ctx_of_siglocalstates ~complete:true $1 []) }
+| content initial_ctx Eof	{ ($1,ctx_of_siglocalstates ~complete:true $1 $2) }
 ;
 
 content :
