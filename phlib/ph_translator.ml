@@ -616,6 +616,9 @@ let romeo_of_ph opts (ps,hits) ctx =
 ;;
 
 let pep_of_ph ?mapfile:(mapfile="") opts (ps, hits) ctx =
+	let sd = List.fold_left (fun sd (a,l) -> SMap.add a (Util.range 0 l) sd)
+				SMap.empty ps
+	in
 	let idx_of_place places proc =
 		try
 			(PMap.find proc places, places)
@@ -645,8 +648,7 @@ let pep_of_ph ?mapfile:(mapfile="") opts (ps, hits) ctx =
 								^ " " ^ string_of_proc bk
 		in
 		let transitions = (id, (sid^"\""^saction^"\"0@0"), bk)::transitions
-		and procs = List.filter (fun (a,i) -> not (is_sort_cooperative a)) 
-						(list_of_state cond)
+		and procs = list_of_state cond
 		in
 		let idxs, places = idx_of_places places procs
 		in
@@ -682,7 +684,15 @@ let pep_of_ph ?mapfile:(mapfile="") opts (ps, hits) ctx =
 		in
 		let conds =
 			if opts.coop_priority && is_sort_cooperative a then
-				Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities (ps, hits) ai
+				let vs = Ph_cooperativity.local_fixed_points 
+							!Ph_instance.cooperativities (ps, hits) ai
+				in
+				let filter_v v =
+					SMap.filter (fun b _ -> not (is_sort_cooperative b)) v
+				in
+				let vs = List.map filter_v vs
+				in
+				ValSet.simplify sd vs
 			else if ai = bj then
 				[SMap.empty]
 			else
@@ -850,7 +860,11 @@ let bn_of_ph (ps, hits) _ =
 	^ "\n"
 ;;
 
+
 let an_of_ph opts (ps, hits) ctx =
+	let sd = List.fold_left (fun sd (a,l) -> SMap.add a (Util.range 0 l) sd)
+				SMap.empty ps
+	in
 	let is_sort_cooperative a = 
 		(try String.sub a 0 1 = "_" with Invalid_argument _ -> false) 
 			|| SMap.mem a !Ph_instance.cooperativities
@@ -860,8 +874,7 @@ let an_of_ph opts (ps, hits) ctx =
 	in
 	let an_of_transition (b,j) (b,k) cond =
 		let strans = "\""^b^"\" "^string_of_int j^" -> "^string_of_int k
-		and procs = List.filter (fun (a,i) -> not (is_sort_cooperative a)) 
-						(list_of_state cond)
+		and procs = list_of_state cond
 		in
 		match procs with
 		[] -> strans
@@ -878,7 +891,15 @@ let an_of_ph opts (ps, hits) ctx =
 		in
 		let conds =
 			if opts.coop_priority && is_sort_cooperative a then
-				Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities (ps, hits) ai
+				let vs = Ph_cooperativity.local_fixed_points 
+							!Ph_instance.cooperativities (ps, hits) ai
+				in
+				let filter_v v =
+					SMap.filter (fun b _ -> not (is_sort_cooperative b)) v
+				in
+				let vs = List.map filter_v vs
+				in
+				ValSet.simplify sd vs
 			else if ai = bj then
 				[SMap.empty]
 			else
@@ -900,5 +921,4 @@ let an_of_ph opts (ps, hits) ctx =
 	(String.concat "\n" defs) ^ "\n\n"
 	^ (String.concat "\n" an_transitions) ^ "\n\n"
 	^ "initial_context " ^ (String.concat ", " procs) ^ "\n"
-;;
 

@@ -51,6 +51,8 @@ let string_of_set
 let string_of_iset = string_of_set string_of_int ISet.elements
 ;;
 
+let string_of_sset = string_of_set (fun x -> x) SSet.elements
+
 type ternary = True | False | Inconc;;
 let string_of_ternary = function True -> "True" | False -> "False" | Inconc -> "Inconc";;
 

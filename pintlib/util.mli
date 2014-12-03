@@ -47,3 +47,6 @@ exception Empty
 	Raises [Empty] if the cartesian product gives no element. *)
 val cross_forward : ('a list -> 'b) * ('b -> 'b -> 'b) * ('b -> bool) -> 'a list list -> 'b
 
+
+val stream_permutations : 'a list -> ('a list) Stream.t
+

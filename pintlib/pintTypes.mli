@@ -16,6 +16,9 @@ val string_of_set :
 (** String representation of an int Set. *)
 val string_of_iset : ISet.t -> string
 
+(** String representation of a string Set. *)
+val string_of_sset : SSet.t -> string
+
 type ternary = True | False | Inconc
 
 (** String representation of ternary. *)

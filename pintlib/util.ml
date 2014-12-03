@@ -35,6 +35,8 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 *)
 
+open PintTypes
+
 let string_of_float0 value =
 	let s = string_of_float value
 	in
@@ -115,4 +117,31 @@ let cross_forward (handler, merger, stopper) selectors =
 let rec list_lassoc b = function [] -> raise Not_found
 	| (a,c)::t -> if b = c then a else list_lassoc b t
 ;;
+
+let stream_permutations lst =
+    let lstar = Array.of_list lst in
+    let len = Array.length lstar in
+    let ks = range 1 len in
+	let indices = List.fold_left (fun is i -> ISet.add i is) 
+					ISet.empty (range 0 (len-1))
+	in
+	let ith iset n =
+		let track i (m, j) =
+			m + 1, 
+			if n = m then i else j
+		in
+		snd (ISet.fold track iset (0, ISet.choose iset))
+	in
+    let choose k (v, indices, res) =
+        let ix = ith indices (v mod k)
+		in
+        (v / k, ISet.remove ix indices, lstar.(ix)::res)
+    in
+    let perm i =
+        let (v, _, res) =
+            List.fold_right choose ks (i, indices, [])
+        in
+        if v > 0 then None else Some res
+    in
+    Stream.from perm
 

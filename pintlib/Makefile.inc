@@ -10,6 +10,7 @@ SOURCES := \
 	util.mli\
 	util.ml\
 	interactionGraph.ml\
+	valSet.ml\
 
 
 LIBS := 
