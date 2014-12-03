@@ -6,12 +6,12 @@ type opts = {
 	contextual_ptnet: bool;
 }
 
-let dump_of_an an ctx = 
+let dump_of_an an ctx =
 	let fold_defs a def_states buf =
 		let def_states = List.map fst def_states
 		in
-		buf ^ 
-		"\""^a^"\" ["^(String.concat ", " 
+		buf ^
+		"\""^a^"\" ["^(String.concat ", "
 			(List.map string_of_sig_state def_states))^"]\n"
 	and fold_tr (a,i,j) cond buf = buf ^
 		"\""^a^"\" "^(string_of_astate an a i)^" -> "
@@ -20,10 +20,14 @@ let dump_of_an an ctx =
 			(" when "^String.concat " and "
 				(List.map (string_of_localstate an) (LSSet.elements cond))))
 		^ "\n"
+	and lss = LSSet.elements (lsset_of_ctx ctx)
 	in
 	(Hashtbl.fold fold_defs an.automata "")
-	^ "\n" ^
-	(Hashtbl.fold fold_tr an.conditions "")
+	^ "\n"
+	^ (Hashtbl.fold fold_tr an.conditions "")
+	^ "\n"
+	^ "initial_context " ^ (String.concat ", " (List.map (string_of_localstate an) lss))
+	^ "\n"
 
 
 let pep_of_an opts an ctx =

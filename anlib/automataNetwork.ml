@@ -117,3 +117,12 @@ let ctx_of_lsset ps =
 	in
 	LSSet.fold group ps SMap.empty
 
+let lsset_of_ctx ctx =
+	let register a is ps =
+		let register i ps =
+			LSSet.add (a,i) ps
+		in
+		ISet.fold register is ps
+	in
+	SMap.fold register ctx LSSet.empty
+
