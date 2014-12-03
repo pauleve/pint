@@ -616,9 +616,6 @@ let romeo_of_ph opts (ps,hits) ctx =
 ;;
 
 let pep_of_ph ?mapfile:(mapfile="") opts (ps, hits) ctx =
-	let sd = List.fold_left (fun sd (a,l) -> SMap.add a (Util.range 0 l) sd)
-				SMap.empty ps
-	in
 	let idx_of_place places proc =
 		try
 			(PMap.find proc places, places)
@@ -630,6 +627,8 @@ let pep_of_ph ?mapfile:(mapfile="") opts (ps, hits) ctx =
 			(idx, places)
 		)
 	in
+	(if opts.coop_priority then
+		failwith "--coop-priority is no longer supported");
 	let idx_of_places places =
 		let fold_proc (idxs, places) proc =
 			let idx, places = idx_of_place places proc
@@ -637,10 +636,6 @@ let pep_of_ph ?mapfile:(mapfile="") opts (ps, hits) ctx =
 			(idx::idxs, places)
 		in
 		List.fold_left fold_proc ([], places)
-	in
-	let is_sort_cooperative a = 
-		(try String.sub a 0 1 = "_" with Invalid_argument _ -> false) 
-			|| SMap.mem a !Ph_instance.cooperativities
 	in
 	let register_transition bj bk (id, places, transitions, tp, pt, ra) cond =
 		let sid = string_of_int id
@@ -677,26 +672,9 @@ let pep_of_ph ?mapfile:(mapfile="") opts (ps, hits) ctx =
 		(id+1, places, transitions, tp, pt, ra)
 	in
 	let register_action (b,j) (((a,i),_),k) (id, places, transitions, tp, pt, ra) =
-		if opts.coop_priority && is_sort_cooperative b then
-			(id, places, transitions, tp, pt, ra)
-		else
 		let ai, bj, bk = (a,i), (b,j), (b,k)
 		in
-		let conds =
-			if opts.coop_priority && is_sort_cooperative a then
-				let vs = Ph_cooperativity.local_fixed_points 
-							!Ph_instance.cooperativities (ps, hits) ai
-				in
-				let filter_v v =
-					SMap.filter (fun b _ -> not (is_sort_cooperative b)) v
-				in
-				let vs = List.map filter_v vs
-				in
-				ValSet.simplify sd vs
-			else if ai = bj then
-				[SMap.empty]
-			else
-				[SMap.singleton a i]
+		let conds = if ai = bj then [SMap.empty] else [SMap.singleton a i]
 		in
 		List.fold_left (register_transition bj bk) (id, places, transitions, tp, pt, ra) conds
 	in
@@ -860,6 +838,8 @@ let bn_of_ph (ps, hits) _ =
 	^ "\n"
 ;;
 
+let debug_vs vs =
+    List.iter (fun s -> prerr_endline (string_of_state s)) vs
 
 let an_of_ph opts (ps, hits) ctx =
 	let sd = List.fold_left (fun sd (a,l) -> SMap.add a (Util.range 0 l) sd)
@@ -883,6 +863,8 @@ let an_of_ph opts (ps, hits) ctx =
 			in
 			strans ^ " when " ^ scond
 	in
+	let trs = Hashtbl.create (Hashtbl.length hits / 2)
+	in
 	let fold_action (b,j) (((a,i),_),k) an_transitions =
 		if opts.coop_priority && is_sort_cooperative b then
 			an_transitions
@@ -897,17 +879,26 @@ let an_of_ph opts (ps, hits) ctx =
 				let filter_v v =
 					SMap.filter (fun b _ -> not (is_sort_cooperative b)) v
 				in
-				let vs = List.map filter_v vs
-				in
-				ValSet.simplify sd vs
+				List.map filter_v vs
 			else if ai = bj then
 				[SMap.empty]
 			else
 				[SMap.singleton a i]
 		in
-		List.map (an_of_transition bj bk) conds @ an_transitions
+		Hashtbl.add trs (b,j,k) conds;
+		ObjSet.add (b,j,k) an_transitions
 	in
-	let an_transitions = Hashtbl.fold fold_action hits []
+	let an_transitions = Hashtbl.fold fold_action hits ObjSet.empty
+	in
+	let folder (b,j,k) data = data @
+		let vs = List.flatten (Hashtbl.find_all trs (b,j,k))
+		in
+		let vs = if opts.coop_priority then 
+					ValSet.simplify sd vs else vs
+		in
+		List.map (an_of_transition (b,j) (b,k)) vs
+	in
+	let an_transitions = ObjSet.fold folder an_transitions []
 	in
 	let an_of_def (a,l) = 
 		"\""^a^"\" ["^(String.concat "," (List.map string_of_int (Util.range 0 l)))^"]"
