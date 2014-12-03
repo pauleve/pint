@@ -41,7 +41,7 @@ knowledge of the CeCILL license and that you accept its terms.
 open Ph_translator;;
 open Ph_types;;
 
-let languages = ["dump"; "spim"; "prism"; "prism_mdp"; "romeo"; "tina"; "pep"; 
+let languages = ["dump"; "spim"; "prism"; "prism_mdp"; "romeo"; "tina"; 
 					"biocham"; "kappa";"bn";"an"];;
 
 let opt_language = ref "dump"
@@ -50,7 +50,6 @@ and opt_romeo_ctl = ref ""
 and opt_romeo_ctl_file = ref ""
 and opt_coop_priority = ref false
 and opt_ptnet_context = ref false
-and opt_mapfile = ref ""
 and opt_goal = ref ([] : process list)
 in
 let setup_goal opt =
@@ -72,8 +71,6 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 									"\tAssume hits on cooperative sorts of higher priority");
 		("--contextual-ptnet", Arg.Set opt_ptnet_context, 
 									"\tContextual petri net");
-		("--mapfile", Arg.Set_string opt_mapfile, 
-									"\tOutput mapping of identifiers");
 		("--reduce-for-goal", Arg.String setup_goal, 
 			"<a i>\tReduce the model to include only transitions that may "
 			^ "be involved in the reachability of the given process");
@@ -97,7 +94,6 @@ let languages = [
 	("prism_mdp", prism_mdp_of_ph);
 	("romeo", romeo_of_ph opts);
 	("tina", tina_of_ph);
-	("pep", pep_of_ph opts ~mapfile:!opt_mapfile);
 	("biocham", biocham_of_ph);
 	("kappa", kappa_of_ph);
 	("bn", bn_of_ph);

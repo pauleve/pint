@@ -40,7 +40,7 @@ let dump_of_an an ctx =
 	^ "\n"
 
 
-let pep_of_an opts an ctx =
+let pep_of_an ?(mapfile="") opts an ctx =
 	let idx_of_place places ls =
 		try
 			(LSMap.find ls places, places)
@@ -70,7 +70,7 @@ let pep_of_an opts an ctx =
 						String.concat " and " 
 							(List.map (string_of_localstate an) conds))
 		in
-		let transitions = (id, sid^"\""^str^"\"")::transitions
+		let transitions = (id, sid^"\""^str^"\"", (a,j))::transitions
 		and idxs, places = idx_of_places places conds
 		in
 		let id_ai, places = idx_of_place places (a,i)
@@ -104,13 +104,32 @@ let pep_of_an opts an ctx =
 	in
 	let register_localstate ai id places =
 		(id, string_of_int id^"\""^string_of_localstate an ai^"\""
-				^(if ctx_has_localstate ai ctx then "M1" else "M0"))::places
+				^(if ctx_has_localstate ai ctx then "M1" else "M0"), ai)::places
 	in
 	let places = LSMap.fold register_localstate places []
 	in
-	let places = List.map snd (List.sort compare places)
-	and transitions = List.map snd (List.sort compare transitions)
+	let places = List.sort compare places
+	and transitions = List.sort compare transitions
 	in
+	let mid (_,a,_) = a
+	in
+	let mapplaces = List.map (fun (i,_,ai) -> (i,ai)) places
+	and maptransitions = List.map (fun (i,_,ai) -> (i,ai)) transitions
+	and places = List.map mid (List.sort compare places)
+	and transitions = List.map mid (List.sort compare transitions)
+	in
+	(if mapfile <> "" then
+		let string_of_map (id, (a,i)) = 
+					string_of_int id^" "^a^" "^string_of_int i
+		in
+		let mapdata = 
+			  string_of_int (List.length mapplaces)
+			^ "\n" ^ (String.concat "\n" (List.map string_of_map mapplaces))
+			^ "\n" ^ string_of_int (List.length maptransitions)
+			^ "\n" ^ (String.concat "\n" (List.map string_of_map maptransitions))
+		in
+		Util.dump_to_file mapfile mapdata
+	);
 	"PEP\nPTNet\nFORMAT_N\n"
 	^ "PL\n" ^ (String.concat "\n" places) ^ "\n"
 	^ "TR\n" ^ (String.concat "\n" transitions) ^ "\n"
