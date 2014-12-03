@@ -11,10 +11,10 @@ let dump_of_an an ctx =
 		let def_states = List.map fst def_states
 		in
 		buf ^ 
-		a^" ["^(String.concat ", " 
+		"\""^a^"\" ["^(String.concat ", " 
 			(List.map string_of_sig_state def_states))^"]\n"
 	and fold_tr (a,i,j) cond buf = buf ^
-		a^" "^(string_of_astate an a i)^" -> "
+		"\""^a^"\" "^(string_of_astate an a i)^" -> "
 			^(string_of_astate an a j) ^
 		(if LSSet.is_empty cond then "" else
 			(" when "^String.concat " and "

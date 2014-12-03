@@ -42,13 +42,13 @@ let get_automaton_state_id an a sig_i =
 
 let string_of_sig_state = function
 	  StateId i -> string_of_int i
-	| StateLabel n -> n
+	| StateLabel n -> "\""^n^"\""
 
 let string_of_astate an a i =
 	string_of_sig_state (get_automaton_state_sig an a i)
 
 let string_of_localstate an (a,i) =
-	a^"="^string_of_astate an a i
+	"\""^a^"\"="^string_of_astate an a i
 
 let string_of_localstates an lsset =
 	String.concat ", " (List.map (string_of_localstate an) (LSSet.elements lsset))

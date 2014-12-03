@@ -42,13 +42,13 @@ rule lexer = parse
 | name as n { Name n }
 | digit+ "." digit* as rate	{ Float (float_of_string rate) }
 | eof { Eof }
-| "(*"	{ comment 1 lexbuf } 
+| "(*"	{ comment 1 lexbuf }
 
 and comment n = parse
- | "(*"  	{ comment (n+1) lexbuf } 
+ | "(*"  	{ comment (n+1) lexbuf }
  | '\n' 	{ line_incr lexbuf; comment n lexbuf}
- | "*)" 	{ if (n-1) > 0 then comment (n-1) lexbuf else lexer lexbuf} 
- |  _ 		{ comment n lexbuf } 
+ | "*)" 	{ if (n-1) > 0 then comment (n-1) lexbuf else lexer lexbuf}
+ |  _ 		{ comment n lexbuf }
 
 and p_string buf = parse
 | "\\\""	{ Buffer.add_char buf '"'; p_string buf lexbuf}
@@ -58,8 +58,19 @@ and p_string buf = parse
 | [^ '"' '\\' '\n' '\t' '\r']+
 			{ Buffer.add_string buf (Lexing.lexeme lexbuf);
 				p_string buf lexbuf }
-| _ 		{ raise (SyntaxError 
+| _ 		{ raise (SyntaxError
 				("Illegal string character: '" ^ Lexing.lexeme lexbuf ^ "'"))}
 | eof		{ raise (SyntaxError ("String is not terminated")) }
 
-
+{
+let is_name data =
+	let lexing = Lexing.from_string data
+	in
+	try
+		match lexer lexing with
+		  Name _ ->
+			(match lexer lexing with
+				Eof -> true | _ -> false)
+		| _ -> false
+	with Parsing.Parse_error -> false
+}
