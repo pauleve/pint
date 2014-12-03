@@ -2,7 +2,7 @@
 open An_export;;
 
 let languages = ["dump";"pep";"prism"]
-and opt_language = ref "dump"
+and opt_language = ref ""
 and opt_output = ref ""
 and opt_ptnet_context = ref false
 and opt_goal = ref ""
@@ -23,9 +23,9 @@ and usage_msg = "pint-export"
 in
 let args, abort = An_cli.parse cmdopts usage_msg
 in
-(if args <> [] || !opt_language = "" then abort ());
-(if !opt_mapfile != "" && !opt_language != "pep"
-	then prerr_endline "Option --mapfile only supported with -l pep"; abort ());
+if args <> [] || !opt_language = "" then (abort ());
+if !opt_mapfile <> "" && !opt_language <> "pep" then 
+	(prerr_endline "Option --mapfile only supported with -l pep"; abort ());
 let opts = {
 	contextual_ptnet = !opt_ptnet_context;
 }

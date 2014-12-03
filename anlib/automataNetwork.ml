@@ -47,8 +47,8 @@ let string_of_sig_state = function
 let string_of_astate an a i =
 	string_of_sig_state (get_automaton_state_sig an a i)
 
-let string_of_localstate an (a,i) =
-	"\""^a^"\"="^string_of_astate an a i
+let string_of_localstate ?(protect=true) an (a,i) =
+	(if protect then ("\""^a^"\"") else a)^"="^string_of_astate an a i
 
 let string_of_localstates an lsset =
 	String.concat ", " (List.map (string_of_localstate an) (LSSet.elements lsset))

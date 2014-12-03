@@ -68,7 +68,7 @@ let pep_of_an ?(mapfile="") opts an ctx =
 					^ " -> " ^ (string_of_astate an a j)
 					^ (match conds with [] -> "" | _ -> " when "^
 						String.concat " and " 
-							(List.map (string_of_localstate an) conds))
+							(List.map (string_of_localstate ~protect:false an) conds))
 		in
 		let transitions = (id, sid^"\""^str^"\"", (a,j))::transitions
 		and idxs, places = idx_of_places places conds
@@ -103,7 +103,7 @@ let pep_of_an ?(mapfile="") opts an ctx =
 			Hashtbl.fold register_transition an.conditions pep
 	in
 	let register_localstate ai id places =
-		(id, string_of_int id^"\""^string_of_localstate an ai^"\""
+		(id, string_of_int id^"\""^string_of_localstate ~protect:false an ai^"\""
 				^(if ctx_has_localstate ai ctx then "M1" else "M0"), ai)::places
 	in
 	let places = LSMap.fold register_localstate places []

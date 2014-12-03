@@ -804,6 +804,10 @@ let an_of_ph opts (ps, hits) ctx =
 	in
 	let procs = procs_of_ctx ctx
 	in
+	let procs = if opts.coop_priority then
+				PSet.filter (fun (a,_) -> not (is_sort_cooperative a)) procs
+				else procs
+	in
 	let procs = List.map an_of_proc (PSet.elements procs)
 	in
 	(String.concat "\n" defs) ^ "\n\n"
