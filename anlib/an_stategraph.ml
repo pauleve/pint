@@ -73,6 +73,12 @@ let sid_of_state base aindex state =
 		else sid
 	in
 	SMap.fold fold aindex zero_big_int
+
+module BigHashtbl = Hashtbl.Make(struct
+		type t = big_int 
+		let equal = eq_big_int 
+		let hash = Hashtbl.hash 
+end)
 		
 let reachable_states an state =
 	let base = required_bits_per_automaton an
@@ -89,31 +95,33 @@ let reachable_states an state =
 		in
 		List.fold_left fold_etr [] etrs
 	in
-	let rec explore sid ((counter, known), todo) =
-		if BigISet.mem sid known then
-			((counter, known), todo)
+	let known = BigHashtbl.create 10240
+	in
+	let rec explore sid (counter, todo) =
+		if BigHashtbl.mem known sid then
+			(counter, todo)
 		else (
 			let counter = succ_big_int counter
-			and known = BigISet.add sid known
 			in
+			BigHashtbl.add known sid ();
 			let nexts = next_sids sid
 			in
 			let todo = List.fold_left (fun bis bi ->
-					if BigISet.mem bi known then bis else BigISet.add bi bis) 
+					if BigHashtbl.mem known bi then bis else BigISet.add bi bis) 
 					 	todo nexts
 			in
 			if BigISet.is_empty todo then
-				((counter, known), todo)
+				(counter, todo)
 			else (
 				let sid = BigISet.choose todo
 				in
 				let todo = BigISet.remove sid todo
 				in
-				explore sid ((counter, known), todo)
+				explore sid (counter, todo)
 			)
 		)
 	in
-	fst (explore sid0 ((zero_big_int, BigISet.empty), BigISet.empty))
+	fst (explore sid0 (zero_big_int, BigISet.empty)), known
 
 
 

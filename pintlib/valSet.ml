@@ -136,8 +136,8 @@ let group_by_domain vs =
 	in
 	List.map (fun r -> (CCs.get ccs r, Hashtbl.find_all groups r)) (SSet.elements rs)
 
-let simplify ?(max_ite=500) sd vs =
-	let simplify_group (d, vs) =
+let simplify ?(max_ite=500) sd vs = match vs with [] | [_] -> vs | _ ->
+	let simplify_group (d, vs) = match vs with [] | [_] -> vs | _ ->
 		let perms = Util.stream_permutations (SSet.elements d)
 		in
 		let rec simplify_valset ?(c=0) vs = if c = max_ite then vs else
