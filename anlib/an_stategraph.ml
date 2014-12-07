@@ -79,8 +79,8 @@ module BigHashtbl = Hashtbl.Make(struct
 		let equal = eq_big_int 
 		let hash = Hashtbl.hash 
 end)
-		
-let reachable_states an state =
+
+let prepare_sts an state =
 	let base = required_bits_per_automaton an
 	and aindex = automata_index an
 	in
@@ -95,7 +95,11 @@ let reachable_states an state =
 		in
 		List.fold_left fold_etr [] etrs
 	in
-	let known = BigHashtbl.create 10240
+	sid0, next_sids
+
+let reachable_states an state =
+	let sid0, next_sids = prepare_sts an state
+	and known = BigHashtbl.create 10240
 	in
 	let rec explore sid (counter, todo) =
 		if BigHashtbl.mem known sid then
@@ -123,5 +127,55 @@ let reachable_states an state =
 	in
 	fst (explore sid0 (zero_big_int, BigISet.empty)), known
 
+let attractors an state =
+	let sid0, next = prepare_sts an state
+	and index = BigHashtbl.create 10240
+	and lowlink = BigHashtbl.create 10240
+	and nid = ref 0
+	and stack = ref []
+	in
+	let rec bsccs v =
+		BigHashtbl.add index v !nid;
+		BigHashtbl.add lowlink v !nid;
+		nid := !nid + 1;
+		stack := v::!stack;
+		let handle_child sccs w =
+			if not(BigHashtbl.mem index w) then (
+				let sccs' = bsccs w
+				in
+				let l_v = BigHashtbl.find lowlink v
+				and l_w = BigHashtbl.find lowlink w
+				in
+				BigHashtbl.replace lowlink v (min l_v l_w);
+				sccs' @ sccs
+			) else (
+				if List.mem w !stack then (
+					let l_v = BigHashtbl.find lowlink v
+					and i_w = BigHashtbl.find index w
+					in
+					BigHashtbl.replace lowlink v (min l_v i_w);
+				);
+				sccs
+			)
+		in
+		let sccs = List.fold_left handle_child [] (next v)
+		in
+		let rec unroll () =
+			match !stack with
+			  [] -> failwith "unroll empty stack!"
+			| a::q ->
+				stack := q;
+				if a = v then [a] else (a::unroll ())
+		in
+		let l_v = BigHashtbl.find lowlink v
+		and i_v = BigHashtbl.find index v
+		in
+		if l_v = i_v then 
+			match sccs with 
+			  [] -> [unroll ()]
+			| _ -> (ignore (unroll()); sccs)
+		else sccs
+	in
+	bsccs sid0
 
 

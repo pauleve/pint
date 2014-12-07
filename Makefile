@@ -1,5 +1,5 @@
 
-TARGETS=pint-config pint-export pint-lcg ph-stable ph-reach phc ph-stat ph-exec ph2thomas libpint pinttop
+TARGETS=pint-config pint-export pint-sg pint-lcg ph-stable ph-reach phc ph-stat ph-exec ph2thomas libpint pinttop
 
 MISC_TOOLS = \
 	converters/bcx2ph\
@@ -68,7 +68,7 @@ OSX_PREFIX=/pint
 OSX_SHARE=$(OSX_PREFIX)/share
 OSX_ROOT=$(OSX_W)$(OSX_PREFIX)
 OSX_BIN=$(OSX_ROOT)/bin
-OSX_TARGETS=phc ph-stat ph-stable ph-reach ph-exec ph2thomas pint-config pint-export
+OSX_TARGETS=pint-config pint-export pint-sg pint-lcg ph-stable ph-reach phc ph-stat ph-exec ph2thomas
 OSX_DMG=../pint-$(RELNAME).dmg
 
 # should be called using ./dist/osx/do.sh
