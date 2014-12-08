@@ -4,11 +4,9 @@ TARGETS=pint-config pint-export pint-sg pint-lcg ph-stable ph-reach phc ph-stat 
 MISC_TOOLS = \
 	converters/bcx2ph\
 	converters/CNA2ph\
-	converters/ginml2ph\
 	converters/ginml2an\
 	converters/ginml2K\
 	converters/K2an\
-	converters/an2ph\
 	converters/bool2an\
 
 

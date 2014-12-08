@@ -1,7 +1,7 @@
 
 open An_export;;
 
-let languages = ["dump";"pep";"prism"]
+let languages = ["dump";"pep";"ph";"prism"]
 and opt_language = ref ""
 and opt_output = ref ""
 and opt_ptnet_context = ref false
@@ -33,6 +33,7 @@ in
 let languages = [
 	("dump", dump_of_an);
 	("pep", pep_of_an opts ~mapfile:!opt_mapfile);
+	("ph", ph_of_an);
 	("prism", prism_of_an);
 ]
 in

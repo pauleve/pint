@@ -1,2 +1,0 @@
-#!/bin/sh
-ginml2K $1 | K2an | an2ph

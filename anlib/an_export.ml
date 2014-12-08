@@ -39,6 +39,47 @@ let dump_of_an an ctx =
 	^ "initial_context " ^ (String.concat ", " (List.map (string_of_localstate an) lss))
 	^ "\n"
 
+let ph_of_an an ctx =
+	let ph_of_ls = Ph_types.pintstring_of_proc
+	in
+	let fold_defs a def_states buf =
+		let l = List.length def_states - 1
+		in
+		(a, "process "^a^" "^string_of_int l^"\n")::buf
+	and fold_tr (a,i,j) cond buf =
+		let cond = LSSet.elements cond
+		in
+		let bounce = " -> "^ph_of_ls (a,i)^" "^string_of_int j
+		in
+		let str = match cond with [] -> ph_of_ls (a,i) ^ bounce
+			| [bk] -> ph_of_ls bk ^ bounce
+			| _ ->
+				(* TODO: improve *)
+				("COOPERATIVITY(["
+					^ (String.concat ";" (List.map fst cond))
+					^ "]" ^ bounce ^ ", [["
+					^ (String.concat ";" (List.map string_of_int
+						(List.map snd cond)))
+					^ "]])")
+		in
+		((a,i,j,cond), str^"\n")::buf
+	and lss = LSSet.elements (lsset_of_ctx ctx)
+	in
+	let defs = Hashtbl.fold fold_defs an.automata []
+	and trs = Hashtbl.fold fold_tr an.conditions []
+	in
+	let defs = List.sort compare defs
+	and trs = List.sort compare trs
+	in
+	let defs = List.map snd defs
+	and trs = List.map snd trs
+	in
+	(String.concat "" defs)
+	^ "\n"
+	^ (String.concat "" trs)
+	^ "\n"
+	^ "initial_context " ^ (String.concat ", " (List.map ph_of_ls lss))
+	^ "\n"
 
 let pep_of_an ?(mapfile="") opts an ctx =
 	let idx_of_place places ls =
