@@ -166,28 +166,8 @@ let attractors an state =
 		BigHashtbl.add index v !nid;
 		BigHashtbl.add lowlink v !nid;
 		stack_push v;
-		nid := !nid + 1;
-		let handle_child sccs w =
-			if not(BigHashtbl.mem index w) then (
-				let sccs' = bsccs w
-				in
-				let l_v = BigHashtbl.find lowlink v
-				and l_w = BigHashtbl.find lowlink w
-				in
-				BigHashtbl.replace lowlink v (min l_v l_w);
-				sccs' @ sccs
-			) else (
-				if BigHashtbl.mem stackc w then (
-					let l_v = BigHashtbl.find lowlink v
-					and i_w = BigHashtbl.find index w
-					in
-					BigHashtbl.replace lowlink v (min l_v i_w);
-					sccs
-				) else
-					None::sccs
-			)
-		in
-		let sccs = List.fold_left handle_child [] (next v)
+		incr nid;
+		let sccs = List.fold_left (handle_child v) [] (next v)
 		in
 		let l_v = BigHashtbl.find lowlink v
 		and i_v = BigHashtbl.find index v
@@ -199,6 +179,29 @@ let attractors an state =
 				| _ -> sccs) else sccs
 		in
 		List.filter (function None -> false | _ -> true) sccs
+	and handle_child v sccs w =
+		if not(BigHashtbl.mem index w) then (
+			let sccs = sccs @ bsccs w
+			in
+			let l_v = BigHashtbl.find lowlink v
+			and l_w = BigHashtbl.find lowlink w
+			in
+			let l_v' = min l_v l_w
+			in
+			(if l_v' <> l_v then BigHashtbl.replace lowlink v l_v');
+			sccs
+		) else (
+			if BigHashtbl.mem stackc w then (
+				let l_v = BigHashtbl.find lowlink v
+				and i_w = BigHashtbl.find index w
+				in
+				let l_v' = min l_v i_w
+				in
+				(if l_v' <> l_v then BigHashtbl.replace lowlink v l_v');
+				sccs
+			) else
+				None::sccs
+		)
 	in
 	let bsccs = bsccs sid0
 	in
