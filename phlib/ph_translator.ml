@@ -798,7 +798,9 @@ let an_of_ph opts (ps, hits) ctx =
 	let an_transitions = ObjSet.fold folder an_transitions []
 	in
 	let an_of_def (a,l) = 
-		"\""^a^"\" ["^(String.concat "," (List.map string_of_int (Util.range 0 l)))^"]"
+		if opts.coop_priority && is_sort_cooperative a then "" else 
+		("\""^a^"\" ["^
+			(String.concat "," (List.map string_of_int (Util.range 0 l)))^"]\n")
 	in
 	let defs = List.map an_of_def ps
 	in
@@ -810,7 +812,7 @@ let an_of_ph opts (ps, hits) ctx =
 	in
 	let procs = List.map an_of_proc (PSet.elements procs)
 	in
-	(String.concat "\n" defs) ^ "\n\n"
+	(String.concat "" defs) ^ "\n\n"
 	^ (String.concat "\n" an_transitions) ^ "\n\n"
 	^ "initial_context " ^ (String.concat ", " procs) ^ "\n"
 
