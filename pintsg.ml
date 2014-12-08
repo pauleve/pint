@@ -36,14 +36,13 @@ let attractors () =
 	let bsccs, state_of_sid = An_stategraph.attractors an state
 	in
 	print_endline (string_of_int (List.length bsccs)^" reachable attractors.");
-	List.iter (fun bscc ->
-		match bscc with
-		  [sid] ->
+	List.iter (fun (sid, size) ->
+		if size = 1 then
 			print_endline ("- fixed point:\n\t"^string_of_state (state_of_sid sid))
-		| _ ->
-			print_endline ("- cycle containing "
-				^ string_of_int (List.length bscc) ^ " states, including:\n\t"
-				^ string_of_state (state_of_sid (List.hd bscc)))) bsccs
+		else
+			print_endline ("- cycle between "
+				^ string_of_int (size) ^ " states, including:\n\t"
+				^ string_of_state (state_of_sid sid))) bsccs
 
 let _ =
 	if !do_count then count ();

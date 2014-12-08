@@ -154,6 +154,14 @@ let attractors an state =
 		BigHashtbl.remove stackc sid;
 		sid
 	in
+	let stack_pop_until sid =
+		let c = ref 1
+		in
+		while not (eq_big_int (stack_pop ()) sid) do
+			incr c
+		done;
+		!c
+	in
 	let rec bsccs v =
 		BigHashtbl.add index v !nid;
 		BigHashtbl.add lowlink v !nid;
@@ -181,22 +189,14 @@ let attractors an state =
 		in
 		let sccs = List.fold_left handle_child [] (next v)
 		in
-		let rec unroll () =
-			if Stack.is_empty stack then
-				failwith "unroll empty stack!"
-			else
-				let a = stack_pop ()
-				in
-				if eq_big_int a v then [a] else (a::unroll ())
-		in
 		let l_v = BigHashtbl.find lowlink v
 		and i_v = BigHashtbl.find index v
 		in
 		let sccs = if l_v = i_v then (
-					match sccs with
-					  [] -> [Some (unroll ())]
-					| _ -> (ignore (unroll()); sccs))
-				else sccs
+			let size = stack_pop_until v
+			in
+			match sccs with [] -> [Some (v, size)]
+				| _ -> sccs) else sccs
 		in
 		List.filter (function None -> false | _ -> true) sccs
 	in
