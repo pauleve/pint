@@ -178,7 +178,11 @@ let attractors an state =
 			match sccs with [] -> [Some (v, size)]
 				| _ -> sccs) else sccs
 		in
-		List.filter (function None -> false | _ -> true) sccs
+		let has_none = List.mem None sccs
+		in
+		let sccs = List.filter (function None -> false | _ -> true) sccs
+		in
+		if has_none then None::sccs else sccs
 	and handle_child v sccs w =
 		if not(BigHashtbl.mem index w) then (
 			let sccs = sccs @ bsccs w
@@ -204,6 +208,8 @@ let attractors an state =
 		)
 	in
 	let bsccs = bsccs sid0
+	in
+	let bsccs = match bsccs with None::bsccs -> bsccs | _ -> bsccs
 	in
 	let bsccs = List.map (function Some bscc -> bscc
 					| None -> failwith "invalid value returned by bsccs") bsccs

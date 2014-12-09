@@ -1,4 +1,6 @@
 
+open PintTypes
+
 open Ph_types
 
 open LocalCausalityGraph
@@ -22,7 +24,6 @@ let _ = if args <> [] then abort ()
 
 let an, ctx = An_cli.process_input ()
 
-
 let count () =
 	let state = Ph_types.state_of_ctx ctx
 	in
@@ -38,11 +39,11 @@ let attractors () =
 	print_endline (string_of_int (List.length bsccs)^" reachable attractors.");
 	List.iter (fun (sid, size) ->
 		if size = 1 then
-			print_endline ("- fixed point:\n\t"^string_of_state (state_of_sid sid))
+			print_endline ("- fixed point:\n\t"^string_of_state an (state_of_sid sid))
 		else
 			print_endline ("- cycle between "
 				^ string_of_int (size) ^ " states, including:\n\t"
-				^ string_of_state (state_of_sid sid))) bsccs
+				^ string_of_state an (state_of_sid sid))) bsccs
 
 let _ =
 	if !do_count then count ();

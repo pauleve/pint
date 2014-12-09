@@ -137,6 +137,10 @@ let simplify an =
 	Hashtbl.iter simplify_transitions an.transitions;
 	{an with conditions = conditions}
 
+
+let string_of_state an s =
+	String.concat ", " (List.map (string_of_localstate an) (SMap.bindings s))
+
 (**
 	Context
 **)
