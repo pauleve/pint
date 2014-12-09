@@ -31,6 +31,9 @@ open AutomataNetwork
 %start local_state_list
 %type <AutomataNetwork.sig_local_state list> local_state_list
 
+%start automata_set
+%type <PintTypes.SSet.t> automata_set
+
 %%
 
 main :
@@ -88,5 +91,12 @@ initial_ctx:
   Initial_state	local_state_list	{ $2 }
 | Initial_context local_state_list	{ $2 }
 ;
+
+automata_set: LCURLY automata_set_t RCURLY { $2 };
+automata_set_t:
+  automaton { SSet.singleton $1 }
+| automaton COMMA automata_set_t { SSet.add $1 $3 }
+;
+
 
 %%

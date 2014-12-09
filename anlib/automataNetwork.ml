@@ -86,6 +86,30 @@ let declare_transition an a sig_i sig_j sig_conds =
 	Hashtbl.add an.conditions (a, i, j) conds
 
 
+let partial an sset =
+	let an' = empty_an ~size:(SSet.cardinal sset, 50) ()
+	in
+	let match_lsset =
+		LSSet.for_all (fun (a,_) -> SSet.mem a sset)
+	in
+	let register_localstate a (sigs,i) =
+		Hashtbl.add an'.transitions (a,i) ISet.empty
+	in
+	let register_automaton a def =
+		if SSet.mem a sset then
+			(Hashtbl.add an'.automata a def;
+			List.iter (register_localstate a) def)
+	and register_condition (a,i,j) lsset =
+		if SSet.mem a sset && match_lsset lsset then
+			let trs = Hashtbl.find an'.transitions (a,i)
+			in
+			(Hashtbl.replace an'.transitions (a,i) (ISet.add j trs);
+			Hashtbl.add an'.conditions (a,i,j) lsset)
+	in
+	Hashtbl.iter register_automaton an.automata ;
+	Hashtbl.iter register_condition an.conditions;
+	an'
+
 (**
 	Context
 **)
