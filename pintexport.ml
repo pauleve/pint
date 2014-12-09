@@ -53,7 +53,12 @@ let an, ctx = if !opt_partial = "" then an, ctx else
 	in
 	let aset = An_input.parse_string An_parser.automata_set spec
 	in
-	partial an aset, SMap.filter (fun a _ -> SSet.mem a aset) ctx
+	SSet.iter (fun a -> if not(Hashtbl.mem an.automata a) then
+					failwith ("Unknown automaton '"^a^"'")) aset;
+	let an = partial an aset
+	and ctx = SMap.filter (fun a _ -> SSet.mem a aset) ctx
+	in
+	an, ctx
 in
 
 let an =
