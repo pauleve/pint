@@ -54,12 +54,14 @@ for node in nodes :
 out.write("\n")
 
 # fetch node parents
+E = {}
 R = {}
 edges = ginml.getElementsByTagName("edge")
 for edge in edges :
     a = edge.getAttribute("from")
-    t = int(edge.getAttribute("minvalue"))
     b = edge.getAttribute("to")
+    id = edge.getAttribute("id")
+    E[id] = edge
     if b not in R:
         R[b] = set()
     R[b].add(a)
@@ -93,6 +95,7 @@ for node in nodes:
         continue
     P = {}
     bs = R[a]
+
     s = State(bs)
     for x in s:
         P[x] = 0
@@ -102,12 +105,9 @@ for node in nodes:
         i = p.getAttribute("idActiveInteractions").split()
         y = dict([(b,0) for b in bs])
         for j in i:
-            z = j.split(":")
-            b = z[0]
-            if len(z) == 3:
-                v = int(z[2])
-            else:
-                v = 1
+            e = E[j]
+            v = int(e.getAttribute("minvalue"))
+            b = e.getAttribute("from")
             y[b] = v
         x = tuple([y[b] for b in bs])
         P[x] = k
