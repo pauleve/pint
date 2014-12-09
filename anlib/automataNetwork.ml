@@ -110,6 +110,33 @@ let partial an sset =
 	Hashtbl.iter register_condition an.conditions;
 	an'
 
+let simplify an =
+	let conditions = Hashtbl.create (Hashtbl.length an.conditions / 2)
+	and sd = Hashtbl.fold (fun a def -> SMap.add a (List.map snd def))
+				an.automata SMap.empty
+	in
+	let state_of_cond lsset =
+		LSSet.fold (fun (a,i) s -> SMap.add a i s) lsset SMap.empty
+	and cond_of_state s =
+		SMap.fold (fun a i lsset -> LSSet.add (a,i) lsset) s LSSet.empty
+	in
+	let simplify_transition a i j =
+		let vs = Hashtbl.find_all an.conditions (a,i,j)
+		in
+		let vs = List.map state_of_cond vs
+		in
+		let vs = ValSet.simplify sd vs
+		in
+		let vs = List.map cond_of_state vs
+		in
+		List.iter (Hashtbl.add conditions (a,i,j)) vs
+	in
+	let simplify_transitions (a,i) js =
+		ISet.iter (simplify_transition a i) js
+	in
+	Hashtbl.iter simplify_transitions an.transitions;
+	{an with conditions = conditions}
+
 (**
 	Context
 **)

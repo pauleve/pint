@@ -9,6 +9,7 @@ and opt_output = ref ""
 and opt_ptnet_context = ref false
 and opt_goal = ref ""
 and opt_partial = ref ""
+and opt_simplify = ref false
 and opt_mapfile = ref ""
 in
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
@@ -18,11 +19,13 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 									"\tContextual petri net");
 		("--mapfile", Arg.Set_string opt_mapfile, 
 									"\tOutput mapping of identifiers (for 'pep')");
-		("--reduce-for-goal", Arg.Set_string opt_goal, 
-			"\"a\"=i\tBefore exportation, reduce the model to include only transitions that may "
-			^ "be involved in the reachability of the given local state");
 		("--partial", Arg.Set_string opt_partial,
 			"a,b,..\tConsider only the sub-network composed of a, b, ..");
+		("--simplify", Arg.Set opt_simplify,
+			"\tTry to simplify transition conditions of the automata network.");
+		("--reduce-for-goal", Arg.Set_string opt_goal,
+			"\"a\"=i\tBefore exportation, reduce the model to include only transitions that may "
+			^ "be involved in the reachability of the given local state");
 	]
 and usage_msg = "pint-export"
 in
@@ -59,6 +62,9 @@ let an, ctx = if !opt_partial = "" then an, ctx else
 	and ctx = SMap.filter (fun a _ -> SSet.mem a aset) ctx
 	in
 	an, ctx
+in
+
+let an = if !opt_simplify then simplify an else an
 in
 
 let an =
