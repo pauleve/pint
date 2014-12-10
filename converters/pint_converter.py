@@ -67,6 +67,7 @@ def K2an(sd, dep, K, init=None):
                     if sv:
                         sv = " when %s" % sv
                     output("%s %d -> %d%s\n" % (a,i-incr,i,sv))
+    init = [(a,i) for (a,i) in init if i > 0]
     if init:
         output("initial_state %s\n" % (", ".join(["%s=%s" % iv for iv in init])))
     done()

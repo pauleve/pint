@@ -47,12 +47,16 @@ ginml = parse(inputname)
 # nodes definitions
 N = {}
 sd = {}
+init = []
 nodes = ginml.getElementsByTagName("node")
 for node in nodes :
     a = node.getAttribute("id")
     la = int(node.getAttribute("maxvalue"))
     N[a] = la
     sd[a] = list(range(la+1))
+    if node.hasAttribute("basevalue"):
+        i0 = int(node.getAttribute("basevalue"))
+        init.append((a,i0))
 
 # fetch node parents
 E = {}
@@ -102,5 +106,5 @@ for node in nodes:
     for (x,k) in P.items():
         K[a][k].add(x)
 
-K2an(sd, R, K)
+K2an(sd, R, K, init)
 
