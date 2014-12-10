@@ -36,7 +36,7 @@ class State:
 def Kinit(sd, a):
     return dict([(i, set()) for i in sd[a]])
 
-def K2an(sd, dep, K, init=None):
+def K2an(sd, dep, K, init=[]):
     output, done = pint_export()
     for a in sorted(sd.keys()):
         output("%s [%s]\n" % (a, ", ".join(map(str,sd[a]))))
