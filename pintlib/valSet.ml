@@ -137,7 +137,8 @@ let group_by_domain vs =
 	List.map (fun r -> (CCs.get ccs r, Hashtbl.find_all groups r)) (SSet.elements rs)
 
 let simplify ?(max_ite=500) sd vs = match vs with [] | [_] -> vs | _ ->
-	let simplify_group (d, vs) = match vs with [] | [_] -> vs | _ ->
+	let rec simplify_group (d,vs) = if SSet.is_empty d then vs else
+		match vs with [] | [_] -> vs | _ ->
 		let perms = Util.stream_permutations (SSet.elements d)
 		in
 		let rec simplify_valset ?(c=0) vs = if c = max_ite then vs else
@@ -146,7 +147,10 @@ let simplify ?(max_ite=500) sd vs = match vs with [] | [_] -> vs | _ ->
 				in
 				let vs = valset_of_mdd (mdd_of_valset sd vs d)
 				in
-				simplify_valset ~c:(c+1) vs
+				match vs with [] | [_] -> vs | _ ->
+				match group_by_domain vs with
+				  [_] -> simplify_valset ~c:(c+1) vs
+				| gvs -> List.flatten (List.map simplify_group gvs)
 			with Stream.Failure -> vs
 		in
 		simplify_valset vs
