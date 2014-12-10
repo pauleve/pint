@@ -1,2 +1,162 @@
-#!/bin/sh
-ginml2K $1 | K2an
+#!/usr/bin/env python3
+# -*- coding: utf-8
+"""
+Copyright Loïc Paulevé <loic.pauleve@lri.fr> (2014)
+
+This software is a computer program whose purpose is to provide Process
+Hitting related tools.
+
+This software is governed by the CeCILL license under French law and
+abiding by the rules of distribution of free software.  You can  use, 
+modify and/ or redistribute the software under the terms of the
+CeCILL license as circulated by CEA, CNRS and INRIA at the following URL
+"http://www.cecill.info". 
+
+As a counterpart to the access to the source code and  rights to copy,
+modify and redistribute granted by the license, users are provided only
+with a limited warranty  and the software's author, the holder of the
+economic rights, and the successive licensors  have only  limited
+liability. 
+
+In this respect, the user's attention is drawn to the risks associated
+with loading,  using,  modifying and/or developing or reproducing the
+software by the user in light of its specific status of free software,
+that may mean  that it is complicated to manipulate,  and  that  also
+therefore means  that it is reserved for developers  and  experienced
+professionals having in-depth computer knowledge. Users are therefore
+encouraged to load and test the software's suitability as regards their
+requirements in conditions enabling the security of their systems and/or 
+data to be ensured and,  more generally, to use and operate it in the 
+same conditions as regards security. 
+
+The fact that you are presently reading this means that you have had
+knowledge of the CeCILL license and that you accept its terms.
+"""
+
+import itertools
+from subprocess import *
+import sys
+
+from xml.dom.minidom import parse
+
+inputname = sys.argv[1]
+
+ginml = parse(inputname)
+
+# nodes definitions
+N = {}
+sd = {}
+nodes = ginml.getElementsByTagName("node")
+for node in nodes :
+    a = node.getAttribute("id")
+    la = int(node.getAttribute("maxvalue"))
+    N[a] = la
+    sd[a] = list(range(la+1))
+
+# fetch node parents
+E = {}
+R = {}
+edges = ginml.getElementsByTagName("edge")
+for edge in edges :
+    a = edge.getAttribute("from")
+    b = edge.getAttribute("to")
+    id = edge.getAttribute("id")
+    E[id] = edge
+    if b not in R:
+        R[b] = set()
+    R[b].add(a)
+for a in R.keys():
+    R[a] = tuple(sorted(R[a]))
+
+class State:
+    def __init__(self, nodes):
+        self.nodes = nodes
+    def next(self, x):
+        end = True
+        for i in range(len(self.nodes)):
+            if x[i] == N[self.nodes[i]]:
+                x[i] = 0
+            else:
+                end = False
+                x[i] += 1
+                break
+        return not end
+
+    def __iter__(self):
+        x = [0]*len(self.nodes)
+        yield tuple(x)
+        while self.next(x):
+            yield tuple(x)
+
+# fetch parameters
+K = {}
+for node in nodes:
+    a = node.getAttribute("id")
+    if a not in R:
+        continue
+    P = {}
+    bs = R[a]
+
+    s = State(bs)
+    for x in s:
+        P[x] = 0
+
+    for p in node.getElementsByTagName("parameter"):
+        k = int(p.getAttribute("val"))
+        i = p.getAttribute("idActiveInteractions").split()
+        y = dict([(b,[0]) for b in bs])
+        for j in i:
+            e = E[j]
+            b = e.getAttribute("from")
+            v = int(e.getAttribute("minvalue"))
+            if e.hasAttribute("maxvalue"):
+                w = int(e.getAttribute("maxvalue"))
+            else:
+                w = N[b]
+            y[b] = list(range(v, w+1))
+        for x in itertools.product(*[y[b] for b in bs]):
+            P[x] = k
+
+    K[a] = dict([(i, set()) for i in sd[a]])
+    for (x,k) in P.items():
+        K[a][k].add(x)
+
+
+p = Popen(["pint-export", "--simplify"], stdin=PIPE)
+out = p.stdin
+
+def output(data):
+    out.write(data.encode("utf-8"))
+
+for a in sorted(sd.keys()):
+    output("%s [%s]\n" % (a, ", ".join(map(str,sd[a]))))
+for a in sorted(sd.keys()):
+    if a not in K:
+        continue
+    bs = R[a]
+    bs_a = bs.index(a) if a in bs else None
+    for incr in [1, -1]:
+        if incr > 0:
+            r = sd[a][1:]
+        else:
+            r = sd[a][:-1]
+        for i in r:
+            myK = set()
+            if incr > 0:
+                ri = sd[a][i:]
+            else:
+                ri = sd[a][:i+1]
+            for j in ri:
+                conds = K[a][j]
+                if bs_a is not None:
+                    conds = filter(lambda x: x[bs_a] == i-incr, conds)
+                myK.update(conds)
+            for x in myK:
+                v = zip(bs,x)
+                sv = " and ".join(["%s=%s" % (b,j) for (b,j) in v if b != a])
+                if sv:
+                    sv = " when %s" % sv
+                output("%s %d -> %d%s\n" % (a,i-incr,i,sv))
+out.close()
+p.wait()
+
