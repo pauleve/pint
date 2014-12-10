@@ -34,10 +34,11 @@ knowledge of the CeCILL license and that you accept its terms.
 """
 
 import itertools
-from subprocess import *
 import sys
 
 from xml.dom.minidom import parse
+
+from pint_converter import *
 
 inputname = sys.argv[1]
 
@@ -68,26 +69,6 @@ for edge in edges :
 for a in R.keys():
     R[a] = tuple(sorted(R[a]))
 
-class State:
-    def __init__(self, nodes):
-        self.nodes = nodes
-    def next(self, x):
-        end = True
-        for i in range(len(self.nodes)):
-            if x[i] == N[self.nodes[i]]:
-                x[i] = 0
-            else:
-                end = False
-                x[i] += 1
-                break
-        return not end
-
-    def __iter__(self):
-        x = [0]*len(self.nodes)
-        yield tuple(x)
-        while self.next(x):
-            yield tuple(x)
-
 # fetch parameters
 K = {}
 for node in nodes:
@@ -97,7 +78,7 @@ for node in nodes:
     P = {}
     bs = R[a]
 
-    s = State(bs)
+    s = State(sd, bs)
     for x in s:
         P[x] = 0
 
@@ -117,46 +98,9 @@ for node in nodes:
         for x in itertools.product(*[y[b] for b in bs]):
             P[x] = k
 
-    K[a] = dict([(i, set()) for i in sd[a]])
+    K[a] = Kinit(sd, a)
     for (x,k) in P.items():
         K[a][k].add(x)
 
-
-p = Popen(["pint-export", "--simplify"], stdin=PIPE)
-out = p.stdin
-
-def output(data):
-    out.write(data.encode("utf-8"))
-
-for a in sorted(sd.keys()):
-    output("%s [%s]\n" % (a, ", ".join(map(str,sd[a]))))
-for a in sorted(sd.keys()):
-    if a not in K:
-        continue
-    bs = R[a]
-    bs_a = bs.index(a) if a in bs else None
-    for incr in [1, -1]:
-        if incr > 0:
-            r = sd[a][1:]
-        else:
-            r = sd[a][:-1]
-        for i in r:
-            myK = set()
-            if incr > 0:
-                ri = sd[a][i:]
-            else:
-                ri = sd[a][:i+1]
-            for j in ri:
-                conds = K[a][j]
-                if bs_a is not None:
-                    conds = filter(lambda x: x[bs_a] == i-incr, conds)
-                myK.update(conds)
-            for x in myK:
-                v = zip(bs,x)
-                sv = " and ".join(["%s=%s" % (b,j) for (b,j) in v if b != a])
-                if sv:
-                    sv = " when %s" % sv
-                output("%s %d -> %d%s\n" % (a,i-incr,i,sv))
-out.close()
-p.wait()
+K2an(sd, R, K)
 

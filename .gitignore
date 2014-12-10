@@ -40,3 +40,4 @@ bindings/Makefile.inc
 tests/pinttests
 *.log
 *.cache
+__pycache__
