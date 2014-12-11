@@ -1,5 +1,19 @@
 
-TARGETS=pint-config pint-export pint-sg pint-lcg ph-stable ph-reach phc ph-stat ph-exec ph2thomas libpint pinttop
+TARGETS=\
+	pint-config\
+	pint-export\
+	pint-lcg\
+	pint-reach\
+	pint-sg\
+	ph-stable\
+	ph-reach\
+	phc\
+	ph-stat\
+	ph-exec\
+	ph2thomas\
+	libpint\
+	pinttop\
+
 
 MISC_TOOLS = \
 	converters/pint_converter.py\

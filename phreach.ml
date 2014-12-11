@@ -55,7 +55,7 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 				(fun x -> opt_method := x)), "\tMethod");
 		("--coop-priority", Arg.Set opt_coop_priority, 
 									"\tAssume hits on cooperative sorts of higher priority");
-		("--cutsets", Arg.Set_int opt_cutsets_n, "\tCompute cutsets with given maximum size");
+		("--cutsets", Arg.Set_int opt_cutsets_n, "n\tCompute cutsets with given maximum size");
 		("--cutsets-include-coop", Arg.Set opt_cutsets_n_coop, 
 			"\tConsider cooperativities in cutsets (default: false)");
 		("--no-cutsets-reduce", Arg.Clear opt_cutsets_n_reduce, 
