@@ -80,8 +80,20 @@ OSX_PREFIX=/pint
 OSX_SHARE=$(OSX_PREFIX)/share
 OSX_ROOT=$(OSX_W)$(OSX_PREFIX)
 OSX_BIN=$(OSX_ROOT)/bin
-OSX_TARGETS=pint-config pint-export pint-sg pint-lcg ph-stable ph-reach phc ph-stat ph-exec ph2thomas
 OSX_DMG=../pint-$(RELNAME).dmg
+OSX_TARGETS=\
+	pint-config\
+	pint-export\
+	pint-lcg\
+	pint-reach\
+	pint-sg\
+	ph-stable\
+	ph-reach\
+	phc\
+	ph-stat\
+	ph-exec\
+	ph2thomas\
+
 
 # should be called using ./dist/osx/do.sh
 #dist-osx: $(OXS_BINS)
