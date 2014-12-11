@@ -78,7 +78,7 @@ K = {}
 for node in nodes:
     a = node.getAttribute("id")
     if a not in R:
-        continue
+        R[a] = []
     P = {}
     bs = R[a]
 
