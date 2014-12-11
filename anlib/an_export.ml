@@ -37,8 +37,8 @@ let dump_of_an an ctx =
 	^ "\n"
 	^ (String.concat "" trs)
 	^ "\n"
-	^ "initial_context " ^ (String.concat ", " (List.map (string_of_localstate an) lss))
-	^ "\n"
+	^ match lss with [] -> "" | _ -> ("initial_context " ^ (String.concat ", "
+	(List.map (string_of_localstate an) lss))^"\n")
 
 let ph_of_an an ctx =
 	let ph_of_ls = Ph_types.pintstring_of_proc

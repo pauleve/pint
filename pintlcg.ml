@@ -4,12 +4,13 @@ open AutomataNetwork
 
 let usage_msg = "pint-lcg [opts] <local state>"
 
+let lcg_types = ["verbose";"trimmed";"worth"]
 let lcg_type = ref "verbose"
 let opt_output = ref "-"
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		("-o", Arg.Set_string opt_output, "<lcg.dot>\tOutput file");
-		("-t", Arg.Symbol (["verbose";"worth"], (fun x -> lcg_type := x)), 
+		("-t", Arg.Symbol (lcg_types, (fun x -> lcg_type := x)),
 					"\tWhich Local Causality Graph (default: "^(!lcg_type)^")");
 	]
 
@@ -23,23 +24,32 @@ let goal = match args with
 
 let cache = An_localpaths.create_cache ()
 
+let env = An_reach.init_env an ctx goal
+
+let min_asols = An_localpaths.min_abstract_solutions cache an
+
 let verbose_lcg () =
-	let sols = An_localpaths.min_abstract_solutions cache an
-	in
-	let lcg = new glc oa_glc_setup ctx goal sols
+	let lcg = new glc oa_glc_setup ctx goal min_asols
 	in
 	lcg#set_auto_conts false;
 	lcg#build;
 	lcg
 
-let worth_lcg () =
-	let env = An_reach.init_env an ctx goal
+let trimmed_lcg () =
+	let lcg = verbose_lcg ()
 	in
+	let lcg = An_reach.bot_trimmed_lcg env min_asols lcg
+	in
+	An_reach.top_trimmed_lcg env lcg;
+	lcg
+
+let worth_lcg () =
 	An_reach.worth_lcg env
 
 
 let lcg_factories = [
 	("verbose", verbose_lcg);
+	("trimmed", trimmed_lcg);
 	("worth", worth_lcg);
 ]
 		(*;"trimmed";"cutsets";"saturated";"first_ua"],*)
@@ -93,13 +103,6 @@ in
 	in
 	(*gA#debug;*)
 	let glc = 
-		if !opt_graph = "verbose" then
-			build_glc ()
-		else if !opt_graph = "trimmed" then
-			let gA = bot_trimmed_cwA env (build_glc ())
-			in
-			top_trimmed_cwA env gA;
-			gA
 		else if !opt_graph = "cutsets" then
 			let gA = bot_trimmed_cwA env (build_glc ())
 			in  
