@@ -28,6 +28,8 @@ val range : int -> int -> int list
 (** Same as [range] but in the reverse order. *)
 val rrange : int -> int -> int list
 
+val srange : int -> int -> PintTypes.ISet.t
+
 val hashtbl_filter_bindings : ('a, 'b) Hashtbl.t -> 'a -> ('b -> bool) -> unit
 
 (** [string_apply match data values] replaces successively the n-th match of [match] in data with the n-th elements of [values]. *)

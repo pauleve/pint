@@ -42,8 +42,8 @@ type node =
 	| NodeSol of (objective * LSSet.t * ISet.t)
 	| NodeObj of objective
 
-let string_of_node = function                                         
-	  NodeSol (obj,ps,interm) -> 
+let string_of_node = function
+	  NodeSol (obj,ps,interm) ->
 	  	"Sol["^string_of_obj obj^"/"^string_of_lsset ps
 						^" via "^string_of_iset interm^"]"
 	| NodeObj obj -> "Obj["^string_of_obj obj^"]"

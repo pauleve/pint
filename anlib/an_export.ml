@@ -12,8 +12,8 @@ let dump_of_an an ctx =
 		in
 		(a, "\""^a^"\" ["^(String.concat ", "
 			(List.map string_of_sig_state def_states))^"]\n")::buf
-	and fold_tr (a,i,j) cond buf = 
-		let cond = LSSet.elements cond
+	and fold_tr (a,i,j) cond buf =
+		let cond = SMap.bindings cond
 		in
 		((a,i,j,cond), "\""^a^"\" "^(string_of_astate an a i)^" -> "
 			^(string_of_astate an a j) ^
@@ -48,7 +48,7 @@ let ph_of_an an ctx =
 		in
 		(a, "process "^a^" "^string_of_int l^"\n")::buf
 	and fold_tr (a,i,j) cond buf =
-		let cond = LSSet.elements cond
+		let cond = SMap.bindings cond
 		in
 		let bounce = " -> "^ph_of_ls (a,i)^" "^string_of_int j
 		in
@@ -104,7 +104,7 @@ let pep_of_an ?(mapfile="") opts an ctx =
 		List.fold_left fold_ls ([], places)
 	in
 	let register_transition (a,i,j) conds (id, places, transitions, tp, pt, ra) =
-		let conds = LSSet.elements conds
+		let conds = SMap.bindings conds
 		in
 		let sid = string_of_int id
 		and str = a ^ " " ^ (string_of_astate ~protect:false an a i)
@@ -142,7 +142,7 @@ let pep_of_an ?(mapfile="") opts an ctx =
 	in
 	let pep = (1, LSMap.empty, [], [], [], [])
 	in
-	let (_, places, transitions, tp, pt, ra) = 
+	let (_, places, transitions, tp, pt, ra) =
 			Hashtbl.fold register_transition an.conditions pep
 	in
 	let register_localstate ai id places =
@@ -187,14 +187,14 @@ let prism_of_an an ctx =
 	and a2i = ref SMap.empty
 	in
 	let index a =
-		try SMap.find a !a2i 
+		try SMap.find a !a2i
 		with Not_found -> (
 			a_counter := !a_counter + 1;
 			a2i := SMap.add a !a_counter !a2i;
 			!a_counter
 		)
 	in
-	let modname a = 
+	let modname a =
 		let i = index a
 		in
 		"A"^string_of_int i
@@ -205,11 +205,11 @@ let prism_of_an an ctx =
 	in
 	let prism_state (a,i) =
 		varname a ^ "=" ^ string_of_int i
-	and prism_state' (a,i) = 
+	and prism_state' (a,i) =
 		varname a ^ "'=" ^ string_of_int i
 	in
 	let prism_of_transition a i j conds =
-		let conds = LSSet.elements conds
+		let conds = SMap.bindings conds
 		in
 		"\t[] " ^ (String.concat " & " (List.map prism_state ((a,i)::conds)))
 			^ " -> (" ^ prism_state' (a,j)^");\n"

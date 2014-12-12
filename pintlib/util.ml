@@ -68,6 +68,9 @@ let index_of v =
 let rec rrange a b = if a <= b then b::rrange a (b-1) else [];;
 let rec range a b = if a <= b then a::range (a+1) b else [];;
 
+let rec srange a b =
+	if a <= b then ISet.add a (srange (a+1) b) else ISet.empty
+
 let hashtbl_filter_bindings h key filter =
 	let values = Hashtbl.find_all h key
 	in

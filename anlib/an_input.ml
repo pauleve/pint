@@ -11,7 +11,7 @@ let parse channel_in =
 		  " char " ^ string_of_int 
 				(pos.Lexing.pos_cnum - pos.Lexing.pos_bol) ^ ": "
 	in
-	try 
+	try
 		let t0 = Sys.time ()
 		in
 		let an, ctx = An_parser.main An_lexer.lexer lexbuf

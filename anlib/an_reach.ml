@@ -199,18 +199,18 @@ let worth_lcg env =
 let is_localstate_worth gB = gB#has_proc
 
 let reduced_an env =
-	let module TRSet = Set.Make (struct 
-				type t = transition * LSSet.t
+	let module TRSet = Set.Make (struct
+				type t = transition * automaton_state SMap.t
 				let compare (tr, conds) (tr', conds') =
 					let ctr = compare tr tr'
 					in
-					if ctr = 0 then LSSet.compare conds conds' else ctr
+					if ctr = 0 then SMap.compare compare conds conds' else ctr
 			end)
 	in
 	let csols = An_localpaths.concrete_solutions env.sol_cache env.an
 	in
 	let fold_fpath =
-		List.fold_left (fun trs tr -> TRSet.add tr trs) 
+		List.fold_left (fun trs tr -> TRSet.add tr trs)
 	in
 	let fold_asol trs (obj, conds, interm) =
 		let fpaths = csols obj (conds, interm)

@@ -49,7 +49,7 @@ let encode_transitions base aindex an =
 	let fold_transitions (a,i,j) conds etransitions =
 		let id = SMap.find a aindex
 		in
-		let conds = LSSet.elements conds
+		let conds = SMap.bindings conds
 		in
 		let conds = List.map prepare_cond ((a,i)::conds)
 		in

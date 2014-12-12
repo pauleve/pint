@@ -25,7 +25,7 @@ let tr_dest (_,_,j) = j
 type t = {
 	automata: (automaton_p, (sig_automaton_state * automaton_state) list) Hashtbl.t;
 	transitions: (local_state, ISet.t) Hashtbl.t;
-	conditions: (transition, LSSet.t) Hashtbl.t;
+	conditions: (transition, automaton_state SMap.t) Hashtbl.t;
 }
 
 let empty_an ?size:(size=(20,50)) () = {
@@ -33,6 +33,17 @@ let empty_an ?size:(size=(20,50)) () = {
 	transitions = Hashtbl.create (snd size);
 	conditions = Hashtbl.create (snd size);
 }
+
+let automata_limits an =
+	let folder a def lims =
+		(a, List.length def - 1)::lims
+	in
+	Hashtbl.fold folder an.automata []
+
+let automaton_sdomain an a =
+	let n = List.length (Hashtbl.find an.automata a)
+	in
+	Util.srange 0 (n-1)
 
 let get_automaton_state_sig an a i =
 	Util.list_lassoc i (Hashtbl.find an.automata a)
@@ -51,7 +62,7 @@ let string_of_localstate ?(protect=true) an (a,i) =
 	(if protect then ("\""^a^"\"") else a)^"="^string_of_astate ~protect an a i
 
 let string_of_localstates an lsset =
-	String.concat ", " (List.map (string_of_localstate an) (LSSet.elements lsset))
+	String.concat ", " (List.map (string_of_localstate an) (SMap.bindings lsset))
 
 let string_of_ls (a,i) =
 	a^" "^string_of_int i
@@ -75,22 +86,37 @@ let declare_transition an a sig_i sig_j sig_conds =
 	let i = get_automaton_state_id an a sig_i
 	and j = get_automaton_state_id an a sig_j
 	and conds = List.fold_left
-					(fun lsset (b,sig_k) -> 
+					(fun cond (b,sig_k) ->
 							let k = get_automaton_state_id an b sig_k
 							in
-							LSSet.add (b,k) lsset) LSSet.empty sig_conds
+							SMap.add b k cond) SMap.empty sig_conds
 	in
 	let trs = Hashtbl.find an.transitions (a,i)
 	in
 	Hashtbl.replace an.transitions (a,i) (ISet.add j trs);
 	Hashtbl.add an.conditions (a, i, j) conds
 
+let an_replace_trconditions an tr conds =
+	while Hashtbl.mem an.conditions tr do
+		Hashtbl.remove an.conditions tr
+	done;
+	match conds with
+	  [] -> (match tr with (a,i,j) ->
+	  	let js = Hashtbl.find an.transitions (a,i)
+		in
+		let js = ISet.remove j js
+		in
+		Hashtbl.replace an.transitions (a,i) js)
+	| _ ->
+		let conds = List.sort_uniq (SMap.compare compare) conds
+		in
+		List.iter (Hashtbl.add an.conditions tr) conds
 
 let partial an sset =
 	let an' = empty_an ~size:(SSet.cardinal sset, 50) ()
 	in
 	let match_lsset =
-		LSSet.for_all (fun (a,_) -> SSet.mem a sset)
+		SMap.for_all (fun a _ -> SSet.mem a sset)
 	in
 	let register_localstate a (sigs,i) =
 		Hashtbl.add an'.transitions (a,i) ISet.empty
@@ -115,19 +141,10 @@ let simplify an =
 	and sd = Hashtbl.fold (fun a def -> SMap.add a (List.map snd def))
 				an.automata SMap.empty
 	in
-	let state_of_cond lsset =
-		LSSet.fold (fun (a,i) s -> SMap.add a i s) lsset SMap.empty
-	and cond_of_state s =
-		SMap.fold (fun a i lsset -> LSSet.add (a,i) lsset) s LSSet.empty
-	in
 	let simplify_transition a i j =
 		let vs = Hashtbl.find_all an.conditions (a,i,j)
 		in
-		let vs = List.map state_of_cond vs
-		in
 		let vs = ValSet.simplify sd vs
-		in
-		let vs = List.map cond_of_state vs
 		in
 		List.iter (Hashtbl.add conditions (a,i,j)) vs
 	in
@@ -182,4 +199,28 @@ let lsset_of_ctx ctx =
 		ISet.fold register is ps
 	in
 	SMap.fold register ctx LSSet.empty
+
+let lsset_of_state s =
+	SMap.fold (fun a i s -> LSSet.add (a,i) s) s LSSet.empty
+
+let is_substate s s' =
+	SMap.for_all (fun a i -> try i = SMap.find a s'
+					with Not_found -> false) s
+
+let an_compl_ctx an ctx =
+	let fold a is ctx =
+		let js = automaton_sdomain an a
+		in
+		let js = ISet.diff js is
+		in
+		SMap.add a js ctx
+	in
+	SMap.fold fold ctx SMap.empty
+
+let condition_matches ctx cond =
+	let ls_matches a i =
+		try ISet.mem i (SMap.find a ctx)
+		with Not_found -> false
+	in
+	SMap.for_all ls_matches cond
 

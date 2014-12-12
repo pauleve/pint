@@ -48,7 +48,7 @@ let enumerate_acyclic_paths register append discard elt0 set0 an (a,i,goal) =
 			in
 			let visit j results =
 				if ISet.mem j visited then results
-				else 
+				else
 					let path = append results path (a,i,j)
 					in
 					if discard results path then
@@ -94,7 +94,7 @@ let simple_acyclic_paths cache =
 
 
 let intermediates cache an obj =
-	let fold_paths ps = function [] -> ps 
+	let fold_paths ps = function [] -> ps
 		| _::path ->
 		let fold_tr ps (a,i,j) = LSSet.add (a,i) ps
 		in
@@ -109,6 +109,8 @@ let push_abstract_transition an goal (conds_list, interm) tr =
 	let conds = Hashtbl.find_all an.conditions tr
 	in
 	let push_conds prod conds =
+		let conds = lsset_of_state conds
+		in
 		List.map (fun conds' -> LSSet.union conds conds') conds_list @ prod
 	in
 	let conds_list = List.fold_left push_conds [] conds
@@ -159,11 +161,15 @@ let concrete_solutions cache an obj (conds, interm) =
 			in
 			List.fold_left fold_tr ISet.empty path
 	in
-	let filter_conds = List.filter (fun cond -> LSSet.subset cond conds)
+	let filter_conds = List.filter (fun cond ->
+		let cond = lsset_of_state cond in LSSet.subset cond conds)
 	in
 	let full_paths = full_paths an ~filter_conds
 	and merge_conds =
-		List.fold_left (fun conds (_, cond) -> LSSet.union conds cond)
+		List.fold_left (fun conds (_, cond) ->
+				let cond = lsset_of_state cond
+				in
+				LSSet.union conds cond)
 			LSSet.empty
 	in
 	let filter_fpath fpath =
