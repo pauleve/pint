@@ -34,6 +34,12 @@ let empty_an ?size:(size=(20,50)) () = {
 	conditions = Hashtbl.create (snd size);
 }
 
+let copy_an an = {
+	automata = Hashtbl.copy an.automata;
+	transitions = Hashtbl.copy an.transitions;
+	conditions = Hashtbl.copy an.conditions;
+}
+
 let automata_limits an =
 	let folder a def lims =
 		(a, List.length def - 1)::lims
