@@ -107,8 +107,8 @@ let pep_of_an ?(mapfile="") opts an ctx =
 		let conds = LSSet.elements conds
 		in
 		let sid = string_of_int id
-		and str = a ^ " " ^ (string_of_astate an a i)
-					^ " -> " ^ (string_of_astate an a j)
+		and str = a ^ " " ^ (string_of_astate ~protect:false an a i)
+					^ " -> " ^ (string_of_astate ~protect:false an a j)
 					^ (match conds with [] -> "" | _ -> " when "^
 						String.concat " and " 
 							(List.map (string_of_localstate ~protect:false an) conds))
