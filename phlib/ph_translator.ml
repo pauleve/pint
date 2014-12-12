@@ -810,9 +810,11 @@ let an_of_ph opts (ps, hits) ctx =
 				PSet.filter (fun (a,_) -> not (is_sort_cooperative a)) procs
 				else procs
 	in
+	let procs = PSet.filter (fun (_,i) -> i > 0) procs
+	in
 	let procs = List.map an_of_proc (PSet.elements procs)
 	in
 	(String.concat "" defs) ^ "\n\n"
 	^ (String.concat "\n" an_transitions) ^ "\n\n"
-	^ "initial_context " ^ (String.concat ", " procs) ^ "\n"
+	^ if procs <> [] then ("initial_context " ^ (String.concat ", " procs) ^ "\n") else ""
 
