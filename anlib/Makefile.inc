@@ -8,6 +8,7 @@ SOURCES := \
 	an_localpaths.ml\
 	localCausalityGraph.ml\
 	an_reach.ml\
+	an_focal.ml\
 	an_stategraph.ml\
 	an_cli.ml\
 

@@ -78,9 +78,9 @@ struct
 			(if safe then
 				assert (above_th || ISet.for_all (fun j -> j < th) js));
 			if above_th then
-				SMap.add b (iset_of_list (Util.range th l)) ctx
+				SMap.add b (Util.srange th l) ctx
 			else
-				SMap.add b (iset_of_list (Util.range 0 (th-1))) ctx
+				SMap.add b (Util.srange 0 (th-1)) ctx
 		in
 		List.fold_left fold_regulation SMap.empty (SMap.find a ig)
 
