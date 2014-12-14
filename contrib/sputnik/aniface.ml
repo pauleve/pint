@@ -8,17 +8,9 @@ let test () =
 	print_endline ("Pint - Sputnik");
 	true
 
-let ig_of_interactions =
-	let fold ig (a, i, s, b) =
-		let ins = try SMap.find b ig with Not_found -> []
-		in
-		SMap.add b ((a,i,s)::ins) ig
-	in
-	List.fold_left fold SMap.empty
+let ig_of_interactions = IG.of_list
 
-let an_of_grn ig limits =
-	(* TODO *)
-	empty_an ()
+let an_of_grn = An_snippets.an_of_ig
 
 let dump_an outf an ctx =
 	let data = An_export.dump_of_an an ctx

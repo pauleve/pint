@@ -40,6 +40,14 @@ struct
 	type res_t = SSet.t
 	type t = ((string * int * sign_t) list) SMap.t
 
+	let of_list =
+		let fold ig (a, i, s, b) =
+			let ins = try SMap.find b ig with Not_found -> []
+			in
+			SMap.add b ((a,i,s)::ins) ig
+		in
+		List.fold_left fold (SMap.empty:t)
+
 	let to_string ig =
 		let string_of_regulation a regs buf =
 			buf ^ (String.concat ";\n" (List.map

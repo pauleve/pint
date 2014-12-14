@@ -11,6 +11,7 @@ SOURCES := \
 	an_focal.ml\
 	an_stategraph.ml\
 	an_cli.ml\
+	an_snippets.ml\
 
 
 #LIBS := 
