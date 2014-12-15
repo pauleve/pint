@@ -196,7 +196,7 @@ let worth_lcg env =
 	gB#saturate_ctx;
 	gB
 
-let is_localstate_worth gB = gB#has_proc
+let is_localstate_worth gB ls = LSSet.mem ls gB#all_procs
 
 let reduced_an env =
 	let module TRSet = Set.Make (struct
