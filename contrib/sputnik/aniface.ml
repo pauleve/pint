@@ -45,9 +45,13 @@ let reduced_an an ctx goal =
 	An_reach.reduced_an env
 
 let worth_lcg an ctx goal =
+	if List.for_all (fun (a,i) -> ISet.mem i (SMap.find a ctx)) goal then
+		None
+	else 
+
 	let env = An_reach.init_env an ctx goal
 	in
-	An_reach.worth_lcg env
+	Some (An_reach.worth_lcg env)
 
-let is_transition_worth = An_reach.is_localstate_worth
+let is_transition_worth = function None -> (fun _ -> true) | Some lcg -> An_reach.is_localstate_worth lcg
 
