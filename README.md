@@ -21,7 +21,7 @@ Some of the tools may require [python](http://python.org).
 
 ##### Compilation requirements
 
-- [OCaml](http://caml.inria.fr) >= 3.12
+- [OCaml](http://caml.inria.fr) >= 4.02
 - [CamlIDL](http://caml.inria.fr/pub/old_caml_site/camlidl/)
 - [Facile](http://www.recherche.enac.fr/opti/facile/distrib)
 - [Python](http://python.org)
