@@ -180,7 +180,96 @@ let pep_of_an ?(mapfile="") opts an ctx =
 	^ "PT\n" ^ (String.concat "\n" pt) ^ "\n"
 	^ (if opts.contextual_ptnet then "RA\n" ^ (String.concat "\n" ra) ^ "\n"
 		else "")
-;;
+
+let romeo_of_an ?(mapfile="") an ctx =
+	let repr_i = string_of_astate ~protect:false an
+	in
+	let repr_ls (a,i) = a^"_"^repr_i a i
+	in
+	let idx_of_place places ls =
+		try
+			(LSMap.find ls places, places)
+		with Not_found -> (
+			let idx = 1 + LSMap.cardinal places
+			in
+			let places = LSMap.add ls idx places
+			in
+			(idx, places)
+		)
+	in
+	let idx_of_places places =
+		let fold_ls (idxs, places) ls =
+			let idx, places = idx_of_place places ls
+			in
+			(idx::idxs, places)
+		in
+		List.fold_left fold_ls ([], places)
+	in
+	let register_transition (a,i,j) conds (id, places, transitions) =
+		let conds = SMap.bindings conds
+		in
+		let sid = string_of_int id
+		and repr_tr = a^"_"^(repr_i a i)^"_"^(repr_i a j)
+					^(match conds with [] -> "" | _ -> "_"^
+						String.concat "__" (List.map repr_ls conds))
+		in
+		let idxs, places = idx_of_places places conds
+		in
+		let id_ai, places = idx_of_place places (a,i)
+		in
+		let id_aj, places = idx_of_place places (a,j)
+		in
+		let sai = string_of_int id_ai
+		and saj = string_of_int id_aj
+		and sidxs = List.map string_of_int idxs
+		in
+		let repr =
+		"<transition id=\""^sid^"\" label=\""^repr_tr^"\"  "
+			^"eft=\"0\" lft=\"0\" "
+			^"eft_param=\"a"^sid^"\" lft_param=\"b"^sid^"\" >\n"
+			^"\t<graphics><position x=\""^string_of_int (j*100+50+100)^"\" y=\"200\"/>"
+				^ "<deltaLabel deltax=\"5\" deltay=\"5\"/>"
+			^"</graphics>\n"
+		^"</transition>\n"
+		^"<arc place=\""^sai^"\" transition=\""^sid^"\" type=\"PlaceTransition\" weight=\"1\"/>\n"
+		^"<arc place=\""^saj^"\" transition=\""^sid^"\" type=\"TransitionPlace\" weight=\"1\"/>\n"
+		^ String.concat "\n" (List.map (fun sbk ->
+			"<arc place=\""^sbk^"\" transition=\""^sid^"\" type=\"read\" weight=\"1\"/>")
+				sidxs)
+		in
+		(id+1, places, repr::transitions)
+	in
+	let (_, mapplaces, transitions) =
+			Hashtbl.fold register_transition an.conditions
+				(1, LSMap.empty, [])
+	in
+	let register_localstate ai id places =
+		let repr =
+		"<place id=\""^string_of_int id^"\" label=\""^repr_ls ai^"\" "
+			^" initialMarking=\""^(if ctx_has_localstate ai ctx then "1" else "0")^"\">\n"
+			^"\t<graphics><position x=\""^(string_of_int (id*100+100))^"\" y=\"100\"/></graphics>\n"
+			^"\t<scheduling gamma=\"0\" omega=\"0\"/>\n"
+		^"</place>"
+		in
+		repr::places
+	in
+	let places = LSMap.fold register_localstate mapplaces []
+	in
+	(if mapfile <> "" then
+		let string_of_map ((a,i), id) =
+					string_of_int id^" "^repr_ls (a,i)
+		in
+		let mapdata = string_of_int (LSMap.cardinal mapplaces)
+			^"\n" ^ (String.concat "\n"
+				(List.map string_of_map (LSMap.bindings mapplaces)))
+			^"\n"
+		in
+		Util.dump_to_file mapfile mapdata
+	);
+	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<TPN>\n"
+	^ (String.concat "\n" places) ^ "\n"
+	^ (String.concat "\n" transitions) ^ "\n</TPN>\n"
+
 
 let prism_of_an an ctx =
 	let a_counter = ref 0
@@ -244,6 +333,5 @@ let prism_of_an an ctx =
 	in
 	"mdp\n\n"
 	^ Hashtbl.fold prism_of_automaton an.automata ""
-;;
 
 

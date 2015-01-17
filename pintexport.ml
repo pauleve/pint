@@ -3,7 +3,7 @@ open PintTypes;;
 open AutomataNetwork;;
 open An_export;;
 
-let languages = ["dump";"pep";"ph";"prism"]
+let languages = ["dump";"pep";"ph";"prism";"romeo"]
 and opt_language = ref "dump"
 and opt_output = ref ""
 and opt_ptnet_context = ref false
@@ -13,12 +13,13 @@ and opt_simplify = ref false
 and opt_mapfile = ref ""
 in
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
-		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), "\tOutput language");
+		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), 
+			"\tOutput language (default: dump)");
 		("-o", Arg.Set_string opt_output, "<filename>\tOutput filename");
-		("--contextual-ptnet", Arg.Set opt_ptnet_context, 
-									"\tContextual petri net");
-		("--mapfile", Arg.Set_string opt_mapfile, 
-									"\tOutput mapping of identifiers (for 'pep')");
+		("--contextual-ptnet", Arg.Set opt_ptnet_context,
+			"\tContextual petri net (used by: pep)");
+		("--mapfile", Arg.Set_string opt_mapfile,
+			"\tOutput mapping of identifiers (used by: pep, romeo)");
 		("--partial", Arg.Set_string opt_partial,
 			"a,b,..\tConsider only the sub-network composed of a, b, ..");
 		("--simplify", Arg.Set opt_simplify,
@@ -32,8 +33,6 @@ in
 let args, abort = An_cli.parse cmdopts usage_msg
 in
 if args <> [] || !opt_language = "" then (abort ());
-if !opt_mapfile <> "" && !opt_language <> "pep" then 
-	(prerr_endline "Option --mapfile only supported with -l pep"; abort ());
 let opts = {
 	contextual_ptnet = !opt_ptnet_context;
 }
@@ -43,6 +42,7 @@ let languages = [
 	("pep", pep_of_an opts ~mapfile:!opt_mapfile);
 	("ph", ph_of_an);
 	("prism", prism_of_an);
+	("romeo", romeo_of_an ~mapfile:!opt_mapfile);
 ]
 in
 let translator = List.assoc !opt_language languages
