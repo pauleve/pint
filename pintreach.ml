@@ -1,4 +1,5 @@
 
+open PintTypes
 open LocalCausalityGraph
 open AutomataNetwork
 
@@ -21,9 +22,14 @@ let goal = match args with
 
 let do_cutsets = !opt_cutsets_n > 0
 
-let _ = if not do_cutsets then abort ()
+let do_reach = not do_cutsets
 
 let env = An_reach.init_env an ctx goal
+
+let static_reach () =
+	let result = An_reach.local_reachability env
+	in
+	print_endline (string_of_ternary result)
 
 let cutsets n =
 	let gA = An_reach.lcg_for_cutsets env
@@ -73,5 +79,6 @@ let cutsets n =
 	List.iter handle_proc env.An_reach.goal
 
 let _ =
-	if do_cutsets then cutsets !opt_cutsets_n
+	(if do_cutsets then cutsets !opt_cutsets_n);
+	(if do_reach then static_reach ())
 

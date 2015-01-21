@@ -527,16 +527,16 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 		let na = PSSet.cardinal a
 		and nb = PSSet.cardinal b
 		in
-		prerr_string ("<"^string_of_int na^"x"^string_of_int nb);
-		flush stderr;
+		(*prerr_string ("<"^string_of_int na^"x"^string_of_int nb);
+		flush stderr;*)
 		let a = if na < nb then PSSet.product max_nkp b a else PSSet.product max_nkp b a 
 		in
-		prerr_string (">");
-		flush stderr;
+		(*prerr_string (">");
+		flush stderr;*)
 		let a = PSSet.simplify max_nkp a
 		in
-		prerr_string (" ");
-		flush stderr;
+		(*prerr_string (" ");
+		flush stderr;*)
 		a)
 	in
 	let nm_union nm =

@@ -238,6 +238,25 @@ let reduced_an env =
 	TRSet.iter register_ftr trs;
 	an'
 
+
+let local_reachability (*?saveGLC:(saveGLC = ref NullGLC) *) env =
+	let sols = An_localpaths.min_abstract_solutions env.sol_cache env.an
+	in
+	let uua, restr_sols = unordered_over_approx env sols
+	in
+	if not uua then
+		False
+	else (
+		prerr_endline ("! Warning, under-approximation is not implemented yet!");
+		(*else if ordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
+			True
+		else match env.pl with [] | [_] -> Inconc | _ ->
+			if unordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
+				True
+			else *)
+				Inconc
+	)
+
 (*
 
 type refGLC = NullGLC | GLC of glc;;
