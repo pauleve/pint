@@ -1,4 +1,6 @@
 
+open Big_int
+
 open PintTypes
 
 open Ph_types
@@ -12,10 +14,13 @@ let usage_msg = "pint-sg - State graph analyser"
 
 let do_count = ref false
 let do_attractors = ref false
+let do_description = ref false
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		("--count-reachable", Arg.Set do_count, "\tCount reachable states.");
 		("--reachable-attractors", Arg.Set do_attractors, "\tList reachable attractors.");
+		("--description", Arg.Set do_description,
+			"\tShow basic counts.");
 	]
 
 let args, abort = An_cli.parse cmdopts usage_msg
@@ -45,7 +50,19 @@ let attractors () =
 				^ string_of_int (size) ^ " states, including:\n\t"
 				^ string_of_state an (state_of_sid sid))) bsccs
 
+let description () =
+	let nb_automata = count_automata an
+	and nb_ls = count_local_states an
+	and nb_tr = count_transitions an
+	and nb_states = count_states an
+	in
+	print_endline (string_of_int nb_automata^" automata");
+	print_endline (string_of_int nb_ls^" local states");
+	print_endline (string_of_int nb_tr^" transitions");
+	print_endline (string_of_big_int nb_states^" states")
+
 let _ =
 	if !do_count then count ();
 	if !do_attractors then attractors ();
+	if !do_description then description ()
 

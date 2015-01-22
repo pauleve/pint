@@ -1,4 +1,6 @@
 
+open Big_int
+
 open PintTypes
 
 type sig_automaton_p = string
@@ -75,6 +77,25 @@ let string_of_ls (a,i) =
 
 let string_of_lsset lsset =
 	String.concat ", " (List.map string_of_ls (LSSet.elements lsset))
+
+
+let count_automata an = Hashtbl.length an.automata
+
+let count_local_states an =
+	let count a ls_defs c =
+		List.length ls_defs + c
+	in
+	Hashtbl.fold count an.automata 0
+
+let count_states an =
+	let count a ls_defs c =
+		mult_int_big_int (List.length ls_defs) c
+	in
+	Hashtbl.fold count an.automata unit_big_int
+
+let count_transitions an =
+	Hashtbl.length an.conditions
+
 
 let has_automaton an name = Hashtbl.mem an.automata name
 
