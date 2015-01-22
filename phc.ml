@@ -69,8 +69,6 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 				"<filename>\tfilename for CTL export (romeo)");
 		("--coop-priority", Arg.Set opt_coop_priority, 
 									"\tAssume hits on cooperative sorts of higher priority");
-		("--contextual-ptnet", Arg.Set opt_ptnet_context, 
-									"\tContextual petri net");
 		("--reduce-for-goal", Arg.String setup_goal, 
 			"<a i>\tReduce the model to include only transitions that may "
 			^ "be involved in the reachability of the given process");
@@ -84,18 +82,13 @@ let opts = {
 	alpha = 0.05;
 	round_fi = Param.round_fi_ex;
 	coop_priority = !opt_coop_priority;
-	contextual_ptnet = !opt_ptnet_context;
 }
 in
 let languages = [
 	("dump", dump_of_ph);
 	("spim", spim_of_ph);
 	("prism", prism_of_ph);
-	("prism_mdp", prism_mdp_of_ph);
 	("romeo", romeo_of_ph opts);
-	("tina", tina_of_ph);
-	("biocham", biocham_of_ph);
-	("kappa", kappa_of_ph);
 	("bn", bn_of_ph);
 	("an", an_of_ph opts);
 ]

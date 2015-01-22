@@ -42,7 +42,6 @@ type opts = {
 	alpha: float; (* 1-confidence *)
 	round_fi: float * float -> int * int; (* firing interval rounding *)
 	coop_priority: bool;
-	contextual_ptnet: bool;
 }
 
 type piproc_arg_action = ArgReset | ArgUpdate of (string * string) list;;
@@ -194,84 +193,6 @@ let spim_of_ph (ps,hits) ctx =
 		"";
 		run
 	]
-;;
-
-
-let prism_mdp_of_ph (ps,hits) ctx =
-	let init_state = state_of_ctx ctx
-	in
-	let modname p = "proc_"^p
-	and statemod p = p
-	in
-
-	let module_of_proc (a,l_a) =
-		let decl = (statemod a)^": [0.."^(string_of_int (max 1 l_a))^"] init "^
-					(string_of_int (state_value init_state a))
-					^"; // state"
-		in
-		(a, ([decl],[],[]))
-	in
-	let modules = List.map module_of_proc ps
-	in
-
-	let module_update modules (id,(decls,actions,counters)) =
-		let _decls,_actions,_counters = List.assoc id modules
-		in
-		(id, (_decls@decls,_actions@actions,_counters@counters))
-		::List.remove_assoc id modules
-	in
-	let modules_update = List.fold_left module_update
-	in
-	let string_of_module (a, (decls, actions,counters)) =
-		let reset_counters = "("^(String.concat "'=1) & (" counters)^"'=1)"
-		in
-		let apply = Str.global_replace (Str.regexp_string "%%") reset_counters
-		in
-		"module "^(modname a)^"\n"^
-		"\t"^(String.concat "\n\t" decls)^"\n\n"^
-		"\t"^apply (String.concat "\n\t" actions)^"\n\n"^
-		"endmodule"
-	in
-
-	let prism_is_state a i = 
-		statemod a^"="^string_of_int i
-	and prism_set_state a i' =
-		"("^statemod a^"'="^string_of_int i'^")"
-	in
-
-	let register_hit (b,j) (((a,i),_),k) (modules, hitid) =
-		let modules =
-			if (a,i) = (b,j) then (
-				let mod_a = (
-						[],
-						["[] "^prism_is_state a i^" -> "^prism_set_state a k^";"],
-						[]
-					)
-				in
-				modules_update modules [a,mod_a]
-			) else (
-				let sync = "[h_"^string_of_int hitid^"] "
-				in
-				let action_a = sync^prism_is_state a i^" -> "
-					^prism_set_state a i^";"
-				and mod_b = (
-						[],
-						[sync^prism_is_state b j^" -> "^prism_set_state b k^";"],
-						[]
-					)
-				in
-				modules_update modules [a,([],[action_a],[]);b,mod_b]
-			)
-		in modules, hitid + 1
-	in
-	let modules, _ = Hashtbl.fold register_hit hits (modules,0)
-	in
-
-
-	let header = "mdp"
-	in
-	header ^ "\n\n" ^ (String.concat "\n\n" (List.map string_of_module modules))
-			^ "\n\n"
 ;;
 
 let prism_of_ph (ps,hits) ctx =
@@ -613,79 +534,6 @@ let romeo_of_ph opts (ps,hits) ctx =
 	(* hits *)
 	^ snd (Hashtbl.fold string_of_hit hits ((1,[]), ""))
 	^ "\n</TPN>\n"
-;;
-
-let tina_of_ph (ps,hits) ctx =
-	let init_state = state_of_ctx ctx
-	in
-	let proc_id ai = string_of_proc ai
-	and tr_id = ref (-1)
-	in
-	let string_of_proc (a,i) =
-		"pl "^proc_id (a,i)^" ("^(if state_value init_state a = i then "1" else "0")^")\n"
-	and string_of_hit bj ((ai,_),k) =
-		tr_id := !tr_id + 1;
-		"tr t"^string_of_int (!tr_id)^" [0,w[ "^proc_id ai^"?1 "^proc_id bj
-			^" -> "^proc_id (fst bj,k)^"\n"
-	in
-	let fold_hits key value buf =
-		buf ^ string_of_hit key value
-	in
-	(* transitions definitions *)
-	Hashtbl.fold fold_hits hits "";
-	^ 
-	(* places definitions *)
-	(String.concat "" (List.map (fun ai -> string_of_proc ai) (list_of_state init_state)))
-;;
-
-let biocham_of_process (a,i) =
-	let bc_of_sort a = "S"^a
-	in
-	bc_of_sort a ^ string_of_int i
-;;
-let biocham_of_ph (ps,hits) ctx =
-	let state = state_of_ctx ctx
-	in
-	let bc_of_process = biocham_of_process
-	in
-	let bc_of_hit (b,j) ((ai,_),k) =
-		bc_of_process (b,j) ^ " =[" ^ bc_of_process ai ^ "] => "
-		^ bc_of_process (b,k) ^".\n"
-	in
-	let fold_hits key value buf =
-		buf ^ bc_of_hit key value
-	in
-	Hashtbl.fold fold_hits hits ""
-	^ "present({"^
-		String.concat "," (List.map bc_of_process (list_of_state state))
-	^ "}).\n"
-	^ "make_absent_not_present.\n"
-;;
-
-let kappa_of_ph (ps,hits) ctx =
-	let state = state_of_ctx ctx
-	in
-	let term_of_process (a,i) = a^"(s~"^string_of_int i^")"
-	in
-	let string_of_hit (b,j) ((ai,_),k) =
-		term_of_process (b,j) ^ ", " ^ term_of_process ai ^ " -> "
-		^ term_of_process (b,k) ^", "^ term_of_process ai
-	in
-	let fold_hits key value buf =
-		buf ^ (string_of_hit key value) ^ "\n"
-	in
-
-	let obj_of_process ai = "%obs: '" ^ string_of_proc ai ^ "' " 
-				^ term_of_process ai
-	in
-
-	Hashtbl.fold fold_hits hits ""
-	^ "\n%init: ("^
-		String.concat "," (List.map term_of_process (list_of_state state))
-	^ ")\n\n"
-	^ (String.concat "\n" (List.flatten (List.map (fun (a,i) -> List.map (fun j -> 
-			obj_of_process (a,j)) (Util.range 0 i)) ps)))
-	^ "\n"
 ;;
 
 let asp_of_ph (ps, hits) _ = 
