@@ -5,7 +5,7 @@ TARGETS=\
 	pint-lcg\
 	pint-reach\
 	pint-sg\
-	ph-stable\
+	pint-stable\
 	ph-reach\
 	phc\
 	ph-stat\
@@ -87,7 +87,7 @@ OSX_TARGETS=\
 	pint-lcg\
 	pint-reach\
 	pint-sg\
-	ph-stable\
+	pint-stable\
 	ph-reach\
 	phc\
 	ph-stat\

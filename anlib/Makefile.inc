@@ -1,6 +1,7 @@
 
 SOURCES := \
 	automataNetwork.ml\
+	an_fixpoint.ml\
 	an_export.ml\
 	an_parser.mly\
 	an_lexer.mll\
