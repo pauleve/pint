@@ -164,6 +164,8 @@ let simplify an =
 let string_of_state an s =
 	String.concat ", " (List.map (string_of_localstate an) (SMap.bindings s))
 
+let resolve_siglocalstates an =
+	List.map (fun (a,sig_i) -> (a,get_automaton_state_id an a sig_i))
 (**
 	Context
 **)

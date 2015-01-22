@@ -49,7 +49,6 @@ and opt_output = ref ""
 and opt_romeo_ctl = ref ""
 and opt_romeo_ctl_file = ref ""
 and opt_coop_priority = ref false
-and opt_ptnet_context = ref false
 and opt_goal = ref ([] : process list)
 in
 let setup_goal opt =

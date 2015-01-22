@@ -2,6 +2,19 @@
 open Ph_types
 open AutomataNetwork
 
+let parse_local_state an data =
+	let (a,sig_i) = An_input.parse_string An_parser.local_state data
+	in
+	(a, get_automaton_state_id an a sig_i)
+
+let parse_sls_list = An_input.parse_string An_parser.local_state_list
+
+let arg_string_set f ref =
+	Arg.String (fun s -> ref := f s)
+
+let arg_set_sls_list =
+	arg_string_set parse_sls_list
+
 let common_cmdopts = [
 	("--no-debug", Arg.Clear Debug.dodebug, "Disable debugging");
 	("--debug", Arg.Set Debug.dodebug, "Enable debugging");
@@ -24,14 +37,11 @@ let setup_opt_channel_in filename =
 
 let opt_override_ctx = ref []
 
-let setup_opt_initial_ctx opt =
-	opt_override_ctx := An_input.parse_string An_parser.local_state_list opt
-
 let input_cmdopts = [
 	("-i", Arg.String setup_opt_channel_in, "<model.an>\tInput filename");
-	("--initial-state", Arg.String setup_opt_initial_ctx,
+	("--initial-state", arg_set_sls_list opt_override_ctx,
 		"<local state list>\tInitial state");
-	("--initial-context", Arg.String setup_opt_initial_ctx,
+	("--initial-context", arg_set_sls_list opt_override_ctx,
 		"<local state list>\tInitial context (equivalent to --initial-state)");
 	]
 
@@ -56,10 +66,5 @@ let process_input () =
 	let ctx = ctx_override_by_ctx ctx user_ctx
 	in
 	an, ctx
-
-let parse_local_state an data =
-	let (a,sig_i) = An_input.parse_string An_parser.local_state data
-	in
-	(a, get_automaton_state_id an a sig_i)
 
 
