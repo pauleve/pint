@@ -26,7 +26,6 @@ MISC_TOOLS = \
 .PHONY: $(TARGETS)
 
 all: $(TARGETS)
-	echo $(OCAML_LIBDIR)
 
 $(TARGETS):
 	make -f target/$@

@@ -29,7 +29,7 @@ export PHLIB_SOURCES
 PHLIB_LIBS := $(LIBS)
 export PHLIB_LIBS
 
-OCAML_DEFAULT_DIRS := $(OCAML_LIBDIR)facile
+OCAML_DEFAULT_DIRS += $(OCAML_LIBDIR)facile
 export OCAML_DEFAULT_DIRS
 
 # vi:set syntax=make:
