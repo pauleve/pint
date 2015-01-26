@@ -1,9 +1,13 @@
 
-OCAML_LIBDIR=$(shell opam config var lib 2>/dev/null)
-ifeq ($(OCAML_LIBDIR),)
-	OCAML_LIBDIR := +
+OPAM_VERSION = $(shell opam --version 2>/dev/null)
+ifneq ($(OPAM_VERSION),)
+	HAS_OPAM = 1
+endif
+
+ifdef HAS_OPAM
+	OCAML_LIBDIR := $(shell opam config var lib)/
 else
-	OCAML_LIBDIR := $(OCAML_LIBDIR)/
+	OCAML_LIBDIR := +
 endif
 
 
