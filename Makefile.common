@@ -1,4 +1,12 @@
 
+OCAML_LIBDIR=$(shell opam config var lib 2>/dev/null)
+ifeq ($(OCAML_LIBDIR),)
+	OCAML_LIBDIR := +
+else
+	OCAML_LIBDIR := $(OCAML_LIBDIR)/
+endif
+
+
 DIST_SOURCES := build/distenv.ml
 export DIST_SOURCES
 

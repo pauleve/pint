@@ -1,5 +1,7 @@
 
 TARGETS=\
+	libpint\
+	pinttop\
 	pint-config\
 	pint-export\
 	pint-lcg\
@@ -11,8 +13,6 @@ TARGETS=\
 	ph-stat\
 	ph-exec\
 	ph2thomas\
-	libpint\
-	pinttop\
 
 
 MISC_TOOLS = \
@@ -26,6 +26,7 @@ MISC_TOOLS = \
 .PHONY: $(TARGETS)
 
 all: $(TARGETS)
+	echo $(OCAML_LIBDIR)
 
 $(TARGETS):
 	make -f target/$@
