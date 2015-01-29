@@ -41,10 +41,9 @@ knowledge of the CeCILL license and that you accept its terms.
 open Ph_translator;;
 open Ph_types;;
 
-let languages = ["dump"; "spim"; "prism"; "prism_mdp"; "romeo"; "tina"; 
-					"biocham"; "kappa";"bn";"an"];;
+let languages = ["an";"dump";"prism";"romeo"];;
 
-let opt_language = ref "dump"
+let opt_language = ref "an"
 and opt_output = ref ""
 and opt_romeo_ctl = ref ""
 and opt_romeo_ctl_file = ref ""
@@ -84,12 +83,10 @@ let opts = {
 }
 in
 let languages = [
+	("an", an_of_ph opts);
 	("dump", dump_of_ph);
-	("spim", spim_of_ph);
 	("prism", prism_of_ph);
 	("romeo", romeo_of_ph opts);
-	("bn", bn_of_ph);
-	("an", an_of_ph opts);
 ]
 in
 let translator = List.assoc !opt_language languages

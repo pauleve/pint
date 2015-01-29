@@ -6,9 +6,6 @@ val dump_of_ph : Ph_types.ph -> Ph_types.ctx -> string
 (** Returns the PRISM (ctmc) translation of the given Process Hitting. *)
 val prism_of_ph : Ph_types.ph -> Ph_types.ctx -> string
 
-(** Returns the SPiM translation of the given Process Hitting. *)
-val spim_of_ph : Ph_types.ph -> Ph_types.ctx -> string
-
 (** Stochastic parameters to strict timed interval conversion options:
 	[alpha] is the confidence coefficient;
 	[round_fi (d,D)] converts a float interval into an integer interva;
@@ -24,11 +21,6 @@ val romeo_of_ph : opts -> Ph_types.ph -> Ph_types.ctx -> string
 
 (** Returns the ASP translation of the given Process Hitting - WiP *)
 val asp_of_ph : Ph_types.ph -> Ph_types.ctx -> string
-
-(** Returns the BoolNet translation of the given Process Hitting.
-	Warning: no sanity check is done. Actually returns the fixed-point condition 
-	for each non-cooperative sort to be 1 *)
-val bn_of_ph : Ph_types.ph -> Ph_types.ctx -> string
 
 (** Returns the AN-Pint translation of the given Process Hitting. *)
 val an_of_ph : opts -> Ph_types.ph -> Ph_types.ctx -> string

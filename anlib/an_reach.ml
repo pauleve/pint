@@ -188,12 +188,13 @@ let worth_lcg env =
 		saturate_procs_by_objs = saturate_procs_by_objs}
 	and sols = An_localpaths.complete_abstract_solutions env.sol_cache env.an
 	in
-	let _, sols = unordered_over_approx env sols
+	let uua, sols = unordered_over_approx env sols
 	in
 	let gB = new glc glc_setup env.ctx env.goal sols
 	in
-	gB#build;
-	gB#saturate_ctx;
+	(if uua then
+		(gB#build;
+		gB#saturate_ctx));
 	gB
 
 let is_localstate_worth gB ls = LSSet.mem ls gB#all_procs

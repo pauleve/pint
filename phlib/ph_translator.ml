@@ -35,165 +35,14 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 *)
 
-open PintTypes;;
-open Ph_types;;
+open PintTypes
+open Ph_types
 
 type opts = {
 	alpha: float; (* 1-confidence *)
 	round_fi: float * float -> int * int; (* firing interval rounding *)
 	coop_priority: bool;
 }
-
-type piproc_arg_action = ArgReset | ArgUpdate of (string * string) list;;
-
-(* spim_of_ph with stochasticity_absorption *)
-let spim_of_ph (ps,hits) ctx =
-	let init_state = state_of_ctx ctx
-	in
-	let chanl_of_process a = "l_"^a
-	and p_level (a,i) = a^"("^string_of_int i^")"
-	and p_name (a,i) = a^string_of_int i
-	in
-	let register_metaproc piprocs (p,l) =
-		piprocs @ List.map (fun l -> (p,l),[]) (Util.range 0 l)
-	in
-	let piprocs = List.fold_left register_metaproc [] ps
-	in
-	let add_pichoice piprocs piproc pi =
-		let pis = List.assoc piproc piprocs
-		in
-		(piproc,pi::pis)::List.remove_assoc piproc piprocs
-	in
-	let register_hit p2 ((p1,stoch),l) (piprocs,channels,counter) =
-		let rsa = rsa_of_stochatime stoch
-		in
-		let hitid = "hit"^string_of_int counter
-		and p2' = (fst p2,l)
-		and notify_level = "!"^chanl_of_process (fst p2)^"("^string_of_int l^")"
-		in
-		let hitcounter = "c_"^hitid
-		and nexts, nextd = notify_level^";%%", [p2',ArgReset]
-		in
-		let stochasticity_absorption p action = match rsa with
-			  None | Some(_,1) -> (action^nexts, nextd)
-			| Some(_,sa) -> (
-				action^"if "^hitcounter^" = "^string_of_int sa^" then ("^
-					nexts^") else (%%)", nextd@[p,ArgUpdate [hitcounter,"+1"]])
-		in
-		let piprocs = 
-			if p1 = p2 then (
-				(* delay *)
-				let action = "delay@"^hitid^";"
-				in
-				let pi = stochasticity_absorption p1 action
-				in
-				add_pichoice piprocs p2 pi
-			) else (
-				(* a_i *)
-				let pi = ("!"^hitid^";%%", [p1,ArgUpdate []])
-				in
-				let piprocs = add_pichoice piprocs p1 pi
-				in
-				(* b_j *)
-				let pi = stochasticity_absorption p2 ("?"^hitid^";")
-				in
-				add_pichoice piprocs p2 pi
-			)
-		in
-		let c = (hitid, rsa, p2 <> p1)
-		in
-		(piprocs,c::channels,counter+1)
-	in
-	let piprocs,channels,counter = Hashtbl.fold register_hit hits (piprocs,[],0)
-	in
-	let extract_args (p, pis) =
-		let extract_args (_, d) = List.flatten 
-			(List.map (fun (p,arg_action) -> match arg_action with 
-				  ArgUpdate args -> List.map fst args
-				| _ -> []) d)
-		in
-		p, List.flatten (List.map extract_args pis)
-	in
-	let p_args = List.map extract_args piprocs
-	in
-
-	let string_of_picall (p, arg_action) =
-		let args = List.assoc p p_args
-		in
-		(p_name p)^"("^(String.concat "," (match arg_action with
-		  ArgUpdate au -> List.map (fun arg ->
-		  	arg^try List.assoc arg au with Not_found -> "") args
-		| ArgReset -> List.map (fun arg -> "1") args
-		))^")"
-	in
-
-	let string_of_pi piproc (pis, pid) =
-		Util.string_apply "%%" pis (List.map string_of_picall pid)
-	in
-		
-	let string_of_channel (hitid, rsa, ischan) =
-		match rsa with
-			  None -> assert ischan; ("new "^hitid^":chan")
-			| Some (r,sa) ->
-				let r = Util.string_of_float0 (r *. float_of_int sa)
-				in
-				if ischan then ("new "^hitid^"@"^r^":chan") else ("val "^hitid^"="^r)
-	and string_of_piproc (p, choices) =
-		let args = List.assoc p p_args
-		in
-		(p_name p)^"("^(String.concat "," 
-				(List.map (fun arg -> arg^":int") args))^") = "
-		^ match choices with
-		  [] -> "!dead"
-		| [pi] -> string_of_pi p pi
-		| pis -> "do "^String.concat " or " (List.map (string_of_pi p) pis)
-	in
-
-	(* plot list *)
-	let plot_list = String.concat ";" (List.flatten
-		(List.map (fun (a,l_a) -> 
-			List.map (fun i -> p_level (a,i)) (Util.range 0 l_a)) ps))
-	
-
-	(* level changes notifiers *)
-	and def_notifiers = String.concat "\n"
-		(List.map (fun (a,l_a) -> "new "^chanl_of_process a^":chan(int)") ps)
-
-	and notifiers = "let "^String.concat "\nand "
-		(List.map (fun (a,l_a) -> 
-			a^"(level:int) = ?"^chanl_of_process a^"(level); "^a^"(level)") ps)
-	in
-
-	(* channels definitions *)
-	let defs = "new dead:chan\n" ^ 
-		(String.concat "\n" (List.map string_of_channel channels))
-	
-	(* processes definitions *)
-	and body = "let "^
-		String.concat "\nand " (List.map string_of_piproc piprocs)^
-		"\n\nlet w() = delay@0.5; w()" (* wake-up process *)
-
-	(* initial state *)
-	and run = "run ("^(String.concat " | " (List.map (fun p -> 
-						string_of_picall (p,ArgReset)^ "|" ^ p_level p)
-						(list_of_state init_state))) ^
-					"| w())\n"
-	in
-	String.concat "\n" [
-		"directive sample "^Util.string_of_float0 Ph_types.directive.sample;
-		"directive plot w();"^plot_list;
-		"";
-		"(* level changes notifiers *)";
-		def_notifiers;
-		notifiers;
-		"";
-		defs;
-		"";
-		body;
-		"";
-		run
-	]
-;;
 
 let prism_of_ph (ps,hits) ctx =
 	let init_state = state_of_ctx ctx
@@ -327,110 +176,6 @@ let prism_of_ph (ps,hits) ctx =
 	^ (String.concat "" (List.map string_of_sa_const sa_consts)) ^ "\n"
 	^ (String.concat "\n\n" (List.map string_of_module modules))
 	^ "\n\n"
-;;
-
-(*
-let prism2_of_ph (ps,hits) init_state =
-	let modname p = "proc_"^p
-	and statemod p = p
-	and hitcounter hitid = "c_"^string_of_int hitid
-	in
-
-	let module_of_proc (a,l_a) =
-		let decl = (statemod a)^": [0.."^(string_of_int l_a)^"] init "^
-					(string_of_int (List.assoc a init_state))
-					^"; // state"
-		in
-		(a, ([decl],[],[]))
-	in
-	let modules = List.map module_of_proc ps
-	in
-
-	let module_update modules (id,(decls,actions,counters)) =
-		let _decls,_actions,_counters = List.assoc id modules
-		in
-		(id, (_decls@decls,_actions@actions,_counters@counters))
-		::List.remove_assoc id modules
-	in
-	let modules_update = List.fold_left module_update
-	in
-	let string_of_module (a, (decls, actions,counters)) =
-		let reset_counters = "("^(String.concat "'=1) & (" counters)^"'=1)"
-		in
-		let apply = Str.global_replace (Str.regexp_string "%%") reset_counters
-		in
-		"module "^(modname a)^"\n"^
-		"\t"^(String.concat "\n\t" decls)^"\n\n"^
-		"\t"^apply (String.concat "\n\t" actions)^"\n\n"^
-		"endmodule"
-	in
-
-	let prism_is_state a i = 
-		statemod a^"="^string_of_int i
-	and prism_set_state a i' =
-		"("^statemod a^"'="^string_of_int i'^")"
-	in
-
-	let register_hit (b,j) (((a,i),(r,sa)),k) (modules, hitid) =
-		let modules =
-			let sa = sa_value sa
-			in
-			let r = string_of_float0 (r *. float_of_int sa)
-			in
-			if (a,i) = (b,j) then (
-				let mod_a = 
-					if sa = 1 then (
-						[],
-						["[] "^prism_is_state a i^" -> "^r^": "^prism_set_state a k^";"],
-						[]
-					) else (
-						let hc = hitcounter hitid
-						in
-						[hc ^": [1.."^string_of_int sa^"] init 1;"],
-						["[] "^prism_is_state a i^" & "^hc^"<"^string_of_int sa^
-								" -> "^r^": ("^hc^"'="^hc^"+1);"
-						;"[] "^prism_is_state a i^" & "^hc^"="^string_of_int sa^
-								" -> "^r^": "^prism_set_state a k^" & %%;"],
-						[hc]
-					)
-				in
-				modules_update modules [a,mod_a]
-			) else (
-				let sync = "[h_"^string_of_int hitid^"] "
-				in
-				let action_a = sync^prism_is_state a i^" -> "^
-					r^": "^prism_set_state a i^";"
-				and mod_b =
-					if sa = 1 then (
-						[],
-						[sync^prism_is_state b j^" -> "^prism_set_state b k^";"],
-						[]
-					) else (
-						let hc = hitcounter hitid
-						in
-						[hc ^": [1.."^string_of_int sa^"] init 1;"],
-						[sync^prism_is_state b j^" & "^hc^"<"^string_of_int sa^
-								" -> ("^hc^"'="^hc^"+1);"
-						;sync^prism_is_state b j^" & "^hc^"="^string_of_int sa^
-								" -> "^
-								prism_set_state b k^" & %%;"],
-						[hc]
-					)
-				in
-				modules_update modules [a,([],[action_a],[]);b,mod_b]
-			)
-		in modules, hitid + 1
-	in
-	let modules, _ = Hashtbl.fold register_hit hits (modules,0)
-	in
-
-
-	let header = "ctmc"
-	in
-	header ^ "\n\n" ^ (String.concat "\n\n" (List.map string_of_module modules))
-			^ "\n\n"
-;;
-*)
 
 let dump_of_ph (ps,hits) ctx =
 (*	(String.concat "\n" (List.map (fun (pname, pvalue) -> 
@@ -464,7 +209,6 @@ let dump_of_ph (ps,hits) ctx =
 		(if is_state then "initial_state " else "initial_context ")
 		^ String.concat ", " (List.map pintstring_of_proc (PSet.elements procs))
 	^"\n\n"
-;;
 
 let romeo_pid (ps,_) (a,i) =
 	let sorts = List.map fst ps
@@ -476,7 +220,6 @@ let romeo_pid (ps,_) (a,i) =
 		in List.rev (List.fold_left folder [1] ps)
 	in
 	string_of_int (List.nth base_id (sort_id a) + i)
-;;
 
 let romeo_of_ph opts (ps,hits) ctx =
 	let init_state = state_of_ctx ctx
@@ -534,14 +277,14 @@ let romeo_of_ph opts (ps,hits) ctx =
 	(* hits *)
 	^ snd (Hashtbl.fold string_of_hit hits ((1,[]), ""))
 	^ "\n</TPN>\n"
-;;
 
-let asp_of_ph (ps, hits) _ = 
+
+let asp_of_ph (ps, hits) _ =
 	(*** Écriture dans le fichier de sortie ***)
 	"% Translation of the Process Hitting to ASP\n"
 	(* Sortes *)
 	^ "\n% Sorts\n"
-	^ (String.concat "" (List.map (fun sort -> 
+	^ (String.concat "" (List.map (fun sort ->
 				"sort(\"" ^ (fst sort) ^ "\"," ^ (string_of_int (snd sort)) ^ ").\n") ps))
 	(* Frappes du PH *)
 	^ "\n% Actions\n"
@@ -549,42 +292,6 @@ let asp_of_ph (ps, hits) _ =
 		  buf ^ ("action(\"" ^ (fst hit) ^ "\"," ^ (string_of_int (snd hit)) ^ "," ^
 		  "\"" ^ (fst target) ^ "\"," ^ (string_of_int (snd target)) ^ "," ^ (string_of_int bounce) ^
 		  ").\n")) hits ""
-;;
-
-let bn_of_ph (ps, hits) _ =
-	let reg = !Ph_instance.cooperativities
-	in
-	let exclude_cooperativities = List.filter (fun (a,_) -> not (SMap.mem a reg))
-	in
-	let bn_of_proc (a,i) = 
-		(if i = 0 then "!" else "")^a
-	in
-	let bn_of_cond c = String.concat " & " (List.map bn_of_proc c)
-	in
-	let bn_of_sort a = 
-		let conds = Ph_cooperativity.local_fixed_points ~level1:true 
-											reg (ps,hits) (a,1)
-		in
-		let conds = List.map list_of_state conds
-		in
-		let conds = List.map exclude_cooperativities conds
-		in
-		let conds = List.map bn_of_cond conds
-		in
-		a ^ ": "^
-			match conds with
-			  [""] -> a
-			| [c] -> c
-			| _ -> ("("^(String.concat ") | (" conds)^")")
-	and nodes = List.map fst (exclude_cooperativities ps)
-	in
-	"targets: factors\n"
-	^ (String.concat "\n" (List.map bn_of_sort nodes))
-	^ "\n"
-;;
-
-let debug_vs vs =
-    List.iter (fun s -> prerr_endline (string_of_state s)) vs
 
 let an_of_ph opts (ps, hits) ctx =
 	let sd = List.fold_left (fun sd (a,l) -> SMap.add a (Util.range 0 l) sd)
