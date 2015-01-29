@@ -3,7 +3,7 @@ open PintTypes;;
 open AutomataNetwork;;
 open An_export;;
 
-let languages = ["dump";"pep";"ph";"prism";"romeo"]
+let languages = ["dump";"nusmv";"pep";"ph";"prism";"romeo"]
 and opt_language = ref "dump"
 and opt_output = ref ""
 and opt_ptnet_context = ref false
@@ -40,6 +40,7 @@ in
 let languages = [
 	("dump", dump_of_an);
 	("pep", pep_of_an opts ~mapfile:!opt_mapfile);
+	("nusmv", nusmv_of_an);
 	("ph", ph_of_an);
 	("prism", prism_of_an);
 	("romeo", romeo_of_an ~mapfile:!opt_mapfile);

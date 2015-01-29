@@ -335,3 +335,77 @@ let prism_of_an an ctx =
 	^ Hashtbl.fold prism_of_automaton an.automata ""
 
 
+let nusmv_of_an an ctx =
+	let varname a = "a_"^a
+	and updname a = "u_"^a
+	in
+	let automaton_spec a spec specs =
+		(a, List.map snd spec)::specs
+	in
+	let automata_spec = Hashtbl.fold automaton_spec an.automata []
+	in
+	let automata_spec = List.sort compare automata_spec
+	in
+	let def_automaton (a, is) =
+		varname a^": {"^(String.concat "," (List.map string_of_int is))^"};"
+	in
+	let nusmv_of_conditions (a, i, j) conds =
+		let conds = (a,i)::SMap.bindings conds
+		in
+		let conds = List.map (fun (a,i) -> varname a^"="^string_of_int i) conds
+		in
+		String.concat " & " conds
+	in
+	let nusmv_of_transitions (a, is) =
+		let nusmv_of_transition a i j conds =
+			"u="^updname a^" & "^nusmv_of_conditions (a,i,j) conds
+				^": "^string_of_int j^";\n"
+		in
+		let nusmv_of_transitions a i =
+			let transitions = Hashtbl.find an.transitions (a,i)
+			in
+			let nusmv_trs = List.map (fun j ->
+				let conds_list = Hashtbl.find_all an.conditions (a,i,j)
+				in
+				List.map (nusmv_of_transition a i j) conds_list)
+					(ISet.elements transitions)
+			in
+			List.flatten nusmv_trs
+		in
+		"next("^varname a^") := case\n\t"
+		^(String.concat "\t" (List.flatten
+				(List.map (nusmv_of_transitions a) is)))
+		^"\tTRUE: "^varname a^";\nesac;"
+	in
+	let nusmv_fp_cond =
+		let fold tr conds acc =
+			nusmv_of_conditions tr conds::acc
+		in
+		let conds = Hashtbl.fold fold an.conditions []
+		in
+		let conds = List.map (fun expr -> "!("^expr^")") conds
+		in
+		String.concat " & " conds
+	in
+	let nusmv_of_init (a, is) =
+		let is = ISet.elements is
+		in
+		match is with
+		  [i] -> varname a^"="^string_of_int i
+		| _ -> "("^(String.concat " | " (List.map (fun i ->
+					varname a^"="^string_of_int i) is))^")"
+	in
+	"MODULE main\n\n"
+	^"IVAR\n\tu: {u_"^(String.concat ", u_" (List.map fst automata_spec)) ^"};\n"
+	^"\nVAR\n\t"
+	^(String.concat "\n\t" (List.map def_automaton automata_spec))^"\n"
+	^"\nASSIGN\n"
+	^(String.concat "\n" (List.map nusmv_of_transitions automata_spec))^"\n"
+	^"\nTRANS\n\t"
+	^(String.concat " |\n\t" (List.map (fun (a,_) ->
+		"next("^varname a^") != "^varname a) automata_spec))
+	^ " |\n\t("^nusmv_fp_cond^");\n"
+	^"\nINIT\n"
+	^"\t"^(String.concat " & " (List.map nusmv_of_init (SMap.bindings ctx)))^";\n"
+	^"\n"
+
