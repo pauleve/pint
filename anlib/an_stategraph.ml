@@ -37,6 +37,13 @@ let index_automata aindex =
 let single_sid base i ai =
 	shift_left_big_int (big_int_of_int ai) (base*i)
 
+let extract_local_state base sid i =
+	(* extract_big_int sid (base*i) base*)
+	let sid = shift_right_big_int sid (base*i)
+	in
+	extract_big_int sid 0 base
+
+
 let encode_transitions base aindex an =
 	let single_sid = single_sid base
 	and prepare_cond (b,j) =
@@ -44,7 +51,7 @@ let encode_transitions base aindex an =
 		in
 		let j = big_int_of_int j
 		in
-		(fun sid -> extract_big_int sid (base*id) base), eq_big_int j
+		(fun sid -> extract_local_state base sid id), eq_big_int j
 	in
 	let fold_transitions (a,i,j) conds etransitions =
 		let id = SMap.find a aindex
@@ -76,7 +83,7 @@ let sid_of_state base aindex state =
 
 let state_of_sid base aindex sid =
 	let folder a id state =
-		let i = extract_big_int sid (base*id) base
+		let i = extract_local_state base sid id
 		in
 		let i = int_of_big_int i
 		in
@@ -96,6 +103,7 @@ let prepare_sts an state =
 	in
 	let etrs = encode_transitions base aindex an
 	and sid0 = sid_of_state base aindex state
+	and state_of_sid = state_of_sid base aindex
 	in
 	let next_sids sid =
 		let fold_etr sids (precond, shift) =
@@ -105,7 +113,7 @@ let prepare_sts an state =
 		in
 		List.fold_left fold_etr [] etrs
 	in
-	sid0, next_sids, state_of_sid base aindex
+	sid0, next_sids, state_of_sid
 
 let reachable_states an state =
 	let sid0, next_sids, _ = prepare_sts an state
