@@ -1,4 +1,4 @@
-## Pint - Process Hitting tools
+## Pint - Static analyzer for dynamics of Automata Networks
 
 Distributed under [CeCCIL licence](http://cecill.info/licences/Licence_CeCILL_V2-en.html).
 
