@@ -172,7 +172,7 @@ let lcg_for_cutsets env =
 	gA
 
 let worth_lcg env =
-	let folder a def bools = 
+	let folder a def bools =
 		if List.length def = 2 then SSet.add a bools else bools
 	in
 	let bool_automata = Hashtbl.fold folder env.an.automata SSet.empty
@@ -192,10 +192,14 @@ let worth_lcg env =
 	in
 	let gB = new glc glc_setup env.ctx env.goal sols
 	in
-	(if uua then
-		(gB#build;
-		gB#saturate_ctx));
-	gB
+	if uua then (
+		gB#build;
+		gB#saturate_ctx;
+		let gB = bot_trimmed_lcg env sols gB
+		in
+		top_trimmed_lcg env gB;
+		gB
+	) else gB
 
 let is_localstate_worth gB ls = LSSet.mem ls gB#all_procs
 
