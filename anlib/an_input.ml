@@ -28,6 +28,8 @@ let parse channel_in =
 	)
 
 let parse_string entry data =
+	Parsing.clear_parser ();
+	(*Parsing.set_trace true;*)
 	let lexing = Lexing.from_string data
 	in
 	try

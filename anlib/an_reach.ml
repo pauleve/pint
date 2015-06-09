@@ -171,6 +171,16 @@ let lcg_for_cutsets env =
 	top_trimmed_lcg env gA;
 	gA
 
+let lcg_for_requirements env =
+	let sols = An_localpaths.min_abstract_solutions env.sol_cache env.an
+	in
+	let gA = new glc oa_glc_setup env.ctx env.goal sols
+	in
+    gA#set_auto_conts false;
+    gA#build;
+	top_trimmed_lcg env gA;
+	gA
+
 let worth_lcg env =
 	let folder a def bools =
 		if List.length def = 2 then SSet.add a bools else bools

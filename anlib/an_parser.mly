@@ -92,11 +92,10 @@ initial_ctx:
 | Initial_context local_state_list	{ $2 }
 ;
 
-automata_set: LCURLY automata_set_t RCURLY { $2 };
-automata_set_t:
+automata_set:
   automaton { SSet.singleton $1 }
-| automaton COMMA automata_set_t { SSet.add $1 $3 }
+| automaton Eof { SSet.singleton $1 }
+| automaton COMMA automata_set { SSet.add $1 $3 }
 ;
-
 
 %%

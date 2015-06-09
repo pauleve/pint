@@ -503,25 +503,28 @@ let rec cleanup_gA_for_cutsets gA =
 	| _ -> (List.iter apply todel; cleanup_gA_for_cutsets gA)
 ;;
 
-let cutsets (gA:#graph) max_nkp ignore_proc leafs =
-
-	let proc_index = Hashtbl.create (gA#count_procs)
-	and index_proc = Hashtbl.create (gA#count_procs)
-	and next_proc_index = ref 0
+let indexer size =
+	let proc_index = Hashtbl.create size
+	and index_proc = Hashtbl.create size
+	and next_index = ref 0
 	in
-	let get_proc_index ai =
+	let get_index ai =
 		try
 			Hashtbl.find proc_index ai
 		with Not_found -> (
-			let idx = !next_proc_index
+			let idx = !next_index
 			in
 			Hashtbl.add proc_index ai idx;
 			Hashtbl.add index_proc idx ai;
-			next_proc_index := idx + 1;
+			next_index := idx + 1;
 			idx
 		)
 	in
+	get_index, index_proc
 
+let cutsets (gA:#graph) max_nkp ignore_proc leafs =
+	let get_proc_index, index_proc = indexer (gA#count_procs)
+	in
 	let psset_product a b =
 		if b = PSSet.full then a else (
 		let na = PSSet.cardinal a
@@ -602,7 +605,74 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 	dbg ("****** systime: "^string_of_float (Sys.time () -. t0)^"s");
 	dbg ("Visited nodes: "^string_of_int !total_count);
 	(flood_values, index_proc)
-;;
+
+
+let requirements (gA:#graph) automata leafs universal =
+	let max_card = SSet.cardinal automata
+	and get_proc_index, index_proc = indexer (gA#count_procs)
+	in
+	let psset_product a b =
+		if b = PSSet.full then a else (
+		let na = PSSet.cardinal a
+		and nb = PSSet.cardinal b
+		in
+		let a = if na < nb then PSSet.product max_card b a else PSSet.product max_card b a
+		in
+		let a = PSSet.simplify max_card a
+		in
+		a)
+	in
+	let nm_union nm =
+		let c = NodeMap.cardinal nm
+		in
+		match c with
+			  0 -> PSSet.empty
+			| 1 -> snd (NodeMap.choose nm)
+			| _ -> NodeMap.fold (fun _ -> PSSet.union) nm PSSet.empty
+	and nm_cross nm =
+		NodeMap.fold (fun _ -> psset_product) nm PSSet.full
+	in
+	let total_count = ref 0
+	in
+	let update_value n (_,nm) =
+		total_count := !total_count + 1;
+		match n with
+		  NodeSol _ ->
+		  	NodeMap.fold (fun _ -> psset_product) nm PSSet.full
+
+		| NodeProc ai ->
+			if SSet.mem (fst ai) automata then
+				let aisingle = PSSet.singleton (get_proc_index ai)
+				in
+				(*let nm = NodeMap.map (PSSet.rm_sursets max_card aisingle) nm
+				in
+				let pss = (if universal then nm_cross else nm_union) nm
+				in
+				psset_product pss aisingle
+				*)
+				aisingle
+			else
+				(if universal then nm_cross else nm_union) nm
+
+		| NodeObj (a,j,i) ->
+			NodeMap.fold (function NodeSol _ -> PSSet.union | _ -> (fun _ c -> c)) nm PSSet.empty
+	in
+    let init n =
+		let register_child nm n' =
+			NodeMap.add n' PSSet.full nm
+		in
+		let nm0 = List.fold_left register_child NodeMap.empty (gA#childs n)
+		in
+		PSSet.full, nm0
+    in
+	let t0 = Sys.time ()
+	in
+    let flood_values = gA#rflood PSSet.equal init default_flooder_update_cache update_value leafs
+	in
+	dbg ("****** systime: "^string_of_float (Sys.time () -. t0)^"s");
+	dbg ("Visited nodes: "^string_of_int !total_count);
+	(flood_values, index_proc)
+
 
 
 (**
