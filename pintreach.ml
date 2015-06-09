@@ -3,6 +3,7 @@ open PintTypes
 open LocalCausalityGraph
 open AutomataNetwork
 open An_cli
+open An_reach
 
 let usage_msg = "pint-reach [opts] <local state> # Static analysis for reachability"
 
@@ -43,15 +44,15 @@ let ukn = SSet.filter (fun a -> not (Hashtbl.mem an.automata a)) !opt_req_automa
 let _ = if not (SSet.is_empty ukn) then
 	failwith ("Invalid --requirements argument: unknown automata "^ string_of_sset ukn)
 
-let env = An_reach.init_env an ctx goal
+let env = init_env an ctx goal
 
 let static_reach () =
-	let result = An_reach.local_reachability env
+	let result = local_reachability env
 	in
 	print_endline (string_of_ternary result)
 
 let cutsets n =
-	let gA = An_reach.lcg_for_cutsets env
+	let gA = lcg_for_cutsets env
 	in
 	prerr_endline ("#nodes = "^string_of_int gA#count_nodes);
 	prerr_endline ("#procs = "^string_of_int gA#count_procs);
@@ -95,10 +96,10 @@ let cutsets n =
 		with Not_found ->
 			print_endline (string_of_node (NodeProc ai)^" is not reachable.");
 	in
-	List.iter handle_proc env.An_reach.goal
+	List.iter handle_proc env.goal
 
 let requirements automata universal =
-	let gA = An_reach.lcg_for_requirements env
+	let gA = lcg_for_requirements env
 	in
 	prerr_endline ("#nodes = "^string_of_int gA#count_nodes);
 	prerr_endline ("#procs = "^string_of_int gA#count_procs);
@@ -166,7 +167,7 @@ let requirements automata universal =
 		with Not_found ->
 			print_endline (string_of_node (NodeProc ai)^" is not reachable.");
 	in
-	List.iter handle_proc env.An_reach.goal
+	List.iter handle_proc env.goal
 
 let _ =
 	(if do_cutsets then cutsets !opt_cutsets_n);
