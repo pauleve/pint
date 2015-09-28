@@ -52,3 +52,6 @@ val cross_forward : ('a list -> 'b) * ('b -> 'b -> 'b) * ('b -> bool) -> 'a list
 
 val stream_permutations : 'a list -> ('a list) Stream.t
 
+(** [smap_remove_keys smap keys] returns smap without the bindings from keys. *)
+val smap_remove_keys : 'a PintTypes.SMap.t -> PintTypes.SSet.t -> 'a PintTypes.SMap.t
+

@@ -148,3 +148,6 @@ let stream_permutations lst =
     in
     Stream.from perm
 
+let smap_remove_keys smap keys =
+	SSet.fold (fun a smap -> SMap.remove a smap) keys smap
+

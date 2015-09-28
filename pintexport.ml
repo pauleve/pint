@@ -10,8 +10,9 @@ and opt_ptnet_context = ref false
 and opt_goal = ref ""
 and opt_partial = ref ""
 and opt_simplify = ref false
+and opt_noconstants = ref false
 and opt_mapfile = ref ""
-in
+
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), 
 			"\tOutput language (default: dump)");
@@ -22,21 +23,23 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"\tOutput mapping of identifiers (used by: pep, romeo)");
 		("--partial", Arg.Set_string opt_partial,
 			"a,b,..\tConsider only the sub-network composed of a, b, ..");
-		("--simplify", Arg.Set opt_simplify,
-			"\tTry to simplify transition conditions of the automata network.");
 		("--reduce-for-goal", Arg.Set_string opt_goal,
 			"\"a\"=i\tBefore exportation, reduce the model to include only transitions that may "
 			^ "be involved in the reachability of the given local state");
+		("--simplify", Arg.Set opt_simplify,
+			"\tTry to simplify transition conditions of the automata network.");
+		("--remove-constants", Arg.Set opt_noconstants,
+			"\tRemove automata that cannot change value");
 	]
 and usage_msg = "pint-export"
-in
+
 let args, abort = An_cli.parse cmdopts usage_msg
-in
-if args <> [] || !opt_language = "" then (abort ());
+
+let _ = if args <> [] || !opt_language = "" then (abort ())
+
 let opts = {
 	contextual_ptnet = !opt_ptnet_context;
 }
-in
 let languages = [
 	("dump", dump_of_an);
 	("pep", pep_of_an opts ~mapfile:!opt_mapfile);
@@ -45,12 +48,9 @@ let languages = [
 	("prism", prism_of_an);
 	("romeo", romeo_of_an ~mapfile:!opt_mapfile);
 ]
-in
 let translator = List.assoc !opt_language languages
-in
 
 let an, ctx = An_cli.process_input ()
-in
 
 let an, ctx = if !opt_partial = "" then an, ctx else
 	let spec = "{"^(!opt_partial)^"}"
@@ -63,10 +63,6 @@ let an, ctx = if !opt_partial = "" then an, ctx else
 	and ctx = SMap.filter (fun a _ -> SSet.mem a aset) ctx
 	in
 	an, ctx
-in
-
-let an = if !opt_simplify then simplify an else an
-in
 
 let an =
 	if !opt_goal <> "" then
@@ -76,12 +72,17 @@ let an =
 		in
 		An_reach.reduced_an env
 	else an
-in
+
+let an, ctx = if !opt_noconstants then remove_constants an ctx
+				else (an, ctx)
+
+let an = if !opt_simplify then simplify an else an
 
 let data = translator an ctx
-in
+
 let channel_out = if !opt_output = "" then stdout else open_out !opt_output
-in
-output_string channel_out data;
-close_out channel_out
+
+let _ =
+	output_string channel_out data;
+	close_out channel_out
 

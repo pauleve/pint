@@ -18,9 +18,9 @@ let lsset_of_list = set_of_list LSSet.empty LSSet.add
 
 type local_transition = (int * (local_state list))
 
-type transition = automaton_p 
-						* automaton_state 
-						* automaton_state 
+type transition = automaton_p
+						* automaton_state
+						* automaton_state
 
 let tr_dest (_,_,j) = j
 
@@ -181,6 +181,50 @@ let simplify an =
 	Hashtbl.iter simplify_transitions an.transitions;
 	{an with conditions = conditions}
 
+
+let constants an =
+	let get_constants a is cset =
+		if List.for_all (fun (_,i) ->
+			ISet.is_empty (Hashtbl.find	an.transitions (a,i))) is then
+				SSet.add a cset else cset
+	in
+	Hashtbl.fold get_constants an.automata SSet.empty
+
+let remove_constants an ctx =
+	let cset = constants an
+	and ukn = SMap.fold (fun a is uset ->
+							if ISet.cardinal is > 1 then SSet.add a uset
+								else uset) ctx SSet.empty
+	in
+	let cset = SSet.diff cset ukn
+	in
+	let ctx' = Util.smap_remove_keys ctx cset
+	and an' = empty_an ~size:(Hashtbl.length an.automata - SSet.cardinal cset, 50) ()
+	in
+	let match_lsset lsset =
+		(* ensure that the conditions match with the constant automata init value *)
+		SSet.for_all (fun a ->
+			try ISet.mem (SMap.find a lsset) (SMap.find a ctx)
+			with Not_found -> true) cset
+	in
+	let register_localstate a (sigs,i) =
+		Hashtbl.add an'.transitions (a,i) ISet.empty
+	in
+	let register_automaton a def =
+		if not (SSet.mem a cset) then
+			(Hashtbl.add an'.automata a def;
+			List.iter (register_localstate a) def)
+	and register_condition (a,i,j) lsset =
+		if match_lsset lsset then
+			let trs = Hashtbl.find an'.transitions (a,i)
+			and lsset = Util.smap_remove_keys lsset cset
+			in
+			(Hashtbl.replace an'.transitions (a,i) (ISet.add j trs);
+			Hashtbl.add an'.conditions (a,i,j) lsset)
+	in
+	Hashtbl.iter register_automaton an.automata ;
+	Hashtbl.iter register_condition an.conditions;
+	an', ctx'
 
 let string_of_state an s =
 	String.concat ", " (List.map (string_of_localstate an) (SMap.bindings s))
