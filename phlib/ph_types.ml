@@ -234,6 +234,15 @@ let ctx_union ctx1 ctx2 =
 	SMap.fold register ctx2 ctx1
 ;;
 
+let ctx_union_state ctx state =
+	let register a i ctx =
+		let is = ctx_safe_get a ctx
+		in
+		SMap.add a (ISet.add i is) ctx
+	in
+	SMap.fold register state ctx
+;;
+
 let ctx_inter ctx1 ctx2 =
 	let register a is2 ctx =
 		try 

@@ -133,6 +133,9 @@ val ctx_override : ctx -> PSet.t -> ctx
 (** Union between contexts. *)
 val ctx_union : ctx -> ctx -> ctx
 
+(** Union between a context and a state. *)
+val ctx_union_state : ctx -> state -> ctx
+
 (** Intersection between contexts. *)
 val ctx_inter : ctx -> ctx -> ctx
 

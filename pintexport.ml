@@ -10,7 +10,7 @@ and opt_ptnet_context = ref false
 and opt_goal = ref ""
 and opt_partial = ref ""
 and opt_simplify = ref false
-and opt_noconstants = ref false
+and opt_squeeze = ref false
 and opt_mapfile = ref ""
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
@@ -27,9 +27,9 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"\"a\"=i\tBefore exportation, reduce the model to include only transitions that may "
 			^ "be involved in the reachability of the given local state");
 		("--simplify", Arg.Set opt_simplify,
-			"\tTry to simplify transition conditions of the automata network.");
-		("--remove-constants", Arg.Set opt_noconstants,
-			"\tRemove automata that cannot change value");
+			"\tTry to simplify transition conditions of the automata network");
+		("--squeeze", Arg.Set opt_squeeze,
+			"\tRemove unused automata and local states");
 	]
 and usage_msg = "pint-export"
 
@@ -73,8 +73,7 @@ let an =
 		An_reach.reduced_an env
 	else an
 
-let an, ctx = if !opt_noconstants then remove_constants an ctx
-				else (an, ctx)
+let an, ctx = if !opt_squeeze then squeeze an ctx else (an, ctx)
 
 let an = if !opt_simplify then simplify an else an
 

@@ -3,6 +3,8 @@ open Big_int
 
 open PintTypes
 
+open Ph_types
+
 type sig_automaton_p = string
 type sig_automaton_state = StateId of int | StateLabel of string
 type sig_local_state = sig_automaton_p * sig_automaton_state
@@ -185,12 +187,16 @@ let simplify an =
 let constants an =
 	let get_constants a is cset =
 		if List.for_all (fun (_,i) ->
-			ISet.is_empty (Hashtbl.find	an.transitions (a,i))) is then
+			try ISet.is_empty (Hashtbl.find	an.transitions (a,i))
+			with Not_found -> true) is then
 				SSet.add a cset else cset
 	in
 	Hashtbl.fold get_constants an.automata SSet.empty
 
-let remove_constants an ctx =
+(** [squeeze an ctx] removes constant automata and unused local states.
+	The id of local state will probably by modified afterward. *)
+let squeeze an ctx =
+	(* get constant automata *)
 	let cset = constants an
 	and ukn = SMap.fold (fun a is uset ->
 							if ISet.cardinal is > 1 then SSet.add a uset
@@ -201,6 +207,29 @@ let remove_constants an ctx =
 	let ctx' = Util.smap_remove_keys ctx cset
 	and an' = empty_an ~size:(Hashtbl.length an.automata - SSet.cardinal cset, 50) ()
 	in
+
+	(* fetch referenced local states *)
+	let register_local_states (a,i,j) lsset smap =
+		let smap = ctx_add_proc (a,i) smap
+		in
+		let smap = ctx_add_proc (a,j) smap
+		in
+		ctx_union_state smap lsset
+	in
+	let used = Hashtbl.fold register_local_states an.conditions ctx'
+	in
+	let used = Util.smap_remove_keys used cset
+	in
+	(* map for renaming *)
+	let sigmamap = SMap.map (fun iset ->
+					let register i (n, sigma) =
+						(n+1, IMap.add i n sigma)
+					in
+					snd(ISet.fold register iset (0, IMap.empty))) used
+	in
+	let relabel a i = IMap.find i (SMap.find a sigmamap)
+	in
+
 	let match_lsset lsset =
 		(* ensure that the conditions match with the constant automata init value *)
 		SSet.for_all (fun a ->
@@ -212,18 +241,39 @@ let remove_constants an ctx =
 	in
 	let register_automaton a def =
 		if not (SSet.mem a cset) then
+			let register def (sig_i, i) =
+				try
+					let i = relabel a i
+					and sig_i = match sig_i with
+						  StateId i -> StateId (relabel a i)
+						| _ -> sig_i
+					in
+					(sig_i, i)::def
+				with Not_found -> def
+			in
+			let def = List.fold_left register [] def
+			in
+			let def = List.fast_sort (fun a b -> compare (snd a) (snd b)) def
+			in
 			(Hashtbl.add an'.automata a def;
 			List.iter (register_localstate a) def)
 	and register_condition (a,i,j) lsset =
 		if match_lsset lsset then
-			let trs = Hashtbl.find an'.transitions (a,i)
+			let i = relabel a i
+			and j = relabel a j
 			and lsset = Util.smap_remove_keys lsset cset
+			in
+			let trs = Hashtbl.find an'.transitions (a,i)
+			and lsset = SMap.mapi relabel lsset
 			in
 			(Hashtbl.replace an'.transitions (a,i) (ISet.add j trs);
 			Hashtbl.add an'.conditions (a,i,j) lsset)
 	in
 	Hashtbl.iter register_automaton an.automata ;
 	Hashtbl.iter register_condition an.conditions;
+	let ctx' = SMap.mapi (fun a iset ->
+			ISet.fold (fun i iset -> ISet.add (relabel a i) iset) iset ISet.empty) ctx'
+	in
 	an', ctx'
 
 let string_of_state an s =
