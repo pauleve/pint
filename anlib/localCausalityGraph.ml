@@ -466,7 +466,10 @@ type glc_setup = {
 	saturate_procs_by_objs: ObjSet.t -> LSSet.t -> LSSet.t;
 }
 
-class glc glc_setup ctx pl (*concrete_ph*) get_Sols = object(self) inherit graph as g
+class ['a] glc glc_setup ctx pl (*concrete_ph*)
+(get_Sols:Ph_types.objective -> ('a * PintTypes.ISet.t) list)
+(trsol:'a -> LSSet.t)
+= object(self) inherit graph as g
 
 	method setup = glc_setup
 
@@ -552,7 +555,7 @@ class glc glc_setup ctx pl (*concrete_ph*) get_Sols = object(self) inherit graph
 		if new_objs <> [] then self#commit ()))
 
 	method init_obj obj nobj =
-		let aBS = get_Sols obj
+		let aBS = List.map (fun (tr,is) -> trsol tr, is) (get_Sols obj)
 		in
 		if aBS == [] then impossible_nobjs <- NodeSet.add nobj impossible_nobjs;
 		let register_sol (ps,interm) =
@@ -796,7 +799,10 @@ let empty_choices_queue () =
 module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = ObjMap.compare compare end)
 
 
-class lcg_generator lcg_setup ctx pl (*concrete_ph*) get_Sols =
+class ['a] lcg_generator lcg_setup ctx pl (*concrete_ph*)
+(get_Sols:Ph_types.objective -> ('a * PintTypes.ISet.t) list)
+(trsol:'a -> LSSet.t)
+=
 	object(self)
 	val mutable has_next = true
 	(*val queue = empty_choices_queue ()*)
@@ -864,7 +870,7 @@ class lcg_generator lcg_setup ctx pl (*concrete_ph*) get_Sols =
 		dbg ~level:1 ("::: playing choices "^string_of_choices choices);
 		current_choices <- choices;
 		queue <- List.tl queue;
-		let gB = new glc lcg_setup ctx pl (*concrete_ph*) (self#get_Sols choices)
+		let gB = new glc lcg_setup ctx pl (*concrete_ph*) (self#get_Sols choices) trsol
 		in 
 		gB#build;
 		gB#saturate_ctx;

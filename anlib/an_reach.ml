@@ -58,7 +58,7 @@ let init_env an ctx goal =
 		sol_cache = cache;
 	}
 
-let color_nodes_connected_to_trivial_sols (gA: #glc) =
+let color_nodes_connected_to_trivial_sols (gA:LSSet.t #glc) =
 	(** each node is associated to a couple
 			(green, nm) 
 		where nm is the cached value of childs *)
@@ -118,7 +118,7 @@ let restricted_sols_factory all_sols nodes =
 	fun obj -> try ObjMap.find obj rsols with Not_found -> all_sols obj
 
 let unordered_oa env sols =
-	let gA = new glc oa_glc_setup env.ctx env.goal sols
+	let gA = new glc oa_glc_setup env.ctx env.goal sols id
 	in
 	gA#build;
 	gA#debug ();
@@ -127,10 +127,28 @@ let unordered_oa env sols =
 	List.for_all (fun ai -> NodeSet.mem (NodeProc ai) nodes) env.goal, 
 	restricted_sols_factory sols nodes
 
+let make_domain nodes =
+	let register_node n rsols = match n with
+		  NodeSol (obj, ps, _) ->
+		  	ObjMap.add obj (ps::try ObjMap.find obj rsols with Not_found -> []) rsols
+		| _ -> rsols
+	in
+	NodeSet.fold register_node nodes ObjMap.empty
+
+let unordered_oa' env sols =
+	let gA = new glc oa_glc_setup env.ctx env.goal sols id
+	in
+	gA#build;
+	gA#debug ();
+	let nodes = color_nodes_connected_to_trivial_sols gA
+	in
+	List.for_all (fun ai -> NodeSet.mem (NodeProc ai) nodes) env.goal, 
+	make_domain nodes
+
 let bot_trimmed_lcg env sols gA =
 	let nodes = color_nodes_connected_to_trivial_sols gA
 	in
-	let gA' = new glc gA#setup env.ctx env.goal sols
+	let gA' = new glc gA#setup env.ctx env.goal sols id
 	in
 	gA#iter (fun node child ->
 				if NodeSet.mem node nodes && NodeSet.mem child nodes then
@@ -168,7 +186,7 @@ let ua_lcg_setup = oa_glc_setup (*with
 
 (** Unordered Under-Approximation *)
 let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
-	let validate (glc:#glc) =
+	let validate (glc:StateSet.t #glc) =
 		(* associate to each nodes the children processes *)
 		let child_procs = glc#call_rflood allprocs_flooder glc#leafs
 		in
@@ -219,6 +237,7 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 		ObjSet.for_all validate_obj glc#objs
 	in
 	let gB_iterator = new lcg_generator ua_lcg_setup env.ctx env.goal (*env.concrete*) sols
+							An_localpaths.UnordTrace.abstr
 	in
 	(*let i = ref 0 in*)
 	let rec __check gB =
@@ -273,16 +292,21 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 (**** Local reachability ****)
 
 let local_reachability ?saveLCG:(saveLCG = ref None) env =
-	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
+	let cache = env.sol_cache
 	in
-	let uoa, sols = unordered_oa env sols
+	let sols = An_localpaths.MinUnordUnsyncSol.solutions cache env.an
+	in
+	let uoa, oadom = unordered_oa' env sols
 	in
 	if not uoa then
 		False
-	else if unordered_ua ~saveLCG env sols then
-		True
 	else
-		Inconc
+		let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
+		in
+		if unordered_ua ~saveLCG env sols then
+			True
+		else
+			Inconc
 
 
 (**
@@ -444,7 +468,7 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 let lcg_for_cutsets env =
 	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
 	in
-	let gA = new glc oa_glc_setup env.ctx env.goal sols
+	let gA = new glc oa_glc_setup env.ctx env.goal sols id
 	in
     gA#set_auto_conts false;
     gA#build;
@@ -525,7 +549,7 @@ let requirements (gA:#graph) automata leafs universal =
 let lcg_for_requirements env =
 	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
 	in
-	let gA = new glc oa_glc_setup env.ctx env.goal sols
+	let gA = new glc oa_glc_setup env.ctx env.goal sols id
 	in
     gA#set_auto_conts false;
     gA#build;
@@ -553,7 +577,7 @@ let worth_lcg env =
 	in
 	let uoa, sols = unordered_oa env sols
 	in
-	let gB = new glc glc_setup env.ctx env.goal sols
+	let gB = new glc glc_setup env.ctx env.goal sols id
 	in
 	if uoa then (
 		gB#build;

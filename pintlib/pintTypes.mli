@@ -1,4 +1,7 @@
 
+(** Identity *)
+val id : 'a -> 'a
+
 module SSet : Set.S with type elt = string
 module SMap : Map.S with type key  = string
 module ISet : Set.S with type elt = int

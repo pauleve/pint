@@ -61,3 +61,5 @@ type stochatime =
 	| RateSA of (float * int)
 	| FiringInterval of (float*float*float) 
 
+let id x = x
+
