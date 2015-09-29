@@ -254,6 +254,16 @@ let ctx_inter ctx1 ctx2 =
 	SMap.fold register ctx2 SMap.empty
 ;;
 
+let ctx_diff ctx1 ctx2 =
+	let diff a is ctx =
+		let is =
+			if SMap.mem a ctx2 then ISet.diff is (SMap.find a ctx2)
+			else is
+		in
+		SMap.add a is ctx
+	in
+	SMap.fold diff ctx1 SMap.empty
+
 let ctx_of_state state =
 	SMap.map ISet.singleton state
 ;;

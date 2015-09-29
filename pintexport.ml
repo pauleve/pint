@@ -2,6 +2,7 @@
 open PintTypes
 open AutomataNetwork
 open An_export
+open Ph_types
 
 let make_partial spec (an, ctx) =
 	let spec = "{"^spec^"}"
@@ -27,6 +28,13 @@ let make_squeeze (an, ctx) =
 
 let make_simplify (an, ctx) =
 	simplify an, ctx
+
+let make_disable dctx (an, ctx) =
+	let dctx = ctx_of_siglocalstates an dctx
+	in
+	let rctx = ctx_diff (full_ctx an) dctx
+	in
+	restrict an rctx, ctx
 
 let languages = ["dump";"nusmv";"pep";"ph";"prism";"romeo"]
 and opt_language = ref "dump"
@@ -57,6 +65,9 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"\tTry to simplify transition conditions of the automata network");
 		("--squeeze", Arg.Unit (fun () -> push_transform make_squeeze),
 			"\tRemove unused automata and local states");
+		("--disable", Arg.String
+			(fun ctx -> push_transform (make_disable (An_cli.parse_sls_list ctx))),
+			"<local state list>\tDisable mentionned local states");
 	]
 and usage_msg = "pint-export"
 

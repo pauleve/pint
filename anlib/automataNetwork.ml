@@ -55,6 +55,14 @@ let automaton_sdomain an a =
 	in
 	Util.srange 0 (n-1)
 
+let full_ctx an =
+	let folder a def ctx =
+		let is = List.fold_left (fun is i -> ISet.add i is) ISet.empty (List.map snd def)
+		in
+		SMap.add a is ctx
+	in
+	Hashtbl.fold folder an.automata ctx_empty
+
 let get_automaton_state_sig an a i =
 	Util.list_lassoc i (Hashtbl.find an.automata a)
 
@@ -156,6 +164,31 @@ let partial an sset =
 			List.iter (register_localstate a) def)
 	and register_condition (a,i,j) lsset =
 		if SSet.mem a sset && match_lsset lsset then
+			let trs = Hashtbl.find an'.transitions (a,i)
+			in
+			(Hashtbl.replace an'.transitions (a,i) (ISet.add j trs);
+			Hashtbl.add an'.conditions (a,i,j) lsset)
+	in
+	Hashtbl.iter register_automaton an.automata ;
+	Hashtbl.iter register_condition an.conditions;
+	an'
+
+let restrict an ctx =
+	let an' = empty_an ~size:(count_automata an, 50) ()
+	in
+	let allow a i =
+		try ISet.mem i (SMap.find a ctx) with Not_found -> true
+	in
+	let match_lsset = SMap.for_all allow
+	in
+	let register_localstate a (sigs,i) =
+		Hashtbl.add an'.transitions (a,i) ISet.empty
+	in
+	let register_automaton a def =
+		(Hashtbl.add an'.automata a def;
+		List.iter (register_localstate a) def)
+	and register_condition (a,i,j) lsset =
+		if allow a i && allow a j && match_lsset lsset then
 			let trs = Hashtbl.find an'.transitions (a,i)
 			in
 			(Hashtbl.replace an'.transitions (a,i) (ISet.add j trs);

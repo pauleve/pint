@@ -139,6 +139,9 @@ val ctx_union_state : ctx -> state -> ctx
 (** Intersection between contexts. *)
 val ctx_inter : ctx -> ctx -> ctx
 
+(** Difference between contexts. *)
+val ctx_diff : ctx -> ctx -> ctx
+
 (** State to context. *)
 val ctx_of_state : state -> ctx
 
