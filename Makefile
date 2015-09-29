@@ -11,7 +11,6 @@ TARGETS=\
 	pint-stable\
 	ph-reach\
 	phc\
-	ph-stat\
 	ph-exec\
 	ph2thomas\
 
@@ -25,7 +24,6 @@ OSX_TARGETS=\
 	pint-stable\
 	ph-reach\
 	phc\
-	ph-stat\
 	ph-exec\
 	ph2thomas\
 
