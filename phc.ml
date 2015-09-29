@@ -67,9 +67,6 @@ let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 				"<filename>\tfilename for CTL export (romeo)");
 		("--coop-priority", Arg.Set opt_coop_priority, 
 									"\tAssume hits on cooperative sorts of higher priority");
-		("--reduce-for-goal", Arg.String setup_goal, 
-			"<a i>\tReduce the model to include only transitions that may "
-			^ "be involved in the reachability of the given process");
 	]
 and usage_msg = "phc"
 in
@@ -93,9 +90,6 @@ let translator = List.assoc !opt_language languages
 in
 
 let ph, ctx = Ph_util.parse !Ui.opt_channel_in
-in
-let ph = if !opt_goal = [] then ph else
-	Ph_reach.reduce_ph_for_goal ph ctx !opt_goal
 in
 let data = translator ph ctx
 in
