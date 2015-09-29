@@ -1,42 +1,10 @@
-(*
-Copyright or © or Copr. Loïc Paulevé (2014)
-
-loic.pauleve@ens-cachan.org
-
-This software is a computer program whose purpose is to provide Process
-Hitting related tools.
-
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the
-CeCILL license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
-
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author, the holder of the
-economic rights, and the successive licensors  have only  limited
-liability. 
-
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
-
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
-*)
 
 open Debug
 
 open PintTypes
 open AutomataNetwork
+
+open Ph_types
 
 let enumerate_acyclic_paths register append discard elt0 set0 an (a,i,goal) =
 	let rec walk path i visited results =
@@ -64,10 +32,12 @@ let enumerate_acyclic_paths register append discard elt0 set0 an (a,i,goal) =
 type cache = {
 	csol: (transition, transition list list) Hashtbl.t;
 	asol: (transition, (LSSet.t * ISet.t) list) Hashtbl.t;
+	asyncsol: (transition, (StateSet.t * ISet.t) list) Hashtbl.t;
 }
 let create_cache ?size:(size=50) () = {
 	csol = Hashtbl.create size;
 	asol = Hashtbl.create size;
+	asyncsol = Hashtbl.create size;
 }
 let _cache_computation func subcache an obj =
 	try Hashtbl.find subcache obj
@@ -224,7 +194,7 @@ let min_abstract_solutions an obj =
 		List.map (fun conds -> (conds,interm)) conds_list
 		@
 		List.filter (fun (conds',_) ->
-				List.for_all 
+				List.for_all
 					(fun conds -> not(LSSet.subset conds conds'))
 					conds_list) sols
 	and discard _ (conds_list,_) = [] = conds_list
@@ -233,6 +203,149 @@ let min_abstract_solutions an obj =
 
 let min_abstract_solutions cache =
 	_cache_computation min_abstract_solutions cache.asol
+
+
+module type UnorderedAbstractTraceType = sig
+	type t
+
+	val empty : t
+	(** Total ordering between traces. [leq e1 e2] if and only if the trace e1 is
+		smaller or equal to e2 *)
+	val leq : t -> t -> bool
+	(** Extend the trace with transition condition ([state]).
+		It is assumed that [leq e1 (extend s e1)] for any [s]. *)
+	val extend : state ->  t -> t
+
+	(** It is assumed that [leq t1 t2] only if [quick_compare t1 t2] is negative. *)
+	val quick_compare : t -> t -> int
+
+	val subcache : cache -> (transition, (t * ISet.t) list) Hashtbl.t
+
+	type abstr
+	val abstr : t -> abstr
+	val match_abstr : abstr list -> t -> bool
+end
+
+module UnordUnsyncTrace = struct
+	type t = LSSet.t
+
+	let empty = LSSet.empty
+	let quick_compare t1 t2 = compare (LSSet.cardinal t1) (LSSet.cardinal t2)
+	let leq = LSSet.subset
+	let extend state =
+		let lss = lsset_of_state state
+		in
+		LSSet.union lss
+	let subcache cache = cache.asol
+
+	type abstr = Universe
+	let abstr _ = Universe
+	let match_abstr a e = true
+end
+
+module UnordTrace = struct
+	type t = StateSet.t
+
+	let empty = StateSet.empty
+	let quick_compare t1 t2 =
+		let lss1, lss2 = flatten_stateset t1, flatten_stateset t2
+		in
+		LSSet.compare lss1 lss2
+	let leq t1 t2 =
+		StateSet.for_all (fun s1 -> StateSet.exists (substate s1) t2) t1
+	let extend s t = if is_emptystate s then t else StateSet.add s t
+	let subcache cache = cache.asyncsol
+
+	type abstr = UnordUnsyncTrace.t
+	let abstr = flatten_stateset
+	let match_abstr lss_l states =
+		let astates = abstr states
+		in
+		List.exists (fun lss -> UnordUnsyncTrace.leq lss astates) lss_l
+end
+
+exception Nothing
+
+module MinimalUnorderedAbstractTraces (Uat: UnorderedAbstractTraceType) = struct
+
+	type t = Uat.t list
+
+	let extend_trace an goal (conds_list, interm) tr =
+		let conds = Hashtbl.find_all an.conditions tr
+		in
+		let push_conds prod conds =
+			List.map (fun conds' -> Uat.extend conds conds') conds_list @ prod
+		in
+		let conds_list = List.fold_left push_conds [] conds
+		in
+		conds_list,
+		let j = tr_dest tr
+		in
+		(if j <> goal then ISet.add j interm else interm)
+
+	let solutions an obj =
+		let goal = tr_dest obj
+		in
+		let push_tr = extend_trace an goal
+		in
+		let sols = []
+		and sol0 = [Uat.empty], ISet.empty
+		and append sols (conds_list,interm) tr =
+			let conds_list, interm = push_tr (conds_list,interm) tr
+			in
+			let conds_list = List.sort Uat.quick_compare conds_list
+			in
+			let fold_conds sol conds =
+				if List.exists (fun conds' -> Uat.leq conds' conds) sol then
+					(* conds already in sol *)
+					sol
+				else
+				if List.exists (fun (conds',_) -> Uat.leq conds' conds) sols then
+					(* conds already registered *)
+					sol
+				else
+					conds::sol
+			in
+			let conds_list = List.fold_left fold_conds [] conds_list
+			in
+			conds_list, interm
+		and register sols (conds_list,interm) =
+			List.map (fun conds -> (conds,interm)) conds_list
+			@
+			List.filter (fun (conds',_) ->
+					List.for_all
+						(fun conds -> not(Uat.leq conds conds'))
+						conds_list) sols
+		and discard _ (conds_list,_) = [] = conds_list
+		in
+		enumerate_acyclic_paths register append discard sol0 sols an obj
+
+	let solutions cache =
+		_cache_computation solutions (Uat.subcache cache)
+
+	let filtered_solutions cache abstrdom an obj =
+		try
+			let abstrfilter =
+				try
+					match ObjMap.find obj abstrdom with
+					  [] -> raise Nothing
+					| asols -> Some asols
+				with Not_found -> None
+			in
+			let sols = solutions cache an obj
+			in
+			match abstrfilter with
+			  None -> sols
+			| Some asols -> List.filter (fun (sol,_) ->
+								Uat.match_abstr asols sol) sols
+		with Nothing -> []
+
+end
+
+module MinUnordUnsyncSol = MinimalUnorderedAbstractTraces(UnordUnsyncTrace)
+
+module MinUnordSol = MinimalUnorderedAbstractTraces(UnordTrace)
+
 
 (*
 

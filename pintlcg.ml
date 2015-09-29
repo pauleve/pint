@@ -4,7 +4,7 @@ open AutomataNetwork
 
 let usage_msg = "pint-lcg [opts] <local state>"
 
-let lcg_types = ["verbose";"trimmed";"worth"]
+let lcg_types = ["verbose";"trimmed";"saturated";"worth"]
 let lcg_type = ref "verbose"
 let opt_output = ref "-"
 
@@ -46,13 +46,21 @@ let trimmed_lcg () =
 let worth_lcg () =
 	An_reach.worth_lcg env
 
+let saturated_lcg () =
+	let lcg = new glc An_reach.ua_lcg_setup ctx goal min_asols
+	in
+	lcg#set_auto_conts false;
+	lcg#build;
+	lcg#saturate_ctx;
+	lcg
+
 
 let lcg_factories = [
 	("verbose", verbose_lcg);
 	("trimmed", trimmed_lcg);
 	("worth", worth_lcg);
+	("saturated", saturated_lcg);
 ]
-		(*;"trimmed";"cutsets";"saturated";"first_ua"],*)
 
 let lcg = (List.assoc !lcg_type lcg_factories) ()
 

@@ -117,7 +117,7 @@ let restricted_sols_factory all_sols nodes =
 	in
 	fun obj -> try ObjMap.find obj rsols with Not_found -> all_sols obj
 
-let unordered_over_approx env sols =
+let unordered_oa env sols =
 	let gA = new glc oa_glc_setup env.ctx env.goal sols
 	in
 	gA#build;
@@ -156,6 +156,133 @@ let top_trimmed_lcg env gA =
 	let check_node n = if not (Hashtbl.mem values n) then gA#remove_node n
 	in
 	NodeSet.iter check_node gA#nodes
+
+
+(**
+ ** UNDER-APPROXIMATIONS (Sufficient conditions)
+ **)
+
+
+let ua_lcg_setup = oa_glc_setup (*with
+	conts_flooder = max_conts_flooder;*)
+
+(** Unordered Under-Approximation *)
+let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
+	let validate (glc:#glc) =
+		(* associate to each nodes the children processes *)
+		let child_procs = glc#call_rflood allprocs_flooder glc#leafs
+		in
+		(* iter over cooperative objectives and check their solutions *)
+		let validate_obj obj =
+			(* TODO if is_cooperative (obj_sort obj) then (
+				(* TODO: conds bj is static; use cache *)
+				let conds = Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities
+								env.ph (obj_bounce_proc obj)
+				in
+				dbg ("+ conds for "^string_of_proc (obj_bounce_proc obj)^" = [" 
+									^ (String.concat " ; " (List.map string_of_state conds))
+									^ " ]");
+				let validate_sol nsol =
+					dbg ("checking "^string_of_node nsol);
+					let (obj, ps, _) = match nsol with NodeSol x -> x | _ -> assert false
+					and allprocs_sol = fst (Hashtbl.find child_procs nsol)
+					in
+					dbg (". allprocs_sol = " ^ string_of_ctx allprocs_sol);
+					(* check only with conds that are coherent with ps *)
+					let cond_select cond = PSet.for_all (fun (a,i) -> try SMap.find a cond == i
+						with Not_found -> failwith "invalid cond (coop_priority_reachability)") ps
+					in
+					let conds = List.filter cond_select conds
+					in
+					dbg (". conds = [" 
+										^ (String.concat " ; " (List.map string_of_state conds))
+										^ " ]");
+					(* check that cond includes allprocs_sol *)
+					let cond_match cond =
+						let cap a i =
+							try
+								let js = ctx_get a allprocs_sol
+								in
+								ISet.cardinal js <= 1 && ISet.choose js == i
+							with Not_found -> true
+						in
+						SMap.for_all cap cond
+					in
+					match conds with [] -> false | _ -> List.for_all cond_match conds
+				in
+				let sols = List.filter (function NodeSol _ -> true | _ -> false)
+					(glc#childs (NodeObj obj))
+				in
+				List.for_all validate_sol sols
+			) else *) true
+		in
+		ObjSet.for_all validate_obj glc#objs
+	in
+	let gB_iterator = new lcg_generator ua_lcg_setup env.ctx env.goal (*env.concrete*) sols
+	in
+	(*let i = ref 0 in*)
+	let rec __check gB =
+		if gB#has_impossible_objs then (
+			dbg ~level:1 ("has_impossible_objs! "^
+				(String.concat ";" (List.map string_of_obj gB#get_impossible_objs)));
+			(*
+			let cout = open_out ("/tmp/glc"^string_of_int !i^".dot")
+			in
+			i := !i + 1;
+			output_string cout gB#to_dot;
+			close_out cout;*)
+			let ms_objs =  gB_iterator#multisols_objs
+			in
+			let seq_objs = gB#avoid_impossible_objs ms_objs
+			in
+			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
+						(List.rev seq_objs);
+			false
+		) else if gB#has_loops then (
+			dbg ~level:1 "has_loops!";
+			let seq_objs = gB#avoid_loop gB_iterator#multisols_objs gB#last_loop
+			in
+			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
+						seq_objs;
+			false
+		) else (
+			(*if not gB#auto_conts then (
+				gB#set_auto_conts true;
+				gB#commit ();
+				__check gB
+			) else*)
+				validate gB
+		)
+	in
+	let rec iter_gBs () =
+		if gB_iterator#has_next then (
+			let gB = gB_iterator#next
+			in
+			dbg "!! unordered underapprox";
+			gB#debug ();
+			if __check gB then (
+				saveLCG := Some gB;
+				raise Found
+			) else iter_gBs ()
+		)
+	in
+	try iter_gBs (); false with Found -> true
+
+
+
+(**** Local reachability ****)
+
+let local_reachability ?saveLCG:(saveLCG = ref None) env =
+	let sols = An_localpaths.min_abstract_solutions env.sol_cache env.an
+	in
+	let uoa, sols = unordered_oa env sols
+	in
+	if not uoa then
+		False
+	else if unordered_ua ~saveLCG env sols then
+		True
+	else
+		Inconc
 
 
 (**
@@ -420,15 +547,15 @@ let worth_lcg env =
 		in
 		ObjSet.fold fold_obj
 	in
-	let glc_setup = {ua_glc_setup with
+	let glc_setup = {ua_lcg_setup with
 		saturate_procs_by_objs = saturate_procs_by_objs}
 	and sols = An_localpaths.complete_abstract_solutions env.sol_cache env.an
 	in
-	let uua, sols = unordered_over_approx env sols
+	let uoa, sols = unordered_oa env sols
 	in
 	let gB = new glc glc_setup env.ctx env.goal sols
 	in
-	if uua then (
+	if uoa then (
 		gB#build;
 		gB#saturate_ctx;
 		let gB = bot_trimmed_lcg env sols gB
@@ -480,81 +607,7 @@ let reduced_an env =
 	an'
 
 
-let local_reachability (*?saveGLC:(saveGLC = ref NullGLC) *) env =
-	let sols = An_localpaths.min_abstract_solutions env.sol_cache env.an
-	in
-	let uua, restr_sols = unordered_over_approx env sols
-	in
-	if not uua then
-		False
-	else (
-		prerr_endline ("! Warning, under-approximation is not implemented yet!");
-		(*else if ordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
-			True
-		else match env.pl with [] | [_] -> Inconc | _ ->
-			if unordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
-				True
-			else *)
-				Inconc
-	)
-
 (*
-
-type refGLC = NullGLC | GLC of glc;;
-
-let unordered_ua ?validate:(validate = fun _ -> true) 
-			?saveGLC:(saveGLC = ref NullGLC)
-			env get_Sols glc_setup =
-	let gB_iterator = new glc_generator glc_setup env.ctx env.pl env.concrete get_Sols
-	in
-	(*let i = ref 0 in*)
-	let rec __check gB =
-		if gB#has_impossible_objs then (
-			dbg ~level:1 ("has_impossible_objs! "^
-				(String.concat ";" (List.map string_of_obj gB#get_impossible_objs)));
-			(*
-			let cout = open_out ("/tmp/glc"^string_of_int !i^".dot")
-			in
-			i := !i + 1;
-			output_string cout gB#to_dot;
-			close_out cout;*)
-			let ms_objs =  gB_iterator#multisols_objs
-			in
-			let seq_objs = gB#avoid_impossible_objs ms_objs
-			in
-			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
-						(List.rev seq_objs);
-			false
-		) else if gB#has_loops then (
-			dbg ~level:1 "has_loops!";
-			let seq_objs = gB#avoid_loop gB_iterator#multisols_objs gB#last_loop
-			in
-			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
-						seq_objs;
-			false
-		) else (
-			if not gB#auto_conts then (
-				gB#set_auto_conts true;
-				gB#commit ();
-				__check gB
-			) else 
-				validate gB
-		)
-	in
-	let rec iter_gBs () =
-		if gB_iterator#has_next then (
-			let gB = gB_iterator#next
-			in
-			dbg "!! unordered underapprox";
-			gB#debug ();
-			if __check gB then (
-				saveGLC := GLC gB;
-				raise Found
-			) else iter_gBs ()
-		)
-	in
-	try iter_gBs (); false with Found -> true
-;;
 
 let ordered_ua
 		?saveGLC:(saveGLC = ref NullGLC)
@@ -589,123 +642,5 @@ let ordered_ua
 				{env with ctx = ctx; pl = [aj]} get_Sols glc_setup
 	in
 	_ordered_ua env.ctx env.pl
-;;
-
-
-let local_reachability 
-		?saveGLC:(saveGLC = ref NullGLC) env =
-	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
-	in
-	let uua, restr_sols = unordered_over_approx env get_Sols
-	in
-	if not uua then
-		False
-	else if ordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
-		True
-	else match env.pl with [] | [_] -> Inconc | _ ->
-		if unordered_ua ~saveGLC:saveGLC env restr_sols ua_glc_setup then
-			True
-		else
-			Inconc
-;;
-
-let merge_sort_indexes ps a =
-	let fold_index ps j =
-		PSet.add (a,j) ps
-	in
-	List.fold_left fold_index ps
-;;
-
-let coop_priority_augment_procs ctx ps =
-	(* for each cooperative sort, add processes corresponding to 
-			parent processes *)
-	let ctx = (ctx_union ctx (procs_to_ctx ps))
-	in
-	let fold_cooperativity a _ ps =
-		let js = Ph_cooperativity.resolve !Ph_instance.cooperativities ctx a
-		in
-		merge_sort_indexes ps a js
-	in
-	SMap.fold fold_cooperativity !Ph_instance.cooperativities ps
-;;
-
-let coop_priority_ua_glc_setup = {ua_glc_setup with 
-	saturate_procs = coop_priority_augment_procs}
-;;
-
-
-let coop_priority_reachability ?saveGLC:(saveGLC = ref NullGLC) env =
-	let is_cooperative a = SMap.mem a !Ph_instance.cooperativities
-	in
-	let validate_ua_glc (glc:#glc) =
-		(* associate to each nodes the children processes *)
-		let child_procs = glc#call_rflood allprocs_flooder glc#leafs
-		in
-		(* iter over cooperative objectives and check their solutions *)
-		let validate_obj obj =
-			if is_cooperative (obj_sort obj) then (
-				(* TODO: conds bj is static; use cache *)
-				let conds = Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities
-								env.ph (obj_bounce_proc obj)
-				in
-				dbg ("+ conds for "^string_of_proc (obj_bounce_proc obj)^" = [" 
-									^ (String.concat " ; " (List.map string_of_state conds))
-									^ " ]");
-				let validate_sol nsol =
-					dbg ("checking "^string_of_node nsol);
-					let (obj, ps, _) = match nsol with NodeSol x -> x | _ -> assert false
-					and allprocs_sol = fst (Hashtbl.find child_procs nsol)
-					in
-					dbg (". allprocs_sol = " ^ string_of_ctx allprocs_sol);
-					(* check only with conds that are coherent with ps *)
-					let cond_select cond = PSet.for_all (fun (a,i) -> try SMap.find a cond == i
-						with Not_found -> failwith "invalid cond (coop_priority_reachability)") ps
-					in
-					let conds = List.filter cond_select conds
-					in
-					dbg (". conds = [" 
-										^ (String.concat " ; " (List.map string_of_state conds))
-										^ " ]");
-					(* check that cond includes allprocs_sol *)
-					let cond_match cond =
-						let cap a i =
-							try
-								let js = ctx_get a allprocs_sol
-								in
-								ISet.cardinal js <= 1 && ISet.choose js == i
-							with Not_found -> true
-						in
-						SMap.for_all cap cond
-					in
-					match conds with [] -> false | _ -> List.for_all cond_match conds
-				in
-				let sols = List.filter (function NodeSol _ -> true | _ -> false)
-					(glc#childs (NodeObj obj))
-				in
-				List.for_all validate_sol sols
-			) else true
-		in
-		ObjSet.for_all validate_obj glc#objs
-	in
-	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
-	and concrete = {env.concrete with process_cond =
-		Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities env.ph
-	} in
-	let env = {env with concrete = concrete}
-	in
-	let uua, get_Sols = unordered_over_approx env get_Sols
-	in
-	if not uua then
-		False
-	else if ordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC 
-				env get_Sols coop_priority_ua_glc_setup then
-		True
-	else match env.pl with [] | [_] -> Inconc | _ ->
-		if unordered_ua ~validate:validate_ua_glc ~saveGLC:saveGLC
-				env get_Sols coop_priority_ua_glc_setup then
-			True
-		else
-			Inconc
-;;
 
 *)

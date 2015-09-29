@@ -796,7 +796,7 @@ let empty_choices_queue () =
 module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = ObjMap.compare compare end)
 
 
-class glc_generator glc_setup ctx pl (*concrete_ph*) get_Sols =
+class lcg_generator lcg_setup ctx pl (*concrete_ph*) get_Sols =
 	object(self)
 	val mutable has_next = true
 	(*val queue = empty_choices_queue ()*)
@@ -864,7 +864,7 @@ class glc_generator glc_setup ctx pl (*concrete_ph*) get_Sols =
 		dbg ~level:1 ("::: playing choices "^string_of_choices choices);
 		current_choices <- choices;
 		queue <- List.tl queue;
-		let gB = new glc glc_setup ctx pl (*concrete_ph*) (self#get_Sols choices)
+		let gB = new glc lcg_setup ctx pl (*concrete_ph*) (self#get_Sols choices)
 		in 
 		gB#build;
 		gB#saturate_ctx;
@@ -931,10 +931,6 @@ let oa_glc_setup = {
 	conts = (fun _ (a,_,_) ctx -> try ctx_get a ctx with Not_found -> ISet.empty);
 	saturate_procs = (fun _ a -> a);
 	saturate_procs_by_objs = (fun _ a -> a);
-};;
-
-let ua_glc_setup = {oa_glc_setup with
-	conts_flooder = max_conts_flooder;
 };;
 
 

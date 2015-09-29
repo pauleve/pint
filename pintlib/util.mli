@@ -55,3 +55,7 @@ val stream_permutations : 'a list -> ('a list) Stream.t
 (** [smap_remove_keys smap keys] returns smap without the bindings from keys. *)
 val smap_remove_keys : 'a PintTypes.SMap.t -> PintTypes.SSet.t -> 'a PintTypes.SMap.t
 
+(** [smap_subset equal m1 m2] returns true if and only if all bindings in [m1] are
+in [m2]. *)
+val smap_subset : ('a -> 'b -> bool) -> 'a PintTypes.SMap.t -> 'b PintTypes.SMap.t -> bool
+

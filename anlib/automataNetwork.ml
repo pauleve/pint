@@ -13,10 +13,36 @@ type automaton_p = string
 type automaton_state = int
 type local_state = automaton_p * automaton_state
 
-module LSSet = Set.Make (struct type t = local_state let compare = compare end)
-module LSMap = Map.Make (struct type t = local_state let compare = compare end)
+module LSOrd = struct type t = local_state let compare = compare end
+
+(** state **)
+
+let substate (s1:state) (s2:state) = Util.smap_subset (=) s1 s2
+
+let is_emptystate = SMap.is_empty
+
+let compare_state s1 s2 =
+	let c = compare (SMap.cardinal s1) (SMap.cardinal s2)
+	in
+	if c = 0 then SMap.compare compare s1 s2 else c
+
+module StateOrd = struct type t = state let compare = compare_state end
+
+module LSSet = Set.Make (LSOrd)
+module LSMap = Map.Make (LSOrd)
+module StateSet = Set.Make (StateOrd)
+
+let lsset_of_state s =
+	SMap.fold (fun a i s -> LSSet.add (a,i) s) s LSSet.empty
 
 let lsset_of_list = set_of_list LSSet.empty LSSet.add
+
+let flatten_stateset ss =
+	let folder s ls =
+		SMap.fold (fun a i ls -> LSSet.add (a,i) ls) s ls
+	in
+	StateSet.fold folder ss LSSet.empty
+
 
 type local_transition = (int * (local_state list))
 
@@ -356,12 +382,6 @@ let lsset_of_ctx ctx =
 	in
 	SMap.fold register ctx LSSet.empty
 
-let lsset_of_state s =
-	SMap.fold (fun a i s -> LSSet.add (a,i) s) s LSSet.empty
-
-let is_substate s s' =
-	SMap.for_all (fun a i -> try i = SMap.find a s'
-					with Not_found -> false) s
 
 let an_compl_ctx an ctx =
 	let fold a is ctx =

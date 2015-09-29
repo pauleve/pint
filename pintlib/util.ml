@@ -151,3 +151,8 @@ let stream_permutations lst =
 let smap_remove_keys smap keys =
 	SSet.fold (fun a smap -> SMap.remove a smap) keys smap
 
+let smap_subset equal m1 m2 =
+	SMap.for_all
+		(fun k v -> try equal v (SMap.find k m2) with Not_found -> false)
+		m1
+
