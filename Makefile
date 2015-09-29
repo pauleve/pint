@@ -4,6 +4,21 @@ TARGETS=\
 	pinttop\
 	pint-config\
 	pint-export\
+	pint-its\
+	pint-lcg\
+	pint-reach\
+	pint-sg\
+	pint-stable\
+	ph-reach\
+	phc\
+	ph-stat\
+	ph-exec\
+	ph2thomas\
+
+OSX_TARGETS=\
+	pint-config\
+	pint-export\
+	pint-its\
 	pint-lcg\
 	pint-reach\
 	pint-sg\
@@ -81,18 +96,6 @@ OSX_SHARE=$(OSX_PREFIX)/share
 OSX_ROOT=$(OSX_W)$(OSX_PREFIX)
 OSX_BIN=$(OSX_ROOT)/bin
 OSX_DMG=../pint-$(RELNAME).dmg
-OSX_TARGETS=\
-	pint-config\
-	pint-export\
-	pint-lcg\
-	pint-reach\
-	pint-sg\
-	pint-stable\
-	ph-reach\
-	phc\
-	ph-stat\
-	ph-exec\
-	ph2thomas\
 
 
 # should be called using ./dist/osx/do.sh
@@ -119,5 +122,5 @@ dist-osx:
 	-rm -rf $(OSX_W)
 
 dist-deb:
-	dpkg-buildpackage -d	
+	dpkg-buildpackage -d
 

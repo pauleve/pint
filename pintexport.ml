@@ -46,7 +46,7 @@ let languages = [
 	("nusmv", nusmv_of_an);
 	("ph", ph_of_an);
 	("prism", prism_of_an);
-	("romeo", romeo_of_an ~mapfile:!opt_mapfile);
+	("romeo", romeo_of_an ~map:None ~mapfile:!opt_mapfile);
 ]
 let translator = List.assoc !opt_language languages
 

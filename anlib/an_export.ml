@@ -181,7 +181,7 @@ let pep_of_an ?(mapfile="") opts an ctx =
 	^ (if opts.contextual_ptnet then "RA\n" ^ (String.concat "\n" ra) ^ "\n"
 		else "")
 
-let romeo_of_an ?(mapfile="") an ctx =
+let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 	let repr_i = string_of_astate ~protect:false an
 	in
 	let repr_ls (a,i) = a^"_"^repr_i a i
@@ -244,6 +244,8 @@ let romeo_of_an ?(mapfile="") an ctx =
 				(1, LSMap.empty, [])
 	in
 	let register_localstate ai id places =
+		(if ISet.cardinal (SMap.find (fst ai) ctx) > 1 then
+			failwith "Initial context with more than one local state is not supported yet.");
 		let repr =
 		"<place id=\""^string_of_int id^"\" label=\""^repr_ls ai^"\" "
 			^" initialMarking=\""^(if ctx_has_localstate ai ctx then "1" else "0")^"\">\n"
@@ -255,6 +257,8 @@ let romeo_of_an ?(mapfile="") an ctx =
 	in
 	let places = LSMap.fold register_localstate mapplaces []
 	in
+	(match map with Some map -> LSMap.iter (fun ai id ->
+			Hashtbl.add map ai (repr_ls ai, id)) mapplaces | None -> ());
 	(if mapfile <> "" then
 		let string_of_map ((a,i), id) =
 					string_of_int id^" "^repr_ls (a,i)
