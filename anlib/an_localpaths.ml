@@ -157,54 +157,6 @@ let concrete_solutions cache an obj (conds, interm) =
 	List.fold_left fold_csol [] csols
 
 
-(*** min_abstract solutions for (a,i,j)
-For each local acyclic paths from i to j in a, only keep the union of the
-conditions of transitions.
-Only minimal abstract solutions are returned, together with the intermediate
-steps of at least one concrete path.
-*)
-let min_abstract_solutions an obj =
-	let goal = tr_dest obj
-	in
-	let push_tr = push_abstract_transition an goal
-	in
-	let sols = []
-	and sol0 = [LSSet.empty], ISet.empty
-	and append sols (conds_list,interm) tr =
-		let conds_list, interm = push_tr (conds_list,interm) tr
-		in
-		let conds_list = List.sort (fun c c' -> compare (LSSet.cardinal c) (LSSet.cardinal c'))
-							conds_list
-		in
-		let fold_conds sol conds =
-			if List.exists (fun conds' -> LSSet.subset conds' conds) sol then
-				(* already in sol *)
-				sol
-			else
-			if List.exists (fun (conds',_) -> LSSet.subset conds' conds) sols then
-				(* already registered *)
-				sol
-			else
-				conds::sol
-		in
-		let conds_list = List.fold_left fold_conds [] conds_list
-		in
-		conds_list, interm
-	and register sols (conds_list,interm) =
-		List.map (fun conds -> (conds,interm)) conds_list
-		@
-		List.filter (fun (conds',_) ->
-				List.for_all
-					(fun conds -> not(LSSet.subset conds conds'))
-					conds_list) sols
-	and discard _ (conds_list,_) = [] = conds_list
-	in
-	enumerate_acyclic_paths register append discard sol0 sols an obj
-
-let min_abstract_solutions cache =
-	_cache_computation min_abstract_solutions cache.asol
-
-
 module type UnorderedAbstractTraceType = sig
 	type t
 

@@ -273,7 +273,7 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 (**** Local reachability ****)
 
 let local_reachability ?saveLCG:(saveLCG = ref None) env =
-	let sols = An_localpaths.min_abstract_solutions env.sol_cache env.an
+	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
 	in
 	let uoa, sols = unordered_oa env sols
 	in
@@ -442,7 +442,7 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 	(flood_values, index_proc)
 
 let lcg_for_cutsets env =
-	let sols = An_localpaths.min_abstract_solutions env.sol_cache env.an
+	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
 	in
 	let gA = new glc oa_glc_setup env.ctx env.goal sols
 	in
@@ -523,7 +523,7 @@ let requirements (gA:#graph) automata leafs universal =
 	(flood_values, index_proc)
 
 let lcg_for_requirements env =
-	let sols = An_localpaths.min_abstract_solutions env.sol_cache env.an
+	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
 	in
 	let gA = new glc oa_glc_setup env.ctx env.goal sols
 	in

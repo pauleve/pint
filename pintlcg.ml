@@ -26,7 +26,7 @@ let cache = An_localpaths.create_cache ()
 
 let env = An_reach.init_env an ctx goal
 
-let min_asols = An_localpaths.min_abstract_solutions cache an
+let min_asols = An_localpaths.MinUnordUnsyncSol.solutions cache an
 
 let verbose_lcg () =
 	let lcg = new glc oa_glc_setup ctx goal min_asols
