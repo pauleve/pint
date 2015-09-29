@@ -3,7 +3,7 @@ open PintTypes
 open AutomataNetwork
 open An_export
 
-let usage_msg = "pint-its [opts] <local state> -- [its opts] # symbolic model-checking with ITS"
+let usage_msg = "pint-its [opts] <local state> -- [its opts] # symbolic model-checking with ITS tools [http://ddd.lip6.fr/itstools.php]"
 
 let tools = ["reach";"ctl"]
 and opt_tool = ref "reach"
@@ -13,9 +13,9 @@ and opt_verbose = ref false
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 	("--tool", Arg.Symbol (tools, (fun t -> opt_tool := t)),
-		"\tITS tool");
+		"\tITS tool (default: reach)");
 	("--witness", Arg.Set opt_witness,
-		"\tEnable witness computation");
+		"\tEnable witness computation (used by: reach)");
 	("--verbose", Arg.Set opt_verbose,
 		"\tDrop --quiet option");
 	("--", Arg.Rest (fun arg -> opt_extra := !opt_extra @ [arg]),

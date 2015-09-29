@@ -47,7 +47,7 @@ let push_transform func =
 	Queue.push func opt_transforms
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
-		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), 
+		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)),
 			"\tOutput language (default: dump)");
 		("-o", Arg.Set_string opt_output, "<filename>\tOutput filename");
 		("--contextual-ptnet", Arg.Set opt_ptnet_context,
@@ -59,8 +59,7 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"a,b,..\tConsider only the sub-network composed of a, b, ..");
 		("--reduce-for-goal", Arg.String
 			(fun goal -> push_transform (make_reduce_for_goal goal)),
-			"\"a\"=i\tBefore exportation, reduce the model to include only transitions that may "
-			^ "be involved in the reachability of the given local state");
+			"\"a\"=i\tRemove transitions that never occur in minimal traces for reaching the given local state");
 		("--simplify", Arg.Unit (fun () -> push_transform make_simplify),
 			"\tTry to simplify transition conditions of the automata network");
 		("--squeeze", Arg.Unit (fun () -> push_transform make_squeeze),
