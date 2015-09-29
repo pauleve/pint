@@ -55,9 +55,12 @@ let description () =
 	and nb_ls = count_local_states an
 	and nb_tr = count_transitions an
 	and nb_states = count_states an
+	and largest = Hashtbl.fold (fun _ def n ->
+		max n (List.length def)) an.automata 0
 	in
 	print_endline (string_of_int nb_automata^" automata");
 	print_endline (string_of_int nb_ls^" local states");
+	print_endline (string_of_int largest^" max local states per automaton");
 	print_endline (string_of_int nb_tr^" transitions");
 	print_endline (string_of_big_int nb_states^" states")
 
