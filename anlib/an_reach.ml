@@ -65,6 +65,7 @@ let color_nodes_connected_to_trivial_sols (gA:LSSet.t #glc) =
 
 	let init = function
 		  NodeSol (obj, ps, _) -> (LSSet.is_empty ps, NodeMap.empty)
+		| NodeSyncSol (obj, states, _) -> (StateSet.is_empty states, NodeMap.empty)
 		| _ -> (false, NodeMap.empty)
 
 	(* the node n with value v receives update from node n' with value v' *)
@@ -75,14 +76,17 @@ let color_nodes_connected_to_trivial_sols (gA:LSSet.t #glc) =
 			in
 			NodeMap.fold exists_green nm false
 		| NodeSol (obj, ps, _) -> (* all childs are green *)
-			let proc_is_green p =
-				try NodeMap.find (NodeProc p) nm
-				with Not_found -> false
+			let proc_is_green p = NodeMap.mem (NodeProc p) nm
 			in
 			LSSet.for_all proc_is_green ps
+		| NodeSyncSol (obj, states, _) -> (* all children are green *)
+			let state_is_green s =
+				SMap.for_all (fun a i -> NodeMap.mem (NodeProc (a,i)) nm) s
+			in
+			StateSet.for_all state_is_green states
 		| NodeObj _ -> (* all NodeObj childs are green; at least one NodeSol is green *)
 			let exists_sol_green = function
-				  NodeSol _ -> fun g r -> r || g
+				  NodeSol _ | NodeSyncSol _ -> fun g r -> r || g
 				| _ -> fun _ r -> r
 			and all_obj_green = function
 				| NodeObj _ -> fun g r -> g && r
@@ -111,6 +115,8 @@ let restricted_sols_factory all_sols nodes =
 		  NodeSol (obj, ps, interm) -> 
 		  	ObjMap.add obj ((ps,interm)::try ObjMap.find obj rsols 
 									with Not_found -> []) rsols
+		| NodeSyncSol _ ->
+			failwith "restricted_sols_factory with NodeSyncSol	not implemented."
 		| _ -> rsols
 	in
 	let rsols = NodeSet.fold register_node nodes ObjMap.empty
@@ -127,15 +133,17 @@ let unordered_oa env sols =
 	List.for_all (fun ai -> NodeSet.mem (NodeProc ai) nodes) env.goal, 
 	restricted_sols_factory sols nodes
 
-let make_domain nodes =
-	let register_node n rsols = match n with
-		  NodeSol (obj, ps, _) ->
-		  	ObjMap.add obj (ps::try ObjMap.find obj rsols with Not_found -> []) rsols
-		| _ -> rsols
-	in
-	NodeSet.fold register_node nodes ObjMap.empty
-
 let unordered_oa' env sols =
+	let make_domain nodes =
+		let register_node n rsols = match n with
+			  NodeSol (obj, ps, _) ->
+				ObjMap.add obj (ps::try ObjMap.find obj rsols with Not_found -> []) rsols
+			| NodeSyncSol _ ->
+				failwith "make_domain with NodeSyncSol	not implemented."
+			| _ -> rsols
+		in
+		NodeSet.fold register_node nodes ObjMap.empty
+	in
 	let gA = new glc oa_glc_setup env.ctx env.goal sols id
 	in
 	gA#build;
@@ -192,47 +200,31 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 		in
 		(* iter over cooperative objectives and check their solutions *)
 		let validate_obj obj =
-			(* TODO if is_cooperative (obj_sort obj) then (
-				(* TODO: conds bj is static; use cache *)
-				let conds = Ph_cooperativity.local_fixed_points !Ph_instance.cooperativities
-								env.ph (obj_bounce_proc obj)
+			let validate_sync state =
+				if SMap.cardinal state <= 1 then true else
+				let validate_ls a i =
+					let conn = fst (Hashtbl.find child_procs (NodeProc (a,i)))
+					in
+					dbg (". conn("^string_of_ls (a,i)^" = "^string_of_ctx conn);
+					SMap.for_all (fun b j -> b = a ||
+						try
+							let js = ctx_get b conn
+							in
+							ISet.cardinal js <= 1 && ISet.choose js = j
+						with Not_found -> true) state
 				in
-				dbg ("+ conds for "^string_of_proc (obj_bounce_proc obj)^" = [" 
-									^ (String.concat " ; " (List.map string_of_state conds))
-									^ " ]");
-				let validate_sol nsol =
-					dbg ("checking "^string_of_node nsol);
-					let (obj, ps, _) = match nsol with NodeSol x -> x | _ -> assert false
-					and allprocs_sol = fst (Hashtbl.find child_procs nsol)
-					in
-					dbg (". allprocs_sol = " ^ string_of_ctx allprocs_sol);
-					(* check only with conds that are coherent with ps *)
-					let cond_select cond = PSet.for_all (fun (a,i) -> try SMap.find a cond == i
-						with Not_found -> failwith "invalid cond (coop_priority_reachability)") ps
-					in
-					let conds = List.filter cond_select conds
-					in
-					dbg (". conds = [" 
-										^ (String.concat " ; " (List.map string_of_state conds))
-										^ " ]");
-					(* check that cond includes allprocs_sol *)
-					let cond_match cond =
-						let cap a i =
-							try
-								let js = ctx_get a allprocs_sol
-								in
-								ISet.cardinal js <= 1 && ISet.choose js == i
-							with Not_found -> true
-						in
-						SMap.for_all cap cond
-					in
-					match conds with [] -> false | _ -> List.for_all cond_match conds
+				SMap.for_all validate_ls state
+			in
+			let validate_syncsol nsol =
+				dbg ("checking "^string_of_node nsol);
+				let (obj, states, _) = match nsol with NodeSyncSol x -> x | _ -> assert false
 				in
-				let sols = List.filter (function NodeSol _ -> true | _ -> false)
-					(glc#childs (NodeObj obj))
-				in
-				List.for_all validate_sol sols
-			) else *) true
+				StateSet.for_all validate_sync states
+			in
+			let syncsols = List.filter (function NodeSyncSol _ -> true | _ -> false)
+						(glc#childs (NodeObj obj))
+			in
+			List.for_all validate_syncsol syncsols
 		in
 		ObjSet.for_all validate_obj glc#objs
 	in
@@ -329,7 +321,7 @@ let scc_dead_rel childs scc =
 			| _ -> false
 		and dead_childs n =
 			let dead_node n' =
-				match n' with NodeSol _ -> NodeSet.mem n' scc_idx | _ -> false
+				match n' with NodeSol _ | NodeSyncSol _ -> NodeSet.mem n' scc_idx | _ -> false
 			in
 			List.filter dead_node (childs n)
 		in
@@ -416,7 +408,7 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 	let update_value n (_,nm) =
 		total_count := !total_count + 1;
 		match n with
-		  NodeSol _ -> PSSet.simplify max_nkp (nm_union nm)
+		  NodeSol _ | NodeSyncSol _ -> PSSet.simplify max_nkp (nm_union nm)
 
 		| NodeProc ai -> 
 			if ignore_proc ai then
@@ -431,7 +423,7 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 				PSSet.union pss aisingle
 
 		| NodeObj (a,j,i) -> (
-			let r1 = NodeMap.fold (function NodeSol _ -> psset_product
+			let r1 = NodeMap.fold (function NodeSol _ | NodeSyncSol _ -> psset_product
 										| _ -> (fun _ c -> c)) nm PSSet.full
 			in
 			r1
@@ -510,7 +502,7 @@ let requirements (gA:#graph) automata leafs universal =
 	let update_value n (_,nm) =
 		total_count := !total_count + 1;
 		match n with
-		  NodeSol _ ->
+		  NodeSol _ | NodeSyncSol _ ->
 		  	NodeMap.fold (fun _ -> psset_product) nm PSSet.full
 
 		| NodeProc ai ->
@@ -528,7 +520,7 @@ let requirements (gA:#graph) automata leafs universal =
 				(if universal then nm_cross else nm_union) nm
 
 		| NodeObj (a,j,i) ->
-			NodeMap.fold (function NodeSol _ -> PSSet.union | _ -> (fun _ c -> c)) nm PSSet.empty
+			NodeMap.fold (function NodeSol _ | NodeSyncSol _ -> PSSet.union | _ -> (fun _ c -> c)) nm PSSet.empty
 	in
     let init n =
 		let register_child nm n' =

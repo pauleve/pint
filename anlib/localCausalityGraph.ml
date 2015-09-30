@@ -40,12 +40,17 @@ open Ph_types;;
 type node =
 	  NodeProc of process
 	| NodeSol of (objective * LSSet.t * ISet.t)
+	| NodeSyncSol of (objective * StateSet.t * ISet.t)
 	| NodeObj of objective
 
 let string_of_node = function
 	  NodeSol (obj,ps,interm) ->
 	  	"Sol["^string_of_obj obj^"/"^string_of_lsset ps
 						^" via "^string_of_iset interm^"]"
+	| NodeSyncSol (obj,states,interm) ->
+	  	"SyncSol["^string_of_obj obj^"/"
+			^string_of_set string_of_state StateSet.elements states
+					^" via "^string_of_iset interm^"]"
 	| NodeObj obj -> "Obj["^string_of_obj obj^"]"
 	| NodeProc p -> "Proc["^string_of_proc p^"]"
 ;;
@@ -111,10 +116,10 @@ let inter_value nm =
 
 
 (**
-	generic graph with 3 kind of nodes
+	generic graph
 *)
 
-class graph = 
+class graph =
 object(self)
 	val edges = Hashtbl.create 1000
 	val rev_edges = Hashtbl.create 1000
@@ -140,7 +145,7 @@ object(self)
 		let sol = "#aS# "
 		and eol = "\n"
 		in
-		let register_proc p = 
+		let register_proc p =
 			let rels = Hashtbl.find_all edges (NodeProc p)
 			in
 			sol^"Req("^string_of_proc p^") = [ "^
@@ -149,19 +154,17 @@ object(self)
 		and register_obj (sols,conts) obj =
 			let rels = self#childs (NodeObj obj)
 			in
-			let solrels, contrels = List.partition (function NodeSol _ -> true |
-								NodeObj _ -> false | _ -> 
-									failwith "invalid graph (debug/register_obj)") rels
+			let solrels, contrels = List.partition (function
+							NodeSol _ | NodeSyncSol _ -> true
+							| NodeObj _ -> false | _ ->
+								failwith "invalid graph (debug/register_obj)") rels
 			in
-			let sols = if solrels == [] then sols else 
+			let sols = if solrels == [] then sols else
 				(sol^"Sol("^string_of_obj obj^") = [ "^
-					(String.concat "; " (List.map (function NodeSol (_,ps,interm) -> string_of_lsset ps
-													^ " via "^ string_of_iset interm
-												| _ -> failwith "invalid solrels") solrels))^" ]"^eol)::sols
+					(String.concat "; " (List.map string_of_node solrels))^" ]"^eol)::sols
 			and conts = if contrels == [] then conts else
 				(sol^"Cont("^string_of_obj obj^") = [ "^
-					(String.concat "; " (List.map (function NodeObj obj -> string_of_obj obj
-												| _ -> failwith "invalid contrels") contrels))^" ]"^eol)::conts
+					(String.concat "; " (List.map string_of_node contrels))^" ]"^eol)::conts
 			in
 			sols, conts
 		in
@@ -201,11 +204,12 @@ object(self)
 			and edges = String.concat "\n" (List.map dot_of_rel rels)
 			in
 			def ^ edges ^ "\n"
-		
+
 		and register_obj obj =
 			let dobj = dot_of_obj obj
 			in
 			let dot_of_rel = function
+				(* TODO: NodeSyncSol *)
 				NodeSol (_,ps,_) ->
 					let dsol = "pintsol"^string_of_int !solcounter
 					in
@@ -488,10 +492,11 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 	method extract_sols =
 		let register_node = function
 			  NodeSol sol -> fun sols -> sol::sols
+			| NodeSyncSol _ -> failwith "glc#register_node not implemented with NodeSyncSol"
 			| _ -> fun sols -> sols
 		in
 		NodeSet.fold register_node nodes []
-	
+
 	method set_trivial_nsols t =
 		trivial_nsols <- t
 
@@ -887,13 +892,16 @@ let min_conts_flooder =
 	let update_cache n v n' v' =
 		match n, n' with
 		  NodeSol _, NodeProc _
+		| NodeSyncSol _, NodeProc _
 		| NodeObj _, NodeSol _
+		| NodeObj _, NodeSyncSol _
 		| NodeProc _, NodeObj _ -> default_flooder_update_cache n v n' v'
 		| NodeObj _, NodeObj _ -> v (* ignore Cont rels *)
 		| _ -> failwith "wrong abstract structure graph."
 	and update_value n (ctx, nm) =
 		match n with
 		  NodeSol _ -> union_value nm
+		| NodeSyncSol _ -> union_value nm
 		| NodeObj _ -> inter_value nm
 		| NodeProc (a,i) -> 
 			let ctx' = inter_value nm
@@ -908,7 +916,7 @@ let min_conts_flooder =
 
 let max_conts_flooder =
 	let update_value n (ctx,nm) = match n with
-		  NodeSol (obj,_,interm) -> 
+		  NodeSol (obj,_,interm) | NodeSyncSol (obj, _, interm) ->
 			let ctx = union_value nm
 			and a = obj_sort obj
 			in
@@ -916,7 +924,7 @@ let max_conts_flooder =
 			in
 			SMap.add a (ISet.union is interm) ctx
 		| NodeObj _ -> union_value nm
-		| NodeProc (a,i) -> 
+		| NodeProc (a,i) ->
 			let ctx' = union_value nm
 			in
 			SMap.add a (ISet.singleton i) ctx'
@@ -946,7 +954,7 @@ let oa_glc_setup = {
 
 let allprocs_flooder =
 	let update_value n (ps, nm) = match n with
-		  NodeSol _ | NodeObj _ -> union_value nm
+		  NodeSol _ | NodeSyncSol _ | NodeObj _ -> union_value nm
 		| NodeProc ai -> ctx_add_proc ai (union_value nm)
 	in {
 	equality = ctx_equal;
