@@ -189,8 +189,9 @@ let top_trimmed_lcg env gA =
  **)
 
 
-let ua_lcg_setup = oa_glc_setup (*with
-	conts_flooder = max_conts_flooder;*)
+let ua_lcg_setup = {oa_glc_setup with
+	conts_flooder = max_conts_flooder
+}
 
 (** Unordered Under-Approximation *)
 let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
@@ -256,11 +257,11 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 						seq_objs;
 			false
 		) else (
-			(*if not gB#auto_conts then (
+			if not gB#auto_conts then (
 				gB#set_auto_conts true;
 				gB#commit ();
 				__check gB
-			) else*)
+			) else
 				validate gB
 		)
 	in
