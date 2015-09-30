@@ -1,35 +1,3 @@
-(*
-Copyright or © or Copr. Loïc Paulevé <loic.pauleve@ens-cachan.org> (2014)
-
-This software is a computer program whose purpose is to provide Process
-Hitting related tools.
-
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the
-CeCILL license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
-
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author, the holder of the
-economic rights, and the successive licensors  have only  limited
-liability. 
-
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
-
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
-*)
 
 open Debug;;
 
@@ -472,7 +440,7 @@ type glc_setup = {
 
 class ['a] glc glc_setup ctx pl (*concrete_ph*)
 (get_Sols:Ph_types.objective -> ('a * PintTypes.ISet.t) list)
-(trsol:'a -> LSSet.t)
+(make_sol:Ph_types.objective -> 'a * ISet.t -> LSSet.t * node)
 = object(self) inherit graph as g
 
 	method setup = glc_setup
@@ -560,12 +528,10 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 		if new_objs <> [] then self#commit ()))
 
 	method init_obj obj nobj =
-		let aBS = List.map (fun (tr,is) -> trsol tr, is) (get_Sols obj)
+		let aBS = List.map (make_sol obj) (get_Sols obj)
 		in
 		if aBS == [] then impossible_nobjs <- NodeSet.add nobj impossible_nobjs;
-		let register_sol (ps,interm) =
-			let nsol = NodeSol (obj, ps, interm)
-			in
+		let register_sol (ps, nsol) =
 			self#add_child nsol nobj;
 			if LSSet.is_empty ps then (trivial_nsols <- NodeSet.add nsol trivial_nsols);
 			let register_proc p =
@@ -579,6 +545,10 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 			in
 			let register_interm i =
 				intermediate_procs <- LSSet.add (a,i) intermediate_procs
+			in
+			let interm = match nsol with
+				  NodeSol (_,_,interm) | NodeSyncSol (_,_,interm) -> interm
+				| _ -> failwith "invalid nsol"
 			in
 			ISet.iter register_interm interm
 		in
@@ -806,7 +776,7 @@ module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = ObjMap.c
 
 class ['a] lcg_generator lcg_setup ctx pl (*concrete_ph*)
 (get_Sols:Ph_types.objective -> ('a * PintTypes.ISet.t) list)
-(trsol:'a -> LSSet.t)
+(make_sol:Ph_types.objective -> 'a * ISet.t -> LSSet.t * node)
 =
 	object(self)
 	val mutable has_next = true
@@ -875,7 +845,7 @@ class ['a] lcg_generator lcg_setup ctx pl (*concrete_ph*)
 		dbg ~level:1 ("::: playing choices "^string_of_choices choices);
 		current_choices <- choices;
 		queue <- List.tl queue;
-		let gB = new glc lcg_setup ctx pl (*concrete_ph*) (self#get_Sols choices) trsol
+		let gB = new glc lcg_setup ctx pl (*concrete_ph*) (self#get_Sols choices) make_sol
 		in 
 		gB#build;
 		gB#saturate_ctx;
@@ -946,6 +916,14 @@ let oa_glc_setup = {
 	saturate_procs = (fun _ a -> a);
 	saturate_procs_by_objs = (fun _ a -> a);
 };;
+
+let make_unord_unsync_sol obj (tr,interm) =
+	tr,
+	NodeSol (obj, tr, interm)
+
+let make_unord_sol obj (tr,interm) =
+	An_localpaths.UnordTrace.abstr tr,
+	NodeSyncSol (obj, tr, interm)
 
 
 (**

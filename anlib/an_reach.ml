@@ -124,7 +124,7 @@ let restricted_sols_factory all_sols nodes =
 	fun obj -> try ObjMap.find obj rsols with Not_found -> all_sols obj
 
 let unordered_oa env sols =
-	let gA = new glc oa_glc_setup env.ctx env.goal sols id
+	let gA = new glc oa_glc_setup env.ctx env.goal sols make_unord_unsync_sol
 	in
 	gA#build;
 	gA#debug ();
@@ -144,7 +144,7 @@ let unordered_oa' env sols =
 		in
 		NodeSet.fold register_node nodes ObjMap.empty
 	in
-	let gA = new glc oa_glc_setup env.ctx env.goal sols id
+	let gA = new glc oa_glc_setup env.ctx env.goal sols make_unord_unsync_sol
 	in
 	gA#build;
 	gA#debug ();
@@ -156,7 +156,7 @@ let unordered_oa' env sols =
 let bot_trimmed_lcg env sols gA =
 	let nodes = color_nodes_connected_to_trivial_sols gA
 	in
-	let gA' = new glc gA#setup env.ctx env.goal sols id
+	let gA' = new glc gA#setup env.ctx env.goal sols make_unord_unsync_sol
 	in
 	gA#iter (fun node child ->
 				if NodeSet.mem node nodes && NodeSet.mem child nodes then
@@ -228,8 +228,7 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 		in
 		ObjSet.for_all validate_obj glc#objs
 	in
-	let gB_iterator = new lcg_generator ua_lcg_setup env.ctx env.goal (*env.concrete*) sols
-							An_localpaths.UnordTrace.abstr
+	let gB_iterator = new lcg_generator ua_lcg_setup env.ctx env.goal sols make_unord_sol
 	in
 	(*let i = ref 0 in*)
 	let rec __check gB =
@@ -460,7 +459,7 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 let lcg_for_cutsets env =
 	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
 	in
-	let gA = new glc oa_glc_setup env.ctx env.goal sols id
+	let gA = new glc oa_glc_setup env.ctx env.goal sols make_unord_unsync_sol
 	in
     gA#set_auto_conts false;
     gA#build;
@@ -541,7 +540,7 @@ let requirements (gA:#graph) automata leafs universal =
 let lcg_for_requirements env =
 	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
 	in
-	let gA = new glc oa_glc_setup env.ctx env.goal sols id
+	let gA = new glc oa_glc_setup env.ctx env.goal sols make_unord_unsync_sol
 	in
     gA#set_auto_conts false;
     gA#build;
@@ -569,7 +568,7 @@ let worth_lcg env =
 	in
 	let uoa, sols = unordered_oa env sols
 	in
-	let gB = new glc glc_setup env.ctx env.goal sols id
+	let gB = new glc glc_setup env.ctx env.goal sols make_unord_unsync_sol
 	in
 	if uoa then (
 		gB#build;

@@ -31,7 +31,7 @@ let env = An_reach.init_env an ctx goal
 let min_asols = An_localpaths.MinUnordUnsyncSol.solutions cache an
 
 let verbose_lcg () =
-	let lcg = new glc oa_glc_setup ctx goal min_asols id
+	let lcg = new glc oa_glc_setup ctx goal min_asols make_unord_unsync_sol
 	in
 	lcg#set_auto_conts false;
 	lcg#build;
@@ -49,7 +49,7 @@ let worth_lcg () =
 	An_reach.worth_lcg env
 
 let saturated_lcg () =
-	let lcg = new glc An_reach.ua_lcg_setup ctx goal min_asols id
+	let lcg = new glc An_reach.ua_lcg_setup ctx goal min_asols make_unord_unsync_sol
 	in
 	lcg#set_auto_conts false;
 	lcg#build;
