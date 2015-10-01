@@ -197,7 +197,7 @@ let ua_lcg_setup = {oa_glc_setup with
 let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 	let validate (glc:StateSet.t #glc) =
 		(* associate to each nodes the children processes *)
-		let child_procs = glc#call_rflood allprocs_flooder glc#leafs
+		let child_procs = glc#call_rflood top_localstates_flooder glc#leafs
 		in
 		(* iter over cooperative objectives and check their solutions *)
 		let validate_obj obj =

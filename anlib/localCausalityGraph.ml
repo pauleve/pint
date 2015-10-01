@@ -930,6 +930,7 @@ let make_unord_sol obj (tr,interm) =
 	Simple flooders
 **)
 
+(** gather all connected local states *)
 let allprocs_flooder =
 	let update_value n (ps, nm) = match n with
 		  NodeSol _ | NodeSyncSol _ | NodeObj _ -> union_value nm
@@ -939,5 +940,16 @@ let allprocs_flooder =
 	node_init = default_flooder_node_init ctx_empty;
 	update_cache = default_flooder_update_cache;
 	update_value = update_value;
-};;
+}
+
+let top_localstates_flooder =
+	let update_value n (ps, nm) = match n with
+		  NodeSol _ | NodeSyncSol _ | NodeObj _ -> union_value nm
+		| NodeProc (a,i) -> SMap.add a (ISet.singleton i) (union_value nm)
+	in {
+	equality = ctx_equal;
+	node_init = default_flooder_node_init ctx_empty;
+	update_cache = default_flooder_update_cache;
+	update_value = update_value;
+}
 
