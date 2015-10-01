@@ -48,15 +48,6 @@ and opt_output = ref ""
 and opt_romeo_ctl = ref ""
 and opt_romeo_ctl_file = ref ""
 and opt_coop_priority = ref false
-and opt_goal = ref ([] : process list)
-in
-let setup_goal opt =
-	try
-		let goal = [Ph_parser.process Ph_lexer.lexer (Lexing.from_string opt)]
-		in
-		opt_goal := goal
-	with Parsing.Parse_error ->
-		failwith ("Error when parsing process '"^opt^"'")
 in
 let cmdopts = Ui.common_cmdopts @ Ui.input_cmdopts @ [
 		("-l", Arg.Symbol (languages, (fun l -> opt_language := l)), "\tOutput language");
