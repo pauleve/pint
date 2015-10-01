@@ -132,6 +132,11 @@ let count_states an =
 let count_transitions an =
 	Hashtbl.length an.conditions
 
+let boolean_automata an =
+	let folder a def bools =
+		if List.length def = 2 then SSet.add a bools else bools
+	in
+	Hashtbl.fold folder an.automata SSet.empty
 
 let has_automaton an name = Hashtbl.mem an.automata name
 

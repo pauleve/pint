@@ -49,9 +49,9 @@ let worth_lcg () =
 	An_reach.worth_lcg env
 
 let saturated_lcg () =
-	let lcg = new glc An_reach.ua_lcg_setup ctx goal min_asols make_unord_unsync_sol
+	let lcg = new glc (An_reach.ua_lcg_setup an) ctx goal min_asols make_unord_unsync_sol
 	in
-	lcg#set_auto_conts false;
+	lcg#set_auto_conts true;
 	lcg#build;
 	lcg#saturate_ctx;
 	lcg

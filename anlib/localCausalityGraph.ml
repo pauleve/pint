@@ -513,7 +513,7 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 				in
 				let ais = self#conts obj ctx
 				in
-				let ais = ISet.remove j (ISet.remove i ais)
+				let ais = ISet.remove j ais
 				in
 				dbg ("cont("^string_of_obj (a,i,j)^")="
 						^a^"_"^string_of_iset ais);(*^ " ("^string_of_ctx ctx^")");*)
@@ -853,79 +853,6 @@ class ['a] lcg_generator lcg_setup ctx pl (*concrete_ph*)
 
 end;;
 
-
-(**
-	Continuity
-**)
-
-let min_conts_flooder = 
-	let update_cache n v n' v' =
-		match n, n' with
-		  NodeSol _, NodeProc _
-		| NodeSyncSol _, NodeProc _
-		| NodeObj _, NodeSol _
-		| NodeObj _, NodeSyncSol _
-		| NodeProc _, NodeObj _ -> default_flooder_update_cache n v n' v'
-		| NodeObj _, NodeObj _ -> v (* ignore Cont rels *)
-		| _ -> failwith "wrong abstract structure graph."
-	and update_value n (ctx, nm) =
-		match n with
-		  NodeSol _ -> union_value nm
-		| NodeSyncSol _ -> union_value nm
-		| NodeObj _ -> inter_value nm
-		| NodeProc (a,i) -> 
-			let ctx' = inter_value nm
-			in
-			SMap.add a (ISet.singleton i) ctx'
-	in {
-	equality = ctx_equal;
-	node_init = default_flooder_node_init ctx_empty;
-	update_cache = update_cache;
-	update_value = update_value;
-};;
-
-let max_conts_flooder =
-	let update_value n (ctx,nm) = match n with
-		  NodeSol (obj,_,interm) | NodeSyncSol (obj, _, interm) ->
-			let ctx = union_value nm
-			and a = obj_sort obj
-			in
-			let is = ctx_safe_get a ctx
-			in
-			SMap.add a (ISet.union is interm) ctx
-		| NodeObj _ -> union_value nm
-		| NodeProc (a,i) ->
-			let ctx' = union_value nm
-			in
-			SMap.add a (ISet.singleton i) ctx'
-	in {
-	equality = min_conts_flooder.equality;
-	node_init = min_conts_flooder.node_init;
-	update_cache = min_conts_flooder.update_cache;
-	update_value = update_value;
-};;
-
-
-(**
-	GLC setups
-**)
-
-let oa_glc_setup = {
-	conts_flooder = min_conts_flooder;
-	conts = (fun _ (a,_,_) ctx -> try ctx_get a ctx with Not_found -> ISet.empty);
-	saturate_procs = (fun _ a -> a);
-	saturate_procs_by_objs = (fun _ a -> a);
-};;
-
-let make_unord_unsync_sol obj (tr,interm) =
-	tr,
-	NodeSol (obj, tr, interm)
-
-let make_unord_sol obj (tr,interm) =
-	An_localpaths.UnordTrace.abstr tr,
-	NodeSyncSol (obj, tr, interm)
-
-
 (**
 	Simple flooders
 **)
@@ -952,4 +879,75 @@ let top_localstates_flooder =
 	update_cache = default_flooder_update_cache;
 	update_value = update_value;
 }
+
+
+
+(**
+	Continuity
+**)
+
+let min_conts_flooder = 
+	let update_cache n v n' v' =
+		match n, n' with
+		  NodeSol _, NodeProc _
+		| NodeSyncSol _, NodeProc _
+		| NodeObj _, NodeSol _
+		| NodeObj _, NodeSyncSol _
+		| NodeProc _, NodeObj _ -> default_flooder_update_cache n v n' v'
+		| NodeObj _, NodeObj _ -> v (* ignore Cont rels *)
+		| _ -> failwith "wrong abstract structure graph."
+	and update_value n (ctx, nm) =
+		match n with
+		  NodeSol _ -> union_value nm
+		| NodeSyncSol _ -> union_value nm
+		| NodeObj (a,i,_) ->
+			(** do not allow self-loops *)
+			ctx_rm_proc (a,i) (inter_value nm)
+		| NodeProc (a,i) ->
+			let ctx' = inter_value nm
+			in
+			SMap.add a (ISet.singleton i) ctx'
+	in {
+	equality = ctx_equal;
+	node_init = default_flooder_node_init ctx_empty;
+	update_cache = update_cache;
+	update_value = update_value;
+}
+
+let max_conts_flooder boolean_automata =
+	let update_value n (ctx, nm) =
+		let ctx = top_localstates_flooder.update_value n (ctx, nm)
+		in
+		match n with
+		  NodeObj (a,i,_) ->
+		  	if SSet.mem a boolean_automata then
+				ctx_rm_proc (a,i) ctx
+			else ctx
+		| _ -> ctx
+	in {
+	equality = min_conts_flooder.equality;
+	node_init = min_conts_flooder.node_init;
+	update_cache = min_conts_flooder.update_cache;
+	update_value = update_value;
+}
+
+
+(**
+	GLC setups
+**)
+
+let oa_glc_setup = {
+	conts_flooder = min_conts_flooder;
+	conts = (fun _ (a,_,_) ctx -> try ctx_get a ctx with Not_found -> ISet.empty);
+	saturate_procs = (fun _ a -> a);
+	saturate_procs_by_objs = (fun _ a -> a);
+};;
+
+let make_unord_unsync_sol obj (tr,interm) =
+	tr,
+	NodeSol (obj, tr, interm)
+
+let make_unord_sol obj (tr,interm) =
+	An_localpaths.UnordTrace.abstr tr,
+	NodeSyncSol (obj, tr, interm)
 

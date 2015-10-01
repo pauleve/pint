@@ -189,8 +189,8 @@ let top_trimmed_lcg env gA =
  **)
 
 
-let ua_lcg_setup = {oa_glc_setup with
-	conts_flooder = max_conts_flooder
+let ua_lcg_setup an = {oa_glc_setup with
+	conts_flooder = max_conts_flooder (boolean_automata an)
 }
 
 (** Unordered Under-Approximation *)
@@ -229,7 +229,7 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 		in
 		ObjSet.for_all validate_obj glc#objs
 	in
-	let gB_iterator = new lcg_generator ua_lcg_setup env.ctx env.goal sols make_unord_sol
+	let gB_iterator = new lcg_generator (ua_lcg_setup env.an) env.ctx env.goal sols make_unord_sol
 	in
 	(*let i = ref 0 in*)
 	let rec __check gB =
@@ -551,10 +551,7 @@ let lcg_for_requirements env =
 
 
 let worth_lcg env =
-	let folder a def bools =
-		if List.length def = 2 then SSet.add a bools else bools
-	in
-	let bool_automata = Hashtbl.fold folder env.an.automata SSet.empty
+	let bool_automata = boolean_automata env.an
 	in
 	let saturate_procs_by_objs =
 		let fold_obj obj ps =
@@ -563,7 +560,7 @@ let worth_lcg env =
 		in
 		ObjSet.fold fold_obj
 	in
-	let glc_setup = {ua_lcg_setup with
+	let glc_setup = {oa_glc_setup with
 		saturate_procs_by_objs = saturate_procs_by_objs}
 	and sols = An_localpaths.complete_abstract_solutions env.sol_cache env.an
 	in
