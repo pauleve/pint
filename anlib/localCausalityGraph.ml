@@ -484,7 +484,6 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 	val mutable new_objs = []
 	val mutable trivial_nsols = NodeSet.empty
 	val mutable impossible_nobjs = NodeSet.empty
-	val mutable intermediate_procs = LSSet.empty
 	method impossible_nobjs = impossible_nobjs
 	method get_trivial_nsols () = trivial_nsols
 	method leafs = NodeSet.union trivial_nsols impossible_nobjs
@@ -579,17 +578,7 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 				self#init_proc p;
 				self#add_child np nsol
 			in
-			LSSet.iter register_proc ps;
-			let a = obj_sort obj
-			in
-			let register_interm i =
-				intermediate_procs <- LSSet.add (a,i) intermediate_procs
-			in
-			let interm = match nsol with
-				  NodeSol (_,_,interm) | NodeSyncSol (_,_,interm) -> interm
-				| _ -> failwith "invalid nsol"
-			in
-			ISet.iter register_interm interm
+			LSSet.iter register_proc ps
 		in
 		List.iter register_sol aBS;
 		new_objs <- obj::new_objs
@@ -635,19 +624,16 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 			self#commit ();
 			true
 		) else false
-	
+
 	method saturate_ctx =
-		let procs = LSSet.union self#all_procs intermediate_procs
-		in
-		let procs = match pl with [ai] -> LSSet.remove ai procs | _ -> procs
-		in
 		let procs = glc_setup.saturate_procs self#ctx procs
 		in
 		let procs = glc_setup.saturate_procs_by_objs self#objs procs
 		in
-		if self#increase_ctx procs then 
+		let procs = match pl with [ai] -> LSSet.remove ai procs | _ -> procs
+		in
+		if self#increase_ctx procs then
 			self#saturate_ctx
-	
 
 	method ancestors candidates objs =
 		let sources = ObjSet.fold (fun obj -> NodeSet.add (NodeObj obj)) objs NodeSet.empty
