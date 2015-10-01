@@ -97,6 +97,7 @@ object(self)
 	val mutable procs = LSSet.empty
 	val mutable objs = ObjSet.empty
 	val mutable all_procs = LSSet.empty
+	val mutable self_loops = NodeSet.empty
 
 	method nodes = nodes
 	method procs = procs
@@ -158,7 +159,32 @@ object(self)
 		and dot_of_proc p = string_of_proc  p
 		in
 		let solcounter = ref 0
+		and synccounter = ref 0
 		in
+		let dot_of_sol () =
+			incr solcounter;
+			let node = "pintsol"^string_of_int !solcounter
+			in
+			let dot = node^"[label=\"\",shape=circle,fixedsize=true,width=0.1,height=0.1];\n"
+			in
+			(node, dot)
+		and dot_of_sync state =
+			if SMap.cardinal state >= 2 then (
+				incr synccounter;
+				let node = "pintsync"^string_of_int !synccounter
+				in
+				let dot = node^"[label=\"\",shape=square,fixedsize=true,width=0.1,height=0.1];\n"
+				in
+				let dot = dot ^ String.concat "" (List.map (fun p ->
+						node^" -> "^(dot_of_proc p)^";\n") (SMap.bindings state))
+				in
+				node, dot)
+			else
+				let dproc = dot_of_proc (SMap.min_binding state)
+				in
+				dproc, ""
+		in
+
 		let register_proc p =
 			let dproc = dot_of_proc p
 			in
@@ -177,17 +203,24 @@ object(self)
 			let dobj = dot_of_obj obj
 			in
 			let dot_of_rel = function
-				(* TODO: NodeSyncSol *)
 				NodeSol (_,ps,_) ->
-					let dsol = "pintsol"^string_of_int !solcounter
-					in
-					let def = dsol^"[label=\"\",shape=circle,fixedsize=true,width=0.1,height=0.1];\n"
+					let dsol, def = dot_of_sol ()
 					in
 					let edges = dobj ^" -> "^dsol^";\n" 
 						^ (String.concat "\n" (List.map (fun p -> dsol^" -> "^(dot_of_proc p)^";") (LSSet.elements ps)))
 					in
-					solcounter := !solcounter + 1;
 					def ^ edges
+				| NodeSyncSol (_,states,_) ->
+					let dsol, def = dot_of_sol ()
+					in
+					let dsyncs, defs = List.split
+						(List.map dot_of_sync (StateSet.elements states))
+					in
+					def
+					^ dobj ^" -> "^dsol^";\n"
+					^ (String.concat "" defs)
+					^ String.concat "" (List.map (fun dsync ->
+						dsol^" -> "^dsync^";\n") dsyncs)
 				| NodeObj obj' -> dobj ^" -> "^dot_of_obj obj'^";"
 				| _ -> failwith "invalid graph (to_dot/register_obj)"
 			in
@@ -224,7 +257,9 @@ object(self)
 		self#register_node n;
 		self#register_node c;
 		Hashtbl.add edges n c;
-		Hashtbl.add rev_edges c n
+		Hashtbl.add rev_edges c n;
+		if c = n then
+			self_loops <- NodeSet.add c self_loops
 	
 	method remove_child c n =
 		Util.hashtbl_filter_bindings edges n (fun m -> c <> m);
@@ -469,6 +504,10 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 		trivial_nsols <- t
 
 	method has_loops =
+		if not (NodeSet.is_empty self_loops) then (
+			last_loop <- [NodeSet.choose self_loops];
+			true
+		) else
 		let ns = nodeset_of_list (List.map (fun p -> NodeProc p) pl)
 		in
 		let sccs = self#tarjan_SCCs true ns

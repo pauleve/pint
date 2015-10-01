@@ -206,7 +206,7 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 				let validate_ls a i =
 					let conn = fst (Hashtbl.find child_procs (NodeProc (a,i)))
 					in
-					dbg (". conn("^string_of_ls (a,i)^" = "^string_of_ctx conn);
+					dbg (". top("^string_of_ls (a,i)^") = "^string_of_ctx conn);
 					SMap.for_all (fun b j -> b = a ||
 						try
 							let js = ctx_get b conn
