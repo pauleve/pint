@@ -4,6 +4,8 @@ open PintTypes
 open LocalCausalityGraph
 open AutomataNetwork
 
+open An_reach
+
 let usage_msg = "pint-lcg [opts] <local state>"
 
 let lcg_types = ["verbose";"trimmed";"saturated";"worth"]
@@ -26,7 +28,7 @@ let goal = match args with
 
 let cache = An_localpaths.create_cache ()
 
-let env = An_reach.init_env an ctx goal
+let env = init_env an ctx goal
 
 let min_asols = An_localpaths.MinUnordUnsyncSol.solutions cache an
 
@@ -39,20 +41,20 @@ let verbose_lcg () =
 let trimmed_lcg () =
 	let lcg = verbose_lcg ()
 	in
-	let lcg = An_reach.bot_trimmed_lcg env min_asols lcg
+	let lcg = bot_trimmed_lcg env min_asols lcg
 	in
-	An_reach.top_trimmed_lcg env lcg;
+	top_trimmed_lcg env lcg;
 	lcg
 
 let worth_lcg () =
-	An_reach.worth_lcg env
+	worth_lcg env
 
 let saturated_lcg () =
-	let uoa, oadom = An_reach.unordered_oa' env min_asols
+	let uoa, oadom = unordered_oa' env min_asols
 	in
 	let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
 	in
-	let lcg = new glc (An_reach.ua_lcg_setup an) ctx goal sols make_unord_sol
+	let lcg = new glc (ua_lcg_setup env.an) ctx goal sols make_unord_sol
 	in
 	lcg#build;
 	lcg#saturate_ctx;
