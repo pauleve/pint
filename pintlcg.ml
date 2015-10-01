@@ -33,7 +33,6 @@ let min_asols = An_localpaths.MinUnordUnsyncSol.solutions cache an
 let verbose_lcg () =
 	let lcg = new glc oa_glc_setup ctx goal min_asols make_unord_unsync_sol
 	in
-	lcg#set_auto_conts false;
 	lcg#build;
 	lcg
 
@@ -49,9 +48,12 @@ let worth_lcg () =
 	An_reach.worth_lcg env
 
 let saturated_lcg () =
-	let lcg = new glc (An_reach.ua_lcg_setup an) ctx goal min_asols make_unord_unsync_sol
+	let uoa, oadom = An_reach.unordered_oa' env min_asols
 	in
-	lcg#set_auto_conts true;
+	let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
+	in
+	let lcg = new glc (An_reach.ua_lcg_setup an) ctx goal sols make_unord_sol
+	in
 	lcg#build;
 	lcg#saturate_ctx;
 	lcg
