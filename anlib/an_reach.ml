@@ -572,6 +572,7 @@ let worth_lcg env =
 	let gB = new glc glc_setup env.ctx env.goal sols make_unord_unsync_sol
 	in
 	if uoa then (
+		gB#set_auto_conts false;
 		gB#build;
 		gB#saturate_ctx;
 		let gB = bot_trimmed_lcg env sols gB
