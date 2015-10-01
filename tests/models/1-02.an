@@ -1,0 +1,10 @@
+"a" [0,1]
+"b" [0,1]
+"bp" [0,1]
+"z" [0,1]
+
+
+"bp" 0 -> 1 when "a"=1 and "b"=1
+"z" 0 -> 1 when "b"=1 and "bp"=0
+
+initial_context "a"=1, "b"=1

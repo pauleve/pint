@@ -3,6 +3,7 @@ all: nc
 TESTS_SOURCES := toto \
 	TestCommon.ml \
 	TestPhReach.ml \
+	TestPintReach.ml \
 	tests.ml
 
 SOURCES := $(TESTS_SOURCES:%=tests/%)
