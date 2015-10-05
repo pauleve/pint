@@ -66,8 +66,8 @@ let do_ctl () =
 	ignore(Unix.system cmdline);
 	Unix.unlink itsctl
 
+let _ = at_exit (fun () -> Unix.unlink itsfile)
+
 let _ = if !opt_tool = "reach" then do_reach ()
 		else if !opt_tool = "ctl" then do_ctl ()
-
-let _ = Unix.unlink itsfile
 

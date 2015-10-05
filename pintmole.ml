@@ -35,6 +35,10 @@ let mcifile = Filename.temp_file "pint" ".mci"
 let _ = output_string netfile_out data;
 		close_out netfile_out
 
+let _ = at_exit (fun () ->
+	Unix.unlink netfile;
+	Unix.unlink mcifile)
+
 let _ =
 	let cmdline = "mole -T GOAL"
 		^" "^String.concat " " !opt_extra
@@ -46,8 +50,4 @@ let _ =
 	  Unix.WEXITED 2 -> print_endline (string_of_ternary True)
 	| Unix.WEXITED 0 -> print_endline (string_of_ternary False)
 	| _ -> prerr_endline "Error."
-
-let _ =
-	Unix.unlink netfile;
-	Unix.unlink mcifile
 
