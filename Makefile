@@ -6,6 +6,7 @@ TARGETS=\
 	pint-export\
 	pint-its\
 	pint-lcg\
+	pint-mole\
 	pint-reach\
 	pint-sg\
 	pint-stable\
@@ -19,6 +20,7 @@ OSX_TARGETS=\
 	pint-export\
 	pint-its\
 	pint-lcg\
+	pint-mole\
 	pint-reach\
 	pint-sg\
 	pint-stable\

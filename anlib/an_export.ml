@@ -83,7 +83,7 @@ let ph_of_an an ctx =
 	^ "initial_context " ^ (String.concat ", " (List.map ph_of_ls lss))
 	^ "\n"
 
-let pep_of_an ?(mapfile="") opts an ctx =
+let pep_of_an ?(goal=None) ?(mapfile="") opts an ctx =
 	let idx_of_place places ls =
 		try
 			(LSMap.find ls places, places)
@@ -103,37 +103,45 @@ let pep_of_an ?(mapfile="") opts an ctx =
 		in
 		List.fold_left fold_ls ([], places)
 	in
-	let register_transition (a,i,j) conds (id, places, transitions, tp, pt, ra) =
+	let register_transition ?(trname=None) (a,i,j) conds (id, places, transitions, tp, pt, ra) =
 		let conds = SMap.bindings conds
 		in
 		let sid = string_of_int id
-		and str = a ^ " " ^ (string_of_astate ~protect:false an a i)
+		and str = match trname with None ->
+					(a ^ " " ^ (string_of_astate ~protect:false an a i)
 					^ " -> " ^ (string_of_astate ~protect:false an a j)
 					^ (match conds with [] -> "" | _ -> " when "^
 						String.concat " and " 
-							(List.map (string_of_localstate ~protect:false an) conds))
+							(List.map (string_of_localstate ~protect:false an)
+							conds)))
+				| Some name -> name
 		in
 		let transitions = (id, sid^"\""^str^"\"", (a,j))::transitions
 		and idxs, places = idx_of_places places conds
 		in
-		let id_ai, places = idx_of_place places (a,i)
+		let sidxs = List.map string_of_int idxs
+		and tp, pt, places =
+			if a <> "" then
+				let id_ai, places = idx_of_place places (a,i)
+				in
+				let id_aj, places = idx_of_place places (a,j)
+				in
+				let sai = string_of_int id_ai
+				and saj = string_of_int id_aj
+				in
+				let tp = (sid^"<"^saj)::tp
+				and pt = (sai^">"^sid)::pt
+				in
+				tp, pt, places
+			else (tp, pt, places)
 		in
-		let id_aj, places = idx_of_place places (a,j)
-		in
-		let sai = string_of_int id_ai
-		and saj = string_of_int id_aj
-		and sidxs = List.map string_of_int idxs
-		in
-		let tp = (sid^"<"^saj)::tp
-		and pt = (sai^">"^sid)::pt
-		in
-		let (tp, pt, ra) = 
+		let (tp, pt, ra) =
 			if opts.contextual_ptnet then
 				let ra = ra @ List.map (fun sai -> sid^"<"^sai) sidxs
 				in
 				tp, pt, ra
 			else
-				let tp = tp @ List.map (fun sai -> sid^"<"^sai) sidxs
+				let tp = if a <> "" then tp @ List.map (fun sai -> sid^"<"^sai) sidxs else tp
 				and pt = pt @ List.map (fun sai -> sai^">"^sid) sidxs
 				in
 				tp, pt, ra
@@ -141,6 +149,10 @@ let pep_of_an ?(mapfile="") opts an ctx =
 		(id+1, places, transitions, tp, pt, ra)
 	in
 	let pep = (1, LSMap.empty, [], [], [], [])
+	in
+	let pep = match goal with None -> pep
+		| Some (conds, trname) ->
+			register_transition ~trname:(Some trname) ("", 0, 1) conds pep
 	in
 	let (_, places, transitions, tp, pt, ra) =
 			Hashtbl.fold register_transition an.conditions pep
