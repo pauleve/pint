@@ -789,26 +789,25 @@ let string_of_choices choices =
 	"<"^(String.concat "; " acc)^">"
 ;;
 
-let empty_choices_queue () =
-	let q = Queue.create ()
-	in
-	Queue.push ObjMap.empty q;
-	q
-;;
-
 module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = ObjMap.compare compare end)
-
 
 class ['a] lcg_generator lcg_setup ctx pl (*concrete_ph*)
 (get_Sols:Ph_types.objective -> ('a * PintTypes.ISet.t) list)
 (make_sol:Ph_types.objective -> 'a * ISet.t -> LSSet.t * node)
 =
+	let queue0 =
+		let stack = Stack.create ();
+		in
+		Stack.push ObjMap.empty stack;
+		stack
+	in
+
 	object(self)
-	val mutable has_next = true
-	(*val queue = empty_choices_queue ()*)
-	val mutable queue = [ObjMap.empty]
+
+	val queue = queue0
+	method has_next = not(Stack.is_empty queue)
+
 	val mutable current_choices = ObjMap.empty
-	method has_next = queue <> [] (*not (Queue.is_empty queue)*)
 
 	val mutable multisols_objs = ObjSet.empty
 	method multisols_objs = multisols_objs
@@ -821,31 +820,20 @@ class ['a] lcg_generator lcg_setup ctx pl (*concrete_ph*)
 		match aBS with [] | [_] -> aBS
 		| _ -> (
 			multisols_objs <- ObjSet.add obj multisols_objs;
-			let sol =
-				try
-					let n = ObjMap.find obj choices
-					in
-					List.nth aBS n
-				with Not_found -> (
-					(*
-					let register_choice n =
-						let choices' = ObjMap.add obj n choices
-						in
-						self#push_choices choices'
-					in
-					List.iter register_choice (Util.range 1 (List.length aBS - 1)); *)
-					List.hd aBS
-				)
-			in
-			[sol]
+			(try
+				let n = ObjMap.find obj choices
+				in
+				List.nth aBS n
+			with Not_found ->
+				List.hd aBS
+			)::[]
 		)
-	
+
 	method push_choices choices =
 		if not (ObjMapSet.mem choices known_choices) then (
 			known_choices <- ObjMapSet.add choices known_choices;
 			dbg ~level:1 ("::: pushing choices "^string_of_choices choices);
-			queue <- choices::queue
-			(*Queue.push choices queue*)
+			Stack.push choices queue
 		) else
 			dbg ~level:1 ("skip "^string_of_choices choices)
 
@@ -864,19 +852,17 @@ class ['a] lcg_generator lcg_setup ctx pl (*concrete_ph*)
 		self#push_choices next_choices
 
 	method next =
-		(*let choices = Queue.pop queue*)
-		let choices = List.hd queue
+		let choices = Stack.pop queue
 		in
 		dbg ~level:1 ("::: playing choices "^string_of_choices choices);
 		current_choices <- choices;
-		queue <- List.tl queue;
-		let gB = new glc lcg_setup ctx pl (*concrete_ph*) (self#get_Sols choices) make_sol
-		in 
+		let gB = new glc lcg_setup ctx pl (self#get_Sols choices) make_sol
+		in
 		gB#build;
 		gB#saturate_ctx;
 		gB
 
-end;;
+end
 
 (**
 	Simple flooders
@@ -975,4 +961,3 @@ let make_unord_unsync_sol obj (tr,interm) =
 let make_unord_sol obj (tr,interm) =
 	An_localpaths.UnordTrace.abstr tr,
 	NodeSyncSol (obj, tr, interm)
-
