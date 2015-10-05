@@ -226,6 +226,7 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 			if not gB#auto_conts then (
 				gB#set_auto_conts true;
 				gB#commit ();
+				gB#saturate_ctx;
 				__check gB
 			) else
 				validate gB

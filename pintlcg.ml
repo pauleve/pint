@@ -57,6 +57,7 @@ let saturated_lcg () =
 	let lcg = new glc (ua_lcg_setup env.an) ctx goal sols make_unord_sol
 	in
 	lcg#build;
+	lcg#set_auto_conts true;
 	lcg#saturate_ctx;
 	lcg
 
