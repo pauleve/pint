@@ -100,6 +100,7 @@ let unordered_oa env sols =
 	restricted_sols_factory sols nodes
 
 let unordered_oa' env sols =
+	dbg ~level:1 ". unordered over-approximation";
 	let make_domain nodes =
 		let register_node n rsols = match n with
 			  NodeSol (obj, ps, _) ->
@@ -262,7 +263,8 @@ let local_reachability ?saveLCG:(saveLCG = ref None) env =
 	else
 		let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
 		in
-		if unordered_ua ~saveLCG env sols then
+		if An_reach_asp.unordered_ua env.an env.ctx env.goal sols then
+		(*if unordered_ua ~saveLCG env sols then*)
 			True
 		else
 			Inconc

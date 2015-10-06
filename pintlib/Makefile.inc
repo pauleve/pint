@@ -11,6 +11,7 @@ SOURCES := \
 	util.ml\
 	interactionGraph.ml\
 	valSet.ml\
+	aSP_solver.ml\
 
 
 LIBS := 
