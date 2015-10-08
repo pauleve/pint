@@ -3,13 +3,23 @@ if [ -z $PINT_PATH ]; then
 	p=`dirname "$0"`
 	PINT_PATH=`dirname "$p"`
 fi
-ocamlopt \
-	-I "$PINT_PATH" \
-	-I "$PINT_PATH/bindings" \
-	-I "$PINT_PATH/pintlib" \
-	-I "$PINT_PATH/phlib" \
-	-I "$PINT_PATH/anlib" \
+
+INC="-I $PINT_PATH
+	-I $PINT_PATH/bindings
+	-I $PINT_PATH/pintlib
+	-I $PINT_PATH/phlib
+	-I $PINT_PATH/anlib
+	-I +facile"
+
+OPAM_VERSION="`opam --version 2>/dev/null`"
+if [ -n "$OPAM_VERSION" ]; then
+	OPAM_PATH="`opam config var lib`"
+	INC="${INC} -I $OPAM_PATH"
+	INC="${INC} -I $OPAM_PATH/camlidl"
+	INC="${INC} -I $OPAM_PATH/facile"
+fi
+
+ocamlopt ${INC} \
 	-cclib -lm -cclib -lRmath -cclib -lcamlidl\
-	-I +facile facile.cmxa\
-	nums.cmxa str.cmxa unix.cmxa pint.cmxa \
-"$@"
+	facile.cmxa nums.cmxa str.cmxa unix.cmxa pint.cmxa \
+	"$@"
