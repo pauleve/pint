@@ -10,11 +10,14 @@ let usage_msg = "pint-reach [opts] <local state> # Static analysis for reachabil
 and opt_cutsets_n = ref 0
 and opt_req_automata = ref SSet.empty
 and opt_req_universal = ref false
+and opt_legacy = ref false
 
 let parse_automata_set =
 	An_input.parse_string An_parser.automata_set
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
+		("--legacy", Arg.Set opt_legacy,
+			"\tUse legacy under-approximation implementation (no clingo required).");
 		("--cutsets", Arg.Set_int opt_cutsets_n,
 			"n\tCompute cutsets up to given maximum cardinality");
 		("--requirements", arg_string_set parse_automata_set opt_req_automata,
@@ -47,7 +50,11 @@ let _ = if not (SSet.is_empty ukn) then
 let env = init_env an ctx goal
 
 let static_reach () =
-	let result = local_reachability env
+	let result =
+		if !opt_legacy then
+			legacy_local_reachability env
+		else
+			local_reachability env
 	in
 	print_endline (string_of_ternary result)
 

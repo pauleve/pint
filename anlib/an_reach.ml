@@ -251,7 +251,7 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 
 (**** Local reachability ****)
 
-let local_reachability ?saveLCG:(saveLCG = ref None) env =
+let local_reachability env =
 	let cache = env.sol_cache
 	in
 	let sols = An_localpaths.MinUnordUnsyncSol.solutions cache env.an
@@ -264,7 +264,24 @@ let local_reachability ?saveLCG:(saveLCG = ref None) env =
 		let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
 		in
 		if An_reach_asp.unordered_ua env.an env.ctx env.goal sols then
-		(*if unordered_ua ~saveLCG env sols then*)
+			True
+		else
+			Inconc
+
+
+let legacy_local_reachability ?saveLCG:(saveLCG = ref None) env =
+	let cache = env.sol_cache
+	in
+	let sols = An_localpaths.MinUnordUnsyncSol.solutions cache env.an
+	in
+	let uoa, oadom = unordered_oa' env sols
+	in
+	if not uoa then
+		False
+	else
+		let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
+		in
+		if unordered_ua ~saveLCG env sols then
 			True
 		else
 			Inconc
