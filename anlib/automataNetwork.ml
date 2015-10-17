@@ -154,10 +154,17 @@ let declare_transition an a sig_i sig_j sig_conds =
 	let i = get_automaton_state_id an a sig_i
 	and j = get_automaton_state_id an a sig_j
 	and conds = List.fold_left
-					(fun cond (b,sig_k) ->
-							let k = get_automaton_state_id an b sig_k
-							in
-							SMap.add b k cond) SMap.empty sig_conds
+		(fun cond (b,sig_k) ->
+			let k = get_automaton_state_id an b sig_k
+			in
+			try
+				let k' = SMap.find b cond
+				in
+				if k <> k' then
+					failwith ("enabling condition cannot contain "
+						^"two different local states of a same automaton")
+				else cond
+			with Not_found -> SMap.add b k cond) SMap.empty sig_conds
 	in
 	let trs = Hashtbl.find an.transitions (a,i)
 	in
