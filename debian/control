@@ -9,5 +9,5 @@ Package: pint
 Architecture: amd64 i386
 Depends: python (>= 2), r-mathlib
 Recommends: gringo
-Description: Process Hitting related tools.
+Description: Static analyzer for dynamics of Automata Networks
 
