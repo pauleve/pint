@@ -1,3 +1,18 @@
+(**
+
+ERBB Receptor-Regulated G1/S Transition (20 components)
+
+Bibliography:
+* Sahin, O.; Frohlich, H.; Lobke, C.; Korf, U.; Burmester, S.; Majety, M.; Mattern, J.; Schupp, I.;
+  Chaouiya, C.; Thieffry, D.; Poustka, A.; Wiemann, S.; Beissbarth, T. & Arlt, D. Modeling ERBB
+  receptor-regulated G1/S transition to find novel targets for de novo trastuzumab resistance. BMC
+  Systems Biology, 2009, 3
+* Loïc Paulevé, Morgan Magnin, and Olivier Roux. Refining dynamics of gene regulatory networks in a
+  stochastic π-calculus framework. In Transactions on Computational Systems Biology XIII, volume 6575
+  of Lecture Notes in Comp Sci, pages 171-191. Springer, 2011
+  http://dx.doi.org/10.1007/978-3-642-19748-2_8
+
+**)
 
 process AKT1 1
 process CDK2 1 process CDK4 1 process CDK6 1

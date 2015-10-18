@@ -1,0 +1,155 @@
+(**
+
+T-Cell Receptor Signalling Pathway (40 components) 
+
+Bibliography:
+* Klamt, S.; Saez-Rodriguez, J.; Lindquist, J.; Simeoni, L. & Gilles, E. A methodology for the
+  structural and functional analysis of signaling and regulatory networks. BMC Bioinformatics, 2006,
+  7, 56
+* Naldi, A.; Thieffry, D. & Chaouiya, C. Computational Methods in Systems Biology: Decision Diagrams
+  for the Representation and Analysis of Logical Models of Genetic Networks. 2007, 233-247
+* Loïc Paulevé, Morgan Magnin, and Olivier Roux. Refining dynamics of gene regulatory networks in a
+  stochastic π-calculus framework. In Transactions on Computational Systems Biology XIII, volume 6575
+  of Lecture Notes in Comp Sci, pages 171-191. Springer, 2011
+  http://dx.doi.org/10.1007/978-3-642-19748-2_8
+
+**)
+
+"AP1" [0,1]
+"CD45" [0,1]
+"CD8" [0,1]
+"CRE" [0,1]
+"CREB" [0,1]
+"Ca" [0,1]
+"Calcin" [0,1]
+"DAG" [0,1]
+"ERK" [0,1]
+"Fos" [0,1]
+"Fyn" [0,1]
+"Gads" [0,1]
+"Grb2Sos" [0,1]
+"IKK" [0,1]
+"IP3" [0,1]
+"IkB" [0,1]
+"Itk" [0,1]
+"JNK" [0,1]
+"Jun" [0,1]
+"LAT" [0,1]
+"LCK" [0,1]
+"MEK" [0,1]
+"NFAT" [0,1]
+"NFkB" [0,1]
+"PAGCsk" [0,1]
+"PKCth" [0,1]
+"PLCg_a" [0,1]
+"PLCg_b" [0,1]
+"Raf" [0,1]
+"Ras" [0,1]
+"RasGRP1" [0,1]
+"Rlk" [0,1]
+"Rsk" [0,1]
+"SEK" [0,1]
+"Slp76" [0,1]
+"TCRbind" [0,1]
+"TCRlig" [0,1]
+"TCRphos" [0,1]
+"ZAP70" [0,1]
+"cCbl" [0,1]
+
+
+"AP1" 0 -> 1 when "Fos"=1 and "Jun"=1
+"AP1" 1 -> 0 when "Fos"=0
+"AP1" 1 -> 0 when "Jun"=0
+"CD45" 0 -> 1
+"CD8" 0 -> 1
+"CRE" 0 -> 1 when "CREB"=1
+"CRE" 1 -> 0 when "CREB"=0
+"CREB" 0 -> 1 when "Rsk"=1
+"CREB" 1 -> 0 when "Rsk"=0
+"Ca" 0 -> 1 when "IP3"=1
+"Ca" 1 -> 0 when "IP3"=0
+"Calcin" 0 -> 1 when "Ca"=1
+"Calcin" 1 -> 0 when "Ca"=0
+"DAG" 0 -> 1 when "PLCg_a"=1
+"DAG" 1 -> 0 when "PLCg_a"=0
+"ERK" 0 -> 1 when "MEK"=1
+"ERK" 1 -> 0 when "MEK"=0
+"Fos" 0 -> 1 when "ERK"=1
+"Fos" 1 -> 0 when "ERK"=0
+"Fyn" 0 -> 1 when "CD45"=1 and "TCRbind"=1
+"Fyn" 0 -> 1 when "CD45"=1 and "LCK"=1
+"Fyn" 1 -> 0 when "CD45"=0
+"Fyn" 1 -> 0 when "LCK"=0 and "TCRbind"=0
+"Gads" 0 -> 1 when "LAT"=1
+"Gads" 1 -> 0 when "LAT"=0
+"Grb2Sos" 0 -> 1 when "LAT"=1
+"Grb2Sos" 1 -> 0 when "LAT"=0
+"IKK" 0 -> 1 when "PKCth"=1
+"IKK" 1 -> 0 when "PKCth"=0
+"IP3" 0 -> 1 when "PLCg_a"=1
+"IP3" 1 -> 0 when "PLCg_a"=0
+"IkB" 0 -> 1 when "IKK"=0
+"IkB" 1 -> 0 when "IKK"=1
+"Itk" 0 -> 1 when "Slp76"=1 and "ZAP70"=1
+"Itk" 1 -> 0 when "Slp76"=0
+"Itk" 1 -> 0 when "ZAP70"=0
+"JNK" 0 -> 1 when "SEK"=1
+"JNK" 1 -> 0 when "SEK"=0
+"Jun" 0 -> 1 when "JNK"=1
+"Jun" 1 -> 0 when "JNK"=0
+"LAT" 0 -> 1 when "ZAP70"=1
+"LAT" 1 -> 0 when "ZAP70"=0
+"LCK" 0 -> 1 when "CD45"=1 and "CD8"=1 and "PAGCsk"=0
+"LCK" 1 -> 0 when "CD45"=0
+"LCK" 1 -> 0 when "CD8"=0
+"LCK" 1 -> 0 when "PAGCsk"=1
+"MEK" 0 -> 1 when "Raf"=1
+"MEK" 1 -> 0 when "Raf"=0
+"NFAT" 0 -> 1 when "Calcin"=1
+"NFAT" 1 -> 0 when "Calcin"=0
+"NFkB" 0 -> 1 when "IkB"=0
+"NFkB" 1 -> 0 when "IkB"=1
+"PAGCsk" 0 -> 1 when "Fyn"=1
+"PAGCsk" 0 -> 1 when "TCRbind"=0
+"PAGCsk" 1 -> 0 when "Fyn"=0 and "TCRbind"=1
+"PKCth" 0 -> 1 when "DAG"=1
+"PKCth" 1 -> 0 when "DAG"=0
+"PLCg_a" 0 -> 1 when "Itk"=0 and "PLCg_b"=1 and "Rlk"=1 and "Slp76"=1 and "ZAP70"=1
+"PLCg_a" 0 -> 1 when "Itk"=1 and "PLCg_b"=1 and "Slp76"=1 and "ZAP70"=1
+"PLCg_a" 1 -> 0 when "Itk"=0 and "Rlk"=0
+"PLCg_a" 1 -> 0 when "PLCg_b"=0
+"PLCg_a" 1 -> 0 when "Slp76"=0
+"PLCg_a" 1 -> 0 when "ZAP70"=0
+"PLCg_b" 0 -> 1 when "LAT"=1
+"PLCg_b" 1 -> 0 when "LAT"=0
+"Raf" 0 -> 1 when "Ras"=1
+"Raf" 1 -> 0 when "Ras"=0
+"Ras" 0 -> 1 when "Grb2Sos"=1
+"Ras" 0 -> 1 when "RasGRP1"=1
+"Ras" 1 -> 0 when "Grb2Sos"=0 and "RasGRP1"=0
+"RasGRP1" 0 -> 1 when "DAG"=1 and "PKCth"=1
+"RasGRP1" 1 -> 0 when "DAG"=0
+"RasGRP1" 1 -> 0 when "PKCth"=0
+"Rlk" 0 -> 1 when "LCK"=1
+"Rlk" 1 -> 0 when "LCK"=0
+"Rsk" 0 -> 1 when "ERK"=1
+"Rsk" 1 -> 0 when "ERK"=0
+"SEK" 0 -> 1 when "PKCth"=1
+"SEK" 1 -> 0 when "PKCth"=0
+"Slp76" 0 -> 1 when "Gads"=1
+"Slp76" 1 -> 0 when "Gads"=0
+"TCRbind" 0 -> 1 when "TCRlig"=1 and "cCbl"=0
+"TCRbind" 1 -> 0 when "TCRlig"=0
+"TCRbind" 1 -> 0 when "cCbl"=1
+"TCRlig" 0 -> 1
+"TCRphos" 0 -> 1 when "Fyn"=1
+"TCRphos" 0 -> 1 when "LCK"=1 and "TCRbind"=1
+"TCRphos" 1 -> 0 when "Fyn"=0 and "LCK"=0
+"TCRphos" 1 -> 0 when "Fyn"=0 and "TCRbind"=0
+"ZAP70" 0 -> 1 when "LCK"=1 and "TCRphos"=1 and "cCbl"=0
+"ZAP70" 1 -> 0 when "LCK"=0
+"ZAP70" 1 -> 0 when "TCRphos"=0
+"ZAP70" 1 -> 0 when "cCbl"=1
+"cCbl" 0 -> 1 when "ZAP70"=1
+"cCbl" 1 -> 0 when "ZAP70"=0
+
