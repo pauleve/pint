@@ -12,6 +12,9 @@ from [github.com/pauleve/pint/releases](https://github.com/pauleve/pint/releases
 
 - [clingo](http://sourceforge.net/projects/potassco/files/clingo/) is required
   by `pint-reach` and `ph2thomas`.
+- [ITS](http://ddd.lip6.fr/itstools.php) is required by `pint-its`.
+- [mole](http://www.lsv.ens-cachan.fr/~schwoon/tools/mole) is required by
+  `pint-mole`.
 
 
 #### Installation from sources
