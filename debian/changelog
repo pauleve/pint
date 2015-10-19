@@ -1,8 +1,8 @@
-pint (2015-02-11) UNRELEASED; urgency=medium
+pint (2015-10-19) unstable; urgency=medium
 
-  * Release 2015-02-11
+  * Release 2015-10-19
 
- -- Loic Pauleve <loic.pauleve@ens-cachan.org>  Wed, 11 Feb 2015 11:09:44 +0100
+ -- Loic Pauleve <loic.pauleve@ens-cachan.org>  Mon, 19 Oct 2015 09:50:26 +0200
 
 pint (2014-11-14) unstable; urgency=low
 
