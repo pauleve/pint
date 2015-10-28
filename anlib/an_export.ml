@@ -25,7 +25,6 @@ let dump_of_an an ctx =
 	in
 	let defs = Hashtbl.fold fold_defs an.automata []
 	and trs = Hashtbl.fold fold_tr an.conditions []
-	and lss = List.filter (fun (_,i) -> i > 0) lss
 	in
 	let defs = List.sort compare defs
 	and trs = List.sort compare trs
