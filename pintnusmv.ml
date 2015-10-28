@@ -9,11 +9,14 @@ let usage_msg = "pint-nusmv [opts] <local state> -- [NuSMV opts]"
 	^" # symbolic model-checking with NuSMV [http://nusmv.fbk.eu]"
 
 let opt_witness = ref false
+and opt_counterexample = ref false
 and opt_extra = ref []
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 	("--witness", Arg.Set opt_witness,
 		"\tEnable witness computation");
+	("--counterexample", Arg.Set opt_counterexample,
+		"\tEnable counterexample computation");
 	("--", Arg.Rest (fun arg -> opt_extra := !opt_extra @ [arg]),
 		"Extra options for NuSMV");
 ]
@@ -50,7 +53,7 @@ let do_ctl () =
 	let smv = make_smv data
 	in
 	let cmdline = "NuSMV"
-		^(if !opt_witness then "" else " -dcx ")
+		^(if !opt_witness || !opt_counterexample then "" else " -dcx ")
 		^" "^smv
 		^" "^String.concat " " !opt_extra
 	in
