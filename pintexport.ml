@@ -80,7 +80,7 @@ let opts = {
 let languages = [
 	("dump", dump_of_an);
 	("pep", pep_of_an opts ~mapfile:!opt_mapfile);
-	("nusmv", nusmv_of_an);
+	("nusmv", nusmv_of_an ~map:None);
 	("ph", ph_of_an);
 	("prism", prism_of_an);
 	("romeo", romeo_of_an ~map:None ~mapfile:!opt_mapfile);

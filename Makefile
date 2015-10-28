@@ -7,6 +7,7 @@ TARGETS=\
 	pint-its\
 	pint-lcg\
 	pint-mole\
+	pint-nusmv\
 	pint-reach\
 	pint-sg\
 	pint-stable\
@@ -21,6 +22,7 @@ OSX_TARGETS=\
 	pint-its\
 	pint-lcg\
 	pint-mole\
+	pint-nusmv\
 	pint-reach\
 	pint-sg\
 	pint-stable\

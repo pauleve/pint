@@ -351,7 +351,7 @@ let prism_of_an an ctx =
 	^ Hashtbl.fold prism_of_automaton an.automata ""
 
 
-let nusmv_of_an an ctx =
+let nusmv_of_an ?(map=None) an ctx =
 	let varname a = "a_"^a
 	and updname a = "u_"^a
 	in
@@ -363,6 +363,10 @@ let nusmv_of_an an ctx =
 	let automata_spec = List.sort compare automata_spec
 	in
 	let def_automaton (a, is) =
+		(match map with None -> ()
+		| Some m -> List.iter (fun i ->
+				Hashtbl.add m (a,i) (varname a, string_of_int i)) is
+		);
 		varname a^": {"^(String.concat "," (List.map string_of_int is))^"};"
 	in
 	let nusmv_of_conditions (a, i, j) conds =
@@ -388,10 +392,13 @@ let nusmv_of_an an ctx =
 			in
 			List.flatten nusmv_trs
 		in
+		match is with
+		  i1::i2::_ ->
 		"next("^varname a^") := case\n\t"
 		^(String.concat "\t" (List.flatten
 				(List.map (nusmv_of_transitions a) is)))
 		^"\tTRUE: "^varname a^";\nesac;"
+		| _ -> ""
 	in
 	let nusmv_fp_cond =
 		let fold tr conds acc =
