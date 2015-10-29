@@ -11,12 +11,15 @@ let usage_msg = "pint-nusmv [opts] <local state> -- [NuSMV opts]"
 let opt_witness = ref false
 and opt_counterexample = ref false
 and opt_extra = ref []
+and opt_ctx_universal = ref true
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 	("--witness", Arg.Set opt_witness,
 		"\tEnable witness computation");
 	("--counterexample", Arg.Set opt_counterexample,
 		"\tEnable counterexample computation");
+	("--existential-ctx", Arg.Clear opt_ctx_universal,
+		"Make context existential instead of universal");
 	("--", Arg.Rest (fun arg -> opt_extra := !opt_extra @ [arg]),
 		"Extra options for NuSMV");
 ]
@@ -31,7 +34,7 @@ let goal = match args with
 
 let map = Hashtbl.create 50
 
-let data = nusmv_of_an ~map:(Some map) an ctx
+let data = nusmv_of_an ~map:(Some map) !opt_ctx_universal an ctx
 
 let make_smv data =
 	let filename, outp = Filename.open_temp_file "pint" ".smv"

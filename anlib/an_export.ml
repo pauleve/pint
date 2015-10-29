@@ -350,9 +350,10 @@ let prism_of_an an ctx =
 	^ Hashtbl.fold prism_of_automaton an.automata ""
 
 
-let nusmv_of_an ?(map=None) an ctx =
+let nusmv_of_an ?(map=None) universal an ctx =
 	let varname a = "a_"^a
 	and updname a = "u_"^a
+	and tbd_state = "TBD"
 	in
 	let automaton_spec a spec specs =
 		(a, List.map snd spec)::specs
@@ -361,12 +362,23 @@ let nusmv_of_an ?(map=None) an ctx =
 	in
 	let automata_spec = List.sort compare automata_spec
 	in
+	let automata_tbd =
+		if universal then SSet.empty else
+			SMap.fold (fun a is aset ->
+				if ISet.cardinal is > 1 then
+					SSet.add a aset else aset) ctx SSet.empty
+	in
 	let def_automaton (a, is) =
 		(match map with None -> ()
 		| Some m -> List.iter (fun i ->
 				Hashtbl.add m (a,i) (varname a, string_of_int i)) is
 		);
-		varname a^": {"^(String.concat "," (List.map string_of_int is))^"};"
+		let sis = List.map string_of_int is
+		in
+		let sis = if SSet.mem a automata_tbd then
+			tbd_state::sis else sis
+		in
+		varname a^": {"^(String.concat "," sis)^"};"
 	in
 	let nusmv_of_conditions (a, i, j) conds =
 		let conds = (a,i)::SMap.bindings conds
@@ -377,7 +389,7 @@ let nusmv_of_an ?(map=None) an ctx =
 	in
 	let nusmv_of_transitions (a, is) =
 		let nusmv_of_transition a i j conds =
-			"u="^updname a^" & "^nusmv_of_conditions (a,i,j) conds
+			"\tu="^updname a^" & "^nusmv_of_conditions (a,i,j) conds
 				^": "^string_of_int j^";\n"
 		in
 		let nusmv_of_transitions a i =
@@ -393,8 +405,12 @@ let nusmv_of_an ?(map=None) an ctx =
 		in
 		match is with
 		  i1::i2::_ ->
-		"next("^varname a^") := case\n\t"
-		^(String.concat "\t" (List.flatten
+		"next("^varname a^") := case\n"
+		^(if SSet.mem a automata_tbd then
+			("\t"^varname a^"="^tbd_state^": {"
+			^(String.concat "," (List.map string_of_int is))
+			^"};\n") else "")
+		^(String.concat "" (List.flatten
 				(List.map (nusmv_of_transitions a) is)))
 		^"\tTRUE: "^varname a^";\nesac;"
 		| _ -> ""
@@ -414,8 +430,10 @@ let nusmv_of_an ?(map=None) an ctx =
 		in
 		match is with
 		  [i] -> varname a^"="^string_of_int i
-		| _ -> "("^(String.concat " | " (List.map (fun i ->
+		| _ -> if universal then
+				"("^(String.concat " | " (List.map (fun i ->
 					varname a^"="^string_of_int i) is))^")"
+			else (varname a^"="^tbd_state)
 	in
 	"MODULE main\n\n"
 	^"IVAR\n\tu: {u_"^(String.concat ", u_" (List.map fst automata_spec)) ^"};\n"
