@@ -250,16 +250,21 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 		in
 		(id+1, places, repr::transitions)
 	in
-	let (_, mapplaces, transitions) =
+	let (ntid, mapplaces, transitions) =
 			Hashtbl.fold register_transition an.conditions
 				(1, LSMap.empty, [])
 	in
-	let register_localstate ai id places =
-		(if ISet.cardinal (SMap.find (fst ai) ctx) > 1 then
-			failwith "Initial context with more than one local state is not supported yet.");
+	let register_ctx a is =
+		ISet.fold (fun i mapplaces -> snd (idx_of_place mapplaces (a,i))) is
+	in
+	let mapplaces = SMap.fold register_ctx ctx mapplaces
+	in
+	let register_localstate (a,i) id places =
+		let initial = ISet.equal (SMap.find a ctx) (ISet.singleton i)
+		in
 		let repr =
-		"<place id=\""^string_of_int id^"\" label=\""^repr_ls ai^"\" "
-			^" initialMarking=\""^(if ctx_has_localstate ai ctx then "1" else "0")^"\">\n"
+		"<place id=\""^string_of_int id^"\" label=\""^repr_ls (a,i)^"\" "
+			^" initialMarking=\""^(if initial then "1" else "0")^"\">\n"
 			^"\t<graphics><position x=\""^(string_of_int (id*100+100))^"\" y=\"100\"/></graphics>\n"
 			^"\t<scheduling gamma=\"0\" omega=\"0\"/>\n"
 		^"</place>"
@@ -267,6 +272,40 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 		repr::places
 	in
 	let places = LSMap.fold register_localstate mapplaces []
+	in
+	let register_tbd pid a i (ntid, transitions) =
+		let sid = string_of_int ntid
+		and sai = string_of_int (LSMap.find (a,i) mapplaces)
+		in
+		let tr =
+		"<transition id=\""^sid^"\" label=\"DET_"^repr_ls (a,i)^"\"  "
+			^"eft=\"0\" lft=\"0\" "
+			^"eft_param=\"a"^sid^"\" lft_param=\"b"^sid^"\" >\n"
+			^"\t<graphics><position x=\""^string_of_int (0*100+75+80)^"\" y=\"200\"/>"
+				^ "<deltaLabel deltax=\"5\" deltay=\"5\"/>"
+			^"</graphics>\n"
+		^"</transition>\n"
+		^"<arc place=\""^pid^"\" transition=\""^sid^"\" type=\"PlaceTransition\" weight=\"1\"/>\n"
+		^"<arc place=\""^sai^"\" transition=\""^sid^"\" type=\"TransitionPlace\" weight=\"1\"/>"
+		in
+		(ntid+1, tr::transitions)
+	in
+	let register_tbd a is (npid, ntid, places, transitions) = if ISet.cardinal is > 1 then
+		let pid = string_of_int npid
+		in
+		let place =
+		"<place id=\""^pid^"\" label=\""^a^"_TBD\" initialMarking=\"1\">\n"
+			^"\t<graphics><position x=\""^(string_of_int (npid*100+100))^"\" y=\"100\"/></graphics>\n"
+			^"\t<scheduling gamma=\"0\" omega=\"0\"/>\n"
+		^"</place>"
+	in
+		let ntid, transitions = ISet.fold (register_tbd pid a) is (ntid, transitions)
+		in
+		(npid+1, ntid, place::places, transitions)
+		else (npid, ntid, places, transitions)
+	in
+	let _, _, places, transitions = SMap.fold register_tbd ctx
+		(1+List.length places,  ntid, places, transitions)
 	in
 	(match map with Some map -> LSMap.iter (fun ai id ->
 			Hashtbl.add map ai (repr_ls ai, id)) mapplaces | None -> ());
