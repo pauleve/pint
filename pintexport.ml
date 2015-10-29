@@ -42,7 +42,7 @@ and opt_output = ref ""
 and opt_ptnet_context = ref false
 and opt_mapfile = ref ""
 and opt_transforms = Queue.create ()
-and opt_ctx_universal = ref true
+and opt_ctx_universal = ref false
 
 let push_transform func =
 	Queue.push func opt_transforms
@@ -69,7 +69,9 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			(fun ctx -> push_transform (make_disable (An_cli.parse_sls_list ctx))),
 			"<local state list>\tDisable mentionned local states");
 		("--existential-ctx", Arg.Clear opt_ctx_universal,
-			"Make context existential instead of universal (used by: nusmv)");
+			"Make context existential (default, used by: nusmv)");
+		("--universal-ctx", Arg.Set opt_ctx_universal,
+			"Make context universal instead of existential (used by: nusmv)");
 	]
 and usage_msg = "pint-export"
 

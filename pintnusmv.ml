@@ -11,7 +11,7 @@ let usage_msg = "pint-nusmv [opts] <local state> -- [NuSMV opts]"
 let opt_witness = ref false
 and opt_counterexample = ref false
 and opt_extra = ref []
-and opt_ctx_universal = ref true
+and opt_ctx_universal = ref false
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 	("--witness", Arg.Set opt_witness,
@@ -19,7 +19,9 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 	("--counterexample", Arg.Set opt_counterexample,
 		"\tEnable counterexample computation");
 	("--existential-ctx", Arg.Clear opt_ctx_universal,
-		"Make context existential instead of universal");
+		"Make context existential (default)");
+	("--universal-ctx", Arg.Set opt_ctx_universal,
+		"Make context universal instead of existential");
 	("--", Arg.Rest (fun arg -> opt_extra := !opt_extra @ [arg]),
 		"Extra options for NuSMV");
 ]
