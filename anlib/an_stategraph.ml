@@ -145,6 +145,21 @@ let reachable_states an state =
 	in
 	fst (explore sid0 (zero_big_int, BigISet.empty)), known
 
+let reachable_stategraph an state =
+	let sid0, next_sids, sid2state = prepare_sts an state
+	and sg = BigHashtbl.create 10240
+	in
+	let rec explore sid =
+		if not(BigHashtbl.mem sg sid) then (
+			let nexts = next_sids sid
+			in
+			BigHashtbl.add sg sid nexts;
+			List.iter explore nexts
+		)
+	in
+	explore sid0;
+	sg, sid2state
+
 let attractors an state =
 	let sid0, next, sid2state = prepare_sts an state
 	and index = BigHashtbl.create 10240
