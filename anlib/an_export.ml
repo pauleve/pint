@@ -25,7 +25,6 @@ let dump_of_an an ctx =
 	in
 	let defs = Hashtbl.fold fold_defs an.automata []
 	and trs = Hashtbl.fold fold_tr an.conditions []
-	and lss = List.filter (fun (_,i) -> i > 0) lss
 	in
 	let defs = List.sort compare defs
 	and trs = List.sort compare trs
@@ -83,208 +82,272 @@ let ph_of_an an ctx =
 	^ "initial_context " ^ (String.concat ", " (List.map ph_of_ls lss))
 	^ "\n"
 
-let pep_of_an ?(goal=None) ?(mapfile="") opts an ctx =
-	let idx_of_place places ls =
+
+module PetriNet =
+struct
+	type place_t =
+		  LS of local_state
+		| Custom of string
+
+	type transition_t =
+		  LT of (automaton_p * automaton_state * automaton_state * local_state list)
+		| TCustom of string
+
+	type arc_t = TP | PT | RA
+
+	type t = {
+		pm: (place_t, int) Hashtbl.t;
+		tm: (int, transition_t) Hashtbl.t;
+		arcs: ((int *int), arc_t) Hashtbl.t;
+		tokens: (int, int) Hashtbl.t;
+	}
+
+	let create ?(nplaces=20) ?(ntrs=20) ?(narcs=20) ?(ntokens=10) () = {
+			pm = Hashtbl.create nplaces;
+			tm = Hashtbl.create ntrs;
+			arcs = Hashtbl.create narcs;
+			tokens = Hashtbl.create ntokens;
+		}
+
+	let place pn p =
 		try
-			(LSMap.find ls places, places)
-		with Not_found -> (
-			let idx = 1 + LSMap.cardinal places
+			Hashtbl.find pn.pm p
+		with Not_found ->
+			let idx = Hashtbl.length pn.pm + 1
 			in
-			let places = LSMap.add ls idx places
-			in
-			(idx, places)
-		)
-	in
-	let idx_of_places places =
-		let fold_ls (idxs, places) ls =
-			let idx, places = idx_of_place places ls
-			in
-			(idx::idxs, places)
+			(Hashtbl.add pn.pm p idx;
+			idx)
+
+	let places pn =
+		let nodes = Hashtbl.fold (fun p pid l -> (pid,p)::l) pn.pm []
 		in
-		List.fold_left fold_ls ([], places)
+		List.sort compare nodes
+
+	let transition pn name =
+		let tid = Hashtbl.length pn.tm + 1
+		in
+		Hashtbl.add pn.tm tid name;
+		tid
+
+	let transitions pn =
+		let nodes = Hashtbl.fold (fun tid name l-> (tid,name)::l) pn.tm []
+		in
+		List.sort compare nodes
+
+	let add_pt pn pid tid =
+		Hashtbl.add pn.arcs (pid, tid) PT
+	let add_tp pn tid pid =
+		Hashtbl.add pn.arcs (tid, pid) TP
+	let add_ra pn tid pid =
+		Hashtbl.add pn.arcs (tid, pid) RA
+
+	let arcs pn =
+		let nodes = Hashtbl.fold (fun (id1,id2) kind l-> (id1,id2,kind)::l) pn.arcs []
+		in
+		List.sort compare nodes
+
+	let mark pn pid =
+		Hashtbl.add pn.tokens pid 1
+	let marked pn pid =
+		Hashtbl.mem pn.tokens pid
+
+end
+
+let pn_of_an ?(goal=None) contextual an ctx =
+	let pn = PetriNet.create ()
 	in
-	let register_transition ?(trname=None) (a,i,j) conds (id, places, transitions, tp, pt, ra) =
+	let places_of_conds conds =
 		let conds = SMap.bindings conds
 		in
-		let sid = string_of_int id
-		and str = match trname with None ->
-					(a ^ " " ^ (string_of_astate ~protect:false an a i)
-					^ " -> " ^ (string_of_astate ~protect:false an a j)
-					^ (match conds with [] -> "" | _ -> " when "^
-						String.concat " and " 
-							(List.map (string_of_localstate ~protect:false an)
-							conds)))
-				| Some name -> name
+		List.map (fun ai -> PetriNet.place pn (PetriNet.LS ai)) conds
+	in
+	let register_automaton a =
+		List.iter (fun (_, i) ->
+			ignore(PetriNet.place pn (PetriNet.LS (a,i))))
+	and register_transition (a,i,j) conds =
+		let conds = SMap.bindings conds
 		in
-		let transitions = (id, sid^"\""^str^"\"", (a,j))::transitions
-		and idxs, places = idx_of_places places conds
+		let t = PetriNet.transition pn (PetriNet.LT (a,i,j,conds))
 		in
-		let sidxs = List.map string_of_int idxs
-		and tp, pt, places =
-			if a <> "" then
-				let id_ai, places = idx_of_place places (a,i)
-				in
-				let id_aj, places = idx_of_place places (a,j)
-				in
-				let sai = string_of_int id_ai
-				and saj = string_of_int id_aj
-				in
-				let tp = (sid^"<"^saj)::tp
-				and pt = (sai^">"^sid)::pt
-				in
-				tp, pt, places
-			else (tp, pt, places)
+		PetriNet.add_pt pn (PetriNet.place pn (PetriNet.LS (a,i))) t;
+		PetriNet.add_tp pn t (PetriNet.place pn (PetriNet.LS (a,j)));
+		let ps = List.map (fun ai -> PetriNet.place pn (PetriNet.LS ai)) conds
 		in
-		let (tp, pt, ra) =
-			if opts.contextual_ptnet then
-				let ra = ra @ List.map (fun sai -> sid^"<"^sai) sidxs
+		if contextual then
+			List.iter (PetriNet.add_ra pn t) ps
+		else
+			List.iter (fun p -> PetriNet.add_pt pn p t; PetriNet.add_tp pn t p) ps
+	and register_ctx a is =
+		if ISet.cardinal is > 1 then
+			let p = PetriNet.place pn (PetriNet.Custom (a^"_TBD"))
+			in
+			let register_i i =
+				let t = PetriNet.transition pn (PetriNet.TCustom (a^"_TBD_"^string_of_int i))
 				in
-				tp, pt, ra
-			else
-				let tp = if a <> "" then tp @ List.map (fun sai -> sid^"<"^sai) sidxs else tp
-				and pt = pt @ List.map (fun sai -> sai^">"^sid) sidxs
-				in
-				tp, pt, ra
+				PetriNet.add_pt pn p t;
+				PetriNet.add_tp pn t (PetriNet.place pn (PetriNet.LS (a,i)))
+			in
+			ISet.iter register_i is;
+			PetriNet.mark pn p
+		else
+			PetriNet.mark pn (PetriNet.place pn (PetriNet.LS (a,ISet.choose is)))
+	in
+	Hashtbl.iter register_automaton an.automata;
+	(match goal with None -> ()
+	| Some (conds, trname) ->
+		let t = PetriNet.transition pn (PetriNet.TCustom trname)
 		in
-		(id+1, places, transitions, tp, pt, ra)
+		List.iter (fun p -> PetriNet.add_pt pn p t) (places_of_conds conds));
+	Hashtbl.iter register_transition an.conditions;
+	SMap.iter register_ctx ctx;
+	pn
+
+
+let pep_of_an ?(goal=None) ?(mapfile="") opts an ctx =
+	let pn = pn_of_an ~goal opts.contextual_ptnet an ctx
 	in
-	let pep = (1, LSMap.empty, [], [], [], [])
-	in
-	let pep = match goal with None -> pep
-		| Some (conds, trname) ->
-			register_transition ~trname:(Some trname) ("", 0, 1) conds pep
-	in
-	let (_, places, transitions, tp, pt, ra) =
-			Hashtbl.fold register_transition an.conditions pep
-	in
-	let register_localstate ai id places =
-		(id, string_of_int id^"\""^string_of_localstate ~protect:false an ai^"\""
-				^(if ctx_has_localstate ai ctx then "M1" else "M0"), ai)::places
-	in
-	let places = LSMap.fold register_localstate places []
-	in
-	let places = List.sort compare places
-	and transitions = List.sort compare transitions
-	in
-	let mid (_,a,_) = a
-	in
-	let mapplaces = List.map (fun (i,_,ai) -> (i,ai)) places
-	and maptransitions = List.map (fun (i,_,ai) -> (i,ai)) transitions
-	and places = List.map mid (List.sort compare places)
-	and transitions = List.map mid (List.sort compare transitions)
+	let places = PetriNet.places pn
+	and transitions = PetriNet.transitions pn
+	and arcs = PetriNet.arcs pn
 	in
 	(if mapfile <> "" then
-		let string_of_map (id, (a,i)) = 
-					string_of_int id^" "^a^" "^string_of_int i
+		let mapplaces = List.filter
+			(function (_, PetriNet.LS _) -> true | _ -> false) places
 		in
-		let mapdata = 
-			  string_of_int (List.length mapplaces)
-			^ "\n" ^ (String.concat "\n" (List.map string_of_map mapplaces))
-			^ "\n" ^ string_of_int (List.length maptransitions)
-			^ "\n" ^ (String.concat "\n" (List.map string_of_map maptransitions))
+		let string_of_map (id, p) =
+			match p with PetriNet.LS (a,i) ->
+				string_of_int id^" "^a^" "^string_of_int i^"\n"
+			| _ -> raise (Invalid_argument "string_of_map")
+		in
+		let mapdata = String.concat "" (List.map string_of_map mapplaces)
 		in
 		Util.dump_to_file mapfile mapdata
 	);
+	let pep_of_place (pid, p) =
+		string_of_int pid^"\""
+		^ (match p with PetriNet.LS ai -> string_of_localstate ~protect:false an ai
+		    | PetriNet.Custom name -> name)^"\""
+		^(if PetriNet.marked pn pid then "M1" else "M0")
+		^"\n"
+	and pep_of_transition (tid, t) =
+		let name = match t with
+			  PetriNet.LT (a,i,j,conds) ->
+				(a ^ " " ^ (string_of_astate ~protect:false an a i)
+					^ " -> " ^ (string_of_astate ~protect:false an a j)
+					^ (match conds with [] -> "" | _ -> " when "^
+						String.concat " and "
+							(List.map (string_of_localstate ~protect:false an)
+							conds)))
+			| PetriNet.TCustom name -> name
+		in
+		string_of_int tid^"\""^name^"\"\n"
+	and pep_of_arc (id1, id2, kind) =
+		string_of_int id1
+		^(match kind with PetriNet.PT -> ">" | _ -> "<")
+		^string_of_int id2^"\n"
+	in
 	"PEP\nPTNet\nFORMAT_N\n"
-	^ "PL\n" ^ (String.concat "\n" places) ^ "\n"
-	^ "TR\n" ^ (String.concat "\n" transitions) ^ "\n"
-	^ "TP\n" ^ (String.concat "\n" tp) ^ "\n"
-	^ "PT\n" ^ (String.concat "\n" pt) ^ "\n"
-	^ (if opts.contextual_ptnet then "RA\n" ^ (String.concat "\n" ra) ^ "\n"
+	^ "PL\n" ^ (String.concat "" (List.map pep_of_place places))
+	^ "TR\n" ^ (String.concat "" (List.map pep_of_transition transitions))
+	^ "TP\n" ^ (String.concat "" (List.map pep_of_arc
+		(List.filter (function (_,_,PetriNet.TP) -> true | _ -> false) arcs)))
+	^ "PT\n" ^ (String.concat "" (List.map pep_of_arc
+		(List.filter (function (_,_,PetriNet.PT) -> true | _ -> false) arcs)))
+	^ (if opts.contextual_ptnet then
+		"RA\n" ^ (String.concat "" (List.map pep_of_arc
+		(List.filter (function (_,_,PetriNet.RA) -> true | _ -> false) arcs)))
 		else "")
 
 let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
+	let pn = pn_of_an true an ctx
+	in
+	let space = 100
+	and margin = 100
+	in
+	let register_automaton a _ (id, pos) =
+		let pos = SMap.add a (id*space) pos
+		in
+		(id+1, pos)
+	in
+	let _, a_x = Hashtbl.fold register_automaton an.automata (1, SMap.empty)
+	in
+	let places = PetriNet.places pn
+	and transitions = PetriNet.transitions pn
+	and arcs = PetriNet.arcs pn
+	in
 	let repr_i = string_of_astate ~protect:false an
 	in
 	let repr_ls (a,i) = a^"_"^repr_i a i
 	in
-	let idx_of_place places ls =
-		try
-			(LSMap.find ls places, places)
-		with Not_found -> (
-			let idx = 1 + LSMap.cardinal places
-			in
-			let places = LSMap.add ls idx places
-			in
-			(idx, places)
-		)
-	in
-	let idx_of_places places =
-		let fold_ls (idxs, places) ls =
-			let idx, places = idx_of_place places ls
-			in
-			(idx::idxs, places)
+	let romeo_of_place (pid, p) =
+		let name = match p with
+			  PetriNet.LS ai -> repr_ls ai
+			| PetriNet.Custom name -> name
+		and x,y = match p with
+			  PetriNet.LS (a,i) -> SMap.find a a_x, i*space
+			| PetriNet.Custom _ -> 0,0
 		in
-		List.fold_left fold_ls ([], places)
-	in
-	let register_transition (a,i,j) conds (id, places, transitions) =
-		let conds = SMap.bindings conds
-		in
-		let sid = string_of_int id
-		and repr_tr = a^"_"^(repr_i a i)^"_"^(repr_i a j)
+		"<place id=\""^string_of_int pid^"\" label=\""^name^"\" "
+			^" initialMarking=\""^(if PetriNet.marked pn pid then "1" else "0")^"\">\n"
+			^"\t<graphics><position x=\""^(string_of_int (x+margin))^"\""
+			^" y=\""^string_of_int (y+margin)^"\"/></graphics>\n"
+			^"\t<scheduling gamma=\"0\" omega=\"0\"/>\n"
+		^"</place>\n"
+	and romeo_of_transition (tid, t) =
+		let name = match t with PetriNet.TCustom name -> name
+			| PetriNet.LT (a,i,j,conds) ->
+				a^"_"^(repr_i a i)^"_"^(repr_i a j)
 					^(match conds with [] -> "" | _ -> "_"^
 						String.concat "__" (List.map repr_ls conds))
+		and x, y = match t with PetriNet.TCustom _ -> 0, 200
+			| PetriNet.LT (a,_,j,_) ->
+				let x = SMap.find a a_x + margin + space / 2
+				and y = j * space - space/2 + margin
+				in
+				x,y
+		and sid = string_of_int tid
 		in
-		let idxs, places = idx_of_places places conds
-		in
-		let id_ai, places = idx_of_place places (a,i)
-		in
-		let id_aj, places = idx_of_place places (a,j)
-		in
-		let sai = string_of_int id_ai
-		and saj = string_of_int id_aj
-		and sidxs = List.map string_of_int idxs
-		in
-		let repr =
-		"<transition id=\""^sid^"\" label=\""^repr_tr^"\"  "
+		"<transition id=\""^sid^"\" label=\""^name^"\"  "
 			^"eft=\"0\" lft=\"0\" "
 			^"eft_param=\"a"^sid^"\" lft_param=\"b"^sid^"\" >\n"
-			^"\t<graphics><position x=\""^string_of_int (j*100+50+100)^"\" y=\"200\"/>"
+			^"\t<graphics><position x=\""^string_of_int x^"\" y=\""^string_of_int y^"\"/>"
 				^ "<deltaLabel deltax=\"5\" deltay=\"5\"/>"
 			^"</graphics>\n"
 		^"</transition>\n"
-		^"<arc place=\""^sai^"\" transition=\""^sid^"\" type=\"PlaceTransition\" weight=\"1\"/>\n"
-		^"<arc place=\""^saj^"\" transition=\""^sid^"\" type=\"TransitionPlace\" weight=\"1\"/>\n"
-		^ String.concat "\n" (List.map (fun sbk ->
-			"<arc place=\""^sbk^"\" transition=\""^sid^"\" type=\"read\" weight=\"1\"/>")
-				sidxs)
+	and romeo_of_arc (id1, id2, kind) =
+		let (pid, tid, rtype) = match kind with
+		      PetriNet.TP -> (id2, id1, "TransitionPlace")
+			| PetriNet.PT -> (id1, id2, "PlaceTransition")
+			| PetriNet.RA -> (id2, id1, "read")
 		in
-		(id+1, places, repr::transitions)
-	in
-	let (_, mapplaces, transitions) =
-			Hashtbl.fold register_transition an.conditions
-				(1, LSMap.empty, [])
-	in
-	let register_localstate ai id places =
-		(if ISet.cardinal (SMap.find (fst ai) ctx) > 1 then
-			failwith "Initial context with more than one local state is not supported yet.");
-		let repr =
-		"<place id=\""^string_of_int id^"\" label=\""^repr_ls ai^"\" "
-			^" initialMarking=\""^(if ctx_has_localstate ai ctx then "1" else "0")^"\">\n"
-			^"\t<graphics><position x=\""^(string_of_int (id*100+100))^"\" y=\"100\"/></graphics>\n"
-			^"\t<scheduling gamma=\"0\" omega=\"0\"/>\n"
-		^"</place>"
+		let sp = string_of_int pid
+		and st = string_of_int tid
 		in
-		repr::places
+		"<arc place=\""^sp^"\" transition=\""^st^"\" type=\""^rtype^"\" weight=\"1\"/>\n"
 	in
-	let places = LSMap.fold register_localstate mapplaces []
-	in
-	(match map with Some map -> LSMap.iter (fun ai id ->
-			Hashtbl.add map ai (repr_ls ai, id)) mapplaces | None -> ());
+	(match map with Some map -> List.iter (fun (pid, p) ->
+		match p with PetriNet.LS ai ->
+			Hashtbl.add map ai (repr_ls ai, pid) | _ -> ()) places | None -> ());
 	(if mapfile <> "" then
-		let string_of_map ((a,i), id) =
-					string_of_int id^" "^repr_ls (a,i)
+		let mapplaces = List.filter
+			(function (_, PetriNet.LS _) -> true | _ -> false) places
 		in
-		let mapdata = string_of_int (LSMap.cardinal mapplaces)
-			^"\n" ^ (String.concat "\n"
-				(List.map string_of_map (LSMap.bindings mapplaces)))
-			^"\n"
+		let string_of_map (id, p) =
+			match p with PetriNet.LS ai ->
+				string_of_int id^" "^repr_ls ai^"\n"
+			| _ -> raise (Invalid_argument "string_of_map")
+		in
+		let mapdata = String.concat "" (List.map string_of_map mapplaces)
 		in
 		Util.dump_to_file mapfile mapdata
 	);
 	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<TPN>\n"
-	^ (String.concat "\n" places) ^ "\n"
-	^ (String.concat "\n" transitions) ^ "\n</TPN>\n"
+	^ (String.concat "" (List.map romeo_of_place places))
+	^ (String.concat "" (List.map romeo_of_transition transitions))
+	^ (String.concat "" (List.map romeo_of_arc arcs))
+	^ "</TPN>\n"
+
+
 
 
 let prism_of_an an ctx =
@@ -351,9 +414,10 @@ let prism_of_an an ctx =
 	^ Hashtbl.fold prism_of_automaton an.automata ""
 
 
-let nusmv_of_an an ctx =
+let nusmv_of_an ?(map=None) universal an ctx =
 	let varname a = "a_"^a
 	and updname a = "u_"^a
+	and tbd_state = "TBD"
 	in
 	let automaton_spec a spec specs =
 		(a, List.map snd spec)::specs
@@ -362,8 +426,23 @@ let nusmv_of_an an ctx =
 	in
 	let automata_spec = List.sort compare automata_spec
 	in
+	let automata_tbd =
+		if universal then SSet.empty else
+			SMap.fold (fun a is aset ->
+				if ISet.cardinal is > 1 then
+					SSet.add a aset else aset) ctx SSet.empty
+	in
 	let def_automaton (a, is) =
-		varname a^": {"^(String.concat "," (List.map string_of_int is))^"};"
+		(match map with None -> ()
+		| Some m -> List.iter (fun i ->
+				Hashtbl.add m (a,i) (varname a, string_of_int i)) is
+		);
+		let sis = List.map string_of_int is
+		in
+		let sis = if SSet.mem a automata_tbd then
+			tbd_state::sis else sis
+		in
+		varname a^": {"^(String.concat "," sis)^"};"
 	in
 	let nusmv_of_conditions (a, i, j) conds =
 		let conds = (a,i)::SMap.bindings conds
@@ -374,7 +453,7 @@ let nusmv_of_an an ctx =
 	in
 	let nusmv_of_transitions (a, is) =
 		let nusmv_of_transition a i j conds =
-			"u="^updname a^" & "^nusmv_of_conditions (a,i,j) conds
+			"\tu="^updname a^" & "^nusmv_of_conditions (a,i,j) conds
 				^": "^string_of_int j^";\n"
 		in
 		let nusmv_of_transitions a i =
@@ -388,10 +467,17 @@ let nusmv_of_an an ctx =
 			in
 			List.flatten nusmv_trs
 		in
-		"next("^varname a^") := case\n\t"
-		^(String.concat "\t" (List.flatten
+		match is with
+		  i1::i2::_ ->
+		"next("^varname a^") := case\n"
+		^(if SSet.mem a automata_tbd then
+			("\t"^varname a^"="^tbd_state^": {"
+			^(String.concat "," (List.map string_of_int is))
+			^"};\n") else "")
+		^(String.concat "" (List.flatten
 				(List.map (nusmv_of_transitions a) is)))
 		^"\tTRUE: "^varname a^";\nesac;"
+		| _ -> ""
 	in
 	let nusmv_fp_cond =
 		let fold tr conds acc =
@@ -408,8 +494,10 @@ let nusmv_of_an an ctx =
 		in
 		match is with
 		  [i] -> varname a^"="^string_of_int i
-		| _ -> "("^(String.concat " | " (List.map (fun i ->
+		| _ -> if universal then
+				"("^(String.concat " | " (List.map (fun i ->
 					varname a^"="^string_of_int i) is))^")"
+			else (varname a^"="^tbd_state)
 	in
 	"MODULE main\n\n"
 	^"IVAR\n\tu: {u_"^(String.concat ", u_" (List.map fst automata_spec)) ^"};\n"

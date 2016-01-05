@@ -1,0 +1,463 @@
+(**
+
+EGFR/ErbB Signalling (104 components)
+
+* Samaga, R.; Saez-Rodriguez, J.; Alexopoulos, L. G.; Sorger, P. K. & Klamt, S. The Logic of
+  EGFR/ErbB Signaling: Theoretical Properties and Analysis of High-Throughput Data PLoS Comput Biol,
+  Public Library of Science, 2009, 5
+
+**)
+
+"actin_reorg" [0,1]
+"akt" [0,1]
+"aktd" [0,1]
+"ap1" [0,1]
+"ar" [0,1]
+"bad" [0,1]
+"bir" [0,1]
+"btc" [0,1]
+"ca" [0,1]
+"ccbl" [0,1]
+"cfos" [0,1]
+"cjun" [0,1]
+"cmyc" [0,1]
+"creb" [0,1]
+"csrc" [0,1]
+"dag" [0,1]
+"egf" [0,1]
+"elk1" [0,1]
+"endocyt_degrad" [0,1]
+"epr" [0,1]
+"eps8r" [0,1]
+"erbb1" [0,1]
+"erbb11" [0,1]
+"erbb12" [0,1]
+"erbb13" [0,1]
+"erbb14" [0,1]
+"erbb2" [0,1]
+"erbb23" [0,1]
+"erbb24" [0,1]
+"erbb3" [0,1]
+"erbb34" [0,1]
+"erbb4" [0,1]
+"erbb44" [0,1]
+"erk12" [0,1]
+"gab1" [0,1]
+"grb2" [0,1]
+"gsk3" [0,1]
+"hbegf" [0,1]
+"hsp27" [0,1]
+"ip3" [0,1]
+"jnk" [0,1]
+"limk1" [0,1]
+"mek12" [0,1]
+"mekk1" [0,1]
+"mekk4" [0,1]
+"mk2" [0,1]
+"mkk3" [0,1]
+"mkk4" [0,1]
+"mkk6" [0,1]
+"mkk7" [0,1]
+"mkp" [0,1]
+"mlk3" [0,1]
+"mtor_rap" [0,1]
+"mtor_ric" [0,1]
+"mtorr" [0,1]
+"nck" [0,1]
+"nrg1a" [0,1]
+"nrg1b" [0,1]
+"nrg2a" [0,1]
+"nrg2b" [0,1]
+"nrg3" [0,1]
+"nrg4" [0,1]
+"nucerk12" [0,1]
+"p38" [0,1]
+"p70s6_1" [0,1]
+"p70s6_2" [0,1]
+"p90rsk" [0,1]
+"p90rskerk12d" [0,1]
+"pak1" [0,1]
+"pdk1" [0,1]
+"pi34p2" [0,1]
+"pi3k" [0,1]
+"pi3kr" [0,1]
+"pip3" [0,1]
+"pkc" [0,1]
+"plcg" [0,1]
+"pp2a" [0,1]
+"pp2b" [0,1]
+"pro_apoptotic" [0,1]
+"pten" [0,1]
+"ptend" [0,1]
+"rab5a" [0,1]
+"rac_cdc42" [0,1]
+"raf1" [0,1]
+"ras" [0,1]
+"rasgap" [0,1]
+"rheb" [0,1]
+"rin1" [0,1]
+"rntre" [0,1]
+"shc" [0,1]
+"ship2" [0,1]
+"ship2d" [0,1]
+"shp1" [0,1]
+"shp1d" [0,1]
+"shp2" [0,1]
+"sos1" [0,1]
+"sos1_eps8_e3b1" [0,1]
+"sos1r" [0,1]
+"stat1" [0,1]
+"stat3" [0,1]
+"stat5" [0,1]
+"tgfa" [0,1]
+"tsc1_tsc2" [0,1]
+"vav2" [0,1]
+
+
+"actin_reorg" 0 -> 1 when "limk1"=1
+"akt" 0 -> 1 when "mtor_ric"=1 and "pdk1"=1 and "pi34p2"=0 and "pip3"=1 and "pp2a"=0
+"akt" 0 -> 1 when "mtor_ric"=1 and "pdk1"=1 and "pi34p2"=1 and "pp2a"=0
+"akt" 1 -> 0 when "mtor_ric"=0
+"akt" 1 -> 0 when "pdk1"=0
+"akt" 1 -> 0 when "pi34p2"=0 and "pip3"=0
+"akt" 1 -> 0 when "pp2a"=1
+"aktd" 0 -> 1 when "akt"=1
+"ap1" 0 -> 1 when "cfos"=1 and "cjun"=1
+"ap1" 1 -> 0 when "cfos"=0
+"ap1" 1 -> 0 when "cjun"=0
+"bad" 0 -> 1 when "akt"=0 and "pak1"=0
+"bad" 1 -> 0 when "akt"=1
+"bad" 1 -> 0 when "pak1"=1
+"ca" 0 -> 1 when "ip3"=1
+"ccbl" 0 -> 1 when "erbb11"=1
+"cfos" 0 -> 1 when "erk12"=0 and "jnk"=1 and "pp2a"=0
+"cfos" 0 -> 1 when "erk12"=1 and "jnk"=0 and "p90rsk"=1 and "pp2a"=0
+"cfos" 0 -> 1 when "erk12"=1 and "jnk"=1 and "pp2a"=0
+"cfos" 1 -> 0 when "erk12"=0 and "jnk"=0
+"cfos" 1 -> 0 when "erk12"=1 and "jnk"=0 and "p90rsk"=0
+"cfos" 1 -> 0 when "pp2a"=1
+"cjun" 0 -> 1 when "jnk"=1
+"cmyc" 0 -> 1 when "gsk3"=0 and "nucerk12"=1
+"cmyc" 1 -> 0 when "gsk3"=1
+"cmyc" 1 -> 0 when "nucerk12"=0
+"creb" 0 -> 1 when "mk2"=1
+"creb" 0 -> 1 when "p90rsk"=1
+"creb" 1 -> 0 when "mk2"=0 and "p90rsk"=0
+"dag" 0 -> 1 when "plcg"=1
+"elk1" 0 -> 1 when "nucerk12"=1 and "pp2b"=0
+"elk1" 1 -> 0 when "nucerk12"=0
+"elk1" 1 -> 0 when "pp2b"=1
+"endocyt_degrad" 0 -> 1 when "ccbl"=1 and "rab5a"=1
+"endocyt_degrad" 1 -> 0 when "ccbl"=0
+"endocyt_degrad" 1 -> 0 when "rab5a"=0
+"erbb11" 0 -> 1 when "ar"=0 and "bir"=0 and "btc"=0 and "egf"=0 and "epr"=1 and "erbb1"=1 and "hbegf"=0 and "shp1d"=0
+"erbb11" 0 -> 1 when "ar"=0 and "bir"=0 and "btc"=0 and "egf"=0 and "erbb1"=1 and "hbegf"=0 and "shp1d"=0 and "tgfa"=1
+"erbb11" 0 -> 1 when "ar"=1 and "bir"=0 and "btc"=0 and "egf"=0 and "erbb1"=1 and "hbegf"=0 and "shp1d"=0
+"erbb11" 0 -> 1 when "bir"=1 and "btc"=0 and "egf"=0 and "erbb1"=1 and "hbegf"=0 and "shp1d"=0
+"erbb11" 0 -> 1 when "btc"=1 and "egf"=0 and "erbb1"=1 and "hbegf"=0 and "shp1d"=0
+"erbb11" 0 -> 1 when "egf"=1 and "erbb1"=1 and "hbegf"=0 and "shp1d"=0
+"erbb11" 0 -> 1 when "erbb1"=1 and "hbegf"=1 and "shp1d"=0
+"erbb11" 1 -> 0 when "ar"=0 and "bir"=0 and "btc"=0 and "egf"=0 and "epr"=0 and "hbegf"=0 and "tgfa"=0
+"erbb11" 1 -> 0 when "erbb1"=0
+"erbb11" 1 -> 0 when "shp1d"=1
+"erbb12" 0 -> 1 when "bir"=0 and "btc"=0 and "egf"=0 and "epr"=0 and "erbb1"=1 and "erbb2"=1 and "hbegf"=0 and "shp1d"=0 and "tgfa"=1
+"erbb12" 0 -> 1 when "bir"=1 and "btc"=0 and "egf"=0 and "epr"=0 and "erbb1"=1 and "erbb2"=1 and "hbegf"=0 and "shp1d"=0
+"erbb12" 0 -> 1 when "btc"=1 and "egf"=0 and "epr"=0 and "erbb1"=1 and "erbb2"=1 and "hbegf"=0 and "shp1d"=0
+"erbb12" 0 -> 1 when "egf"=1 and "epr"=0 and "erbb1"=1 and "erbb2"=1 and "hbegf"=0 and "shp1d"=0
+"erbb12" 0 -> 1 when "epr"=1 and "erbb1"=1 and "erbb2"=1 and "hbegf"=0 and "shp1d"=0
+"erbb12" 0 -> 1 when "erbb1"=1 and "erbb2"=1 and "hbegf"=1 and "shp1d"=0
+"erbb12" 1 -> 0 when "bir"=0 and "btc"=0 and "egf"=0 and "epr"=0 and "hbegf"=0 and "tgfa"=0
+"erbb12" 1 -> 0 when "erbb1"=0
+"erbb12" 1 -> 0 when "erbb2"=0
+"erbb12" 1 -> 0 when "shp1d"=1
+"erbb13" 0 -> 1 when "erbb1"=1 and "erbb2"=0 and "erbb3"=1 and "nrg1a"=1 and "nrg1b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "erbb1"=1 and "erbb2"=0 and "erbb3"=1 and "nrg1b"=0 and "nrg2a"=1 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "epr"=1 and "erbb1"=1 and "erbb2"=0 and "erbb3"=1 and "nrg1b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "btc"=1 and "erbb1"=1 and "erbb2"=0 and "erbb3"=1 and "nrg1b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "egf"=1 and "erbb1"=1 and "erbb2"=0 and "erbb3"=1 and "nrg1b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "ar"=1 and "btc"=0 and "egf"=0 and "erbb1"=1 and "erbb2"=1 and "erbb3"=1 and "nrg1a"=1 and "nrg1b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "ar"=1 and "btc"=0 and "egf"=0 and "erbb1"=1 and "erbb2"=1 and "erbb3"=1 and "nrg1b"=0 and "nrg2a"=1 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "ar"=1 and "btc"=0 and "egf"=0 and "epr"=1 and "erbb1"=1 and "erbb2"=1 and "erbb3"=1 and "nrg1b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "ar"=1 and "btc"=1 and "egf"=0 and "erbb1"=1 and "erbb2"=1 and "erbb3"=1 and "nrg1b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "ar"=1 and "egf"=1 and "erbb1"=1 and "erbb2"=1 and "erbb3"=1 and "nrg1b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "erbb1"=1 and "erbb2"=0 and "erbb3"=1 and "nrg1b"=1 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "ar"=1 and "erbb1"=1 and "erbb2"=1 and "erbb3"=1 and "nrg1b"=1 and "shp1d"=0 and "tgfa"=0
+"erbb13" 0 -> 1 when "erbb1"=1 and "erbb2"=0 and "erbb3"=1 and "shp1d"=0 and "tgfa"=1
+"erbb13" 0 -> 1 when "ar"=1 and "erbb1"=1 and "erbb2"=1 and "erbb3"=1 and "shp1d"=0 and "tgfa"=1
+"erbb13" 1 -> 0 when "btc"=0 and "egf"=0 and "epr"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "egf"=0 and "epr"=0 and "erbb3"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "egf"=0 and "epr"=0 and "erbb1"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "egf"=0 and "epr"=0 and "erbb2"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "egf"=0 and "epr"=0 and "erbb3"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "egf"=0 and "epr"=0 and "erbb1"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "egf"=1 and "epr"=0 and "erbb3"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "egf"=1 and "epr"=0 and "erbb1"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "egf"=1 and "epr"=0 and "erbb2"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "egf"=1 and "epr"=0 and "erbb3"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "egf"=1 and "epr"=0 and "erbb1"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "epr"=1 and "erbb3"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "epr"=1 and "erbb1"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "epr"=1 and "erbb2"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "epr"=1 and "erbb3"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "epr"=1 and "erbb1"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "erbb3"=0 and "nrg1a"=1 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "erbb1"=0 and "nrg1a"=1 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "erbb2"=1 and "nrg1a"=1 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "erbb3"=0 and "nrg1a"=1 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "erbb1"=0 and "nrg1a"=1 and "nrg1b"=0 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "erbb3"=0 and "nrg1b"=1 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "erbb1"=0 and "nrg1b"=1 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "erbb2"=1 and "nrg1b"=1 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "erbb3"=0 and "nrg1b"=1 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "erbb1"=0 and "nrg1b"=1 and "nrg2a"=0 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "erbb3"=0 and "nrg2a"=1 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "erbb1"=0 and "nrg2a"=1 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "erbb2"=1 and "nrg2a"=1 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "erbb3"=0 and "nrg2a"=1 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=1 and "erbb1"=0 and "nrg2a"=1 and "tgfa"=0
+"erbb13" 1 -> 0 when "ar"=0 and "erbb3"=0 and "tgfa"=1
+"erbb13" 1 -> 0 when "ar"=0 and "erbb1"=0 and "tgfa"=1
+"erbb13" 1 -> 0 when "ar"=0 and "erbb2"=1 and "tgfa"=1
+"erbb13" 1 -> 0 when "ar"=1 and "erbb3"=0 and "tgfa"=1
+"erbb13" 1 -> 0 when "ar"=1 and "erbb1"=0 and "tgfa"=1
+"erbb13" 1 -> 0 when "shp1d"=1
+"erbb14" 0 -> 1 when "egf"=0 and "epr"=0 and "erbb1"=1 and "erbb2"=0 and "erbb4"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=1 and "nrg2b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb14" 0 -> 1 when "egf"=0 and "epr"=0 and "erbb1"=1 and "erbb2"=0 and "erbb4"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg2b"=0 and "nrg4"=1 and "shp1d"=0 and "tgfa"=0
+"erbb14" 0 -> 1 when "egf"=1 and "epr"=0 and "erbb1"=1 and "erbb2"=0 and "erbb4"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg2b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb14" 0 -> 1 when "epr"=1 and "erbb1"=1 and "erbb2"=0 and "erbb4"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg2b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb14" 0 -> 1 when "erbb1"=1 and "erbb2"=0 and "erbb4"=1 and "nrg1a"=1 and "nrg1b"=0 and "nrg2b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb14" 0 -> 1 when "erbb1"=1 and "erbb2"=0 and "erbb4"=1 and "nrg1b"=1 and "nrg2b"=0 and "shp1d"=0 and "tgfa"=0
+"erbb14" 0 -> 1 when "erbb1"=1 and "erbb2"=0 and "erbb4"=1 and "nrg2b"=1 and "shp1d"=0 and "tgfa"=0
+"erbb14" 0 -> 1 when "erbb1"=1 and "erbb2"=0 and "erbb4"=1 and "shp1d"=0 and "tgfa"=1
+"erbb14" 1 -> 0 when "erbb1"=0 and "nrg2a"=0 and "nrg2b"=0 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "egf"=0 and "epr"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "nrg2b"=0 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "egf"=0 and "epr"=0 and "erbb4"=0 and "nrg1a"=0 and "nrg2a"=0 and "nrg2b"=0 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "egf"=0 and "epr"=0 and "erbb4"=0 and "nrg1a"=1 and "nrg2a"=0 and "nrg2b"=0 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "egf"=1 and "epr"=0 and "erbb4"=0 and "nrg2a"=0 and "nrg2b"=0 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "epr"=1 and "erbb4"=0 and "nrg2a"=0 and "nrg2b"=0 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb2"=1 and "nrg2a"=0 and "nrg2b"=0 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb1"=0 and "nrg2a"=1 and "nrg2b"=0 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb4"=0 and "nrg2a"=1 and "nrg2b"=0 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb2"=1 and "nrg2a"=1 and "nrg2b"=0 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb1"=0 and "nrg2b"=1 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb4"=0 and "nrg2b"=1 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb2"=1 and "nrg2b"=1 and "nrg4"=0 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb1"=0 and "nrg4"=1 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb4"=0 and "nrg4"=1 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb2"=1 and "nrg4"=1 and "tgfa"=0
+"erbb14" 1 -> 0 when "erbb1"=0 and "tgfa"=1
+"erbb14" 1 -> 0 when "erbb4"=0 and "tgfa"=1
+"erbb14" 1 -> 0 when "erbb2"=1 and "tgfa"=1
+"erbb14" 1 -> 0 when "shp1d"=1
+"erbb23" 0 -> 1 when "bir"=0 and "btc"=0 and "epr"=0 and "erbb2"=1 and "erbb3"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg2b"=1
+"erbb23" 0 -> 1 when "bir"=0 and "btc"=0 and "epr"=1 and "erbb2"=1 and "erbb3"=1 and "nrg1a"=0 and "nrg1b"=0
+"erbb23" 0 -> 1 when "bir"=0 and "btc"=1 and "erbb2"=1 and "erbb3"=1 and "nrg1a"=0 and "nrg1b"=0
+"erbb23" 0 -> 1 when "bir"=1 and "erbb2"=1 and "erbb3"=1 and "nrg1a"=0 and "nrg1b"=0
+"erbb23" 0 -> 1 when "erbb2"=1 and "erbb3"=1 and "nrg1a"=1 and "nrg1b"=0
+"erbb23" 0 -> 1 when "erbb2"=1 and "erbb3"=1 and "nrg1b"=1
+"erbb23" 1 -> 0 when "bir"=0 and "btc"=0 and "epr"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2b"=0
+"erbb23" 1 -> 0 when "erbb2"=0
+"erbb23" 1 -> 0 when "erbb3"=0
+"erbb24" 0 -> 1 when "erbb2"=1 and "erbb4"=1 and "hbegf"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=1 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 0 -> 1 when "erbb2"=1 and "erbb4"=1 and "hbegf"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2b"=1 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 0 -> 1 when "egf"=1 and "erbb2"=1 and "erbb4"=1 and "hbegf"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 0 -> 1 when "bir"=1 and "erbb2"=1 and "erbb4"=1 and "hbegf"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 0 -> 1 when "btc"=1 and "erbb2"=1 and "erbb4"=1 and "hbegf"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 0 -> 1 when "epr"=1 and "erbb2"=1 and "erbb4"=1 and "hbegf"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 0 -> 1 when "erbb2"=1 and "erbb4"=1 and "hbegf"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 0 -> 1 when "erbb2"=1 and "erbb4"=1 and "nrg1a"=1 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 0 -> 1 when "erbb2"=1 and "erbb4"=1 and "nrg1b"=1 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 0 -> 1 when "erbb2"=1 and "erbb4"=1 and "nrg3"=1 and "nrg4"=0 and "tgfa"=0
+"erbb24" 0 -> 1 when "erbb2"=1 and "erbb4"=1 and "nrg4"=1 and "tgfa"=0
+"erbb24" 0 -> 1 when "erbb2"=1 and "erbb4"=1 and "tgfa"=1
+"erbb24" 1 -> 0 when "erbb4"=0 and "hbegf"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb2"=0 and "hbegf"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "bir"=0 and "btc"=0 and "egf"=0 and "epr"=0 and "hbegf"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "nrg2b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb4"=0 and "hbegf"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb2"=0 and "hbegf"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb4"=0 and "nrg1a"=1 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb2"=0 and "nrg1a"=1 and "nrg1b"=0 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb4"=0 and "nrg1b"=1 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb2"=0 and "nrg1b"=1 and "nrg3"=0 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb4"=0 and "nrg3"=1 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb2"=0 and "nrg3"=1 and "nrg4"=0 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb4"=0 and "nrg4"=1 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb2"=0 and "nrg4"=1 and "tgfa"=0
+"erbb24" 1 -> 0 when "erbb4"=0 and "tgfa"=1
+"erbb24" 1 -> 0 when "erbb2"=0 and "tgfa"=1
+"erbb34" 0 -> 1 when "erbb2"=0 and "erbb3"=1 and "erbb4"=1 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "nrg2b"=1
+"erbb34" 0 -> 1 when "erbb2"=0 and "erbb3"=1 and "erbb4"=1 and "nrg1a"=0 and "nrg1b"=1 and "nrg2a"=0
+"erbb34" 0 -> 1 when "erbb2"=0 and "erbb3"=1 and "erbb4"=1 and "nrg1a"=1 and "nrg2a"=0
+"erbb34" 0 -> 1 when "erbb2"=0 and "erbb3"=1 and "erbb4"=1 and "nrg2a"=1
+"erbb34" 1 -> 0 when "erbb3"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0
+"erbb34" 1 -> 0 when "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0 and "nrg2b"=0
+"erbb34" 1 -> 0 when "erbb4"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2a"=0
+"erbb34" 1 -> 0 when "erbb3"=0 and "nrg1a"=0 and "nrg1b"=1 and "nrg2a"=0
+"erbb34" 1 -> 0 when "erbb4"=0 and "nrg1a"=0 and "nrg1b"=1 and "nrg2a"=0
+"erbb34" 1 -> 0 when "erbb2"=1 and "nrg1a"=0 and "nrg2a"=0
+"erbb34" 1 -> 0 when "erbb3"=0 and "nrg1a"=1 and "nrg2a"=0
+"erbb34" 1 -> 0 when "erbb4"=0 and "nrg1a"=1 and "nrg2a"=0
+"erbb34" 1 -> 0 when "erbb2"=1 and "nrg1a"=1 and "nrg2a"=0
+"erbb34" 1 -> 0 when "erbb3"=0 and "nrg2a"=1
+"erbb34" 1 -> 0 when "erbb4"=0 and "nrg2a"=1
+"erbb34" 1 -> 0 when "erbb2"=1 and "nrg2a"=1
+"erbb44" 0 -> 1 when "bir"=0 and "btc"=0 and "erbb4"=1 and "nrg1a"=1 and "nrg1b"=0 and "nrg2b"=0 and "nrg3"=0
+"erbb44" 0 -> 1 when "bir"=0 and "btc"=0 and "erbb4"=1 and "nrg1b"=0 and "nrg2b"=0 and "nrg3"=0 and "nrg4"=1
+"erbb44" 0 -> 1 when "bir"=0 and "btc"=1 and "erbb4"=1 and "nrg1b"=0 and "nrg2b"=0 and "nrg3"=0
+"erbb44" 0 -> 1 when "bir"=1 and "erbb4"=1 and "nrg1b"=0 and "nrg2b"=0 and "nrg3"=0
+"erbb44" 0 -> 1 when "erbb4"=1 and "nrg1b"=1 and "nrg2b"=0 and "nrg3"=0
+"erbb44" 0 -> 1 when "erbb4"=1 and "nrg2b"=1 and "nrg3"=0
+"erbb44" 0 -> 1 when "erbb4"=1 and "nrg3"=1
+"erbb44" 1 -> 0 when "bir"=0 and "btc"=0 and "erbb4"=0 and "nrg1b"=0 and "nrg2b"=0 and "nrg3"=0
+"erbb44" 1 -> 0 when "bir"=0 and "btc"=0 and "nrg1a"=0 and "nrg1b"=0 and "nrg2b"=0 and "nrg3"=0 and "nrg4"=0
+"erbb44" 1 -> 0 when "bir"=0 and "btc"=1 and "erbb4"=0 and "nrg1b"=0 and "nrg2b"=0 and "nrg3"=0
+"erbb44" 1 -> 0 when "bir"=1 and "erbb4"=0 and "nrg1b"=0 and "nrg2b"=0 and "nrg3"=0
+"erbb44" 1 -> 0 when "erbb4"=0 and "nrg1b"=1 and "nrg2b"=0 and "nrg3"=0
+"erbb44" 1 -> 0 when "erbb4"=0 and "nrg2b"=1 and "nrg3"=0
+"erbb44" 1 -> 0 when "erbb4"=0 and "nrg3"=1
+"erk12" 0 -> 1 when "mek12"=1
+"gab1" 0 -> 1 when "erbb11"=1
+"gab1" 0 -> 1 when "grb2"=1
+"gab1" 1 -> 0 when "erbb11"=0 and "grb2"=0
+"grb2" 0 -> 1 when "erbb11"=0 and "erbb12"=0 and "erbb13"=0 and "erbb14"=0 and "erbb23"=0 and "erbb24"=0 and "erbb34"=0 and "erbb44"=0 and "shc"=0
+"grb2" 1 -> 0 when "erbb11"=1
+"grb2" 1 -> 0 when "erbb12"=1
+"grb2" 1 -> 0 when "erbb13"=1
+"grb2" 1 -> 0 when "erbb14"=1
+"grb2" 1 -> 0 when "erbb23"=1
+"grb2" 1 -> 0 when "erbb24"=1
+"grb2" 1 -> 0 when "erbb34"=1
+"grb2" 1 -> 0 when "erbb44"=1
+"grb2" 1 -> 0 when "shc"=1
+"gsk3" 0 -> 1 when "akt"=0 and "p90rsk"=0
+"gsk3" 1 -> 0 when "akt"=1
+"gsk3" 1 -> 0 when "p90rsk"=1
+"hsp27" 0 -> 1 when "mk2"=1
+"ip3" 0 -> 1 when "plcg"=1
+"jnk" 0 -> 1 when "mkk4"=1 and "mkk7"=1
+"jnk" 1 -> 0 when "mkk4"=0
+"jnk" 1 -> 0 when "mkk7"=0
+"limk1" 0 -> 1 when "pak1"=1
+"mek12" 0 -> 1 when "mekk1"=1
+"mek12" 0 -> 1 when "raf1"=1
+"mek12" 1 -> 0 when "mekk1"=0 and "raf1"=0
+"mekk1" 0 -> 1 when "rac_cdc42"=1
+"mekk4" 0 -> 1 when "rac_cdc42"=1
+"mk2" 0 -> 1 when "p38"=1
+"mkk3" 0 -> 1 when "mlk3"=1
+"mkk4" 0 -> 1 when "mekk1"=1
+"mkk4" 0 -> 1 when "mekk4"=1
+"mkk4" 0 -> 1 when "mlk3"=1
+"mkk4" 1 -> 0 when "mekk1"=0 and "mekk4"=0 and "mlk3"=0
+"mkk6" 0 -> 1 when "mlk3"=1
+"mkk7" 0 -> 1 when "mekk1"=1
+"mlk3" 0 -> 1 when "rac_cdc42"=1
+"mtor_rap" 0 -> 1 when "mtorr"=1 and "rheb"=1
+"mtor_rap" 1 -> 0 when "mtorr"=0
+"mtor_rap" 1 -> 0 when "rheb"=0
+"mtor_ric" 0 -> 1 when "mtorr"=1
+"nck" 0 -> 1 when "erbb11"=1
+"nck" 0 -> 1 when "erbb14"=1
+"nck" 0 -> 1 when "erbb44"=1
+"nck" 1 -> 0 when "erbb11"=0 and "erbb14"=0 and "erbb44"=0
+"nucerk12" 0 -> 1 when "erk12"=1 and "mkp"=0
+"nucerk12" 1 -> 0 when "erk12"=0
+"nucerk12" 1 -> 0 when "mkp"=1
+"p38" 0 -> 1 when "mkk3"=1
+"p38" 0 -> 1 when "mkk4"=1
+"p38" 0 -> 1 when "mkk6"=1
+"p38" 1 -> 0 when "mkk3"=0 and "mkk4"=0 and "mkk6"=0
+"p70s6_1" 0 -> 1 when "erk12"=1
+"p70s6_1" 0 -> 1 when "jnk"=1
+"p70s6_1" 1 -> 0 when "erk12"=0 and "jnk"=0
+"p70s6_2" 0 -> 1 when "mtor_rap"=1 and "p70s6_1"=1 and "pdk1"=1
+"p70s6_2" 1 -> 0 when "mtor_rap"=0
+"p70s6_2" 1 -> 0 when "p70s6_1"=0
+"p70s6_2" 1 -> 0 when "pdk1"=0
+"p90rsk" 0 -> 1 when "erk12"=1 and "pdk1"=1
+"p90rsk" 1 -> 0 when "erk12"=0
+"p90rsk" 1 -> 0 when "pdk1"=0
+"p90rskerk12d" 0 -> 1 when "erk12"=1 and "p90rsk"=1
+"p90rskerk12d" 1 -> 0 when "erk12"=0
+"p90rskerk12d" 1 -> 0 when "p90rsk"=0
+"pak1" 0 -> 1 when "grb2"=0 and "nck"=1 and "rac_cdc42"=1
+"pak1" 0 -> 1 when "grb2"=1 and "rac_cdc42"=1
+"pak1" 1 -> 0 when "grb2"=0 and "nck"=0
+"pak1" 1 -> 0 when "rac_cdc42"=0
+"pi34p2" 0 -> 1 when "pi3k"=1 and "ptend"=0 and "ship2d"=1
+"pi34p2" 1 -> 0 when "pi3k"=0
+"pi34p2" 1 -> 0 when "ptend"=1
+"pi34p2" 1 -> 0 when "ship2d"=0
+"pi3k" 0 -> 1 when "pi3kr"=1
+"pi3k" 1 -> 0 when "pi3kr"=0
+"pip3" 0 -> 1 when "pi3k"=1 and "ptend"=0 and "ship2d"=0
+"pip3" 1 -> 0 when "pi3k"=0
+"pip3" 1 -> 0 when "ptend"=1
+"pip3" 1 -> 0 when "ship2d"=1
+"pkc" 0 -> 1 when "ca"=1 and "dag"=1 and "pdk1"=1
+"pkc" 1 -> 0 when "ca"=0
+"pkc" 1 -> 0 when "dag"=0
+"pkc" 1 -> 0 when "pdk1"=0
+"plcg" 0 -> 1 when "erbb11"=1
+"pro_apoptotic" 0 -> 1 when "bad"=1
+"ptend" 0 -> 1 when "pten"=1
+"rab5a" 0 -> 1 when "rin1"=1 and "rntre"=0
+"rab5a" 1 -> 0 when "rin1"=0
+"rab5a" 1 -> 0 when "rntre"=1
+"rac_cdc42" 0 -> 1 when "sos1_eps8_e3b1"=1
+"rac_cdc42" 0 -> 1 when "vav2"=1
+"rac_cdc42" 1 -> 0 when "sos1_eps8_e3b1"=0 and "vav2"=0
+"raf1" 0 -> 1 when "aktd"=0 and "csrc"=0 and "pak1"=1 and "ras"=1
+"raf1" 0 -> 1 when "aktd"=0 and "csrc"=1 and "ras"=1
+"raf1" 1 -> 0 when "aktd"=1
+"raf1" 1 -> 0 when "csrc"=0 and "pak1"=0
+"raf1" 1 -> 0 when "ras"=0
+"ras" 0 -> 1 when "rasgap"=0 and "sos1"=1
+"ras" 1 -> 0 when "rasgap"=1
+"ras" 1 -> 0 when "sos1"=0
+"rasgap" 0 -> 1 when "gab1"=1 and "shp2"=0
+"rasgap" 1 -> 0 when "gab1"=0
+"rasgap" 1 -> 0 when "shp2"=1
+"rheb" 1 -> 0 when "tsc1_tsc2"=1
+"rin1" 0 -> 1 when "ras"=1
+"rntre" 0 -> 1 when "eps8r"=1 and "erbb11"=1
+"rntre" 1 -> 0 when "eps8r"=0
+"rntre" 1 -> 0 when "erbb11"=0
+"shc" 0 -> 1 when "erbb11"=0 and "erbb12"=0 and "erbb13"=0 and "erbb14"=0 and "erbb23"=0 and "erbb24"=0 and "erbb34"=0 and "erbb44"=0
+"shc" 1 -> 0 when "erbb11"=1
+"shc" 1 -> 0 when "erbb12"=1
+"shc" 1 -> 0 when "erbb13"=1
+"shc" 1 -> 0 when "erbb14"=1
+"shc" 1 -> 0 when "erbb23"=1
+"shc" 1 -> 0 when "erbb24"=1
+"shc" 1 -> 0 when "erbb34"=1
+"shc" 1 -> 0 when "erbb44"=1
+"ship2d" 0 -> 1 when "ship2"=1
+"shp1" 0 -> 1 when "erbb11"=1
+"shp1d" 0 -> 1 when "shp1"=1
+"shp2" 0 -> 1 when "gab1"=1
+"sos1" 0 -> 1 when "grb2"=1 and "p90rskerk12d"=0 and "sos1r"=1
+"sos1" 1 -> 0 when "grb2"=0
+"sos1" 1 -> 0 when "p90rskerk12d"=1
+"sos1" 1 -> 0 when "sos1r"=0
+"sos1_eps8_e3b1" 0 -> 1 when "eps8r"=1 and "pi3kr"=1 and "pip3"=1 and "sos1r"=1
+"sos1_eps8_e3b1" 1 -> 0 when "eps8r"=0
+"sos1_eps8_e3b1" 1 -> 0 when "pi3kr"=0
+"sos1_eps8_e3b1" 1 -> 0 when "pip3"=0
+"sos1_eps8_e3b1" 1 -> 0 when "sos1r"=0
+"stat1" 0 -> 1 when "csrc"=1 and "erbb11"=1
+"stat1" 1 -> 0 when "csrc"=0
+"stat1" 1 -> 0 when "erbb11"=0
+"stat3" 0 -> 1 when "csrc"=1 and "erbb11"=1
+"stat3" 1 -> 0 when "csrc"=0
+"stat3" 1 -> 0 when "erbb11"=0
+"stat5" 0 -> 1 when "csrc"=1 and "erbb24"=1
+"stat5" 0 -> 1 when "csrc"=1 and "erbb11"=1
+"stat5" 1 -> 0 when "csrc"=0
+"stat5" 1 -> 0 when "erbb11"=0 and "erbb24"=0
+"tsc1_tsc2" 1 -> 0 when "akt"=1
+"vav2" 0 -> 1 when "erbb11"=1 and "pip3"=1
+"vav2" 0 -> 1 when "erbb11"=1 and "pi34p2"=1
+"vav2" 1 -> 0 when "erbb11"=0
+"vav2" 1 -> 0 when "pi34p2"=0 and "pip3"=0
+

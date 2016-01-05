@@ -1,3 +1,19 @@
+(**
+
+T-Cell Receptor Signalling Pathway (40 components) 
+
+Bibliography:
+* Klamt, S.; Saez-Rodriguez, J.; Lindquist, J.; Simeoni, L. & Gilles, E. A methodology for the
+  structural and functional analysis of signaling and regulatory networks. BMC Bioinformatics, 2006,
+  7, 56
+* Naldi, A.; Thieffry, D. & Chaouiya, C. Computational Methods in Systems Biology: Decision Diagrams
+  for the Representation and Analysis of Logical Models of Genetic Networks. 2007, 233-247
+* Loïc Paulevé, Morgan Magnin, and Olivier Roux. Refining dynamics of gene regulatory networks in a
+  stochastic π-calculus framework. In Transactions on Computational Systems Biology XIII, volume 6575
+  of Lecture Notes in Comp Sci, pages 171-191. Springer, 2011
+  http://dx.doi.org/10.1007/978-3-642-19748-2_8
+
+**)
 
 process Itk 1
 process TCRbind 1

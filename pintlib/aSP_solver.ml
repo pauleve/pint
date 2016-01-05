@@ -1,20 +1,28 @@
 
 open Debug
 
+let cached_has_clingo = ref false
 let clingo_checked = ref false
 
+let has_clingo () =
+	try
+		let cin = Unix.open_process_in "clingo -v"
+		in
+		let line = input_line cin
+		in
+		Str.string_partial_match
+			(Str.regexp "clingo version 4\\.") line 0
+	with _ -> false
+
+let has_clingo () =
+	(if not !clingo_checked then
+		(cached_has_clingo := has_clingo ();
+		clingo_checked := true));
+	!cached_has_clingo
+
 let check_clingo () =
-	if not !clingo_checked then
-		try
-			let cin = Unix.open_process_in "clingo -v"
-			in
-			let line = input_line cin
-			in
-			if Str.string_partial_match (Str.regexp "clingo version 4\\.") line 0 then
-				clingo_checked := true
-			else
-				raise Not_found
-		with _ -> failwith "Clingo version 4 is required (http://sourceforge.net/projects/potassco/files/clingo/)"
+	if not (has_clingo ()) then
+		failwith "Clingo version 4 is required (http://sourceforge.net/projects/potassco/files/clingo/)"
 
 
 let solver () =

@@ -7,6 +7,7 @@ TARGETS=\
 	pint-its\
 	pint-lcg\
 	pint-mole\
+	pint-nusmv\
 	pint-reach\
 	pint-sg\
 	pint-stable\
@@ -21,6 +22,7 @@ OSX_TARGETS=\
 	pint-its\
 	pint-lcg\
 	pint-mole\
+	pint-nusmv\
 	pint-reach\
 	pint-sg\
 	pint-stable\
@@ -115,7 +117,9 @@ dist-osx:
 	MISC_TOOLS="$(MISC_TOOLS)" ./dist/osx/gen_install.sh > $(OSX_ROOT)/install.sh
 	chmod 655 $(OSX_ROOT)/install.sh
 	install -d $(OSX_ROOT)/examples
-	install -m 644 examples/* $(OSX_ROOT)/examples
+	install -d $(OSX_ROOT)/examples/toys
+	install -m 644 examples/*.* $(OSX_ROOT)/examples
+	install -m 644 examples/toys/* $(OSX_ROOT)/examples/toys
 	install -m 644 dist/osx/README $(OSX_ROOT)
 	-rm -f $(OSX_DMG)
 	hdiutil create -srcfolder $(OSX_W) -volname pint-$(RELNAME) -fs HFS+ $(OSX_DMG)

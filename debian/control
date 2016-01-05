@@ -7,7 +7,6 @@ Standards-Version: 3.6.0
 
 Package: pint
 Architecture: amd64 i386
-Depends: python (>= 2), r-mathlib
-Recommends: gringo
-Description: Process Hitting related tools.
+Depends: python (>= 2), r-mathlib, gringo
+Description: Static analyzer for dynamics of Automata Networks
 

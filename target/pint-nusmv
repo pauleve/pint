@@ -1,0 +1,21 @@
+all: nc
+
+include Makefile.common
+
+SOURCES = \
+	$(DIST_SOURCES) \
+	$(BINDINGS_SOURCES) \
+	$(PINTLIB_SOURCES) \
+	$(PHLIB_SOURCES) \
+	$(ANLIB_SOURCES) \
+	$(UI_SOURCES) \
+	pintnusmv.ml
+
+RESULT = bin/pint-nusmv
+
+install:
+	install -d $(DESTDIR)$(PREFIX)/bin
+	install -m 0755 $(RESULT) $(DESTDIR)$(PREFIX)/bin
+
+include OCamlMakefile
+# vi:set syntax=make:

@@ -2,7 +2,7 @@
 open PintTypes
 open AutomataNetwork
 
-let usage_msg = "pint-stable [opts]"
+let usage_msg = "pint-stable [--fixpoints] [opts]"
 
 let do_fixpoints = ref false
 let restrict = ref []
