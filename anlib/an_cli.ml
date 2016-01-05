@@ -9,6 +9,10 @@ let parse_local_state an data =
 
 let parse_sls_list = An_input.parse_string An_parser.local_state_list
 
+let parse_local_state_list an data =
+	let sls = parse_sls_list data in
+	List.map (fun (a,sig_i) -> a, get_automaton_state_id an a sig_i) sls
+
 let arg_string_set f ref =
 	Arg.String (fun s -> ref := f s)
 
