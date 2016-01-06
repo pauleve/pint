@@ -24,6 +24,23 @@ let init_env an ctx goal =
 		sol_cache = cache;
 	}
 
+
+
+let inject_goal_automaton (an, ctx) sig_conds =
+	let a = "_pint_goal"
+	and sigstates = StateId 0::(List.mapi (fun i _ -> StateId (i+1)) sig_conds)
+	and n = List.length sig_conds
+	in
+	declare_automaton an a sigstates;
+	List.iteri (fun i sig_cond ->
+		declare_transition an a (StateId i) (StateId (i+1)) sig_cond) sig_conds;
+	let ia0 = get_automaton_state_id an a (StateId 0)
+	and itop = get_automaton_state_id an a (StateId n)
+	in
+	(an, SMap.add a (ISet.singleton ia0) ctx), (a, itop)
+
+
+
 let color_nodes_connected_to_trivial_sols (gA:LSSet.t #glc) =
 	(** each node is associated to a couple
 			(green, nm) 

@@ -6,7 +6,7 @@ open AutomataNetwork
 
 open An_reach
 
-let usage_msg = "pint-lcg [opts] <local state>"
+let usage_msg = "pint-lcg [opts] <sub-state1> ... # compute Local Causality Graph for goal"
 
 let lcg_types = ["verbose";"trimmed";"saturated";"worth"]
 let lcg_type = ref "verbose"
@@ -22,18 +22,16 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let an, ctx = An_cli.process_input ()
 
-let goal = match args with 
-	  [str_ls] -> [An_cli.parse_local_state an str_ls]
-	| _ -> abort ()
+let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args abort
 
 let cache = An_localpaths.create_cache ()
 
-let env = init_env an ctx goal
+let env = init_env an ctx [goal]
 
 let min_asols = An_localpaths.MinUnordUnsyncSol.solutions cache an
 
 let verbose_lcg () =
-	let lcg = new glc oa_glc_setup ctx goal min_asols make_unord_unsync_sol
+	let lcg = new glc oa_glc_setup ctx env.goal min_asols make_unord_unsync_sol
 	in
 	lcg#build;
 	lcg
@@ -54,7 +52,7 @@ let saturated_lcg () =
 	in
 	let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
 	in
-	let lcg = new glc (ua_lcg_setup env.an) ctx goal sols make_unord_sol
+	let lcg = new glc (ua_lcg_setup env.an) ctx env.goal sols make_unord_sol
 	in
 	lcg#set_auto_conts false;
 	lcg#build;

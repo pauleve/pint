@@ -5,7 +5,7 @@ open AutomataNetwork
 open An_cli
 open An_reach
 
-let usage_msg = "pint-reach [opts] <local state> # Static analysis for reachability"
+let usage_msg = "pint-reach [opts] <sub-state1> ... # Static analysis for reachability"
 
 and opt_cutsets_n = ref 0
 and opt_req_automata = ref SSet.empty
@@ -30,9 +30,7 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let an, ctx = An_cli.process_input ()
 
-let goal = match args with
-	  [str_ls] -> [An_cli.parse_local_state an str_ls]
-	| _ -> abort ()
+let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args abort
 
 let do_cutsets = !opt_cutsets_n > 0
 
@@ -47,7 +45,7 @@ let ukn = SSet.filter (fun a -> not (Hashtbl.mem an.automata a)) !opt_req_automa
 let _ = if not (SSet.is_empty ukn) then
 	failwith ("Invalid --requirements argument: unknown automata "^ string_of_sset ukn)
 
-let env = init_env an ctx goal
+let env = init_env an ctx [goal]
 
 let static_reach () =
 	let result =
