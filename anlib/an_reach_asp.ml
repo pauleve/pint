@@ -22,14 +22,14 @@ let sol_asp obj n =
 let ls_asp (a,i) =
 	"ls("^automaton_asp a^","^string_of_int i^")"
 
-let edge_asp n1 n2 =
-	"edge("^n1^","^n2^")"
+let edge_asp ?(instance="LCG") n1 n2 =
+	"edge("^instance^","^n1^","^n2^")"
 
-let init_asp a i =
-	"init("^automaton_asp a^","^string_of_int i^")"
+let init_asp ?(instance="LCG") a i =
+	"init("^instance^","^automaton_asp a^","^string_of_int i^")"
 
-let indep_asp a i ls2 =
-	"indep("^automaton_asp a^","^string_of_int i^","^ls_asp ls2^")"
+let indep_asp ?(instance="LCG") a i ls2 =
+	"indep("^instance^","^automaton_asp a^","^string_of_int i^","^ls_asp ls2^")"
 
 let bool_asp a =
 	"boolean("^automaton_asp a^")"
@@ -37,22 +37,20 @@ let bool_asp a =
 
 let unordua_asp = [
 	(* objective per initial state *)
-	"edge(ls(A,I),obj(A,J,I)) :- edge(_,ls(A,I)), init(A,J)";
+	"edge(LCG,ls(A,I),obj(A,J,I)) :- edge(LCG,_,ls(A,I)), init(LCG,A,J)";
 
-	"conn(X,Y) :- edge(X,Y)";
-	"conn(X,Y) :- edge(X,Z), conn(Z,Y)";
-	":- conn(X,X)"; (* no cycle *)
+	"conn(LCG,X,Y) :- edge(LCG,X,Y)";
+	"conn(LCG,X,Y) :- edge(LCG,X,Z), conn(LCG,Z,Y)";
+	":- conn(LCG,X,X)"; (* no cycle *)
 	(* context saturation *)
-	"init(A,I) :- edge(n, ls(A,I)), n != goal";
+	"init(LCG,A,I) :- edge(LCG,n, ls(A,I)), n != goal";
 	(* sufficient continuity *)
-	"edge(obj(A,I,J),obj(A,K,J)) :- not boolean(A), conn(obj(A,I,J),ls(A,K)), J != K";
+	"edge(LCG,obj(A,I,J),obj(A,K,J)) :- not boolean(A), conn(LCG,obj(A,I,J),ls(A,K)), J != K";
 	(* synchronisation independence *)
-	":- indep(A,I,ls(A,J)), I != J";
-	"indep(A,I,N) :- indep(A,I,ls(B,J)), B != A, edge(ls(B,J),N)";
-	"indep(A,I,N) :- indep(A,I,obj(B,J,K)), edge(obj(B,J,K),N)";
-	"indep(A,I,N) :- indep(A,I,sol(obj(B,J,K),L)), edge(sol(obj(B,J,K),L),N)";
-	(* output
-	"#show edge/2" *)
+	":- indep(LCG,A,I,ls(A,J)), I != J";
+	"indep(LCG,A,I,N) :- indep(LCG,A,I,ls(B,J)), B != A, edge(LCG,ls(B,J),N)";
+	"indep(LCG,A,I,N) :- indep(LCG,A,I,obj(B,J,K)), edge(LCG,obj(B,J,K),N)";
+	"indep(LCG,A,I,N) :- indep(LCG,A,I,sol(obj(B,J,K),L)), edge(LCG,sol(obj(B,J,K),L),N)";
 ]
 
 let asp_lcg asp lcg =
@@ -73,7 +71,7 @@ let asp_lcg asp lcg =
 				let asp_indep_ls a i asp =
 					SMap.fold (fun b j asp ->
 						if b <> a then
-							decl asp (indep_asp a i (b,j))
+							decl asp (indep_asp a i (b,j)^" :- "^edge_asp "_" orig)
 						else asp) state asp
 				in
 				SMap.fold asp_indep_ls state asp else asp
@@ -113,6 +111,7 @@ let unordered_ua an ctx goal sols =
 	in
 	let asp = SSet.fold (fun a asp -> decl asp (bool_asp a))
 				(boolean_automata an) asp
+	and instance = "uua"
 	in
 	let lcg = new glc oa_glc_setup ctx goal sols make_unord_sol
 	in
@@ -123,18 +122,20 @@ let unordered_ua an ctx goal sols =
 	in
 	let asp = SMap.fold (fun a is asp ->
 		ISet.fold (fun i asp ->
-			decl asp (init_asp a i)) is asp) ctx asp
+			decl asp (init_asp ~instance a i)) is asp) ctx asp
 	in
 	let goal = List.rev goal
 	in
 	let gl, pre_goals = List.hd goal, List.tl goal
 	in
 	let asp = List.fold_left (fun asp ai ->
-		decl asp (edge_asp "root" (ls_asp ai))) asp pre_goals
+		decl asp (edge_asp ~instance "root" (ls_asp ai))) asp pre_goals
 	in
-	let asp = decl asp (edge_asp "goal" (ls_asp gl))
+	let asp = decl asp (edge_asp ~instance "goal" (ls_asp gl))
 	in
 	let asp = decls asp unordua_asp
+	in
+	let asp = decl asp "#show edge/3"
 	in
 	sat asp
 
