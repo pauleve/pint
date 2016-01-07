@@ -10,6 +10,8 @@ open Ph_types
 
 open ASP_solver
 
+let any_instance = "LCG"
+
 let automaton_asp a =
 	"\""^a^"\""
 
@@ -22,13 +24,13 @@ let sol_asp obj n =
 let ls_asp (a,i) =
 	"ls("^automaton_asp a^","^string_of_int i^")"
 
-let edge_asp ?(instance="LCG") n1 n2 =
+let edge_asp ?(instance=any_instance) n1 n2 =
 	"edge("^instance^","^n1^","^n2^")"
 
-let init_asp ?(instance="LCG") a i =
+let init_asp ?(instance=any_instance) a i =
 	"init("^instance^","^automaton_asp a^","^string_of_int i^")"
 
-let indep_asp ?(instance="LCG") a i ls2 =
+let indep_asp ?(instance=any_instance) a i ls2 =
 	"indep("^instance^","^automaton_asp a^","^string_of_int i^","^ls_asp ls2^")"
 
 let bool_asp a =
@@ -104,6 +106,10 @@ let asp_lcg asp lcg =
 	in
 	NodeSet.fold nodeobj_asp lcg#nodes asp
 
+let asp_ctx ?(instance=any_instance) asp ctx =
+	SMap.fold (fun a is asp ->
+		ISet.fold (fun i asp ->
+			decl asp (init_asp ~instance a i)) is asp) ctx asp
 
 let unordered_ua an ctx goal sols =
 	dbg ~level:1 ". unordered under-approximation (ASP implementation)";
@@ -120,9 +126,7 @@ let unordered_ua an ctx goal sols =
 	lcg#saturate_ctx;
 	let asp = asp_lcg asp lcg
 	in
-	let asp = SMap.fold (fun a is asp ->
-		ISet.fold (fun i asp ->
-			decl asp (init_asp ~instance a i)) is asp) ctx asp
+	let asp = asp_ctx ~instance asp ctx
 	in
 	let goal = List.rev goal
 	in
