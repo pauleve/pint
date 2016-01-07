@@ -51,8 +51,8 @@ let unordua_asp = [
 	"indep(A,I,N) :- indep(A,I,ls(B,J)), B != A, edge(ls(B,J),N)";
 	"indep(A,I,N) :- indep(A,I,obj(B,J,K)), edge(obj(B,J,K),N)";
 	"indep(A,I,N) :- indep(A,I,sol(obj(B,J,K),L)), edge(sol(obj(B,J,K),L),N)";
-	(* output *)
-	"#show edge/2"
+	(* output
+	"#show edge/2" *)
 ]
 
 let asp_lcg asp lcg =

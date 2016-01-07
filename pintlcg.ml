@@ -1,14 +1,16 @@
 
 open PintTypes
 
+open Ph_types
+
 open LocalCausalityGraph
 open AutomataNetwork
 
 open An_reach
 
-let usage_msg = "pint-lcg [opts] <sub-state1> ... # compute Local Causality Graph for goal"
+let usage_msg = "pint-lcg [opts] [<sub-state1> ...] # compute Local Causality Graph for goal"
 
-let lcg_types = ["verbose";"trimmed";"saturated";"worth"]
+let lcg_types = ["verbose";"trimmed";"saturated";"worth";"full"]
 let lcg_type = ref "verbose"
 let opt_output = ref "-"
 
@@ -59,19 +61,32 @@ let saturated_lcg () =
 	lcg#saturate_ctx;
 	lcg
 
+let full_lcg () =
+	let sols = An_localpaths.MinUnordSol.solutions cache an
+	and ctx = full_ctx an
+	in
+	let goal = PSet.elements (procs_of_ctx ctx)
+	in
+	let lcg = new glc oa_glc_setup ctx goal sols make_unord_sol
+	in
+	lcg#set_auto_conts false;
+	lcg#build;
+	lcg
+
 
 let lcg_factories = [
 	("verbose", verbose_lcg);
 	("trimmed", trimmed_lcg);
 	("worth", worth_lcg);
 	("saturated", saturated_lcg);
+	("full", full_lcg);
 ]
 
 let lcg = (List.assoc !lcg_type lcg_factories) ()
 
 let data = lcg#to_dot
 
-let _ = 
+let _ =
 	let channel_out = if !opt_output = "-" then stdout else open_out !opt_output
 	in
 	output_string channel_out data;
