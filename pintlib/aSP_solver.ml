@@ -25,10 +25,10 @@ let check_clingo () =
 		failwith "Clingo version 4 is required (http://sourceforge.net/projects/potassco/files/clingo/)"
 
 
-let solver () =
+let solver ?(opts="") () =
 	check_clingo ();
 	dbg ~level:2 "Invoking clingo...";
-	Unix.open_process "clingo --verbose=0 -"
+	Unix.open_process ("clingo --verbose=0 "^opts^" -")
 
 let decl asp pred =
 	let s = pred^".\n"
@@ -61,4 +61,17 @@ let sat (cin, cout) =
 	in
 	ignore(Unix.close_process (cin, cout));
 	ret
+
+let solutions (cin, cout) =
+	close_out cout;
+	let rec readlines cin =
+		try
+			let line = input_line cin
+			in
+			dbg ~level:2 line;
+			if line = "SATISFIABLE" || line = "UNSATISFIABLE" then []
+			else line::readlines cin
+		with End_of_file -> []
+	in
+	readlines cin
 
