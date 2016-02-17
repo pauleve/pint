@@ -1,9 +1,10 @@
 
+open Debug
 open PintTypes
 open AutomataNetwork
 open An_export
 
-let usage_msg = "pint-mole [opts] <local state> -- [mole opts]"
+let usage_msg = "pint-mole [opts] <sub-state> -- [mole opts]"
 	^" # unfolding with mole [http://www.lsv.ens-cachan.fr/~schwoon/tools/mole]"
 
 let opt_extra = ref []
@@ -21,7 +22,7 @@ let args, abort = An_cli.parse cmdopts usage_msg
 let an, ctx = An_cli.process_input ()
 
 let goal = match args with
-	  [str_ls] -> [An_cli.parse_local_state an str_ls]
+	  [str_s] -> An_cli.parse_local_state_list an str_s
 	| _ -> abort ()
 
 let conds = List.fold_left (fun conds (a,i) -> SMap.add a i conds) SMap.empty goal
@@ -49,7 +50,7 @@ let _ =
 		^" "^netfile
 		^" -m "^mcifile
 	in
-	prerr_endline ("# "^cmdline);
+	dbg ~level:1 ("# "^cmdline);
 	match Unix.system cmdline with
 	  Unix.WEXITED 2 -> print_endline (string_of_ternary True)
 	| Unix.WEXITED 0 -> print_endline (string_of_ternary False)
