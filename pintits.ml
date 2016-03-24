@@ -3,7 +3,7 @@ open PintTypes
 open AutomataNetwork
 open An_export
 
-let usage_msg = "pint-its [opts] <local state> -- [its opts] # symbolic model-checking with ITS tools [http://ddd.lip6.fr/itstools.php]"
+let usage_msg = "pint-its [opts] <sub-state> -- [its opts] # symbolic model-checking with ITS tools [http://ddd.lip6.fr/itstools.php]"
 
 let tools = ["reach";"ctl"]
 and opt_tool = ref "reach"
@@ -27,7 +27,7 @@ let args, abort = An_cli.parse cmdopts usage_msg
 let an, ctx = An_cli.process_input ()
 
 let goal = match args with
-	  [str_ls] -> An_cli.parse_local_state an str_ls
+	  [str_s] -> An_cli.parse_local_state_list an str_s
 	| _ -> abort ()
 
 let map = Hashtbl.create 50
@@ -43,9 +43,12 @@ let place_of_ls ls =
 	in
 	"P_"^(string_of_int idx)^label
 
+let its_state substate =
+	String.concat " && " (List.map (fun ai -> place_of_ls ai^"=1") substate)
+
 let do_reach () =
 	let cmdline = "its-reach -i "^itsfile^" -t ROMEO"
-		^" -reachable \""^(place_of_ls goal)^"=1\""
+		^" -reachable \""^(its_state goal)^"\""
 		^(if !opt_verbose then "" else " --quiet")
 		^(if !opt_witness then "" else " --nowitness")
 		^" "^String.concat " " !opt_extra
@@ -56,9 +59,9 @@ let do_reach () =
 let do_ctl () =
 	let itsctl, itsctl_out = Filename.open_temp_file "pint" ".ctl"
 	in
-	output_string itsctl_out ("EF ("^place_of_ls goal^"=1);\n");
+	output_string itsctl_out ("EF ("^its_state goal^");\n");
 	close_out itsctl_out;
-	let cmdline = "its-ctl -i "^itsfile^" -ctl "^itsctl
+	let cmdline = "its-ctl -i "^itsfile^" -t ROMEO -ctl "^itsctl
 		^(if !opt_verbose then "" else " --quiet")
 		^" "^String.concat " " !opt_extra
 	in
