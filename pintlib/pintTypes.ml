@@ -53,6 +53,15 @@ let string_of_set
 	in
 	lb^content^rb
 
+let string_of_map
+	?lbracket:(lb="<") ?rbracket:(rb=">") ?delim:(dl=",")
+	string_of_keyvalue folder map =
+	let fold k v str =
+		str ^ (if str <> "" then dl else "")
+		^ string_of_keyvalue (k,v)
+	in
+	lb^(folder fold map "")^rb
+
 let string_of_iset = string_of_set string_of_int ISet.elements
 
 let string_of_sset = string_of_set id SSet.elements

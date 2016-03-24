@@ -83,6 +83,11 @@ let rec valset_of_mdd = function
 		in
 		IMap.fold folder n.children []
 
+let string_of_valset vs =
+	"{" ^ (String.concat " ; " (List.map (string_of_map
+		(fun (a,i) -> a^"="^string_of_int i) SMap.fold) vs))^"}"
+
+
 module CCs = struct
 	type t = {reprs: (string, string) Hashtbl.t;
 				ccs: (string, SSet.t) Hashtbl.t}
@@ -136,7 +141,11 @@ let group_by_domain vs =
 	in
 	List.map (fun r -> (CCs.get ccs r, Hashtbl.find_all groups r)) (SSet.elements rs)
 
-let simplify ?(max_ite=500) sd vs = match vs with [] | [_] -> vs | _ ->
+
+module ValSetMap = Map.Make(struct type t = int SMap.t let compare = SMap.compare compare end)
+
+
+let simplify ?(max_ite=1024) sd vs = match vs with [] | [_] -> vs | _ ->
 	let rec simplify_group (d,vs) = if SSet.is_empty d then vs else
 		match vs with [] | [_] -> vs | _ ->
 		let perms = Util.stream_permutations (SSet.elements d)
@@ -145,7 +154,9 @@ let simplify ?(max_ite=500) sd vs = match vs with [] | [_] -> vs | _ ->
 			try
 				let d = Stream.next perms
 				in
-				let vs = valset_of_mdd (mdd_of_valset sd vs d)
+				let mdd = mdd_of_valset sd vs d
+				in
+				let vs = valset_of_mdd mdd
 				in
 				match vs with [] | [_] -> vs | _ ->
 				match group_by_domain vs with
@@ -157,6 +168,33 @@ let simplify ?(max_ite=500) sd vs = match vs with [] | [_] -> vs | _ ->
 	in
 	let gvs = group_by_domain vs
 	in
-	List.flatten (List.map simplify_group gvs)
+	let vs = List.flatten (List.map simplify_group gvs)
+	in
+	let eliminate a ais vs =
+		let vsa, vs = List.partition (SMap.mem a) vs
+		in
+		let project vm v =
+			let i = SMap.find a v
+			and v = SMap.remove a v
+			in
+			let is = try ValSetMap.find v vm with Not_found -> ISet.empty
+			in
+			let is = ISet.add i is
+			in
+			ValSetMap.add v is vm
+		in
+		let vm = List.fold_left project ValSetMap.empty vsa
+		in
+		let ni = List.length ais
+		in
+		let expand v is vs =
+			if ISet.cardinal is = ni then
+				v::vs
+			else
+				ISet.fold (fun i vs -> (SMap.add a i v)::vs) is vs
+		in
+		ValSetMap.fold expand vm vs
+	in
+	SMap.fold eliminate sd vs
 
 

@@ -45,7 +45,7 @@ let unordua_asp = [
 	"conn(LCG,X,Y) :- edge(LCG,X,Z), conn(LCG,Z,Y)";
 	":- conn(LCG,X,X)"; (* no cycle *)
 	(* context saturation *)
-	"init(LCG,A,I) :- edge(LCG,n, ls(A,I)), n != goal";
+	"init(LCG,A,I) :- edge(LCG,N,ls(A,I)), N != goal";
 	(* sufficient continuity *)
 	"edge(LCG,obj(A,I,J),obj(A,K,J)) :- not boolean(A), conn(LCG,obj(A,I,J),ls(A,K)), J != K";
 	(* synchronisation independence *)
