@@ -164,7 +164,7 @@ let pn_of_an ?(goal=None) contextual an ctx =
 	let register_automaton a =
 		List.iter (fun (_, i) ->
 			ignore(PetriNet.place pn (PetriNet.LS (a,i))))
-	and register_transition (a,i,j) conds =
+	and register_transition ((a,i,j),conds) =
 		let conds = SMap.bindings conds
 		in
 		let t = PetriNet.transition pn (PetriNet.LT (a,i,j,conds))
@@ -192,13 +192,18 @@ let pn_of_an ?(goal=None) contextual an ctx =
 		else
 			PetriNet.mark pn (PetriNet.place pn (PetriNet.LS (a,ISet.choose is)))
 	in
-	Hashtbl.iter register_automaton an.automata;
+	let sorted_automata = Hashtbl.fold (fun a spec sa ->
+							SMap.add a spec sa) an.automata SMap.empty
+	in
+	SMap.iter register_automaton sorted_automata;
 	(match goal with None -> ()
 	| Some (conds, trname) ->
 		let t = PetriNet.transition pn (PetriNet.TCustom trname)
 		in
 		List.iter (fun p -> PetriNet.add_pt pn p t) (places_of_conds conds));
-	Hashtbl.iter register_transition an.conditions;
+	let trs = an_sorted_transitions an
+	in
+	TRSet.iter register_transition trs;
 	SMap.iter register_ctx ctx;
 	pn
 

@@ -187,6 +187,19 @@ let an_replace_trconditions an tr conds =
 		in
 		List.iter (Hashtbl.add an.conditions tr) conds
 
+
+module TRSet = Set.Make (struct
+	type t = transition * automaton_state SMap.t
+	let compare (tr, conds) (tr', conds') =
+		let ctr = compare tr tr'
+		in
+		if ctr = 0 then SMap.compare compare conds conds' else ctr
+end)
+
+let an_sorted_transitions an =
+	Hashtbl.fold (fun t c trs ->
+		TRSet.add (t,c) trs) an.conditions TRSet.empty
+
 let partial an sset =
 	let an' = empty_an ~size:(SSet.cardinal sset, 50) ()
 	in
