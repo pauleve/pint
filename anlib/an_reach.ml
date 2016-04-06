@@ -46,6 +46,11 @@ let color_nodes_connected_to_trivial_sols (gA:LSSet.t #glc) =
 			(green, nm) 
 		where nm is the cached value of childs *)
 
+	let is_green nm n = try NodeMap.find n nm with Not_found -> false
+	in
+	let ls_is_green nm ls = is_green nm (NodeProc ls)
+	in
+
 	let init = function
 		  NodeSol (obj, ps, _) -> (LSSet.is_empty ps, NodeMap.empty)
 		| NodeSyncSol (obj, states, _) -> (StateSet.is_empty states, NodeMap.empty)
@@ -59,12 +64,10 @@ let color_nodes_connected_to_trivial_sols (gA:LSSet.t #glc) =
 			in
 			NodeMap.fold exists_green nm false
 		| NodeSol (obj, ps, _) -> (* all childs are green *)
-			let proc_is_green p = NodeMap.mem (NodeProc p) nm
-			in
-			LSSet.for_all proc_is_green ps
+			LSSet.for_all (ls_is_green nm) ps
 		| NodeSyncSol (obj, states, _) -> (* all children are green *)
 			let state_is_green s =
-				SMap.for_all (fun a i -> NodeMap.mem (NodeProc (a,i)) nm) s
+				SMap.for_all (fun a i -> ls_is_green nm (a,i)) s
 			in
 			StateSet.for_all state_is_green states
 		| NodeObj _ -> (* all NodeObj childs are green; at least one NodeSol is green *)
