@@ -5,8 +5,6 @@ open An_export
 open Ph_types
 
 let make_partial spec (an, ctx) =
-	let spec = "{"^spec^"}"
-	in
 	let aset = An_input.parse_string An_parser.automata_set spec
 	in
 	SSet.iter (fun a -> if not(Hashtbl.mem an.automata a) then
