@@ -12,6 +12,8 @@ open ASP_solver
 
 let any_instance = "LCG"
 
+let has_indep = ref false
+
 let automaton_asp a =
 	"\""^a^"\""
 
@@ -31,13 +33,15 @@ let init_asp ?(instance=any_instance) a i =
 	"init("^instance^","^automaton_asp a^","^string_of_int i^")"
 
 let indep_asp ?(instance=any_instance) a i ls2 =
+	has_indep := true;
 	"indep("^instance^","^automaton_asp a^","^string_of_int i^","^ls_asp ls2^")"
 
 let bool_asp a =
 	"boolean("^automaton_asp a^")"
 
 
-let unordua_asp = [
+let asp_unordua asp =
+	let asp = decls asp [
 	(* objective per initial state *)
 	"edge(LCG,ls(A,I),obj(A,J,I)) :- edge(LCG,_,ls(A,I)), init(LCG,A,J)";
 
@@ -48,12 +52,17 @@ let unordua_asp = [
 	"init(LCG,A,I) :- edge(LCG,N,ls(A,I)), N != goal";
 	(* sufficient continuity *)
 	"edge(LCG,obj(A,I,J),obj(A,K,J)) :- not boolean(A), conn(LCG,obj(A,I,J),ls(A,K)), J != K";
-	(* synchronisation independence *)
+	]
+	in
+	if !has_indep then
+	(* synchronisation independence
 	":- indep(LCG,A,I,ls(A,J)), I != J";
 	"indep(LCG,A,I,N) :- indep(LCG,A,I,ls(B,J)), B != A, edge(LCG,ls(B,J),N)";
 	"indep(LCG,A,I,N) :- indep(LCG,A,I,obj(B,J,K)), edge(LCG,obj(B,J,K),N)";
-	"indep(LCG,A,I,N) :- indep(LCG,A,I,sol(obj(B,J,K),L)), edge(LCG,sol(obj(B,J,K),L),N)";
-]
+	"indep(LCG,A,I,N) :- indep(LCG,A,I,sol(obj(B,J,K),L)), edge(LCG,sol(obj(B,J,K),L),N)";*)
+		decl asp ":- indep(LCG,A,I,N),conn(LCG,N,ls(A,J)),J!=I"
+	else asp
+
 
 let asp_lcg asp lcg =
 	let nodesol_asp obj asp (i, n) =
@@ -104,6 +113,7 @@ let asp_lcg asp lcg =
 
 		| _ -> asp
 	in
+	has_indep := false;
 	NodeSet.fold nodeobj_asp lcg#nodes asp
 
 let asp_ctx ?(instance=any_instance) asp ctx =
@@ -137,10 +147,11 @@ let unordered_ua an ctx goal sols =
 	in
 	let asp = decl asp (edge_asp ~instance "goal" (ls_asp gl))
 	in
-	let asp = decls asp unordua_asp
+	let asp = asp_unordua asp
 	in
+	(*
 	let asp = decl asp "#show edge/3"
-	in
+	in*)
 	sat asp
 
 
