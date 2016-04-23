@@ -10,7 +10,7 @@ open Ph_types
 
 open ASP_solver
 
-let any_instance = "LCG"
+let any_instance = "G"
 
 let has_indep = ref false
 
@@ -21,13 +21,13 @@ let obj_asp (a,i,j) =
 	"obj("^automaton_asp a^","^string_of_int i^","^string_of_int j^")"
 
 let sol_asp obj n =
-	"sol("^obj_asp obj^","^string_of_int n^")"
+	"lpath("^obj_asp obj^","^string_of_int n^")"
 
 let ls_asp (a,i) =
 	"ls("^automaton_asp a^","^string_of_int i^")"
 
 let edge_asp ?(instance=any_instance) n1 n2 =
-	"edge("^instance^","^n1^","^n2^")"
+	"ua_lcg("^instance^","^n1^","^n2^")"
 
 let init_asp ?(instance=any_instance) a i =
 	"init("^instance^","^automaton_asp a^","^string_of_int i^")"
@@ -43,24 +43,24 @@ let bool_asp a =
 let asp_unordua asp =
 	let asp = decls asp [
 	(* objective per initial state *)
-	"edge(LCG,ls(A,I),obj(A,J,I)) :- edge(LCG,_,ls(A,I)), init(LCG,A,J)";
+	"ua_lcg(G,ls(A,I),obj(A,J,I)) :- ua_lcg(G,_,ls(A,I)), init(G,A,J)";
 
-	"conn(LCG,X,Y) :- edge(LCG,X,Y)";
-	"conn(LCG,X,Y) :- edge(LCG,X,Z), conn(LCG,Z,Y)";
-	":- conn(LCG,X,X)"; (* no cycle *)
+	"conn(G,X,Y) :- ua_lcg(G,X,Y)";
+	"conn(G,X,Y) :- ua_lcg(G,X,Z), conn(G,Z,Y)";
+	":- conn(G,X,X)"; (* no cycle *)
 	(* context saturation *)
-	"init(LCG,A,I) :- edge(LCG,N,ls(A,I)), N != goal";
+	"init(G,A,I) :- ua_lcg(G,N,ls(A,I)), N != goal";
 	(* sufficient continuity *)
-	"edge(LCG,obj(A,I,J),obj(A,K,J)) :- not boolean(A), conn(LCG,obj(A,I,J),ls(A,K)), J != K";
+	"ua_lcg(G,obj(A,I,J),obj(A,K,J)) :- not boolean(A), conn(G,obj(A,I,J),ls(A,K)), J != K";
 	]
 	in
 	if !has_indep then
 	(* synchronisation independence
-	":- indep(LCG,A,I,ls(A,J)), I != J";
-	"indep(LCG,A,I,N) :- indep(LCG,A,I,ls(B,J)), B != A, edge(LCG,ls(B,J),N)";
-	"indep(LCG,A,I,N) :- indep(LCG,A,I,obj(B,J,K)), edge(LCG,obj(B,J,K),N)";
-	"indep(LCG,A,I,N) :- indep(LCG,A,I,sol(obj(B,J,K),L)), edge(LCG,sol(obj(B,J,K),L),N)";*)
-		decl asp ":- indep(LCG,A,I,N),conn(LCG,N,ls(A,J)),J!=I"
+	":- indep(G,A,I,ls(A,J)), I != J";
+	"indep(G,A,I,N) :- indep(G,A,I,ls(B,J)), B != A, ua_lcg(G,ls(B,J),N)";
+	"indep(G,A,I,N) :- indep(G,A,I,obj(B,J,K)), ua_lcg(G,obj(B,J,K),N)";
+	"indep(G,A,I,N) :- indep(G,A,I,sol(obj(B,J,K),L)), ua_lcg(G,sol(obj(B,J,K),L),N)";*)
+		decl asp ":- indep(G,A,I,N),conn(G,N,ls(A,J)),J!=I"
 	else asp
 
 
@@ -150,7 +150,7 @@ let unordered_ua an ctx goal sols =
 	let asp = asp_unordua asp
 	in
 	(*
-	let asp = decl asp "#show edge/3"
+	let asp = decl asp "#show ua_lcg/3"
 	in*)
 	sat asp
 
