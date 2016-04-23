@@ -32,9 +32,9 @@ let edge_asp ?(instance=any_instance) n1 n2 =
 let init_asp ?(instance=any_instance) a i =
 	"init("^instance^","^automaton_asp a^","^string_of_int i^")"
 
-let indep_asp ?(instance=any_instance) a i ls2 =
+let indep_asp ?(instance=any_instance) scope a i ls2 =
 	has_indep := true;
-	"indep("^instance^","^automaton_asp a^","^string_of_int i^","^ls_asp ls2^")"
+	"indep("^instance^","^scope^","^automaton_asp a^","^string_of_int i^","^ls_asp ls2^")"
 
 let bool_asp a =
 	"boolean("^automaton_asp a^")"
@@ -51,7 +51,8 @@ let asp_unordua asp =
 	(* context saturation *)
 	"init(G,A,I) :- ua_lcg(G,N,ls(A,I)), N != goal";
 	(* sufficient continuity *)
-	"ua_lcg(G,obj(A,I,J),obj(A,K,J)) :- not boolean(A), conn(G,obj(A,I,J),ls(A,K)), J != K";
+	"ua_lcg(G,obj(A,I,J),obj(A,K,J)) :- not boolean(A),conn(G,obj(A,I,J),ls(A,K)),quick(obj(A,I,J)),I != K, J != K";
+	"ua_lcg(G,obj(A,I,J),obj(A,K,J)) :- not boolean(A),conn(G,obj(A,I,J),ls(A,K)),not quick(obj(A,I,J)),J != K";
 	]
 	in
 	if !has_indep then
@@ -60,7 +61,10 @@ let asp_unordua asp =
 	"indep(G,A,I,N) :- indep(G,A,I,ls(B,J)), B != A, ua_lcg(G,ls(B,J),N)";
 	"indep(G,A,I,N) :- indep(G,A,I,obj(B,J,K)), ua_lcg(G,obj(B,J,K),N)";
 	"indep(G,A,I,N) :- indep(G,A,I,sol(obj(B,J,K),L)), ua_lcg(G,sol(obj(B,J,K),L),N)";*)
-		decl asp ":- indep(G,A,I,N),conn(G,N,ls(A,J)),J!=I"
+	decls asp [
+		"indepfailure(Y,ls(A,I)) :- indep(G,Y,A,I,N),conn(G,N,ls(A,J)),J!=I";
+		":- indepfailure(Y,N),indepfailure(Y,M),M!=N";
+	]
 	else asp
 
 
@@ -82,7 +86,7 @@ let asp_lcg asp lcg =
 				let asp_indep_ls a i asp =
 					SMap.fold (fun b j asp ->
 						if b <> a then
-							decl asp (indep_asp a i (b,j)^" :- "^edge_asp "_" orig)
+							decl asp (indep_asp orig a i (b,j)^" :- "^edge_asp "_" orig)
 						else asp) state asp
 				in
 				SMap.fold asp_indep_ls state asp else asp
@@ -99,6 +103,14 @@ let asp_lcg asp lcg =
 			let sols = List.filter (function NodeSol _ | NodeSyncSol _ -> true | _ -> false) children
 			in
 			let isols = List.mapi (fun i s -> (i,s)) sols
+			in
+			let only_quick = List.for_all (function 
+				NodeSol (_,_,inter) | NodeSyncSol (_,_,inter) -> ISet.is_empty inter
+				| _ -> true) sols
+			in
+			let asp = if only_quick then
+						decl asp ("quick("^orig^")")
+				else asp
 			in
 			let buf =
 				match sols with [] -> "" | _ ->
@@ -149,9 +161,8 @@ let unordered_ua an ctx goal sols =
 	in
 	let asp = asp_unordua asp
 	in
-	(*
-	let asp = decl asp "#show ua_lcg/3"
-	in*)
+	let asp = decl asp "#show init/3"
+	in
 	sat asp
 
 
