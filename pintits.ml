@@ -10,6 +10,7 @@ and opt_tool = ref "reach"
 and opt_witness = ref false
 and opt_extra = ref []
 and opt_verbose = ref false
+and opt_iscutset = ref ""
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 	("--tool", Arg.Symbol (tools, (fun t -> opt_tool := t)),
@@ -18,11 +19,15 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		"\tEnable witness computation (used by: reach)");
 	("--verbose", Arg.Set opt_verbose,
 		"\tDrop --quiet option");
+	("--is-cutset", Arg.Set_string opt_iscutset,
+		"<local state list>\tCheck if given local state set is a cut set for the reachability property (only with --tool ctl)");
 	("--", Arg.Rest (fun arg -> opt_extra := !opt_extra @ [arg]),
 		"Extra options for the ITS tool");
 ]
 
 let args, abort = An_cli.parse cmdopts usage_msg
+
+let _ = if !opt_tool <> "ctl" && !opt_iscutset <> "" then abort ()
 
 let an, ctx = An_cli.process_input ()
 
@@ -59,7 +64,17 @@ let do_reach () =
 let do_ctl () =
 	let itsctl, itsctl_out = Filename.open_temp_file "pint" ".ctl"
 	in
-	output_string itsctl_out ("EF ("^its_state goal^");\n");
+	let ctl =
+		if !opt_iscutset = "" then
+			("EF ("^its_state goal^")")
+		else
+			let sls = An_cli.parse_local_state_list an !opt_iscutset
+			in
+			let sls = List.map (fun ai -> "!"^its_state [ai]) sls
+			in
+			("!E(("^(String.concat " && " sls)^") U "^its_state goal^")")
+	in
+	output_string itsctl_out (ctl^";\n");
 	close_out itsctl_out;
 	let cmdline = "its-ctl -i "^itsfile^" -t ROMEO -ctl "^itsctl
 		^(if !opt_verbose then "" else " --quiet")

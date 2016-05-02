@@ -12,6 +12,7 @@ let opt_witness = ref false
 and opt_counterexample = ref false
 and opt_extra = ref []
 and opt_ctx_universal = ref false
+and opt_iscutset = ref ""
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 	("--witness", Arg.Set opt_witness,
@@ -22,6 +23,8 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		"Make context existential (default)");
 	("--universal-ctx", Arg.Set opt_ctx_universal,
 		"Make context universal instead of existential");
+	("--is-cutset", Arg.Set_string opt_iscutset,
+		"<local state list>\tCheck if given local state set is a cut set for the reachability property");
 	("--", Arg.Rest (fun arg -> opt_extra := !opt_extra @ [arg]),
 		"Extra options for NuSMV");
 ]
@@ -47,15 +50,27 @@ let make_smv data =
 		at_exit (fun () -> Unix.unlink filename));
 	filename
 
+let smv_ls ai =
+	let a,i = Hashtbl.find map ai
+	in
+	a^"="^i
+
 let do_ctl () =
-	let g,t = Hashtbl.find map goal
+	let ctl =
+		if !opt_iscutset = "" then
+			("EF ("^smv_ls goal^")")
+		else
+			let sls = An_cli.parse_local_state_list an !opt_iscutset
+			in
+			let sls = List.map (fun ai -> "!("^smv_ls ai^")") sls
+			in
+			("!E [("^(String.concat " & " sls)^") U ("^smv_ls goal^")]")
 	in
-	let ctl = "EF ("^g^"="^t^")\n"
-	in
+	prerr_endline ctl;
 	let data = data ^ "\nSPEC\n"
-		^if !opt_witness then ("!"^ctl) else ctl
+		^if !opt_witness then ("!("^ctl^")") else ctl
 	in
-	let smv = make_smv data
+	let smv = make_smv (data^"\n")
 	in
 	let cmdline = "NuSMV"
 		^(if !opt_witness || !opt_counterexample then "" else " -dcx ")
