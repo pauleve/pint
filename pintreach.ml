@@ -81,7 +81,7 @@ let cutsets n =
 	let string_of_ai = string_of_localstate an
 	in
 	let print_ps ps =
-		let s = String.concat ";" (List.map string_of_ai ps)
+		let s = String.concat "," (List.map string_of_ai ps)
 		in
 		print_endline s
 	in
