@@ -1,5 +1,6 @@
 
 open PintTypes
+open Ph_types
 open LocalCausalityGraph
 open AutomataNetwork
 open An_cli
@@ -8,6 +9,7 @@ open An_reach
 let usage_msg = "pint-reach [opts] <sub-state1> ... # Static analysis for reachability"
 
 and opt_cutsets_n = ref 0
+and opt_cutsets_noinit = ref false
 and opt_req_automata = ref SSet.empty
 and opt_req_universal = ref false
 and opt_legacy = ref false
@@ -20,6 +22,8 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"\tUse legacy under-approximation implementation (no clingo required).");
 		("--cutsets", Arg.Set_int opt_cutsets_n,
 			"n\tCompute cutsets up to given maximum cardinality");
+		("--no-init-cutsets", Arg.Set opt_cutsets_noinit,
+			"\tIgnore cut sets containing initial local states");
 		("--requirements", arg_string_set parse_automata_set opt_req_automata,
 			"<a,b,..>\tList requirements in term of given automata");
 		("--requirements-universal", Arg.Set opt_req_universal,
@@ -63,7 +67,10 @@ let cutsets n =
 	prerr_endline ("#procs = "^string_of_int gA#count_procs);
 	prerr_endline ("#objs = "^string_of_int gA#count_objs);
 
-	let exclude_localstate _ = false
+	let exclude_localstate =
+		if !opt_cutsets_noinit then
+			fun ai -> ctx_has_proc ai ctx
+		else fun _ -> false
 	in
 
     let (d_nkp, index_proc) = cutsets gA n exclude_localstate gA#leafs
@@ -84,7 +91,7 @@ let cutsets n =
 			in
 			let n = PSSet.cardinal pss
 			in
-			prerr_endline ("# "^string_of_int n^" key local state(s) for "^string_of_ai ai^":");
+			prerr_endline ("# "^string_of_int n^" cut set(s) for "^string_of_ai ai^":");
 			let elts = PSSet.elements pss
 			in
 			let elts = List.map resolve_ps elts
