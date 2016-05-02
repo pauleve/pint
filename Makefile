@@ -11,7 +11,6 @@ TARGETS=\
 	pint-reach\
 	pint-sg\
 	pint-stable\
-	ph-reach\
 	phc\
 	ph-exec\
 	ph2thomas\
@@ -26,7 +25,6 @@ OSX_TARGETS=\
 	pint-reach\
 	pint-sg\
 	pint-stable\
-	ph-reach\
 	phc\
 	ph-exec\
 	ph2thomas\
@@ -36,7 +34,6 @@ MISC_TOOLS = \
 	converters/pint_converter.py\
 	converters/bcx2ph\
 	converters/CNA2an\
-	converters/ginml2an\
 	converters/bool2an\
 
 
