@@ -4,6 +4,7 @@ open AutomataNetwork
 open An_export
 open Ph_types
 
+
 let make_partial spec (an, ctx) =
 	let aset = An_input.parse_string An_parser.automata_set spec
 	in
@@ -14,12 +15,13 @@ let make_partial spec (an, ctx) =
 	in
 	an, ctx
 
+let opt_reduction_skip_oa = ref false
 let make_reduce_for_goal goal (an, ctx) =
 	let goal = [An_cli.parse_local_state an goal]
 	in
 	let env = An_reach.init_env an ctx goal
 	in
-	An_reach.reduced_an env, ctx
+	An_reach.reduced_an ~skip_oa:!opt_reduction_skip_oa env, ctx
 
 let make_squeeze (an, ctx) =
 	squeeze an ctx
@@ -59,6 +61,8 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		("--reduce-for-goal", Arg.String
 			(fun goal -> push_transform (make_reduce_for_goal goal)),
 			"\"a\"=i\tRemove transitions that never occur in minimal traces for reaching the given local state");
+		("--test-partial-reduction", Arg.Set opt_reduction_skip_oa,
+			"(for benchmarks only) do not use the over-approximation of the goal-oriented reduction");
 		("--simplify", Arg.Unit (fun () -> push_transform make_simplify),
 			"\tTry to simplify transition conditions of the automata network");
 		("--squeeze", Arg.Unit (fun () -> push_transform make_squeeze),

@@ -562,7 +562,7 @@ let lcg_for_requirements env =
 
 
 
-let worth_lcg env =
+let worth_lcg ?(skip_oa=false) env =
 	let bool_automata = boolean_automata env.an
 	in
 	let saturate_procs_by_objs =
@@ -576,7 +576,7 @@ let worth_lcg env =
 		saturate_procs_by_objs = saturate_procs_by_objs}
 	and sols = An_localpaths.complete_abstract_solutions env.sol_cache env.an
 	in
-	let uoa, sols = unordered_oa env sols
+	let uoa, sols = if skip_oa then true, sols else unordered_oa env sols
 	in
 	let gB = new glc glc_setup env.ctx env.goal sols make_unord_unsync_sol
 	in
@@ -584,15 +584,15 @@ let worth_lcg env =
 		gB#set_auto_conts false;
 		gB#build;
 		gB#saturate_ctx;
+		if skip_oa then gB else
 		let gB = bot_trimmed_lcg env sols gB
 		in
-		top_trimmed_lcg env gB;
-		gB
+		(top_trimmed_lcg env gB; gB)
 	) else gB
 
 let is_localstate_worth gB ls = LSSet.mem ls gB#all_procs
 
-let reduced_an env =
+let reduced_an ?(skip_oa=false) env =
 	let csols = An_localpaths.concrete_solutions env.sol_cache env.an
 	in
 	let fold_fpath =
@@ -603,7 +603,7 @@ let reduced_an env =
 		in
 		List.fold_left fold_fpath trs fpaths
 	in
-	let lcg = worth_lcg env
+	let lcg = worth_lcg ~skip_oa env
 	in
 	let trs = List.fold_left fold_asol TRSet.empty lcg#extract_sols
 	in
