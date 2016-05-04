@@ -76,7 +76,7 @@ let do_ctl () =
 	in
 	output_string itsctl_out (ctl^";\n");
 	close_out itsctl_out;
-	let cmdline = "its-ctl -i "^itsfile^" -t ROMEO -ctl "^itsctl
+	let cmdline = "its-ctl -i "^itsfile^" -ctl "^itsctl
 		^(if !opt_verbose then "" else " --quiet")
 		^" "^String.concat " " !opt_extra
 	in

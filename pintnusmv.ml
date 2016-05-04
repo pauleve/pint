@@ -66,7 +66,6 @@ let do_ctl () =
 			in
 			("!E [("^(String.concat " & " sls)^") U ("^smv_ls goal^")]")
 	in
-	prerr_endline ctl;
 	let data = data ^ "\nSPEC\n"
 		^if !opt_witness then ("!("^ctl^")") else ctl
 	in
