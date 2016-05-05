@@ -73,8 +73,8 @@ let do_ctl () =
 	in
 	let cmdline = "NuSMV"
 		^(if !opt_witness || !opt_counterexample then "" else " -dcx ")
-		^" "^smv
 		^" "^String.concat " " !opt_extra
+		^" "^smv
 	in
 	(if !opt_witness then
 		prerr_endline "WARNING: witness requires the negation of the specification");
