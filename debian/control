@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 4.0.0), ocaml (>= 4.0), camlidl, r-mathlib, libfaci
 Standards-Version: 3.6.0
 
 Package: pint
-Architecture: amd64 i386
-Depends: python (>= 2), r-mathlib, gringo
+Architecture: amd64
+Depends: python (>= 2), r-mathlib, gringo (>= 4.5)
 Description: Static analyzer for dynamics of Automata Networks
 
