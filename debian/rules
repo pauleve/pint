@@ -24,9 +24,9 @@ clean:
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k 
+	dh_prep
 	dh_installdirs
-	make install DESTDIR=$(CURDIR)/debian/tmp
+	dh_auto_install
 
 # Build architecture-independent files here.
 binary-indep: build install
