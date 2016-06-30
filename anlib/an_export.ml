@@ -458,8 +458,11 @@ let nusmv_of_an ?(map=None) universal an ctx =
 	in
 	let nusmv_of_transitions (a, is) =
 		let nusmv_of_transition a i j conds =
+			(** DISABLED
 			"\tu="^updname a^" & "^nusmv_of_conditions (a,i,j) conds
-				^": "^string_of_int j^";\n"
+				^": "^string_of_int j^";\n"*)
+			"\t\t"^nusmv_of_conditions (a,i,j) conds^"?"
+				^string_of_int j^":"^varname a
 		in
 		let nusmv_of_transitions a i =
 			let transitions = Hashtbl.find an.transitions (a,i)
@@ -479,8 +482,13 @@ let nusmv_of_an ?(map=None) universal an ctx =
 			("\t"^varname a^"="^tbd_state^": {"
 			^(String.concat "," (List.map string_of_int is))
 			^"};\n") else "")
+		^ (let trs = List.flatten (List.map (nusmv_of_transitions a) is)
+		in
+		match trs with [] -> "" | _ ->
+			"\tu="^updname a^": {\n"^(String.concat ",\n" trs)^"};\n")
+		(** TODO: restore this exportation if automaton is deterministic
 		^(String.concat "" (List.flatten
-				(List.map (nusmv_of_transitions a) is)))
+				(List.map (nusmv_of_transitions a) is))) *)
 		^"\tTRUE: "^varname a^";\nesac;"
 		| _ -> ""
 	in
