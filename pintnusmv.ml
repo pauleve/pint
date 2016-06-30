@@ -13,6 +13,7 @@ and opt_counterexample = ref false
 and opt_extra = ref []
 and opt_ctx_universal = ref false
 and opt_iscutset = ref ""
+and opt_bifurcations = ref false
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 	("--witness", Arg.Set opt_witness,
@@ -25,6 +26,8 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		"Make context universal instead of existential");
 	("--is-cutset", Arg.Set_string opt_iscutset,
 		"<local state list>\tCheck if given local state set is a cut set for the reachability property");
+	("--bifurcations", Arg.Set opt_bifurcations,
+		"\tAdd bifurcation specifiction for each local transition");
 	("--", Arg.Rest (fun arg -> opt_extra := !opt_extra @ [arg]),
 		"Extra options for NuSMV");
 ]
@@ -57,17 +60,38 @@ let smv_ls ai =
 
 let do_ctl () =
 	let ctl =
-		if !opt_iscutset = "" then
-			("EF ("^smv_ls goal^")")
+		if !opt_bifurcations then
+			let smv_goal = smv_ls goal
+			in
+			let ctl_of_tr ((a,i,j),conds) =
+				let preconds = (a,i)::SMap.bindings conds
+				and postconds = [a,j]
+				in
+				let preconds = String.concat " & " (List.map smv_ls preconds)
+				and postconds = String.concat " & " (List.map smv_ls postconds)
+				in
+				"CTLSPEC EF ("^preconds^" & (EF ("^smv_goal^")) "^
+					"& EX ("^postconds^" & !EF ("^smv_goal^")));"
+			in
+			let trs = TRSet.elements (an_sorted_transitions an)
+			in
+			let ctls = List.map ctl_of_tr trs
+			in
+			String.concat "\n" ctls
 		else
-			let sls = An_cli.parse_local_state_list an !opt_iscutset
+			let ctl =
+			if !opt_iscutset = "" then
+				("EF ("^smv_ls goal^")")
+			else
+				let sls = An_cli.parse_local_state_list an !opt_iscutset
+				in
+				let sls = List.map (fun ai -> "!("^smv_ls ai^")") sls
+				in
+				("!E [("^(String.concat " & " sls)^") U ("^smv_ls goal^")]")
 			in
-			let sls = List.map (fun ai -> "!("^smv_ls ai^")") sls
-			in
-			("!E [("^(String.concat " & " sls)^") U ("^smv_ls goal^")]")
+			"CTLSPEC "^if !opt_witness then ("!("^ctl^")") else ctl
 	in
-	let data = data ^ "\nSPEC\n"
-		^if !opt_witness then ("!("^ctl^")") else ctl
+	let data = data^"\n"^ctl^"\n"
 	in
 	let smv = make_smv (data^"\n")
 	in
