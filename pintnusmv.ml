@@ -27,7 +27,7 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 	("--is-cutset", Arg.Set_string opt_iscutset,
 		"<local state list>\tCheck if given local state set is a cut set for the reachability property");
 	("--bifurcations", Arg.Set opt_bifurcations,
-		"\tAdd bifurcation specifiction for each local transition");
+		"\tAdd bifurcation specification for each local transition");
 	("--", Arg.Rest (fun arg -> opt_extra := !opt_extra @ [arg]),
 		"Extra options for NuSMV");
 ]

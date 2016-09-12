@@ -7,5 +7,8 @@ $ git push
 $ git push --tags
 
 2. On Mac OS X
-$ ./dist/osx/do.sh
+$ ./dist/osx/do.sh XXXX-XX-XX
+
+3. Docker
+$ make dist-docker RELNAME=XXXX-XX-XX
 

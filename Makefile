@@ -125,3 +125,7 @@ dist-osx:
 dist-deb:
 	dpkg-buildpackage -d
 
+dist-docker:
+	docker build -t pauleve/pint:latest -t pauleve/pint:$(RELNAME) --build-arg PINT_VERSION=$(RELNAME)
+	docker push pauleve/pint
+
