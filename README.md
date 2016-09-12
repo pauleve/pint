@@ -17,6 +17,30 @@ from [github.com/pauleve/pint/releases](https://github.com/pauleve/pint/releases
   `pint-mole`.
 
 
+#### Docker image
+
+A [Docker](http://docker.com/) image which includes all Pint features is
+provided: [pauleve/pint](https://hub.docker.com/r/pauleve/pint/).
+
+Whereas performance may be tempered by the Docker layers, it provides an
+efficient way to try out Pint without the burden of installing its multiple
+dependencies.
+
+Installation using the command line:
+
+    $ docker pull pauleve/pint
+
+
+You can then mount the image and enjoy all the Pint commands.
+Alternatively, on Linux/Mac OS X, you can call Pint from your local directory
+using:
+
+	$ docker run --rm --volume "$PWD":/wd --workdir /wd pauleve/pint <PINT-CMD>
+
+where `<PINT-CMD>` is a [Pint command](https://loicpauleve.name/pint/doc/usage.html).
+You can drop the `--rm` option to reuse the mounted image multiple times more
+efficiently (see Docker documentation).
+
 #### Installation from sources
 
 ##### Compilation requirements
