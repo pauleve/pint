@@ -16,6 +16,8 @@ RUN apt-get update \
 		gringo \
 		libgmpxx4ldbl \
 		maven \
+		git \
+		openjdk-8-jdk \
 	&& dpkg -i /usr/src/pint_${PINT_VERSION}_amd64.deb \
 	&& rm -rf /usr/src/*.deb /var/lib/apt/lists/*
 ADD http://www.lsv.ens-cachan.fr/~schwoon/tools/mole/mole-140428.tar.gz /usr/src
@@ -24,9 +26,10 @@ RUN tar xvfz /usr/src/mole-140428.tar.gz -C /usr/src \
 	&& mv /usr/src/mole-140428/mole /usr/bin \
 	&& mv /usr/src/mole-140428/mci2dot /usr/bin \
 	&& rm -rf /usr/src/mole-140428
-#RUN cd /usr/src \
-#	&& git clone https://github.com/colomoto/logicalmodel.git \
-#	&& cd logicalmodel && mvn package \
-#	&& echo "#!/bin/sh\\java -jar $PWD/target/LogicalModel.jar \"${@}\"" >> /usr/bin/logicalmodel \
-#	&& chmod +x /usr/bin/logicalmodel
+RUN git clone https://github.com/colomoto/logicalmodel.git /usr/src/logicalmodel\
+	&& cd /usr/src/logicalmodel && mvn package \
+	&& echo '#!/bin/sh' > /usr/bin/logicalmodel \
+	&& echo "java -jar $PWD/target/LogicalModel-0.3-SNAPSHOT.jar \"\${@}\"" >> /usr/bin/logicalmodel \
+	&& chmod +x /usr/bin/logicalmodel \
+	&& rm -rf ~/.m2
 
