@@ -13,6 +13,9 @@ and opt_cutsets_noinit = ref false
 and opt_req_automata = ref SSet.empty
 and opt_req_universal = ref false
 and opt_legacy = ref false
+and opt_bifurcations = ref false
+and bifurcations_mode_choices = ["ua";"mole+ua"]
+and opt_bifurcations_mode = ref "ua"
 
 let parse_automata_set =
 	An_input.parse_string An_parser.automata_set
@@ -20,6 +23,11 @@ let parse_automata_set =
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		("--legacy", Arg.Set opt_legacy,
 			"\tUse legacy under-approximation implementation (no clingo required).");
+		("--bifurcations", Arg.Set opt_bifurcations,
+			"\tIdentify bifurcation transitions for goal reachability (under-approximation)");
+		(*("--bifurcations-method", Arg.Symbol (bifurcations_mode_choices, TODO
+									(fun x -> opt_bifurcations_mode := x)),
+			"\tMode for computations bifurcations"); *)
 		("--cutsets", Arg.Set_int opt_cutsets_n,
 			"n\tCompute cutsets up to given maximum cardinality");
 		("--no-init-cutsets", Arg.Set opt_cutsets_noinit,
@@ -40,7 +48,9 @@ let do_cutsets = !opt_cutsets_n > 0
 
 let do_requirements = SSet.cardinal !opt_req_automata > 0
 
-let do_reach = not (do_cutsets || do_requirements)
+let do_bifurcations = !opt_bifurcations
+
+let do_reach = not (do_cutsets || do_requirements || do_bifurcations)
 
 
 (** verify opt_req_automata *)
@@ -59,6 +69,16 @@ let static_reach () =
 			local_reachability env
 	in
 	print_endline (string_of_ternary result)
+
+let bifurcations () =
+	let bifurcations =
+		match !opt_bifurcations_mode with
+		  "ua" -> An_bifurcations.ua_bifurcations_ua
+		| _ -> failwith "Invalid mode for bifurcations."
+	in
+	let btrs = bifurcations (an,ctx) goal
+	in
+	List.iter print_endline btrs
 
 let cutsets n =
 	let gA = lcg_for_cutsets env
@@ -182,6 +202,7 @@ let requirements automata universal =
 	List.iter handle_proc env.goal
 
 let _ =
+	(if do_bifurcations then bifurcations ());
 	(if do_cutsets then cutsets !opt_cutsets_n);
 	(if do_requirements then requirements !opt_req_automata !opt_req_universal);
 	(if do_reach then static_reach ())

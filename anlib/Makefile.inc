@@ -14,6 +14,7 @@ SOURCES := \
 	an_stategraph.ml\
 	an_cli.ml\
 	an_snippets.ml\
+	an_bifurcations.ml\
 
 
 #LIBS := 

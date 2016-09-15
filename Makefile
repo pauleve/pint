@@ -77,7 +77,12 @@ misc_install:
 		install -m 0755 $$i $(DESTDIR)$(PREFIX)/bin; \
 	done
 
-install: $(addsuffix _install,$(TARGETS)) misc_install
+asp_install:
+	install -d $(DESTDIR)$(PINT_SHARE_PATH)/asp
+	install -d $(DESTDIR)$(PINT_SHARE_PATH)/asp/bifurcations
+	install -m 0644 asp/bifurcations/*.asp $(DESTDIR)$(PINT_SHARE_PATH)/asp/bifurcations
+
+install: $(addsuffix _install,$(TARGETS)) misc_install asp_install
 
 pre-release:
 	sed -i 's/:.*##VERSION##/: "$(RELNAME)",##VERSION##/' setup.py
@@ -102,15 +107,13 @@ OSX_DMG=../pint-$(RELNAME).dmg
 dist-osx:
 	-rm -rf $(OSX_W)
 	make $(OSX_TARGETS)
-	make DESTDIR="$(OSX_W)" PREFIX="$(OSX_PREFIX)" PINT_SHARE_PATH="$(OSX_SHARE)" $(addsuffix _install,$(OSX_TARGETS)) misc_install
+	make DESTDIR="$(OSX_W)" PREFIX="$(OSX_PREFIX)" PINT_SHARE_PATH="$(OSX_SHARE)" $(addsuffix _install,$(OSX_TARGETS)) misc_install asp_install
 	#install -d $(OSX_W_BIN)
 	#install -m 755 $(OSX_BINS:%=bin/%) $(MISC_TOOLS) $(OSX_W_BIN)
 	install -m 644 dist/osx/*.dylib $(OSX_BIN)
 	for i in $(OSX_TARGETS); do \
 		install -m 755 -b -B .mac dist/osx/wrapper.sh $(OSX_BIN)/$$i; \
 	done
-	#install -d $(OSX_W_SHARE)/contrib/ph2thomas
-	#install -m 644 contrib/ph2thomas/*.lp $(OSX_W_SHARE)/contrib/ph2thomas
 	MISC_TOOLS="$(MISC_TOOLS)" ./dist/osx/gen_install.sh > $(OSX_ROOT)/install.sh
 	chmod 655 $(OSX_ROOT)/install.sh
 	install -d $(OSX_ROOT)/examples

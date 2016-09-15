@@ -4,6 +4,11 @@ open Debug
 let cached_has_clingo = ref false
 let clingo_checked = ref false
 
+let pint_asp_path = Filename.concat Distenv.pint_share_path "asp"
+
+let pint_asp_abspath relpath =
+	Filename.concat pint_asp_path relpath
+
 let has_clingo () =
 	try
 		let cin = Unix.open_process_in "clingo -v"
@@ -25,10 +30,11 @@ let check_clingo () =
 		failwith "Clingo version 4 is required (http://sourceforge.net/projects/potassco/files/clingo/)"
 
 
-let solver ?(opts="") () =
+let solver ?(opts="") ?(inputs=["-"]) () =
 	check_clingo ();
 	dbg ~level:2 "Invoking clingo...";
-	Unix.open_process ("clingo --verbose=0 "^opts^" -")
+	Unix.open_process ("clingo --verbose=0 "
+			^opts^" "^String.concat " " inputs)
 
 let decl asp pred =
 	let s = pred^".\n"
