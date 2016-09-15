@@ -13,14 +13,9 @@ let dump_of_an an ctx =
 		(a, "\""^a^"\" ["^(String.concat ", "
 			(List.map string_of_sig_state def_states))^"]\n")::buf
 	and fold_tr (a,i,j) cond buf =
-		let cond = SMap.bindings cond
+		let bcond = SMap.bindings cond
 		in
-		((a,i,j,cond), "\""^a^"\" "^(string_of_astate an a i)^" -> "
-			^(string_of_astate an a j) ^
-		(if [] = cond then "" else
-			(" when "^String.concat " and "
-				(List.map (string_of_localstate an) cond)))
-		^ "\n")::buf
+		((a,i,j,bcond), (string_of_transition an (a,i,j) cond)^"\n")::buf
 	and lss = LSSet.elements (lsset_of_ctx ctx)
 	in
 	let defs = Hashtbl.fold fold_defs an.automata []

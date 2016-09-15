@@ -114,6 +114,12 @@ let string_of_ls (a,i) =
 let string_of_lsset lsset =
 	String.concat ", " (List.map string_of_ls (LSSet.elements lsset))
 
+let string_of_transition an (a,i,j) cond =
+	let cond = SMap.bindings cond
+	in
+	"\""^a^"\" "^(string_of_astate an a i)^" -> " ^(string_of_astate an a j) ^
+	(if [] = cond then "" else (" when "^String.concat " and "
+				(List.map (string_of_localstate an) cond)))
 
 let count_automata an = Hashtbl.length an.automata
 

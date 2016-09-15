@@ -69,8 +69,8 @@ let asp_bifurcation_lcg asp (an, ctx) goal =
 	(* build full lcg *)
 	let cache = An_localpaths.create_cache ()
 	in
-	let usols = An_localpaths.MinUnordUnsyncSol.solutions cache an
-	in
+	(*let usols = An_localpaths.MinUnordUnsyncSol.solutions cache an
+	in*)
 	let fctx = full_ctx an
 	in
 	let all_ls = PSet.elements (procs_of_ctx fctx)
@@ -90,6 +90,7 @@ let asp_bifurcation_lcg asp (an, ctx) goal =
 	in
 	(* reference boolean automata *)
 	let asp = SSet.fold (fun a asp -> decl asp (bool_asp a)) (boolean_automata an) asp
+	and trmap = Hashtbl.create (count_transitions an)
 	in
 	(* push transitions definition *)
 	let register_transition (a,i,j) pstate (asp, trid) =
@@ -97,12 +98,13 @@ let asp_bifurcation_lcg asp (an, ctx) goal =
 		let asp = decl asp ("tr("^string_of_int trid^","
 			^automaton_asp a^","^string_of_int i^","^string_of_int j^")")
 		in
+		Hashtbl.add trmap trid ((a,i,j),pstate);
 		SMap.fold (fun b k asp ->
 			decl asp ("trcond("^string_of_int trid^","^
 			automaton_asp b^","^string_of_int k^")")) pstate asp,
 			(trid+1)
 	in
-	let asp = fst (Hashtbl.fold register_transition an.conditions (asp, 0))
+	let asp = fst(Hashtbl.fold register_transition an.conditions (asp, 0))
 	in
 	(* push LCG for over-approximation *)
 	let asp = asp_ucont_lcg asp full_lcg
@@ -119,25 +121,38 @@ let asp_bifurcation_lcg asp (an, ctx) goal =
 	(* push initial state *)
 	let asp = asp_ctx ~instance:"s0" asp ctx
 	in
-	asp
+	asp, trmap
 
 let bifurcations_solver inputs =
 	ASP_solver.solver ~opts:"0 --project --conf=trendy" ~inputs ()
 
-let solve_bifurcations solver (an,ctx) goal =
-	let solver = asp_bifurcation_lcg solver (an,ctx) goal
+let regexp_trid = Str.regexp "^btr(\\([0-9]+\\)\\b"
+
+let parse_solution trmap sol =
+	assert(Str.string_match regexp_trid sol 0);
+	let trid = int_of_string (Str.matched_group 1 sol)
 	in
-	ASP_solver.solutions solver
+	Hashtbl.find trmap trid
+
+let solve_bifurcations solver handler (an,ctx) goal =
+	let solver, trmap = asp_bifurcation_lcg solver (an,ctx) goal
+	in
+	let handler sol =
+		let aij,cond = parse_solution trmap sol
+		in
+		handler aij cond
+	in
+	ASP_solver.solutions solver handler
 
 let aspf = ASP_solver.pint_asp_abspath
 
-let ua_bifurcations_ua =
+let ua_bifurcations_ua handler =
 	let solver = bifurcations_solver [
 			"-";
 			aspf "bifurcations/ua_bifurcation.asp";
 			aspf "bifurcations/sb_ua_reachability.asp"]
 	in
-	solve_bifurcations solver
+	solve_bifurcations solver handler
 
 
 

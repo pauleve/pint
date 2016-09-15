@@ -73,12 +73,17 @@ let static_reach () =
 let bifurcations () =
 	let bifurcations =
 		match !opt_bifurcations_mode with
-		  "ua" -> An_bifurcations.ua_bifurcations_ua
+		  "ua" ->
+			prerr_endline ("# mode: under-approximation");
+			An_bifurcations.ua_bifurcations_ua
 		| _ -> failwith "Invalid mode for bifurcations."
 	in
-	let btrs = bifurcations (an,ctx) goal
+	let handle_solution (a,i,j) cond =
+		print_endline (string_of_transition an (a,i,j) cond)
 	in
-	List.iter print_endline btrs
+	let n = bifurcations handle_solution (an,ctx) goal
+	in
+	prerr_endline (string_of_int n^" bifurcations transitions have been identified.")
 
 let cutsets n =
 	let gA = lcg_for_cutsets env

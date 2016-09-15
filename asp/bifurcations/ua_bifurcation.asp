@@ -24,7 +24,7 @@ oa_lcg(ucont,goal,ls(A,I)) :- goal(A,I).
 1 { btr(ID,A,I,J) : tr(ID,A,I,J) } 1.
 btrcond(ID,B,K) :- btr(ID,A,I,J),trcond(ID,B,K).
 #show btr/4.
-#show btrcond/3.
+%#show btrcond/3.
 oa_init(ucont,A,J) :- btr(ID,A,I,J).
 K=L :- btr(ID,_,_,_),trcond(ID,B,K),oa_init(ucont,B,L).
 

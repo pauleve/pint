@@ -68,7 +68,7 @@ let sat (cin, cout) =
 	ignore(Unix.close_process (cin, cout));
 	ret
 
-let solutions (cin, cout) =
+let all_solutions (cin, cout) =
 	close_out cout;
 	let rec readlines cin =
 		try
@@ -78,6 +78,19 @@ let solutions (cin, cout) =
 			if line = "SATISFIABLE" || line = "UNSATISFIABLE" then []
 			else line::readlines cin
 		with End_of_file -> []
+	in
+	readlines cin
+
+let solutions (cin, cout) handler =
+	close_out cout;
+	let rec readlines cin =
+		try
+			let line = input_line cin
+			in
+			dbg ~level:2 line;
+			if line = "SATISFIABLE" || line = "UNSATISFIABLE" then 0
+			else (handler line; 1+readlines cin)
+		with End_of_file -> 0
 	in
 	readlines cin
 
