@@ -37,7 +37,7 @@ MISC_TOOLS = \
 	converters/bool2an\
 
 
-.PHONY: $(TARGETS)
+.PHONY: $(TARGETS) aspfiles
 
 all: $(TARGETS)
 
@@ -77,12 +77,7 @@ misc_install:
 		install -m 0755 $$i $(DESTDIR)$(PREFIX)/bin; \
 	done
 
-asp_install:
-	install -d $(DESTDIR)$(PINT_SHARE_PATH)/asp
-	install -d $(DESTDIR)$(PINT_SHARE_PATH)/asp/bifurcations
-	install -m 0644 asp/bifurcations/*.asp $(DESTDIR)$(PINT_SHARE_PATH)/asp/bifurcations
-
-install: $(addsuffix _install,$(TARGETS)) misc_install asp_install
+install: $(addsuffix _install,$(TARGETS)) misc_install aspfiles_install
 
 pre-release:
 	sed -i 's/:.*##VERSION##/: "$(RELNAME)",##VERSION##/' setup.py
@@ -105,7 +100,7 @@ OSX_DMG=../pint-$(RELNAME).dmg
 dist-osx:
 	-rm -rf $(OSX_W)
 	make $(OSX_TARGETS)
-	make DESTDIR="$(OSX_W)" PREFIX="$(OSX_PREFIX)" PINT_SHARE_PATH="$(OSX_SHARE)" $(addsuffix _install,$(OSX_TARGETS)) misc_install asp_install
+	make DESTDIR="$(OSX_W)" PREFIX="$(OSX_PREFIX)" PINT_SHARE_PATH="$(OSX_SHARE)" $(addsuffix _install,$(OSX_TARGETS)) misc_install aspfiles_install
 	#install -d $(OSX_W_BIN)
 	#install -m 755 $(OSX_BINS:%=bin/%) $(MISC_TOOLS) $(OSX_W_BIN)
 	install -m 644 dist/osx/*.dylib $(OSX_BIN)
@@ -130,6 +125,7 @@ dist-deb-via-docker:
 	apt-get install -y devscripts debhelper ocaml camlidl r-mathlib libfacile-ocaml-dev
 	make dist-pre-deb
 	make dist-deb
+	mv -v ../pint_$(RELNAME)_*.deb dist/
 
 dist-pre-deb:
 	DEBEMAIL="Loic Pauleve <loic.pauleve@ens-cachan.org>" debchange -v $(RELNAME) Release $(RELNAME)
@@ -139,6 +135,15 @@ dist-deb:
 	dpkg-buildpackage -tc
 
 dist-docker:
-	docker build -t pauleve/pint:latest -t pauleve/pint:$(RELNAME) --build-arg PINT_VERSION=$(RELNAME)
+	docker build -t pauleve/pint:latest -t pauleve/pint:$(RELNAME) --build-arg PINT_VERSION=$(RELNAME) .
+
+dist-docker-publish:
 	docker push pauleve/pint
+
+dist: pre-release
+	make run-dist-deb-via-docker
+	make dist-docker
+	make release
+
+dist-publish: dist-docker-publish
 

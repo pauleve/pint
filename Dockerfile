@@ -29,6 +29,7 @@ RUN mkdir /usr/src/its \
 	&& ln -s /usr/src/its/its-ctl /usr/bin \
 	&& ln -s /usr/src/its/its-ltl /usr/bin
 ARG PINT_VERSION
-ADD https://github.com/pauleve/pint/releases/download/${PINT_VERSION}/pint_${PINT_VERSION}_amd64.deb /usr/src
-RUN dpkg -i /usr/src/pint_${PINT_VERSION}_amd64.deb && rm /usr/src/*.*
+ADD dist/pint_${PINT_VERSION}_amd64.deb /usr/src
+RUN dpkg -i /usr/src/pint_${PINT_VERSION}_amd64.deb \
+	&& rm /usr/src/*.deb /usr/src/*.gz
 
