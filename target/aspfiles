@@ -1,0 +1,11 @@
+all:
+
+include Makefile.common
+-include build/Makefile.inc
+
+install:
+	install -d $(DESTDIR)$(PINT_SHARE_PATH)/asp
+	install -d $(DESTDIR)$(PINT_SHARE_PATH)/asp/bifurcations
+	install -m 0644 asp/bifurcations/*.asp $(DESTDIR)$(PINT_SHARE_PATH)/asp/bifurcations
+
+# vi:set syntax=make:
