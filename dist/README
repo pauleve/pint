@@ -1,6 +1,7 @@
 
 1. Local
 $ make dist
+$ make dist-publish
 $ make release
 $ git push
 $ git push --tags
