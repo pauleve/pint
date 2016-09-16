@@ -85,7 +85,6 @@ pre-release:
 release:
 	git commit -a -m "release $(RELNAME)"
 	git tag $(RELNAME)
-	git archive -o ../pint-$(RELNAME).zip --prefix pint-$(RELNAME)/ $(RELBRANCH)
 
 OSX_W=/tmp/osx-pint/pint-$(RELNAME)
 OSX_PREFIX=/pint
@@ -143,7 +142,6 @@ dist-docker-publish:
 dist: pre-release
 	make run-dist-deb-via-docker
 	make dist-docker
-	make release
 
 dist-publish: dist-docker-publish
 
