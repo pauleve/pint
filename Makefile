@@ -86,11 +86,9 @@ install: $(addsuffix _install,$(TARGETS)) misc_install asp_install
 
 pre-release:
 	sed -i 's/:.*##VERSION##/: "$(RELNAME)",##VERSION##/' setup.py
-	DEBEMAIL="loic.pauleve@ens-cachan.org" DEBFULLNAME="Loic Pauleve" debchange -v $(RELNAME) Release $(RELNAME)
-	DEBEMAIL="loic.pauleve@ens-cachan.org" DEBFULLNAME="Loic Pauleve" debchange -r --distribution unstable
-	git commit -a -m "release $(RELNAME)"
 
 release:
+	git commit -a -m "release $(RELNAME)"
 	git tag $(RELNAME)
 	git archive -o ../pint-$(RELNAME).zip --prefix pint-$(RELNAME)/ $(RELBRANCH)
 
@@ -125,8 +123,20 @@ dist-osx:
 	hdiutil create -srcfolder $(OSX_W) -volname pint-$(RELNAME) -fs HFS+ $(OSX_DMG)
 	-rm -rf $(OSX_W)
 
+run-dist-deb-via-docker:
+	docker run --rm --volume $$PWD:/wd --workdir /wd pauleve/pint make dist-deb-via-docker RELNAME=$(RELNAME)
+
+dist-deb-via-docker:
+	apt-get install -y devscripts debhelper ocaml camlidl r-mathlib libfacile-ocaml-dev
+	make dist-pre-deb
+	make dist-deb
+
+dist-pre-deb:
+	DEBEMAIL="Loic Pauleve <loic.pauleve@ens-cachan.org>" debchange -v $(RELNAME) Release $(RELNAME)
+	DEBEMAIL="Loic Pauleve <loic.pauleve@ens-cachan.org>" debchange -r -D unstable ""
+
 dist-deb:
-	dpkg-buildpackage -d
+	dpkg-buildpackage -tc
 
 dist-docker:
 	docker build -t pauleve/pint:latest -t pauleve/pint:$(RELNAME) --build-arg PINT_VERSION=$(RELNAME)

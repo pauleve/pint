@@ -14,6 +14,7 @@ build-stamp:
 	LDFLAGS=-L$(HOME)/tmp/r-mathlib/usr/lib CFLAGS=-I$(HOME)/tmp/r-mathlib/usr/include make
 
 clean:
+	python setup.py --share-path /usr/share/pint
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
@@ -43,7 +44,7 @@ binary-indep: build install
 	dh_installdeb
 	dh_gencontrol
 	dh_md5sums
-	dh_builddeb
+	dh_builddeb --destdir dist
 
 # Build architecture-dependent files here.
 binary-arch: build install
