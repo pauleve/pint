@@ -6,6 +6,8 @@ SOURCES = \
 	$(DIST_SOURCES) \
 	pintconfig.ml
 
+LIBS = $(COMMON_LIBS) $(PINTLIB_LIBS)
+
 RESULT = bin/pint-config
 
 install:

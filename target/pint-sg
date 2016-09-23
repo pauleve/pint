@@ -11,6 +11,8 @@ SOURCES = \
 	$(UI_SOURCES) \
 	pintsg.ml
 
+LIBS = $(COMMON_LIBS) $(PINTLIB_LIBS) $(PHLIB_LIBS)
+
 RESULT = bin/pint-sg
 
 install:

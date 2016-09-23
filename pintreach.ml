@@ -25,9 +25,9 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"\tUse legacy under-approximation implementation (no clingo required).");
 		("--bifurcations", Arg.Set opt_bifurcations,
 			"\tIdentify bifurcation transitions for goal reachability (under-approximation)");
-		(*("--bifurcations-method", Arg.Symbol (bifurcations_mode_choices, TODO
+		("--bifurcations-method", Arg.Symbol (bifurcations_mode_choices,
 									(fun x -> opt_bifurcations_mode := x)),
-			"\tMode for computations bifurcations"); *)
+			"\tMode for computing bifurcations");
 		("--cutsets", Arg.Set_int opt_cutsets_n,
 			"n\tCompute cutsets up to given maximum cardinality");
 		("--no-init-cutsets", Arg.Set opt_cutsets_noinit,
@@ -76,6 +76,9 @@ let bifurcations () =
 		  "ua" ->
 			prerr_endline ("# mode: under-approximation");
 			An_bifurcations.ua_bifurcations_ua
+		| "mole+ua" ->
+			prerr_endline ("# mode: under-approximation enhanced by mole");
+			An_bifurcations.ua_bifurcations_mole
 		| _ -> failwith "Invalid mode for bifurcations."
 	in
 	let handle_solution (a,i,j) cond =

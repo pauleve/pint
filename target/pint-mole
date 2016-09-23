@@ -11,6 +11,8 @@ SOURCES = \
 	$(UI_SOURCES) \
 	pintmole.ml
 
+LIBS = $(COMMON_LIBS) $(PINTLIB_LIBS) $(PHLIB_LIBS)
+
 RESULT = bin/pint-mole
 
 install:

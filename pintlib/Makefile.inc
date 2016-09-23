@@ -15,7 +15,9 @@ SOURCES := \
 	pn_mci.ml\
 
 
-LIBS := 
+LIBS := bigarray unix nums str batteries
+
+OCAML_DEFAULT_DIRS += $(OCAML_LIBDIR)batteries
 
 PINTLIB_SOURCES := $(SOURCES:%=pintlib/%)
 export PINTLIB_SOURCES
