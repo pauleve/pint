@@ -12,6 +12,7 @@ SOURCES := \
 	interactionGraph.ml\
 	valSet.ml\
 	aSP_solver.ml\
+	pn_mci.ml\
 
 
 LIBS := 
