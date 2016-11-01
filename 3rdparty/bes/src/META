@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: 7d8cb836bdab8126e91c5ecfc99b8f57)
+version = "0.9.4.2"
+description = "boolean expression simplifier"
+requires = "extlib"
+archive(byte) = "bes.cma"
+archive(byte, plugin) = "bes.cma"
+archive(native) = "bes.cmxa"
+archive(native, plugin) = "bes.cmxs"
+exists_if = "bes.cma"
+# OASIS_STOP
+

@@ -37,7 +37,10 @@ MISC_TOOLS = \
 	converters/bool2an\
 
 
-.PHONY: $(TARGETS) aspfiles
+.PHONY: $(TARGETS) aspfiles 3rdparty
+
+3rdparty:
+	make -C 3rdparty/bes/src
 
 all: $(TARGETS)
 

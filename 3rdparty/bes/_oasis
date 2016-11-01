@@ -1,0 +1,45 @@
+OASISFormat: 0.3
+Name:        bes
+Version:     0.9.4.2
+Synopsis:    boolean expression simplifier
+Description: This is a pure OCaml library containing several algorithms to simplify boolean expressions (boolean expression simplifier)
+Authors:     Alexander Ostrovsky, Markus Weissmann
+Maintainers: Markus Weissmann, markus.weissmann@in.tum.de
+Homepage:    https://forge.ocamlcore.org/projects/bes/
+License:     BSD3
+Plugins:     META (0.3), StdFiles (0.3), DevFiles (0.3)
+
+Library bes
+  Path: src
+  BuildTools: ocamlbuild
+  FindlibName: bes
+  Modules: Bes
+  BuildDepends: extlib
+
+Executable bes
+  Path: src
+  BuildTools: ocamlbuild
+  MainIs: frontend.ml
+  CompiledObject: best
+  BuildDepends: extlib
+
+Executable test
+  Path: src
+  BuildTools: ocamlbuild
+  MainIs: test.ml
+  CompiledObject: best
+  Install: false
+  BuildDepends: extlib, ospec (>= 0.3.0)
+
+Test qmc
+  Command: $test
+  Run: true
+
+Document doclib
+  Title:                API reference for bes library
+  Type:                 ocamlbuild (0.3)
+  Install:              false
+  BuildTools+:          ocamlbuild, ocamldoc
+  XOCamlbuildPath:      src
+  XOCamlbuildLibraries: bes
+

@@ -1,0 +1,10 @@
+(* OASIS_START *)
+(* DO NOT EDIT (digest: f5ad25f0d659dd112f3e3df1850355ad) *)
+Authors of bes
+Alexander Ostrovsky
+Markus Weissmann
+
+Current maintainers of bes
+Markus Weissmann
+markus.weissmann@in.tum.de
+(* OASIS_STOP *)
