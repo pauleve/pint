@@ -198,64 +198,71 @@ let simplify ?(max_ite=1024) sd vs = match vs with [] | [_] -> vs | _ ->
 	SMap.fold eliminate sd vs
 
 let simplify_with_bse sd vs = match vs with [] | [_] -> vs | _ ->
-	(* determine Boolean variables *)
-	let fold_a a d vars =
-		vars @
-		if List.length d = 2 then (
-			assert (d = [0;1] || d = [1;0]);
-			[(a,true,1)])
-		else
-			(List.map (fun i -> (a,false,i)) d)
-	in
-	let vars = SMap.fold fold_a sd []
-	in
-	(* build Bes.dnf_expression *)
-	let bool_of_var cond (a,is_bool,i) =
-		try
-			let j = SMap.find a cond
+	let rec simplify_group (d,vs) = if SSet.is_empty d then vs else
+		match vs with [] | [_] -> vs | _ ->
+		(* determine Boolean variables *)
+		let fold_a a vars =
+			let dom = SMap.find a sd
 			in
-			if is_bool then
-				(if i = j then `True else `False)
+			vars @
+			if List.length dom = 2 then (
+				assert (dom = [0;1] || dom = [1;0]);
+				[(a,true,1)])
 			else
-				(if i = j then `True else `Dontcare)
-		with Not_found ->
-			`Dontcare
-	in
-	let minterm_of_cond cond =
-		List.map (bool_of_var cond) vars
-	in
-	let dnf = List.map minterm_of_cond vs
-	in
-	let dnf' = fst (Bes.auto_optimize dnf)
-	in
-	let dbg () =
-		prerr_endline ("## simplify_with_bse");
-		prerr_endline ("vs = "^(String.concat " OR "
-				(List.map (string_of_map (fun (a,i) -> a^"="^string_of_int i) SMap.fold) vs)));
-		prerr_endline ("vars = "^(String.concat "|"
-				(List.map (fun (a,is_bool,i) ->
-					a^(string_of_bool is_bool)^")="^string_of_int i) vars)));
-		prerr_endline (Bes.string_of_dnf_expression dnf);
-		prerr_endline ("----");
-		prerr_endline (Bes.string_of_dnf_expression dnf');
-	in
-	(* extract conds *)
-	let cond_of_minterm mt =
-		let fold_var cond (a,is_bool,i) = function
-			  `Dontcare -> cond
-			| `True ->
-				if SMap.mem a cond then (dbg ();
-					failwith (a^" is already set in cond"))
-				else SMap.add a i cond
-			| `False ->
-				if is_bool then
-					SMap.add a 0 cond
-				else (dbg ();
-					failwith ("discrete variable set to false..."))
+				(List.map (fun i -> (a,false,i)) dom)
 		in
-		List.fold_left2 fold_var SMap.empty vars mt
+		let vars = SSet.fold fold_a d []
+		in
+		(* build Bes.dnf_expression *)
+		let bool_of_var cond (a,is_bool,i) =
+			try
+				let j = SMap.find a cond
+				in
+				if i = j then `True else `False
+			with Not_found ->
+				`Dontcare
+		in
+		let minterm_of_cond cond =
+			List.map (bool_of_var cond) vars
+		in
+		let dnf = List.map minterm_of_cond vs
+		in
+		let dnf' = fst (Bes.auto_optimize dnf)
+		in
+		let dbg () =
+			prerr_endline ("## simplify_with_bse");
+			prerr_endline ("vs = "^(String.concat " OR "
+					(List.map (string_of_map (fun (a,i) -> a^"="^string_of_int i) SMap.fold) vs)));
+			prerr_endline ("vars = "^(String.concat "|"
+					(List.map (fun (a,is_bool,i) ->
+						if is_bool then a else (a^"="^string_of_int i)) vars)));
+			prerr_endline (Bes.string_of_dnf_expression dnf);
+			prerr_endline ("----");
+			prerr_endline (Bes.string_of_dnf_expression dnf');
+		in
+		(* extract conds *)
+		let cond_of_minterm mt =
+			let fold_var cond (a,is_bool,i) = function
+				  `Dontcare -> cond
+				| `True ->
+					if SMap.mem a cond then (dbg ();
+						failwith (a^" is already set in cond"))
+					else SMap.add a i cond
+				| `False ->
+					if is_bool then
+						SMap.add a 0 cond
+					else cond
+					(*
+					else (dbg ();
+						failwith ("discrete variable set to false..."))*)
+			in
+			List.fold_left2 fold_var SMap.empty vars mt
+		in
+		List.map cond_of_minterm dnf'
 	in
-	List.map cond_of_minterm dnf'
+	let gvs = group_by_domain vs
+	in
+	List.flatten (List.map simplify_group gvs)
 
 
 
