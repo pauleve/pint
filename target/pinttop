@@ -1,3 +1,4 @@
+BYTECODE = 1
 all: top
 include Makefile.common
 SOURCES = \
@@ -9,6 +10,8 @@ SOURCES = \
 	$(UI_SOURCES)
 
 LIBS = $(COMMON_LIBS) $(PINTLIB_LIBS) $(PHLIB_LIBS)
+
+
 RESULT = pint
 
 install:

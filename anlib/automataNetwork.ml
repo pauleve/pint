@@ -263,7 +263,7 @@ let simplify an =
 	let simplify_transition a i j =
 		let vs = Hashtbl.find_all an.conditions (a,i,j)
 		in
-		let vs = ValSet.simplify sd vs
+		let vs = ValSet.simplify_with_bse sd vs
 		in
 		List.iter (Hashtbl.add conditions (a,i,j)) vs
 	in

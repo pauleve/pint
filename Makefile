@@ -39,10 +39,13 @@ MISC_TOOLS = \
 
 .PHONY: $(TARGETS) aspfiles 3rdparty
 
+all: 3rdparty $(TARGETS)
+
+3rdparty_clean:
+	make -C 3rdparty/bes/src clean
+
 3rdparty:
 	make -C 3rdparty/bes/src
-
-all: $(TARGETS)
 
 $(TARGETS):
 	make -f target/$@
@@ -57,7 +60,7 @@ test: all
 test_clean:
 	make -f tests/Makefile clean
 
-clean: $(addsuffix _clean,$(TARGETS)) test_clean
+clean: $(addsuffix _clean,$(TARGETS)) test_clean 3rdparty_clean
 
 apidoc:
 	rm -f docs/api/*
