@@ -128,7 +128,7 @@ run-dist-deb-via-docker:
 
 dist-deb-via-docker:
 	apt-get install -y devscripts debhelper ocaml camlidl r-mathlib libfacile-ocaml-dev \
-		libbatteries-ocaml-dev
+		libextlib-ocaml-dev
 	make dist-pre-deb
 	make dist-deb
 	mv -v ../pint_$(RELNAME)_*.deb dist/

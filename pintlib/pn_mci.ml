@@ -10,10 +10,10 @@ type t_unf = {
 }
 
 let load_mci filename =
-	let mci = BatFile.open_in filename
+	let mci = IO.input_channel (open_in filename)
 	in
 	let read_int mci =
-		BatIO.read_i32 mci
+		IO.read_i32 mci
 	in
 	let numco = read_int mci
 	and numev = read_int mci
@@ -64,14 +64,14 @@ let load_mci filename =
 	and numtr = read_int mci
 	and _ = read_int mci
 	in
-	let plname = List.map (fun _ -> BatIO.read_string mci) (Util.range 1 numpl)
-	and _ = BatIO.read_byte mci
-	and trname = List.map (fun _ -> BatIO.read_string mci) (Util.range 1 numtr)
-	and _ = BatIO.read_byte mci
+	let plname = List.map (fun _ -> IO.read_string mci) (Util.range 1 numpl)
+	and _ = IO.read_byte mci
+	and trname = List.map (fun _ -> IO.read_string mci) (Util.range 1 numtr)
+	and _ = IO.read_byte mci
 	in
 	unf.plname <- Array.of_list plname;
 	unf.trname <- Array.of_list trname;
-	BatIO.close_in mci;
+	IO.close_in mci;
 	unf
 
 

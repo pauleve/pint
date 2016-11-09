@@ -47,7 +47,7 @@ efficiently (see Docker documentation).
 
 - [OCaml](http://caml.inria.fr) >= 4.02
 - [CamlIDL](http://caml.inria.fr/pub/old_caml_site/camlidl/)
-- [Batteries](http://batteries.forge.ocamlcore.org/)
+* [Extlib](https://github.com/ygrek/ocaml-extlib)
 - [Facile](http://www.recherche.enac.fr/opti/facile/distrib)
 - [Python](http://python.org)
 - (optional) [libRmath](http://www.r-project.org) from R - debian/ubuntu: `r-mathlib`
