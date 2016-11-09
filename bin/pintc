@@ -10,13 +10,13 @@ INC="-I $PINT_PATH
 	-I $PINT_PATH/phlib
 	-I $PINT_PATH/anlib
 	-I $(ocamlfind query extlib)
+	-I $(ocamlfind query camlidl)
 	-I +facile"
 
 OPAM_VERSION="`opam --version 2>/dev/null`"
 if [ -n "$OPAM_VERSION" ]; then
 	OPAM_PATH="`opam config var lib`"
 	INC="${INC} -I $OPAM_PATH"
-	INC="${INC} -I $OPAM_PATH/camlidl"
 	INC="${INC} -I $OPAM_PATH/facile"
 fi
 

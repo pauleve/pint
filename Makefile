@@ -39,7 +39,15 @@ MISC_TOOLS = \
 
 .PHONY: $(TARGETS) aspfiles 3rdparty
 
-all: 3rdparty $(TARGETS)
+all: depcheck 3rdparty $(TARGETS)
+
+ifndef OCAMLFIND
+  OCAMLFIND := ocamlfind
+endif
+export OCAMLFIND
+
+depcheck:
+	@$(OCAMLFIND) query extlib>/dev/null
 
 3rdparty_clean:
 	make -C 3rdparty/bes/src clean
@@ -127,8 +135,12 @@ run-dist-deb-via-docker:
 	docker run --rm --volume $$PWD:/wd --workdir /wd pauleve/pint make dist-deb-via-docker RELNAME=$(RELNAME)
 
 dist-deb-via-docker:
-	apt-get install -y devscripts debhelper ocaml camlidl r-mathlib libfacile-ocaml-dev \
-		libextlib-ocaml-dev
+	apt-get install -y devscripts debhelper \
+		ocaml ocaml-findlib \
+		camlidl \
+		libextlib-ocaml-dev \
+		libfacile-ocaml-dev \
+		r-mathlib
 	make dist-pre-deb
 	make dist-deb
 	mv -v ../pint_$(RELNAME)_*.deb dist/

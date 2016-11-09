@@ -21,7 +21,7 @@ else
 LIBS := extLib $(LIBS)
 endif
 
-OCAML_DEFAULT_DIRS += $(shell $(OCAMLFIND) query extlib) 3rdparty/bes/src
+INCDIRS += $(shell $(OCAMLFIND) query extlib) 3rdparty/bes/src
 
 PINTLIB_SOURCES := $(SOURCES:%=pintlib/%)
 export PINTLIB_SOURCES

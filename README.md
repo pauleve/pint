@@ -46,6 +46,7 @@ efficiently (see Docker documentation).
 ##### Compilation requirements
 
 - [OCaml](http://caml.inria.fr) >= 4.02
+- [OCaml FindLib](http://projects.camlcity.org/projects/findlib.html)
 - [CamlIDL](http://caml.inria.fr/pub/old_caml_site/camlidl/)
 * [Extlib](https://github.com/ygrek/ocaml-extlib)
 - [Facile](http://www.recherche.enac.fr/opti/facile/distrib)
