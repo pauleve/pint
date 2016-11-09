@@ -8,7 +8,7 @@ CLIBS := m Rmath
 BINDINGS_SOURCES := $(SOURCES:%=bindings/%)
 export BINDINGS_SOURCES
 
-OCAML_DEFAULT_DIRS += $(shell $(OCAMLFIND) query camlidl)
-export OCAML_DEFAULT_DIRS
+INCDIRS += $(shell $(OCAMLFIND) query camlidl)
+export INCDIRS
 
 # vi:set syntax=make:
