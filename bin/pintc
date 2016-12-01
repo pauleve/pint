@@ -11,6 +11,7 @@ INC="-I $PINT_PATH
 	-I $PINT_PATH/anlib
 	-I $(ocamlfind query extlib)
 	-I $(ocamlfind query camlidl)
+	-I $PINT_PATH/3rdparty/bes/src
 	-I +facile"
 
 OPAM_VERSION="`opam --version 2>/dev/null`"
@@ -22,5 +23,5 @@ fi
 
 ocamlopt ${INC} \
 	-cclib -lm -cclib -lRmath -cclib -lcamlidl\
-	bigarray.cmxa facile.cmxa nums.cmxa str.cmxa unix.cmxa extLib.cmxa pint.cmxa \
+	bigarray.cmxa facile.cmxa nums.cmxa str.cmxa unix.cmxa extLib.cmxa bes.cmxa pint.cmxa \
 	"$@"
