@@ -5,6 +5,5 @@ let () =
 	run_test_tt_main
 		~exit
 		("Pint">:::[
-			TestPhReach.tests;
 			TestPintReach.tests;
 		]);
