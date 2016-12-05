@@ -59,21 +59,32 @@ let fixpoints forcelss an =
 		in
 		vs.(i)
 	in
+	let e ai =
+		fd2e (lsvar ai)
+	in
+
 	let register_restrict ai =
-		Cstr.post (fd2e (lsvar ai) =~ i2e 1)
+		Cstr.post (e ai =~ i2e 1)
 	in
 	List.iter register_restrict forcelss;
 
-	let register_tr (a,i,_) cond =
-		let fold b j sume =
-			sume +~ fd2e (lsvar (b,j))
+	let register_sync_tr (trs,cond) =
+		let precond = SMap.bindings cond
+				@ (List.map (fun (a,i,_) -> (a,i)) trs)
 		in
-		let sume = SMap.fold fold cond (fd2e (lsvar (a,i)))
+		let fold sume ai = sume +~ e ai
+		in
+		let sume = List.fold_left fold
+				(e (List.hd precond)) (List.tl precond)
 		in
 		(* Constraint: tr is not applicable *)
-		Cstr.post (sume <=~ i2e (SMap.cardinal cond))
+		Cstr.post (sume <~ i2e (SMap.cardinal cond + List.length trs))
+	in
+	let register_tr tr cond =
+		register_sync_tr ([tr],cond)
 	in
 	Hashtbl.iter register_tr an.conditions;
+	List.iter register_sync_tr an.sync_transitions;
 
 	let sols = ref []
 	in

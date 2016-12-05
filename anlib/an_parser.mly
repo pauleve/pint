@@ -42,10 +42,13 @@ main :
 ;
 
 content :
-  content decl_automaton 	{ let a, states = $2 in 
+  content decl_automaton 	{ let a, states = $2 in
   								declare_automaton $1 a states; $1 }
 | content decl_transition 	{ let a, sigi, sigj, sigconds = $2 in
 								declare_transition $1 a sigi sigj sigconds; $1 }
+| content decl_sync_transition
+							{ let trs, trsconds = $2 in
+								declare_sync_transition $1 trs trsconds }
 | decl_automaton			{ let an = empty_an () in
 								let a, states = $1 in
 									declare_automaton an a states; an }
@@ -71,8 +74,20 @@ state_sig_list_t:
 ;
 
 decl_transition:
-  automaton state_sig ARROW state_sig						{ ($1, $2, $4, []) }
-| automaton state_sig ARROW state_sig WHEN transition_conds	{ ($1, $2, $4, $6) }
+  transition { let a,i,j = $1 in (a,i,j,[]) }
+| transition WHEN transition_conds { let a,i,j = $1 in (a,i,j,$3) }
+;
+decl_sync_transition:
+  transition_set { ($1,[]) }
+| transition_set WHEN transition_conds { ($1,$3) }
+;
+transition_set: LCURLY transition_set_t RCURLY { $2 };
+transition_set_t:
+  transition SEMI transition { $1::$3::[] }
+| transition SEMI transition_set_t { $1::$3 }
+;
+transition:
+	automaton state_sig ARROW state_sig	{ ($1, $2, $4) }
 ;
 transition_conds:
   local_state	{ [$1] }

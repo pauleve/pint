@@ -49,25 +49,29 @@ type local_transition = (int * (local_state list))
 type transition = automaton_p
 						* automaton_state
 						* automaton_state
+type trcond = automaton_state SMap.t
 
 let tr_dest (_,_,j) = j
 
 type t = {
 	automata: (automaton_p, (sig_automaton_state * automaton_state) list) Hashtbl.t;
 	transitions: (local_state, ISet.t) Hashtbl.t;
-	conditions: (transition, automaton_state SMap.t) Hashtbl.t;
+	conditions: (transition, trcond) Hashtbl.t;
+	sync_transitions: (transition list * trcond) list;
 }
 
 let empty_an ?size:(size=(20,50)) () = {
 	automata = Hashtbl.create (fst size);
 	transitions = Hashtbl.create (snd size);
 	conditions = Hashtbl.create (snd size);
+	sync_transitions = [];
 }
 
 let copy_an an = {
 	automata = Hashtbl.copy an.automata;
 	transitions = Hashtbl.copy an.transitions;
 	conditions = Hashtbl.copy an.conditions;
+	sync_transitions = an.sync_transitions;
 }
 
 let automata_limits an =
@@ -114,12 +118,22 @@ let string_of_ls (a,i) =
 let string_of_lsset lsset =
 	String.concat ", " (List.map string_of_ls (LSSet.elements lsset))
 
+let _string_of_local_transition an (a,i,j) =
+	"\""^a^"\" "^(string_of_astate an a i)^" -> " ^(string_of_astate an a j)
+
+let _string_of_local_condition an cond =
+	match SMap.bindings cond with [] -> ""
+	| cond -> (" when "^String.concat " and "
+				(List.map (string_of_localstate an) cond))
+
 let string_of_transition an (a,i,j) cond =
-	let cond = SMap.bindings cond
-	in
-	"\""^a^"\" "^(string_of_astate an a i)^" -> " ^(string_of_astate an a j) ^
-	(if [] = cond then "" else (" when "^String.concat " and "
-				(List.map (string_of_localstate an) cond)))
+	(_string_of_local_transition an (a,i,j))
+	^ _string_of_local_condition an cond
+
+let string_of_sync_transition an trs cond =
+	"{ "^(String.concat " ; "
+			(List.map (_string_of_local_transition an) trs))^" }"
+	^ _string_of_local_condition an cond
 
 let count_automata an = Hashtbl.length an.automata
 
@@ -156,10 +170,14 @@ let declare_automaton an a sigstates =
 	in
 	Hashtbl.add an.automata a (List.rev sigassoc)
 
-let declare_transition an a sig_i sig_j sig_conds =
+let resolve_sig_transition an (a,sig_i,sig_j) =
 	let i = get_automaton_state_id an a sig_i
 	and j = get_automaton_state_id an a sig_j
-	and conds = List.fold_left
+	in
+	a,i,j
+
+let resolve_sig_conditions an sig_conds =
+	List.fold_left
 		(fun cond (b,sig_k) ->
 			let k = get_automaton_state_id an b sig_k
 			in
@@ -171,11 +189,36 @@ let declare_transition an a sig_i sig_j sig_conds =
 						^"two different local states of a same automaton")
 				else cond
 			with Not_found -> SMap.add b k cond) SMap.empty sig_conds
+
+let declare_transition an a sig_i sig_j sig_conds =
+	let a,i,j = resolve_sig_transition an (a, sig_i, sig_j)
+	and conds = resolve_sig_conditions an sig_conds
 	in
+	(if SMap.mem a conds then
+		failwith ("enabling condition should not refer to '"^a^"'"));
 	let trs = Hashtbl.find an.transitions (a,i)
 	in
 	Hashtbl.replace an.transitions (a,i) (ISet.add j trs);
 	Hashtbl.add an.conditions (a, i, j) conds
+
+let is_async_automata_network an =
+	an.sync_transitions = []
+
+let assert_async_an an =
+	(if an.sync_transitions <> [] then
+		failwith "Automata networks with synchronous transition is not supported
+		yet.")
+
+let declare_sync_transition an sig_trs sig_conds =
+	let trs = List.map (resolve_sig_transition an) sig_trs
+	and conds =resolve_sig_conditions an sig_conds
+	in
+	(List.iter (fun (a,_,_) ->
+		(if SMap.mem a conds then
+			failwith ("enabling condition should not refer to '"^a^"'"))) trs);
+	{an with
+		sync_transitions = (trs,conds)::an.sync_transitions
+	}
 
 let an_replace_trconditions an tr conds =
 	while Hashtbl.mem an.conditions tr do

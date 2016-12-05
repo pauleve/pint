@@ -53,21 +53,38 @@ let encode_transitions base aindex an =
 		in
 		(fun sid -> extract_local_state base sid id), eq_big_int j
 	in
-	let fold_transitions (a,i,j) conds etransitions =
-		let id = SMap.find a aindex
-		in
-		let conds = SMap.bindings conds
-		in
-		let conds = List.map prepare_cond ((a,i)::conds)
+	let make_precond conds =
+		let conds = List.map prepare_cond conds
 		in
 		let precond sid = List.for_all
 				(fun (get_comp, test_comp) -> test_comp (get_comp sid))
 					conds
-		and shift = single_sid id (j-i)
+		in
+		precond
+	and make_shift (a,i,j) =
+		let id = SMap.find a aindex
+		in
+		single_sid id (j-i)
+	in
+	let fold_transitions (a,i,j) conds etransitions =
+		let precond = make_precond ((a,i)::SMap.bindings conds)
+		and shift = make_shift (a,i,j)
+		in
+		(precond, shift)::etransitions
+	and fold_sync_transitions etransitions (trs,conds) =
+		let conds = List.fold_left (fun conds (a,i,_) -> (a,i)::conds)
+						(SMap.bindings conds) trs
+		in
+		let precond = make_precond conds
+		and shifts = List.map make_shift trs
+		in
+		let shift = List.fold_left add_big_int (List.hd shifts) (List.tl shifts)
 		in
 		(precond, shift)::etransitions
 	in
-	Hashtbl.fold fold_transitions an.conditions []
+	let etrs = Hashtbl.fold fold_transitions an.conditions []
+	in
+	List.fold_left fold_sync_transitions etrs an.sync_transitions
 
 let sid_of_state base aindex state =
 	let fold a i sid =

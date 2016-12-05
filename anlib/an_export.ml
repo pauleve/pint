@@ -16,10 +16,17 @@ let dump_of_an an ctx =
 		let bcond = SMap.bindings cond
 		in
 		((a,i,j,bcond), (string_of_transition an (a,i,j) cond)^"\n")::buf
+	and fold_sync_tr buf (trs, cond) =
+		let bcond = SMap.bindings cond
+		and a,i,j = List.hd trs
+		in
+		((a,i,j,bcond), (string_of_sync_transition an trs cond)^"\n")::buf
 	and lss = LSSet.elements (lsset_of_ctx ctx)
 	in
 	let defs = Hashtbl.fold fold_defs an.automata []
 	and trs = Hashtbl.fold fold_tr an.conditions []
+	in
+	let trs = List.fold_left fold_sync_tr trs an.sync_transitions
 	in
 	let defs = List.sort compare defs
 	and trs = List.sort compare trs
@@ -35,6 +42,7 @@ let dump_of_an an ctx =
 	(List.map (string_of_localstate an) lss))^"\n")
 
 let ph_of_an an ctx =
+	assert_async_an an;
 	let ph_of_ls = Ph_types.pintstring_of_proc
 	in
 	let fold_defs a def_states buf =
@@ -85,7 +93,7 @@ struct
 		| Custom of string
 
 	type transition_t =
-		  LT of (automaton_p * automaton_state * automaton_state * local_state list)
+		  LT of (transition list * local_state list)
 		| TCustom of string
 
 	type arc_t = TP | PT | RA
@@ -159,19 +167,23 @@ let pn_of_an ?(goal=None) contextual an ctx =
 	let register_automaton a =
 		List.iter (fun (_, i) ->
 			ignore(PetriNet.place pn (PetriNet.LS (a,i))))
-	and register_transition ((a,i,j),conds) =
+	and register_sync_transition (trs,conds) =
 		let conds = SMap.bindings conds
 		in
-		let t = PetriNet.transition pn (PetriNet.LT (a,i,j,conds))
+		let t = PetriNet.transition pn (PetriNet.LT (trs,conds))
 		in
-		PetriNet.add_pt pn (PetriNet.place pn (PetriNet.LS (a,i))) t;
-		PetriNet.add_tp pn t (PetriNet.place pn (PetriNet.LS (a,j)));
+		let _ = List.iter (fun (a,i,j) ->
+			PetriNet.add_pt pn (PetriNet.place pn (PetriNet.LS (a,i))) t;
+			PetriNet.add_tp pn t (PetriNet.place pn (PetriNet.LS (a,j))))
+				trs
+		in
 		let ps = List.map (fun ai -> PetriNet.place pn (PetriNet.LS ai)) conds
 		in
 		if contextual then
 			List.iter (PetriNet.add_ra pn t) ps
 		else
 			List.iter (fun p -> PetriNet.add_pt pn p t; PetriNet.add_tp pn t p) ps
+
 	and register_ctx a is =
 		if ISet.cardinal is > 1 then
 			let p = PetriNet.place pn (PetriNet.Custom (a^"_TBD"))
@@ -187,6 +199,9 @@ let pn_of_an ?(goal=None) contextual an ctx =
 		else
 			PetriNet.mark pn (PetriNet.place pn (PetriNet.LS (a,ISet.choose is)))
 	in
+	let register_transition (tr,conds) =
+		register_sync_transition ([tr],conds)
+	in
 	let sorted_automata = Hashtbl.fold (fun a spec sa ->
 							SMap.add a spec sa) an.automata SMap.empty
 	in
@@ -199,6 +214,7 @@ let pn_of_an ?(goal=None) contextual an ctx =
 	let trs = an_sorted_transitions an
 	in
 	TRSet.iter register_transition trs;
+	List.iter register_sync_transition an.sync_transitions;
 	SMap.iter register_ctx ctx;
 	pn
 
@@ -223,6 +239,14 @@ let pep_of_an ?(goal=None) ?(mapfile="") opts an ctx =
 		in
 		Util.dump_to_file mapfile mapdata
 	);
+
+	let name_of_tr (a,i,j) =
+		a ^ " " ^ (string_of_astate ~protect:false an a i)
+			^ " -> " ^ (string_of_astate ~protect:false an a j)
+	in
+	let name_of_trs trs =
+		String.concat "/" (List.map name_of_tr trs)
+	in
 	let pep_of_place (pid, p) =
 		string_of_int pid^"\""
 		^ (match p with PetriNet.LS ai -> string_of_localstate ~protect:false an ai
@@ -231,9 +255,8 @@ let pep_of_an ?(goal=None) ?(mapfile="") opts an ctx =
 		^"\n"
 	and pep_of_transition (tid, t) =
 		let name = match t with
-			  PetriNet.LT (a,i,j,conds) ->
-				(a ^ " " ^ (string_of_astate ~protect:false an a i)
-					^ " -> " ^ (string_of_astate ~protect:false an a j)
+			  PetriNet.LT (trs,conds) ->
+				(name_of_trs (trs)
 					^ (match conds with [] -> "" | _ -> " when "^
 						String.concat " and "
 							(List.map (string_of_localstate ~protect:false an)
@@ -279,6 +302,12 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 	in
 	let repr_ls (a,i) = a^"_"^repr_i a i
 	in
+	let name_of_tr (a,i,j) =
+		a^"_"^(repr_i a i)^"_"^(repr_i a j)
+	in
+	let name_of_trs trs =
+		String.concat "_" (List.map name_of_tr trs)
+	in
 	let romeo_of_place (pid, p) =
 		let name = match p with
 			  PetriNet.LS ai -> repr_ls ai
@@ -295,12 +324,14 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 		^"</place>\n"
 	and romeo_of_transition (tid, t) =
 		let name = match t with PetriNet.TCustom name -> name
-			| PetriNet.LT (a,i,j,conds) ->
-				a^"_"^(repr_i a i)^"_"^(repr_i a j)
-					^(match conds with [] -> "" | _ -> "_"^
-						String.concat "__" (List.map repr_ls conds))
+			| PetriNet.LT (trs,conds) ->
+				name_of_trs trs
+				^(match conds with [] -> "" | _ -> "_"^
+					String.concat "__" (List.map repr_ls conds))
 		and x, y = match t with PetriNet.TCustom _ -> 0, 200
-			| PetriNet.LT (a,_,j,_) ->
+			| PetriNet.LT (trs,_) ->
+				let a,_,j = List.hd trs
+				in
 				let x = SMap.find a a_x + margin + space / 2
 				and y = j * space - space/2 + margin
 				in
@@ -351,6 +382,7 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 
 
 let prism_of_an an ctx =
+	assert_async_an an;
 	let a_counter = ref 0
 	and a2i = ref SMap.empty
 	in
@@ -415,6 +447,7 @@ let prism_of_an an ctx =
 
 
 let nusmv_of_an ?(map=None) universal an ctx =
+	assert_async_an an;
 	let varname a = "a_"^a
 	and updname a = "u_"^a
 	and tbd_state = "TBD"

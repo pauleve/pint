@@ -272,6 +272,7 @@ let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
 (**** Local reachability ****)
 
 let local_reachability env =
+	assert_async_an env.an;
 	let cache = env.sol_cache
 	in
 	let sols = An_localpaths.MinUnordUnsyncSol.solutions cache env.an
@@ -290,6 +291,7 @@ let local_reachability env =
 
 
 let legacy_local_reachability ?saveLCG:(saveLCG = ref None) env =
+	assert_async_an env.an;
 	let cache = env.sol_cache
 	in
 	let sols = An_localpaths.MinUnordUnsyncSol.solutions cache env.an
@@ -470,6 +472,7 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 	(flood_values, index_proc)
 
 let lcg_for_cutsets env =
+	assert_async_an env.an;
 	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
 	in
 	let gA = new glc oa_glc_setup env.ctx env.goal sols make_unord_unsync_sol
@@ -551,6 +554,7 @@ let requirements (gA:#graph) automata leafs universal =
 	(flood_values, index_proc)
 
 let lcg_for_requirements env =
+	assert_async_an env.an;
 	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
 	in
 	let gA = new glc oa_glc_setup env.ctx env.goal sols make_unord_unsync_sol
@@ -563,6 +567,7 @@ let lcg_for_requirements env =
 
 
 let worth_lcg ?(skip_oa=false) env =
+	assert_async_an env.an;
 	let bool_automata = boolean_automata env.an
 	in
 	let saturate_procs_by_objs =
@@ -612,7 +617,8 @@ let reduced_an ?(skip_oa=false) env =
 	in
 	let an' = { automata = Hashtbl.copy env.an.automata;
 				transitions = Hashtbl.create nb_tr;
-				conditions = Hashtbl.create nb_conds }
+				conditions = Hashtbl.create nb_conds;
+				sync_transitions = []}
 	in
 	let register_ftr ((a,i,j), cond) =
 		let trs = try Hashtbl.find an'.transitions (a,i)
