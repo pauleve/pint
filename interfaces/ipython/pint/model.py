@@ -15,11 +15,8 @@ from .tools import *
 from .ui import *
 
 class InitialState(dict):
-    def __init__(self, info, defaults=None):
-        if defaults is None:
-            self.defaults = info["initial_state"]
-        else:
-            self.defaults = defaults
+    def __init__(self, info):
+        self.defaults = info["initial_state"]
         super(InitialState, self).__init__(self.defaults)
         self.domain = {}
         for a in info["automata"]:
@@ -49,7 +46,8 @@ class InitialState(dict):
             if type(value) not in [int, str]:
                 value = tuple(value)
             if value == self.defaults[key]:
-                del self.__override[key]
+                if key in self.__override:
+                    del self.__override[key]
             else:
                 self.__override[key] = value
                 super(InitialState, self).__setitem__(key, value)
@@ -57,10 +55,24 @@ class InitialState(dict):
             raise TypeError("Invalid value for '%s' (allowed: %s)" \
                                 % (key, ", ".join(map(str, self.domain[key]))))
 
+    def update(self, *args, **F):
+        for E in args:
+            if hasattr(E, "keys"):
+                for k in E:
+                    self[k] = E[k]
+            else:
+                for k,v in E:
+                    self[k] = v
+        for k,v in F.items():
+            self[k] = v
+
     def reset(self):
         """Restore to default initial state"""
         self.__override.clear()
         super(InitialState, self).update(self.defaults)
+
+    def changes(self):
+        return self.__override.copy()
 
     def to_pint(self):
         def fmt_values(i):
@@ -92,7 +104,8 @@ class Model(object):
         self.initial_state = InitialState(self.info)
 
     def register_state(self, name, state):
-        self.named_states[name] = InitialState(self.info, defaults=state)
+        self.named_states[name] = InitialState(self.info)
+        self.named_states[name].update(state)
 
     @property
     def automata(self):
@@ -141,7 +154,8 @@ def import_using_logicalmodel(fmt, inputfile, anfile, simplify=True):
     # some file formats, such as zginml, can define named states
     states = {}
 
-    """ disabled: logicalmodel does not support import from ginml...
+    cleanup_files = []
+
     if fmt == "zginml":
         def parse_localstate(value):
             a,i = value.split(";")
@@ -150,19 +164,27 @@ def import_using_logicalmodel(fmt, inputfile, anfile, simplify=True):
         def parse_state(value):
             return dict(map(parse_localstate, value.strip().split()))
 
-        info("Unzip zginml...")
         with ZipFile(inputfile) as z:
-            fmt = "ginml"
-            inputfile = "%s.ginml" % inputfile[:-6]
-            with z.open("GINsim-data/regulatoryGraph.ginml") as ml:
-                with open(inputfile, "w") as f:
-                    f.write(ml.read().decode())
             with z.open("GINsim-data/initialState") as f:
                 dom = xml_parse_dom(f)
                 for state in dom.getElementsByTagName("initialState"):
                     name = state.getAttribute("name")
                     states[name] = parse_state(state.getAttribute("value"))
-    """
+
+    if fmt in ["zginml", "ginml"]:
+        # use GINsim to export to SBML-qual
+        info("Invoking GINsim...")
+        _, sbmlfile = tempfile.mkstemp(suffix=".sbml")
+        _, tmps = tempfile.mkstemp(suffix=".py")
+        fd = open(tmps, "w")
+        fd.write("""gs.service("SBML").export(gs.open("%s"), "%s")""" % \
+                        (os.path.abspath(inputfile), os.path.abspath(sbmlfile)))
+        fd.close()
+        subprocess.check_call(["GINsim", "-s", os.path.abspath(tmps)])
+        os.unlink(tmps)
+        inputfile = sbmlfile
+        cleanup_files.append(sbmlfile)
+        fmt = "sbml"
 
     subprocess.check_call(["logicalmodel", "%s:an" % fmt,
                                 inputfile, anfile])
@@ -175,8 +197,14 @@ def import_using_logicalmodel(fmt, inputfile, anfile, simplify=True):
 
     model = FileModel(anfile)
 
-    for name, state in states.items():
-        model.register_state(name, state)
+    if states:
+        for name, state in states.items():
+            model.register_state(name, state)
+        info("%d state(s) have been registered: %s" \
+            % (len(states), ", ".join(states.keys())))
+
+    for filename in cleanup_files:
+        os.unlink(filename)
 
     return model
 
@@ -192,7 +220,9 @@ ext2format = {
     "booleannet": "booleannet",
     "boolfunctions": "boolfunctions",
     "boolsim": "boolsim",
+    "ginml": "ginml",
     "sbml": "sbml",
+    "zginml": "zginml",
 }
 
 def load(filename, format=None, simplify=True):
@@ -216,7 +246,8 @@ def load(filename, format=None, simplify=True):
         info("Source file is in Automata Network (an) format")
         return FileModel(filename)
 
-    elif format in ["boolfunctions", "boolsim", "booleannet", "sbml"]:
+    elif format in ["boolfunctions", "boolsim", "booleannet", "sbml",
+                    "ginml", "zginml"]:
         info("Source file is in %s format, importing with logicalmodel" \
                     % format)
         anfile = new_output_file(suffix="%s.an"%name)

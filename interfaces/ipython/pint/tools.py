@@ -63,7 +63,6 @@ MODEL_TOOLS = [
     ("export", export),
     ("cutsets", cutsets),
 ]
-
 def EquipTools(cls):
     for name, func in MODEL_TOOLS:
         setattr(cls, name, func)
