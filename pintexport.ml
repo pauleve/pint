@@ -36,7 +36,7 @@ let make_disable dctx (an, ctx) =
 	in
 	restrict an rctx, ctx
 
-let languages = ["dump";"nusmv";"pep";"ph";"prism";"romeo"]
+let languages = ["dump";"nusmv";"pep";"ph";"prism";"romeo";"nbjson"]
 and opt_language = ref "dump"
 and opt_output = ref ""
 and opt_ptnet_context = ref false
@@ -91,6 +91,7 @@ let languages = [
 	("ph", ph_of_an);
 	("prism", prism_of_an);
 	("romeo", romeo_of_an ~map:None ~mapfile:!opt_mapfile);
+	("nbjson", nbjson_of_an);
 ]
 let translator = List.assoc !opt_language languages
 
