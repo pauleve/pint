@@ -2,11 +2,11 @@
 import json
 import os
 import subprocess
-
+import tempfile
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
-import tempfile
+from IPython.display import display, FileLink
 
 from .cfg import *
 from .tools import *
@@ -127,14 +127,29 @@ class InMemoryModel(Model):
         super(FileModel, self).populate_popen_args(args, kwargs)
 
 
+def import_using_logicalmodel(fmt, inputfile, outputfile, simplify=True):
+    subprocess.check_call(["logicalmodel", "%s:an" % fmt,
+                                inputfile, outputfile])
+    if simplify:
+        info("Simplifying model...")
+        subprocess.check_call(["pint-export", "--simplify", "-i", outputfile,
+                                "-o", outputfile])
+    return outputfile
+
+
 ext2format = {
     "an": "an",
+    "bn": "boolfunctions",
+    "ginml": "ginml",
+    "sbml": "sbml",
 }
-def load(filename, format=None):
+
+def load(filename, format=None, simplify=True):
     bname = os.path.basename(filename)
     ext = file_ext(filename)
+    name = bname[:-len(ext)-1]
     if format is None:
-        assert ext in ext2format, "Unknown format '%s'" % ext
+        assert ext in ext2format, "Unknown extension '%s'" % ext
         format = ext2format[ext]
 
     uri = urlparse(filename)
@@ -149,8 +164,17 @@ def load(filename, format=None):
     if format == "an":
         info("Source file is in Automata Network (an) format")
         return FileModel(filename)
+    elif format in ["boolfunctions", "boolsim", "booleannet",
+                        "ginml", "sbml"]:
+        info("Source file is in %s format, importing using logicalmodel" \
+                    % format)
+        anfile = new_output_file(suffix="%s.an"%name)
+        anfile = import_using_logicalmodel(format, filename, anfile,
+                    simplify=simplify)
+        display(FileLink(anfile))
+        return FileModel(anfile)
     else:
-        assert "Unknown format '%s'" % format
+        raise ValueError("Unknown format '%s'" % format)
 
 
 __all__ = ["load", "FileModel", "InMemoryModel"]

@@ -53,7 +53,11 @@ def cutsets(model, ai, maxsize=5, *args, exclude_initial_state=True, **opts):
         args.append("--no-init-cutsets")
     cp = _run_tool("pint-reach", "--cutsets", str(maxsize), ai, *args,
                 input_model=model, **opts)
-    return cp.stdout.decode().split()
+    output = cp.stdout.decode()
+    if " is not reachable.\n" in output:
+        print("Goal is not reachable, nothing to cut!")
+    else:
+        return output.split()
 
 MODEL_TOOLS = [
     ("export", export),
