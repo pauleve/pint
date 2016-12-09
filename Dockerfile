@@ -16,6 +16,10 @@ RUN tar xvfz /usr/src/mole-140428.tar.gz -C /usr/src \
 	&& mv /usr/src/mole-140428/mole /usr/bin \
 	&& mv /usr/src/mole-140428/mci2dot /usr/bin \
 	&& rm -rf /usr/src/mole-140428
+ADD http://ginsim.org/sites/default/files/GINsim-2.9.4-with-deps.jar /usr/src
+RUN echo '#!/bin/sh' > /usr/bin/GINsim \
+	&& echo "java -jar /usr/src/GINsim-2.9.4-with-deps.jar \"${@}\"" >> /usr/bin/GINsim\
+	&& chmod +x /usr/bin/GINsim
 RUN git clone https://github.com/colomoto/logicalmodel.git /usr/src/logicalmodel\
 	&& cd /usr/src/logicalmodel && mvn package \
 	&& echo '#!/bin/sh' > /usr/bin/logicalmodel \
