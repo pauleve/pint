@@ -226,6 +226,33 @@ ext2format = {
 }
 
 def load(filename, format=None, simplify=True):
+    """
+    Load a Pint model from given filename.
+    The format is guessed from the filename extension, but can be enforced with
+    the `format` parameter.
+    Except when loading directly from a '.an' file (native format for Pint), the
+    model will be converted to .an and a simplification step is performed.
+    This latter stage can be deactivated with `simplify=False`
+
+    `filename` can be either a path to local file, or an URL. In the latter
+    case, it will be downloaded locally first, and then processed as a local
+    file.
+
+    Supported formats:
+    - an (automata network), native Pint file format
+    - ginml, imported using GINsim+logicalmodel (use intermediate SBML
+          conversion)
+    - zginml, like ginml, with in addition the support of named initial states
+    - sbml (SBML-qual), imported using logicalmodel
+    - boolsim, booleannet, boolfunctions: Boolean network formats, imported
+          using logical model. Files with '.bn' extensions are assumed to be in
+          boolfunctions format.
+
+    Returns a `Model` instance.
+    If the model results from an importation, IPython displays the link to the
+    generated .an file.
+    """
+
     bname = os.path.basename(filename)
     ext = file_ext(filename)
     name = bname[:-len(ext)-1]
