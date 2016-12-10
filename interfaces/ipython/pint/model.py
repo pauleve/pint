@@ -1,5 +1,7 @@
 
+import copy
 import json
+import operator
 import os
 import subprocess
 import tempfile
@@ -16,6 +18,15 @@ from .ui import *
 
 class InitialState(dict):
     def __init__(self, info):
+        if isinstance(info, InitialState):
+            # copy constructor
+            s = info
+            for field in ["info", "defaults", "domain"]:
+                setattr(self, field, getattr(s, field))
+            self.__override = s.__override.copy()
+            super(InitialState, self).__init__(self.defaults)
+            return
+        self.info = info
         self.defaults = info["initial_state"]
         super(InitialState, self).__init__(self.defaults)
         self.domain = {}
@@ -55,6 +66,14 @@ class InitialState(dict):
             raise TypeError("Invalid value for '%s' (allowed: %s)" \
                                 % (key, ", ".join(map(str, self.domain[key]))))
 
+    def copy(self):
+        return InitialState(self)
+
+    def having(self, *args, **kwargs):
+        s = self.copy()
+        s.update(*args, **kwargs)
+        return s
+
     def update(self, *args, **F):
         for E in args:
             if hasattr(E, "keys"):
@@ -90,7 +109,15 @@ class InitialState(dict):
         return ",".join(lss)
 
 
+def InfoFields(*fields):
+    def plug(cls):
+        for field in fields:
+            setattr(cls, field, property(lambda self, field=field: self.info[field]))
+        return cls
+    return plug
+
 @EquipTools
+@InfoFields("automata", "local_states", "named_local_states", "features")
 class Model(object):
     def __init__(self):
         self.named_states = {}
@@ -98,31 +125,44 @@ class Model(object):
     def load(self):
         args = ["pint-export", "-l", "nbjson"]
         kwargs = {}
-        self.initial_state = None
+        self.__initial_state = None
         self.populate_popen_args(args, kwargs)
         self.info = json.loads(subprocess.check_output(args, **kwargs).decode())
-        self.initial_state = InitialState(self.info)
+        self.__initial_state = InitialState(self.info)
+
+    def set_initial_state(self, state):
+        assert state.info == self.info
+        self.__initial_state = state
+    initial_state = property(lambda self: self.__initial_state, set_initial_state)
+
+    def populate_popen_args(self, args, kwargs):
+        if self.initial_state is not None and self.initial_state.is_custom():
+            args += ["--initial-context", self.initial_state.to_pint()]
 
     def register_state(self, name, state):
         self.named_states[name] = InitialState(self.info)
         self.named_states[name].update(state)
 
-    @property
-    def automata(self):
-        return self.info["automata"]
-    @property
-    def local_states(self):
-        return self.info["local_states"]
-    @property
-    def named_local_states(self):
-        return self.info["named_local_states"]
-    @property
-    def features(self):
-        return self.info["features"]
+    def having(self, initial_state=None, **kwargs):
+        """
+        Returns a copy of the model with supplied modifications
 
-    def populate_popen_args(self, args, kwargs):
-        if self.initial_state is not None and self.initial_state.is_custom():
-            args += ["--initial-context", self.initial_state.to_pint()]
+        initial_state: InitialState
+          replaces the initial state
+
+        If ``kwargs`` are present, the initial state is replaced by a copy
+        updated with kwargs (see `InitialState.having`)
+
+        Exemples:
+        >>> m.having(m.named_states["ProT1"]).reachability("Tf1=1")
+        >>> m.having(HR=1).reachability("Tf1=1")
+        """
+        m = copy.copy(self)
+        if initial_state:
+            m.initial_state = initial_state
+        if kwargs:
+            m.initial_state = m.initial_state.having(**kwargs)
+        return m
 
 
 class FileModel(Model):
