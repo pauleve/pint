@@ -125,7 +125,13 @@ def reachability(model, ai, fallback="its"):
 def count_reachable_states(model):
     cp = _run_tool("pint-sg", "--count-reachable", input_model=model)
     output = cp.stdout.decode()
-    return int(output.split()[0])
+    return json.loads(output)
+
+@modeltool
+def summary(model):
+    cp = _run_tool("pint-sg", "--description", input_model=model)
+    output = cp.stdout.decode()
+    return json.loads(output)
 
 @modeltool
 def reachable_stategraph(model):
@@ -140,7 +146,7 @@ def reachable_stategraph(model):
 def reachable_attractors(model):
     cp = _run_tool("pint-sg", "--reachable-attractors", input_model=model)
     output = cp.stdout.decode()
-    print(output) # TODO: parse output
+    return json.loads(output)
 
 #
 # pint-stable
