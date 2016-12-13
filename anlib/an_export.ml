@@ -74,17 +74,11 @@ let nbjson_of_an an ctx =
 			| StateLabel l -> "\""^l^"\"")
 	and json_of_ilist = json_of_list string_of_int
 	in
-	let json_of_init i =
-		if ISet.cardinal i = 1 then
-			string_of_int (ISet.choose i)
-		else
-			json_of_ilist (ISet.elements i)
-	in
 	"{\n"
 	^"\"automata\": "^json_of_slist automata^",\n"
 	^"\"local_states\": "^json_of_smap json_of_ilist localstates^",\n"
 	^"\"named_local_states\": "^json_of_smap json_of_siglist nlocalstates^",\n"
-	^"\"initial_state\": "^json_of_smap json_of_init ctx^",\n"
+	^"\"initial_state\": "^json_of_ctx ctx^",\n"
 	^"\"features\": "^json_of_slist features^"\n"
 	^"}\n"
 

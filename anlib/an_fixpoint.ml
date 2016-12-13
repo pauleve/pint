@@ -105,5 +105,5 @@ let fixpoints forcelss an =
 	!sols
 
 let fixpoints ?restrict:(lss=[]) args =
-	try fixpoints lss args with Stak.Fail _ -> []
+	try List.map state_of_lsset (fixpoints lss args) with Stak.Fail _ -> []
 
