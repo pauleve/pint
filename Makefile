@@ -51,9 +51,11 @@ depcheck:
 
 3rdparty_clean:
 	make -C 3rdparty/bes/src clean
+	make -C 3rdparty/colomoto clean
 
 3rdparty:
 	make -C 3rdparty/bes/src
+	make -C 3rdparty/colomoto
 
 $(TARGETS):
 	make -f target/$@
