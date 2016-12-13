@@ -1,10 +1,10 @@
 
+import json
 import os
 import subprocess
+import tempfile
 
 from IPython.display import FileLink
-
-import tempfile
 
 import networkx as nx
 
@@ -17,7 +17,7 @@ VALID_EXE = ["pint-export", "ping-lcg", "pint-reach", "pint-sg",
 def _run_tool(cmd, *args, input_model=None, **run_opts):
     assert cmd in VALID_EXE
     args = list(args)
-
+    args.insert(0, "--json-stdout")
     if "stdout" not in run_opts:
         run_opts["stdout"] = subprocess.PIPE
     if "check" not in run_opts:
@@ -28,6 +28,7 @@ def _run_tool(cmd, *args, input_model=None, **run_opts):
 
     dbg("Running command %s %s" % (cmd, " ".join(args)))
     return subprocess.run([cmd]+args, **run_opts)
+
 
 
 format_alias = {
@@ -149,8 +150,7 @@ def reachable_attractors(model):
 def fixpoints(model):
     cp = _run_tool("pint-stable", "--fixpoints", input_model=model)
     output = cp.stdout.decode()
-    print(output)
-    # TODO parse toutput
+    return json.loads(output)
 
 
 __all__ = [t[0] for t in __MODEL_TOOLS] + [
