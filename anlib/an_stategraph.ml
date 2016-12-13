@@ -125,10 +125,10 @@ let prepare_sts an state =
 	let next_sids sid =
 		let fold_etr sids (precond, shift) =
 			if precond sid then
-				add_big_int sid shift::sids
+				BigISet.add (add_big_int sid shift) sids
 			else sids
 		in
-		List.fold_left fold_etr [] etrs
+		List.fold_left fold_etr BigISet.empty etrs
 	in
 	sid0, next_sids, state_of_sid
 
@@ -145,9 +145,9 @@ let reachable_states an state =
 			BigHashtbl.add known sid ();
 			let nexts = next_sids sid
 			in
-			let todo = List.fold_left (fun bis bi ->
+			let todo = BigISet.fold (fun bi bis ->
 					if BigHashtbl.mem known bi then bis else BigISet.add bi bis)
-					 	todo nexts
+					 	nexts todo
 			in
 			if BigISet.is_empty todo then
 				(counter, todo)
@@ -170,8 +170,8 @@ let reachable_stategraph an state =
 		if not(BigHashtbl.mem sg sid) then (
 			let nexts = next_sids sid
 			in
-			BigHashtbl.add sg sid nexts;
-			List.iter explore nexts
+			BigHashtbl.add sg sid (BigISet.elements nexts);
+			BigISet.iter explore nexts
 		)
 	in
 	explore sid0;
@@ -207,7 +207,8 @@ let attractors an state =
 		BigHashtbl.add lowlink v !nid;
 		stack_push v;
 		incr nid;
-		let sccs = List.fold_left (handle_child v) [] (next v)
+		let sccs = List.fold_left (handle_child v) []
+			(BigISet.elements (next v))
 		in
 		let l_v = BigHashtbl.find lowlink v
 		and i_v = BigHashtbl.find index v
