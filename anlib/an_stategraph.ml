@@ -175,7 +175,7 @@ let reachable_stategraph an state =
 		)
 	in
 	explore sid0;
-	sg, sid2state
+	sg, sid0, sid2state
 
 let attractors an state =
 	let sid0, next, sid2state = prepare_sts an state
