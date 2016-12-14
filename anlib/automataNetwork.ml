@@ -448,15 +448,17 @@ let state_of_lsset ps =
 	in
 	LSSet.fold fold ps SMap.empty
 
-let ctx_of_lsset ps =
-	let group (a,i) ctx =
+let ctx_of_lslist =
+	let group ctx (a,i) =
 		let is = try SMap.find a ctx with Not_found -> ISet.empty
 		in
 		let is = ISet.add i is
 		in
 		SMap.add a is ctx
 	in
-	LSSet.fold group ps SMap.empty
+	List.fold_left group SMap.empty
+
+let ctx_of_lsset ps = ctx_of_lslist (LSSet.elements ps)
 
 let lsset_of_ctx ctx =
 	let register a is ps =
@@ -499,5 +501,10 @@ let json_of_ctx ctx =
 			json_of_list json_of_int (ISet.elements iset)
 	in
 	json_of_bindings json_of_str json_of_elt (SMap.bindings ctx)
+
+let json_of_transition (a,i,j) cond =
+	let json_conds = json_of_bindings json_of_str json_of_int (SMap.bindings cond)
+	in
+	json_of_list id (json_of_str a::json_of_int i::json_of_int j::json_conds::[])
 
 
