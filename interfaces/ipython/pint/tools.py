@@ -9,6 +9,7 @@ from IPython.display import FileLink
 import networkx as nx
 
 from .cfg import *
+from .types import *
 from .ui import *
 
 VALID_EXE = ["pint-export", "ping-lcg", "pint-reach", "pint-sg",
@@ -78,17 +79,14 @@ def export(model, format, output=None, raw_args=None):
 #
 
 @modeltool
-def cutsets(model, ai, maxsize=5, *args, exclude_initial_state=True, **opts):
-    args = list(args)
+def cutsets(model, ai, maxsize=5, exclude_initial_state=True):
+    args = []
     if exclude_initial_state:
         args.append("--no-init-cutsets")
     cp = _run_tool("pint-reach", "--cutsets", str(maxsize), ai, *args,
-                input_model=model, **opts)
+                input_model=model)
     output = cp.stdout.decode()
-    if " is not reachable.\n" in output:
-        print("Goal is not reachable, nothing to cut!")
-    else:
-        return output.split()
+    return json.loads(output)
 
 @modeltool
 def bifurcations(model, ai, method="ua"):
@@ -97,25 +95,31 @@ def bifurcations(model, ai, method="ua"):
         "--bifurcations-method", method]
     cp = _run_tool("pint-reach", ai, *args, input_model=model)
     output = cp.stdout.decode()
-    print(output)
-    # TODO: parse output
+    return [LocalTransition(*d) for d in json.loads(output)]
 
 @modeltool
 def reachability(model, ai, fallback="its"):
     assert fallback in ["its", "nusmv", "none"]
     cp = _run_tool("pint-reach", ai, input_model=model)
-    output = cp.stdout.decode().strip()
-    if output == "True":
-        return True
-    elif output == "False":
-        return False
-    elif fallback == "none":
-        return "Inconclusive"
-    else:
+    output = cp.stdout.decode()
+    output = ternary(json.loads(output))
+    if output == Inconc:
         info("pint is inconclusive, fallback to %s" % fallback)
         # TODO: model reduction
         cp = _run_tool("pint-%s" % fallabck, ai, input_model=model)
+        # TODO parse
         return cp.stdout.decode().strip()
+    return output
+
+#TODO requirements
+
+
+#
+# pint-lcg
+#
+
+#TODO
+
 
 #
 # pint-sg

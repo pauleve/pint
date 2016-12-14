@@ -93,6 +93,9 @@ class InitialState(dict):
     def changes(self):
         return self.__override.copy()
 
+    def nonzeros(self):
+        return dict([(a,i) for (a,i) in self.items() if i > 0])
+
     def to_pint(self):
         def fmt_values(i):
             if type(i) is int:
