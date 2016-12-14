@@ -32,6 +32,9 @@ type ternary = True | False | Inconc
 (** String representation of ternary. *)
 val string_of_ternary : ternary -> string
 
+(** Json representation of ternary *)
+val json_of_ternary : ternary -> string
+
 (** Json representation of string *)
 val json_of_str : string -> string
 
