@@ -6,6 +6,12 @@ CFG = {
     "output_dir": "gen",
 }
 
+try:
+    get_ipython()
+    IN_IPYTHON = True
+except NameError:
+    IN_IPYTHON = False
+
 def output_dir():
     if not os.path.exists(CFG["output_dir"]):
         os.makedirs(CFG["output_dir"])

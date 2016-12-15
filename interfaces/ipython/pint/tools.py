@@ -4,13 +4,14 @@ import os
 import subprocess
 import tempfile
 
-from IPython.display import FileLink
-
 import networkx as nx
 
 from .cfg import *
 from .types import *
 from .ui import *
+
+if IN_IPYTHON:
+    from IPython.display import FileLink
 
 VALID_EXE = ["pint-export", "ping-lcg", "pint-reach", "pint-sg",
                 "pint-stable"]
@@ -71,7 +72,9 @@ def export(model, format, output=None, raw_args=None):
     args += ["-o", output]
     _run_tool("pint-export", *args, *raw_args,
                 input_model=model, stdout=None)
-    return FileLink(output)
+    if IN_IPYTHON:
+        return FileLink(output)
+    return output
 
 
 #
