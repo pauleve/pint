@@ -44,7 +44,6 @@ ENV TINI_VERSION 0.13.1
 ADD https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}-amd64.deb /usr/src
 RUN dpkg -i /usr/src/tini_${TINI_VERSION}-amd64.deb \
 	&& echo '#!/bin/bash' > /usr/bin/pint-nb \
-	&& echo 'export PYTHONPATH="/usr/src/pint/interfaces/ipython:$PYTHONPATH"' >> /usr/bin/pint-nb \
 	&& echo 'jupyter notebook --no-browser --ip=* --port 8888 "${@}"' >>/usr/bin/pint-nb \
 	&& chmod +x /usr/bin/pint-nb \
 	&& pip3 install jupyter networkx pydotplus
@@ -53,6 +52,9 @@ ARG PINT_VERSION
 ADD dist/pint_${PINT_VERSION}_amd64.deb /usr/src
 RUN dpkg -i /usr/src/pint_${PINT_VERSION}_amd64.deb \
 	&& rm /usr/src/*.deb /usr/src/*.gz
+
+ADD interfaces/ipython /usr/src/pint
+RUN pip3 install /usr/src/pint && rm -rf /usr/src/pint
 
 ADD notebook /notebook
 ADD examples /notebook/models
