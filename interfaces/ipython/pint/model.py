@@ -10,11 +10,12 @@ from urllib.request import urlretrieve
 from xml.dom.minidom import parse as xml_parse_dom
 from zipfile import ZipFile
 
-from IPython.display import display, FileLink
-
 from .cfg import *
 from .tools import *
 from .ui import *
+
+if IN_IPYTHON:
+    from IPython.display import display, FileLink
 
 class InitialState(dict):
     def __init__(self, info):
@@ -236,7 +237,8 @@ def import_using_logicalmodel(fmt, inputfile, anfile, simplify=True):
         subprocess.check_call(["pint-export", "--simplify", "-i", anfile,
                                 "-o", anfile])
 
-    display(FileLink(anfile))
+    if IN_IPYTHON:
+        display(FileLink(anfile))
 
     model = FileModel(anfile)
 

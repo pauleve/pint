@@ -28,5 +28,6 @@ def new_output_file(ext=None, **tempargs):
 __all__ = [
     "output_dir",
     "new_output_file",
+    "IN_IPYTHON",
 ]
 
