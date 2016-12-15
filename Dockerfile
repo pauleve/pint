@@ -9,7 +9,8 @@ RUN apt-get update \
 		libgmpxx4ldbl \
 		maven \
 		git \
-		openjdk-8-jdk
+		openjdk-8-jdk \
+	&& apt-get clean
 ADD http://www.lsv.ens-cachan.fr/~schwoon/tools/mole/mole-140428.tar.gz /usr/src
 RUN tar xvfz /usr/src/mole-140428.tar.gz -C /usr/src \
 	&& make -C /usr/src/mole-140428 \
@@ -22,7 +23,7 @@ RUN git clone https://github.com/colomoto/logicalmodel.git /usr/src/logicalmodel
 	&& echo "java -jar $PWD/target/LogicalModel-0.3-SNAPSHOT.jar \"\${@}\"" >> /usr/bin/logicalmodel \
 	&& chmod +x /usr/bin/logicalmodel \
 	&& rm -rf ~/.m2
-ADD https://teamcity-systeme.lip6.fr/guestAuth/repository/download/bt54/.lastSuccessful/ITS_linux_64.tar.gz /usr/src
+ADD http://teamcity-systeme.lip6.fr/guestAuth/repository/download/bt54/.lastSuccessful/ITS_linux_64.tar.gz /usr/src
 RUN mkdir /usr/src/its \
 	&& tar xvfz /usr/src/ITS_linux_64.tar.gz -C /usr/src/its \
 	&& ln -s /usr/src/its/its-reach /usr/bin \

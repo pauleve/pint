@@ -135,12 +135,13 @@ run-dist-deb-via-docker:
 	docker run --rm --volume $$PWD:/wd --workdir /wd pauleve/pint make dist-deb-via-docker RELNAME=$(RELNAME)
 
 dist-deb-via-docker:
-	apt-get install -y devscripts debhelper \
-		ocaml ocaml-findlib \
-		camlidl \
-		libextlib-ocaml-dev \
-		libfacile-ocaml-dev \
-		r-mathlib
+	apt-get update && \
+		apt-get install -y devscripts debhelper \
+			ocaml ocaml-findlib \
+			camlidl \
+			libextlib-ocaml-dev \
+			libfacile-ocaml-dev \
+			r-mathlib
 	make dist-pre-deb
 	make dist-deb
 	mv -v ../pint_$(RELNAME)_*.deb dist/
