@@ -1,3 +1,5 @@
 notebook/start
 notebook/*.txt
 notebook/models
+interfaces/ipython/pint/__pycache__
+interfaces/ipython/pint/*.pyc
