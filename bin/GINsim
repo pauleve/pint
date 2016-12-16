@@ -3,4 +3,4 @@ if [ -z $PINT_PATH ]; then
 	p=`dirname "$0"`
 	PINT_PATH=`dirname "$p"`
 fi
-java -jar "${PINT_PATH}/3rdparty/colomoto/GINsim.jar" "${@}"
+java -jar "${PINT_PATH}/3rdparty/colomoto/GINsim-2.9.4-with-deps.jar" "${@}"
