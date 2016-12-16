@@ -11,7 +11,7 @@ from .types import *
 from .ui import *
 
 if IN_IPYTHON:
-    from IPython.display import FileLink
+    from IPython.display import display, FileLink
 
 VALID_EXE = ["pint-export", "ping-lcg", "pint-reach", "pint-sg",
                 "pint-stable"]
@@ -75,6 +75,19 @@ def export(model, format, output=None, raw_args=None):
     if IN_IPYTHON:
         return FileLink(output)
     return output
+
+@modeltool
+def reduce(model, goal, squeeze=True):
+    output = new_output_file(ext="an")
+    args = ["-o", output,
+        "--reduce-for-goal", goal]
+    if squeeze:
+        args.append("--squeeze")
+    _run_tool("pint-export", *args, input_model=model, stdout=None)
+    if IN_IPYTHON:
+        display(FileLink(output))
+    from .model import FileModel
+    return FileModel(output)
 
 
 #
