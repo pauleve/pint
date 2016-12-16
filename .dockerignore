@@ -1,5 +1,8 @@
 notebook/start
 notebook/*.txt
+notebook/*.log
+notebook/gen
 notebook/models
+notebook/tests
 interfaces/ipython/pint/__pycache__
 interfaces/ipython/pint/*.pyc
