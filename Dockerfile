@@ -30,7 +30,7 @@ RUN echo '#!/bin/sh' > /usr/bin/GINsim \
 RUN git clone https://github.com/colomoto/logicalmodel.git /usr/src/logicalmodel\
 	&& cd /usr/src/logicalmodel && mvn package \
 	&& echo '#!/bin/sh' > /usr/bin/logicalmodel \
-	&& echo "java -jar $PWD/target/LogicalModel-0.3-SNAPSHOT.jar \"\${@}\"" >> /usr/bin/logicalmodel \
+	&& echo "java -jar $PWD/target/LogicalModel-*-SNAPSHOT.jar \"\${@}\"" >> /usr/bin/logicalmodel \
 	&& chmod +x /usr/bin/logicalmodel \
 	&& rm -rf ~/.m2
 ADD http://teamcity-systeme.lip6.fr/guestAuth/repository/download/bt54/.lastSuccessful/ITS_linux_64.tar.gz /usr/src
@@ -43,10 +43,13 @@ RUN mkdir /usr/src/its \
 ENV TINI_VERSION 0.13.1
 ADD https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}-amd64.deb /usr/src
 RUN dpkg -i /usr/src/tini_${TINI_VERSION}-amd64.deb \
+	&& pip3 install jupyter networkx pydotplus \
 	&& echo '#!/bin/bash' > /usr/bin/pint-nb \
 	&& echo 'jupyter notebook --no-browser --ip=* --port 8888 "${@}"' >>/usr/bin/pint-nb \
 	&& chmod +x /usr/bin/pint-nb \
-	&& pip3 install jupyter networkx pydotplus
+	&& mkdir -p ~/.jupyter \
+	&& echo 'from IPython.lib import passwd' > ~/.jupyter/jupyter_notebook_config.py\
+	&& echo 'get_config().NotebookApp.password = passwd("notebook")' >> ~/.jupyter/jupyter_notebook_config.py
 
 ARG PINT_VERSION
 ADD dist/pint_${PINT_VERSION}_amd64.deb /usr/src
