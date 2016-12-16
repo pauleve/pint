@@ -22,6 +22,8 @@ def _run_tool(cmd, *args, input_model=None, **run_opts):
     args.insert(0, "--json-stdout")
     if "stdout" not in run_opts:
         run_opts["stdout"] = subprocess.PIPE
+    if "stderr" not in run_opts:
+        run_opts["stderr"] = subprocess.PIPE
     if "check" not in run_opts:
         run_opts["check"] = True
 
