@@ -1,0 +1,27 @@
+GINSIM_VERSION=2.9.4
+
+BASEDIR=3rdparty/colomoto
+
+GINSIM_JAR=GINsim-$(GINSIM_VERSION)-with-deps.jar
+F_GINSIM_JAR=$(BASEDIR)/$(GINSIM_JAR)
+
+include Makefile.common
+-include build/Makefile.inc
+
+all: $(F_GINSIM_JAR)
+
+clean:
+	rm -f $(F_GINSIM_JAR)
+
+$(F_GINSIM_JAR):
+	curl http://ginsim.org/sites/default/files/$(GINSIM_JAR) -o $@
+
+install:
+	install -d $(DESTDIR)$(PINT_SHARE_PATH)/3rdparty
+	install -d $(DESTDIR)$(PINT_SHARE_PATH)/$(BASEDIR)
+	install -m 0644 $(BASEDIR)/*.jar $(DESTDIR)$(PINT_SHARE_PATH)/$(BASEDIR)
+	install -d $(DESTDIR)$(PINT_SHARE_PATH)/bin
+	install -m 0755 bin/logicalmodel $(DESTDIR)$(PINT_SHARE_PATH)/bin
+	install -m 0755 bin/GINsim $(DESTDIR)$(PINT_SHARE_PATH)/bin
+
+# vi:set syntax=make:
