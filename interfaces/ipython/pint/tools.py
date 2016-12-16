@@ -16,6 +16,12 @@ if IN_IPYTHON:
 VALID_EXE = ["pint-export", "ping-lcg", "pint-reach", "pint-sg",
                 "pint-stable"]
 
+class PintProcessError(subprocess.CalledProcessError):
+    def __str__(self):
+        stderr = "\n%s" % self.stderr.decode() if self.stderr else None
+        return "Command '%s' returned non-zero exit status %d%s" \
+            % (" ".join(self.cmd), self.returncode, stderr)
+
 def _run_tool(cmd, *args, input_model=None, **run_opts):
     assert cmd in VALID_EXE
     args = list(args)
@@ -31,8 +37,13 @@ def _run_tool(cmd, *args, input_model=None, **run_opts):
         input_model.populate_popen_args(args, run_opts)
 
     dbg("Running command %s %s" % (cmd, " ".join(args)))
-    return subprocess.run([cmd]+args, **run_opts)
-
+    try:
+        return subprocess.run([cmd]+args, **run_opts)
+    except subprocess.CalledProcessError as e:
+        # backward compatible 'raise e from None'
+        e = PintProcessError(e.returncode, e.cmd, e.output, e.stderr)
+        e.__cause__ = None
+        raise e
 
 
 format_alias = {
