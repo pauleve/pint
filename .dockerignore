@@ -4,5 +4,6 @@ notebook/*.log
 notebook/gen
 notebook/models
 notebook/tests
+notebook/.*
 interfaces/ipython/pint/__pycache__
 interfaces/ipython/pint/*.pyc
