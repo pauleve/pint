@@ -19,8 +19,12 @@ def hello_ipython():
     version = subprocess.check_output(["pint-config", "version"]).decode()
     info("You are using Pint version %s" % version)
 
+
 if not __SETUP_DONE:
     setup_environ()
+
 if IN_IPYTHON:
     hello_ipython()
+    from .ipython_helpers import ipython_install
+    ipython_install()
 

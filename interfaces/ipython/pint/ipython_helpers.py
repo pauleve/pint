@@ -1,9 +1,17 @@
 
 import networkx as nx
 
-from IPython.display import display, Image
+def svg_of_graph(g):
+    return nx.nx_pydot.to_pydot(g).create_svg().decode()
 
-def idraw_graph(g):
-    display(Image(nx.nx_pydot.to_pydot(g).create_png()))
+def install_default_formatters():
+    ip = get_ipython()
+    # nxgraph to svg
+    svg_formatter = ip.display_formatter.formatters["image/svg+xml"]
+    svg_formatter.for_type(nx.MultiDiGraph, svg_of_graph)
+
+
+def ipython_install():
+    install_default_formatters()
 
 
