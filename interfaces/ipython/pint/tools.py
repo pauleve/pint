@@ -150,16 +150,29 @@ def reachability(model, ai, fallback="its"):
 #
 
 @modeltool
-def local_causality_graph(model, kind, goal=None):
+def local_causality_graph(model, kind="full", goal=None):
     assert kind in ["verbose,","trimmed","saturated","worth","full"]
     if kind != "full" and goal is None:
-        raise ValueError("goal cannot be None with kind %s" % kind)
+        raise ValueError("goal cannot be None with %s LCG" % kind)
     args = ["-t", kind, "-o", "-"]
     if goal:
         args.append(goal)
     cp = _run_tool("pint-lcg", *args, input_model=model)
     g = pydotplus.graph_from_dot_data(cp.stdout.decode())
     return nx.nx_pydot.from_pydot(g)
+
+@modeltool
+def full_lcg(model):
+    return local_causality_graph(model, "full")
+@modeltool
+def simple_lcg(model, goal):
+    return local_causality_graph(model, "trimmed", goal)
+@modeltool
+def worth_lcg(model, goal):
+    return local_causality_graph(model, "worth", goal)
+@modeltool
+def saturated_lcg(model, goal):
+    return local_causality_graph(model, "saturated", goal)
 
 
 #
