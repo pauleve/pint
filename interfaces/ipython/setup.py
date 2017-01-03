@@ -18,7 +18,10 @@ setup(name = "pint",
     keywords='',
     description = "Python interface to Pint",
     long_description=open('README.rst').read(),
-    install_requires = ["networkx"],
+    install_requires = [
+        "networkx",
+        "pydotplus",
+    ],
     packages = find_packages()
 )
 
