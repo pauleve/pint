@@ -1,10 +1,12 @@
 
+from io import StringIO
 import json
 import os
 import subprocess
 import tempfile
 
 import networkx as nx
+import pydotplus
 
 from .cfg import *
 from .types import *
@@ -13,7 +15,7 @@ from .ui import *
 if IN_IPYTHON:
     from IPython.display import display, FileLink
 
-VALID_EXE = ["pint-export", "ping-lcg", "pint-reach", "pint-sg",
+VALID_EXE = ["pint-export", "pint-lcg", "pint-reach", "pint-sg",
                 "pint-stable"]
 
 class PintProcessError(subprocess.CalledProcessError):
@@ -147,7 +149,17 @@ def reachability(model, ai, fallback="its"):
 # pint-lcg
 #
 
-#TODO
+@modeltool
+def local_causality_graph(model, kind, goal=None):
+    assert kind in ["verbose,","trimmed","saturated","worth","full"]
+    if kind != "full" and goal is None:
+        raise ValueError("goal cannot be None with kind %s" % kind)
+    args = ["-t", kind, "-o", "-"]
+    if goal:
+        args.append(goal)
+    cp = _run_tool("pint-lcg", *args, input_model=model)
+    g = pydotplus.graph_from_dot_data(cp.stdout.decode())
+    return nx.nx_pydot.from_pydot(g)
 
 
 #
