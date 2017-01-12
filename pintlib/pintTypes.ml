@@ -74,3 +74,23 @@ type stochatime =
 	| RateSA of (float * int)
 	| FiringInterval of (float*float*float)
 
+let json_of_ternary = function
+	  True -> "true"
+	| False -> "false"
+	| Inconc -> "null"
+
+let json_of_str s =
+	"\""^s^"\""
+
+let json_of_int i =
+	string_of_int i
+
+let json_of_list json_of_elt l =
+	"["^(String.concat ", " (List.map json_of_elt l))^"]"
+
+let json_of_bindings json_of_key json_of_elt b =
+	let json_of_binding (k,v) =
+		json_of_key k^": "^json_of_elt v
+	in
+	"{"^(String.concat ", " (List.map json_of_binding b))^"}"
+

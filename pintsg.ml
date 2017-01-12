@@ -36,12 +36,15 @@ let count () =
 	in
 	let nb_states, _ = An_stategraph.reachable_states an state
 	in
-	print_endline (Big_int.string_of_big_int nb_states ^ " reachable states.")
+	if !An_cli.opt_json_stdout then
+		print_endline (string_of_big_int nb_states)
+	else
+		print_endline (string_of_big_int nb_states ^ " reachable states.")
 
 let stategraph output =
 	let state = Ph_types.state_of_ctx ctx
 	in
-	let sg, state_of_sid = An_stategraph.reachable_stategraph an state
+	let sg, sid0, state_of_sid = An_stategraph.reachable_stategraph an state
 	in
 	let cout = open_out output
 	in
@@ -50,13 +53,15 @@ let stategraph output =
 			(string_of_localstate ~protect:false an) (SMap.bindings s))
 	in
 	let output_tr sid nexts =
-		let sfrom = Big_int.string_of_big_int sid
+		let sfrom = string_of_big_int sid
 		in
 		output_string cout (sfrom
-			^" [label=\"" ^node_label (state_of_sid sid)^"\"];\n");
+			^" [label=\"" ^node_label (state_of_sid sid)^"\""
+			^(if eq_big_int sid sid0 then ",style=filled" else "")
+			^"];\n");
 		List.iter (fun sid' ->
 			output_string cout (sfrom^" -> "
-				^Big_int.string_of_big_int sid'^";\n")) nexts
+				^string_of_big_int sid'^";\n")) nexts
 	in
 	output_string cout "digraph SG {\n";
 	An_stategraph.BigHashtbl.iter output_tr sg;
@@ -68,6 +73,18 @@ let attractors () =
 	in
 	let bsccs, state_of_sid = An_stategraph.attractors an state
 	in
+	if !An_cli.opt_json_stdout then (
+		let json_of_attractor (sid, size) =
+			let desc =
+				("type", json_of_str (if size = 1 then "fixpoint" else "cyclic"))
+				::("size", json_of_int size)
+				::("sample", json_of_state (state_of_sid sid))
+				::[]
+			in
+			json_of_bindings json_of_str id desc
+		in
+		print_endline (json_of_list json_of_attractor bsccs)
+	) else (
 	print_endline (string_of_int (List.length bsccs)^" reachable attractors.");
 	List.iter (fun (sid, size) ->
 		if size = 1 then
@@ -76,6 +93,7 @@ let attractors () =
 			print_endline ("- cycle between "
 				^ string_of_int (size) ^ " states, including:\n\t"
 				^ string_of_state an (state_of_sid sid))) bsccs
+	)
 
 let description () =
 	let nb_automata = count_automata an
@@ -85,11 +103,23 @@ let description () =
 	and largest = Hashtbl.fold (fun _ def n ->
 		max n (List.length def)) an.automata 0
 	in
+	if !An_cli.opt_json_stdout then (
+		let desc =
+			("nb_automata", json_of_int nb_automata)
+			::("nb_local_states", json_of_int nb_ls)
+			::("max_local_states", json_of_int largest)
+			::("nb_transitions", json_of_int nb_tr)
+			::("nb_states", string_of_big_int nb_states)
+			::[]
+		in
+		print_endline (json_of_bindings json_of_str id desc)
+	) else (
 	print_endline (string_of_int nb_automata^" automata");
 	print_endline (string_of_int nb_ls^" local states");
 	print_endline (string_of_int largest^" max local states per automaton");
 	print_endline (string_of_int nb_tr^" transitions");
 	print_endline (string_of_big_int nb_states^" states")
+	)
 
 let _ =
 	if !do_count then count ();

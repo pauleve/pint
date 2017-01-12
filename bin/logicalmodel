@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+if [ -z $PINT_PATH ]; then
+	p=`dirname "$0"`
+	PINT_PATH=`dirname "$p"`
+fi
+java -jar "${PINT_PATH}/3rdparty/colomoto/LogicalModel-0.3-SNAPSHOT-with-deps.jar" "${@}"

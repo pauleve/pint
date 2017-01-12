@@ -24,7 +24,11 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let an, ctx = An_cli.process_input ()
 
-let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args abort
+let (an, ctx), goal = 
+    if !lcg_type = "full" then
+        (an,ctx), ("",0)
+    else
+        An_cli.prepare_goal (an, ctx) args abort
 
 let cache = An_localpaths.create_cache ()
 

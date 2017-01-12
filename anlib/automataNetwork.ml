@@ -437,15 +437,28 @@ let ctx_of_siglocalstates ?(complete=false) an sls =
 
 let ctx_has_localstate = Ph_types.ctx_has_proc
 
-let ctx_of_lsset ps =
-	let group (a,i) ctx =
+let state_of_lsset ps =
+	let fold (a,i) s =
+		if SMap.mem a s then
+			(if SMap.find a s != i then
+				failwith "state_of_lsset: invalid state"
+			else s)
+		else
+			SMap.add a i s
+	in
+	LSSet.fold fold ps SMap.empty
+
+let ctx_of_lslist =
+	let group ctx (a,i) =
 		let is = try SMap.find a ctx with Not_found -> ISet.empty
 		in
 		let is = ISet.add i is
 		in
 		SMap.add a is ctx
 	in
-	LSSet.fold group ps SMap.empty
+	List.fold_left group SMap.empty
+
+let ctx_of_lsset ps = ctx_of_lslist (LSSet.elements ps)
 
 let lsset_of_ctx ctx =
 	let register a is ps =
@@ -473,4 +486,25 @@ let condition_matches ctx cond =
 		with Not_found -> false
 	in
 	SMap.for_all ls_matches cond
+
+
+(** JSON outputs **)
+
+let json_of_state s =
+	json_of_bindings json_of_str json_of_int (SMap.bindings s)
+
+let json_of_ctx ctx =
+	let json_of_elt iset =
+		if ISet.cardinal iset = 1 then
+			json_of_int (ISet.choose iset)
+		else
+			json_of_list json_of_int (ISet.elements iset)
+	in
+	json_of_bindings json_of_str json_of_elt (SMap.bindings ctx)
+
+let json_of_transition (a,i,j) cond =
+	let json_conds = json_of_bindings json_of_str json_of_int (SMap.bindings cond)
+	in
+	json_of_list id (json_of_str a::json_of_int i::json_of_int j::json_conds::[])
+
 
