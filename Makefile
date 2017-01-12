@@ -14,6 +14,7 @@ TARGETS=\
 	phc\
 	ph-exec\
 	ph2thomas\
+	3rdparty_runtime\
 
 OSX_TARGETS=\
 	pint-config\
@@ -28,13 +29,13 @@ OSX_TARGETS=\
 	phc\
 	ph-exec\
 	ph2thomas\
+	3rdparty_runtime\
 
 
 MISC_TOOLS = \
 	converters/pint_converter.py\
 	converters/bcx2ph\
 	converters/CNA2an\
-	converters/bool2an\
 
 
 .PHONY: $(TARGETS) aspfiles 3rdparty

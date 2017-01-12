@@ -68,39 +68,53 @@ let static_reach () =
 		else
 			local_reachability env
 	in
+	if !An_cli.opt_json_stdout then
+		print_endline (json_of_ternary result)
+	else
 	print_endline (string_of_ternary result)
 
 let bifurcations () =
 	let bifurcations =
 		match !opt_bifurcations_mode with
 		  "ua" ->
+			if not !An_cli.opt_json_stdout then
 			prerr_endline ("# mode: under-approximation");
 			An_bifurcations.ua_bifurcations_ua
 		| "mole+ua" ->
+			if not !An_cli.opt_json_stdout then
 			prerr_endline ("# mode: under-approximation enhanced by mole");
 			An_bifurcations.ua_bifurcations_mole
 		| _ -> failwith "Invalid mode for bifurcations."
 	in
-	let handle_solution (a,i,j) cond =
-		print_endline (string_of_transition an (a,i,j) cond)
+	let handle_solution aij cond =
+		if !An_cli.opt_json_stdout then
+			print_endline (json_of_transition aij cond)
+		else
+		print_endline (string_of_transition an aij cond)
 	in
+	if !An_cli.opt_json_stdout then print_char '[';
 	let n = bifurcations handle_solution (an,ctx) goal
 	in
+	if not !An_cli.opt_json_stdout then
 	prerr_endline (string_of_int n^" bifurcations transitions have been identified.")
+	else print_endline "]"
+
+let json_of_cutset cs =
+	json_of_ctx (ctx_of_lslist cs)
 
 let cutsets n =
 	let gA = lcg_for_cutsets env
 	in
+	let _ = if not !An_cli.opt_json_stdout then (
 	prerr_endline ("#nodes = "^string_of_int gA#count_nodes);
 	prerr_endline ("#procs = "^string_of_int gA#count_procs);
-	prerr_endline ("#objs = "^string_of_int gA#count_objs);
-
+	prerr_endline ("#objs = "^string_of_int gA#count_objs)
+	) in
 	let exclude_localstate =
 		if !opt_cutsets_noinit then
 			fun ai -> ctx_has_proc ai ctx
 		else fun _ -> false
 	in
-
     let (d_nkp, index_proc) = cutsets gA n exclude_localstate gA#leafs
 	in
 	let resolve_ps =
@@ -119,7 +133,6 @@ let cutsets n =
 			in
 			let n = PSSet.cardinal pss
 			in
-			prerr_endline ("# "^string_of_int n^" cut set(s) for "^string_of_ai ai^":");
 			let elts = PSSet.elements pss
 			in
 			let elts = List.map resolve_ps elts
@@ -131,25 +144,27 @@ let cutsets n =
 					in
 					if c <> 0 then c else compare a b) elts
 			in
-			List.iter print_ps elts
-
+			if !An_cli.opt_json_stdout then
+				print_endline (json_of_list json_of_cutset elts)
+			else (
+				prerr_endline ("# "^string_of_int n^" cut set(s) for "^string_of_ai ai^":");
+				List.iter print_ps elts)
 		with Not_found ->
-			print_endline (string_of_node (NodeProc ai)^" is not reachable.");
+			if !An_cli.opt_json_stdout then
+				print_endline (json_of_list id [])
+			else
+			print_endline (string_of_node (NodeProc ai)^" is not reachable.")
 	in
 	List.iter handle_proc env.goal
 
 let requirements automata universal =
 	let gA = lcg_for_requirements env
 	in
+	let _ = if not !An_cli.opt_json_stdout then (
 	prerr_endline ("#nodes = "^string_of_int gA#count_nodes);
 	prerr_endline ("#procs = "^string_of_int gA#count_procs);
-	prerr_endline ("#objs = "^string_of_int gA#count_objs);
-
-	let cout = open_out "/tmp/req-lcg.dot"
-	in
-	output_string cout (gA#to_dot);
-	close_out cout;
-
+	prerr_endline ("#objs = "^string_of_int gA#count_objs)
+	) in
     let reqs, index_proc = requirements gA automata gA#leafs universal
 	in
 	let resolve_ps = List.map (Hashtbl.find index_proc)
@@ -190,7 +205,6 @@ let requirements automata universal =
 			in
 			let n = PSSet.cardinal pss
 			in
-			prerr_endline ("# "^string_of_int n^" different requirements for "^string_of_ai ai^":");
 			let elts = PSSet.elements pss
 			in
 			let elts = List.map resolve_ps elts
@@ -202,10 +216,17 @@ let requirements automata universal =
 					in
 					if c <> 0 then c else compare a b) elts
 			in
-			List.iter print_ps elts
+			if !An_cli.opt_json_stdout then
+				print_endline (json_of_list json_of_cutset elts)
+			else (
+			prerr_endline ("# "^string_of_int n^" different requirements for "^string_of_ai ai^":");
+			List.iter print_ps elts)
 
 		with Not_found ->
-			print_endline (string_of_node (NodeProc ai)^" is not reachable.");
+			if !An_cli.opt_json_stdout then
+				print_endline (json_of_list id [])
+			else
+			print_endline (string_of_node (NodeProc ai)^" is not reachable.")
 	in
 	List.iter handle_proc env.goal
 

@@ -32,6 +32,21 @@ type ternary = True | False | Inconc
 (** String representation of ternary. *)
 val string_of_ternary : ternary -> string
 
+(** Json representation of ternary *)
+val json_of_ternary : ternary -> string
+
+(** Json representation of string *)
+val json_of_str : string -> string
+
+(** Json representation of int *)
+val json_of_int : int -> string
+
+(** Json represenetation of list *)
+val json_of_list : ('a -> string) -> 'a list -> string
+
+(** Json representation of bindings *)
+val json_of_bindings : ('a -> string) -> ('b -> string) ->
+		('a*'b) list -> string
 
 type stochatime = 
 	  Instantaneous

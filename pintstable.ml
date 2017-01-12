@@ -23,10 +23,12 @@ let restrict = resolve_siglocalstates an !restrict
 
 let fixpoints () =
 	let fps = An_fixpoint.fixpoints ~restrict an
-	and string_of_lsset = string_of_set (string_of_localstate an) LSSet.elements
 	in
-	print_endline ("# "^string_of_int (List.length fps)^ " fixed points");
-	List.iter print_endline (List.map string_of_lsset fps)
+	if !An_cli.opt_json_stdout then
+		print_endline (json_of_list json_of_state fps)
+	else
+		(print_endline ("# "^string_of_int (List.length fps)^ " fixed points");
+		List.iter print_endline (List.map (string_of_state an) fps))
 
 let _ = if !do_fixpoints then fixpoints ()
 

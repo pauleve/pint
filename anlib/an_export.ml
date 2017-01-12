@@ -41,6 +41,47 @@ let dump_of_an an ctx =
 	^ match lss with [] -> "" | _ -> ("initial_context " ^ (String.concat ", "
 	(List.map (string_of_localstate an) lss))^"\n")
 
+let nbjson_of_an an ctx =
+	let features = []
+	in
+	let features = if an.sync_transitions <> [] then "synced_transitions"::features
+					else features
+	in
+	let fold_a a _ l = a::l
+	and fold_ls a def_states m =
+		SMap.add a (List.map snd def_states) m
+	and fold_nls a def_states m =
+		SMap.add a (List.map fst def_states) m
+	in
+	let automata = Hashtbl.fold fold_a an.automata []
+	and localstates = Hashtbl.fold fold_ls an.automata SMap.empty
+	and nlocalstates = Hashtbl.fold fold_nls an.automata SMap.empty
+	in
+	let automata = List.sort compare automata
+	in
+	let json_of_string s = "\""^s^"\""
+	and json_of_list json_of_elt l =
+		"["^(String.concat "," (List.map json_of_elt l))^"]"
+	and json_of_smap json_of_value sm =
+		let fold k v buf = (if buf <> "" then buf^",\n" else buf)
+			^"    \""^k^"\": "^json_of_value v
+		in
+		"{\n" ^ (SMap.fold fold sm "") ^ "}"
+	in
+	let json_of_slist = json_of_list json_of_string
+	and json_of_siglist = json_of_list (function
+			  StateId i -> string_of_int i
+			| StateLabel l -> "\""^l^"\"")
+	and json_of_ilist = json_of_list string_of_int
+	in
+	"{\n"
+	^"\"automata\": "^json_of_slist automata^",\n"
+	^"\"local_states\": "^json_of_smap json_of_ilist localstates^",\n"
+	^"\"named_local_states\": "^json_of_smap json_of_siglist nlocalstates^",\n"
+	^"\"initial_state\": "^json_of_ctx ctx^",\n"
+	^"\"features\": "^json_of_slist features^"\n"
+	^"}\n"
+
 let ph_of_an an ctx =
 	assert_async_an an;
 	let ph_of_ls = Ph_types.pintstring_of_proc

@@ -1,5 +1,6 @@
 FROM ubuntu:latest
 MAINTAINER Pauleve Loic <loic.pauleve@lri.fr>
+
 ADD http://nusmv.fbk.eu/distrib/NuSMV-2.6.0-linux64.tar.gz /usr/src
 RUN tar xvfz /usr/src/NuSMV-2.6.0-linux64.tar.gz -C /usr/src && ln -s /usr/src/NuSMV-2.6.0-Linux/bin/NuSMV /usr/bin/
 RUN apt-get update \
@@ -7,30 +8,46 @@ RUN apt-get update \
 		r-mathlib \
 		gringo \
 		libgmpxx4ldbl \
-		maven \
-		git \
-		openjdk-8-jdk \
+		openjdk-8-jre-headless \
+		python3-pip \
 	&& apt-get clean
+
 ADD http://www.lsv.ens-cachan.fr/~schwoon/tools/mole/mole-140428.tar.gz /usr/src
 RUN tar xvfz /usr/src/mole-140428.tar.gz -C /usr/src \
 	&& make -C /usr/src/mole-140428 \
 	&& mv /usr/src/mole-140428/mole /usr/bin \
 	&& mv /usr/src/mole-140428/mci2dot /usr/bin \
 	&& rm -rf /usr/src/mole-140428
-RUN git clone https://github.com/colomoto/logicalmodel.git /usr/src/logicalmodel\
-	&& cd /usr/src/logicalmodel && mvn package \
-	&& echo '#!/bin/sh' > /usr/bin/logicalmodel \
-	&& echo "java -jar $PWD/target/LogicalModel-0.3-SNAPSHOT.jar \"\${@}\"" >> /usr/bin/logicalmodel \
-	&& chmod +x /usr/bin/logicalmodel \
-	&& rm -rf ~/.m2
+
 ADD http://teamcity-systeme.lip6.fr/guestAuth/repository/download/bt54/.lastSuccessful/ITS_linux_64.tar.gz /usr/src
 RUN mkdir /usr/src/its \
 	&& tar xvfz /usr/src/ITS_linux_64.tar.gz -C /usr/src/its \
 	&& ln -s /usr/src/its/its-reach /usr/bin \
 	&& ln -s /usr/src/its/its-ctl /usr/bin \
 	&& ln -s /usr/src/its/its-ltl /usr/bin
+
+ENV TINI_VERSION 0.13.1
+ADD https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}-amd64.deb /usr/src
+RUN dpkg -i /usr/src/tini_${TINI_VERSION}-amd64.deb \
+	&& pip3 install jupyter networkx pydotplus \
+	&& echo '#!/bin/bash' > /usr/bin/pint-nb \
+	&& echo 'jupyter notebook --no-browser --ip=* --port 8888 "${@}"' >>/usr/bin/pint-nb \
+	&& chmod +x /usr/bin/pint-nb \
+	&& mkdir -p ~/.jupyter \
+	&& echo 'from IPython.lib import passwd' > ~/.jupyter/jupyter_notebook_config.py\
+	&& echo 'get_config().NotebookApp.password = passwd("notebook")' >> ~/.jupyter/jupyter_notebook_config.py
+
 ARG PINT_VERSION
 ADD dist/pint_${PINT_VERSION}_amd64.deb /usr/src
 RUN dpkg -i /usr/src/pint_${PINT_VERSION}_amd64.deb \
 	&& rm /usr/src/*.deb /usr/src/*.gz
 
+ADD interfaces/ipython /usr/src/pint
+RUN pip3 install /usr/src/pint && rm -rf /usr/src/pint
+
+ADD notebook /notebook
+ADD examples /notebook/models
+WORKDIR /notebook
+ENTRYPOINT ["tini", "--"]
+CMD ["pint-nb"]
+EXPOSE 8888

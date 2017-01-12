@@ -19,6 +19,8 @@ let arg_string_set f ref =
 let arg_set_sls_list =
 	arg_string_set parse_sls_list
 
+let opt_json_stdout = ref false
+
 let common_cmdopts = [
 	("--no-debug", Arg.Clear Debug.dodebug, "Disable debugging");
 	("--debug", Arg.Set Debug.dodebug, "Enable debugging");
@@ -26,6 +28,7 @@ let common_cmdopts = [
 	("--version", Arg.Unit (fun () ->
 			print_endline ("Pint version "^Distenv.version);
 			ignore(exit 0)), "Print Pint version and quit");
+	("--json-stdout", Arg.Set opt_json_stdout, "Output in JSON format");
 	]
 
 
