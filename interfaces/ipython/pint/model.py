@@ -3,6 +3,7 @@ import copy
 import json
 import operator
 import os
+import re
 import subprocess
 import tempfile
 from urllib.parse import urlparse
@@ -254,11 +255,29 @@ def import_using_logicalmodel(fmt, inputfile, anfile, simplify=True):
     return model
 
 
+def download(url, suffix=None):
+    filename = new_output_file(suffix=suffix)
+    info("Downloading '%s' to '%s'" % (url, filename))
+    filename, _ = urlretrieve(url, filename=filename)
+    return filename
+
+
+def sbml_from_cellcollective(modelid):
+    url = "http://api.cellcollective.org/model/export/%s?type=SBML" % modelid
+    filename = download(url, suffix="%s.zip" % modelid)
+    sbmlfile = new_output_file(suffix="%s.sbml" % modelid)
+    with ZipFile(filename) as z:
+        with z.open("sbml/%s.sbml" % modelid) as z:
+            with open(sbmlfile, "w") as s:
+                s.write(z.read().decode())
+    os.unlink(filename)
+    return sbmlfile
+
+
 def file_ext(filename):
     filename = os.path.basename(filename)
     if "." in filename:
         return filename.split(".")[-1].lower()
-
 ext2format = {
     "an": "an",
     "bn": "boolfunctions",
@@ -298,19 +317,24 @@ def load(filename, format=None, simplify=True):
     generated .an file.
     """
 
-    bname = os.path.basename(filename)
-    ext = file_ext(filename)
-    name = bname[:-len(ext)-1]
-    if format is None:
-        assert ext in ext2format, "Unknown extension '%s'" % ext
-        format = ext2format[ext]
+    match_cellcollective = re.search("https?://[^/]*\\bcellcollective\.org/#(\\d+)\\b", filename)
+    if match_cellcollective:
+        modelid = match_cellcollective.group(1)
+        filename = sbml_from_cellcollective(modelid)
+        name = modelid
+        format = "sbml"
+
+    else:
+        bname = os.path.basename(filename)
+        ext = file_ext(filename)
+        name = bname[:-len(ext)-1]
+        if format is None:
+            assert ext in ext2format, "Unknown extension '%s'" % ext
+            format = ext2format[ext]
 
     uri = urlparse(filename)
     if uri.netloc:
-        filename = new_output_file(suffix=bname)
-        url = uri.geturl()
-        info("Downloading '%s' to '%s'" % (url, filename))
-        filename, _ = urlretrieve(url, filename=filename)
+        filename = download(uri.geturl(), suffix=bname)
     else:
         assert os.path.exists(filename)
 
