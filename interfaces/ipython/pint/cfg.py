@@ -17,6 +17,7 @@ def output_dir():
         os.makedirs(CFG["output_dir"])
     return CFG["output_dir"]
 
+
 def new_output_file(ext=None, **tempargs):
     if "prefix" not in tempargs:
         tempargs["prefix"] = "pint"
