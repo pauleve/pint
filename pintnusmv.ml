@@ -76,7 +76,7 @@ let rec parse_output cin =
 
 
 let do_ctl () =
-	let ctl =
+	let ctl, json_results =
 		if !opt_bifurcations then
 			let smv_goal = smv_ls goal
 			in
@@ -94,7 +94,17 @@ let do_ctl () =
 			in
 			let ctls = List.map ctl_of_tr trs
 			in
-			String.concat "\n" ctls
+			String.concat "\n" ctls,
+            (fun results ->
+                let results = List.combine results trs
+                in
+                let results = List.filter (fun ((_,res),_) -> res) results
+                in
+                let results= List.map (fun (_,(aij,conds)) ->
+                                json_of_transition aij conds) results
+                in
+                print_endline ("["^(String.concat ",\n" results)^"]")
+            )
 		else
 			let ctl =
 			if !opt_iscutset = "" then
@@ -106,7 +116,12 @@ let do_ctl () =
 				in
 				("!E [("^(String.concat " & " sls)^") U ("^smv_ls goal^")]")
 			in
-			"CTLSPEC "^if !opt_witness then ("!("^ctl^")") else ctl
+			("CTLSPEC "^if !opt_witness then ("!("^ctl^")") else ctl),
+            (fun results ->
+                assert (List.length results == 1);
+                let t = if snd (List.hd results) then True else False
+                in
+                print_endline (json_of_ternary t))
 	in
 	let data = data^"\n"^ctl^"\n"
 	in
@@ -120,16 +135,7 @@ let do_ctl () =
     if !An_cli.opt_json_stdout then
         let cin = Unix.open_process_in cmdline
         in
-        let results = parse_output cin
-        in
-        (if !opt_bifurcations then
-            failwith "Not implemented"
-        else
-            assert (List.length results == 1);
-            let t = if snd (List.hd results) then True else False
-            in
-            print_endline (json_of_ternary t);
-        );
+        json_results (parse_output cin);
         ignore(Unix.close_process_in cin)
     else (
 	(if !opt_witness then
