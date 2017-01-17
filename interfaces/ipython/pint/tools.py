@@ -174,7 +174,6 @@ def reachability(model, ai, fallback="its"):
     cp = _run_tool("pint-reach", ai, input_model=model)
     output = cp.stdout.decode()
     output = ternary(json.loads(output))
-    output = Inconc
     if output == Inconc and fallback is not None:
         info("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
         cp = _run_tool("pint-%s" % fallback, ai, input_model=model,
