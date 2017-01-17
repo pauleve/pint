@@ -19,6 +19,7 @@ VALID_EXE = [
     "pint-export",
     "pint-its",
     "pint-lcg",
+    "pint-mole",
     "pint-nusmv",
     "pint-reach",
     "pint-sg",
@@ -168,7 +169,7 @@ Use `method=\"exact\"` for complete identification.")
 def reachability(model, ai, fallback="its"):
     if fallback:
         fallback = fallback.lower()
-    assert fallback in ["its", "nusmv", "none", None]
+    assert fallback in ["its", "nusmv", "mole", "none", None]
     if fallback == "none":
         fallback = None
     cp = _run_tool("pint-reach", ai, input_model=model)
