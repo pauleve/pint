@@ -58,6 +58,23 @@ let smv_ls ai =
 	in
 	a^"="^i
 
+let regex_result =
+    Str.regexp "^-- specification \\(.*\\) is \\(true\\|false\\)$"
+
+let rec parse_output cin =
+    try
+    let line = input_line cin
+    in
+    if Str.string_match regex_result line 0 then
+        let result = Str.matched_group 2 line
+        and prop = Str.matched_group 1 line
+        in
+        (prop,result="true")::parse_output cin
+    else
+        parse_output cin
+    with End_of_file -> []
+
+
 let do_ctl () =
 	let ctl =
 		if !opt_bifurcations then
@@ -100,10 +117,25 @@ let do_ctl () =
 		^" "^String.concat " " !opt_extra
 		^" "^smv
 	in
+    if !An_cli.opt_json_stdout then
+        let cin = Unix.open_process_in cmdline
+        in
+        let results = parse_output cin
+        in
+        (if !opt_bifurcations then
+            failwith "Not implemented"
+        else
+            assert (List.length results == 1);
+            let t = if snd (List.hd results) then True else False
+            in
+            print_endline (json_of_ternary t);
+        );
+        ignore(Unix.close_process_in cin)
+    else (
 	(if !opt_witness then
 		prerr_endline "WARNING: witness requires the negation of the specification");
 	prerr_endline ("# "^cmdline);
-	ignore(Unix.system cmdline)
+	ignore(Unix.system cmdline))
 
 let _ = do_ctl ()
 

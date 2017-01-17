@@ -51,15 +51,41 @@ let place_of_ls ls =
 let its_state substate =
 	String.concat " && " (List.map (fun ai -> place_of_ls ai^"=1") substate)
 
+
+let regex_reach_prop_true =
+    Str.regexp "^Reachability property \\(.*\\) is true\\."
+let regex_reach_prop_false =
+    Str.regexp "^No reachable states exhibit your property : \\(.*\\)"
+
+let rec parse_its_reach cin =
+    let line = input_line cin
+    in
+    if Str.string_match regex_reach_prop_true line 0 then
+        True
+    else if Str.string_match regex_reach_prop_false line 0 then
+        False
+    else
+        parse_its_reach cin
+
 let do_reach () =
+    let its_property = its_state goal
+    in
 	let cmdline = "its-reach -i "^itsfile^" -t ROMEO"
-		^" -reachable \""^(its_state goal)^"\""
+		^" -reachable \""^its_property^"\""
 		^(if !opt_verbose then "" else " --quiet")
 		^(if !opt_witness then "" else " --nowitness")
 		^" "^String.concat " " !opt_extra
 	in
-	prerr_endline ("# "^cmdline);
-	ignore(Unix.system cmdline)
+    if !An_cli.opt_json_stdout then
+        let cin = Unix.open_process_in cmdline
+        in
+        let result = parse_its_reach cin
+        in
+		print_endline (json_of_ternary result);
+        ignore(Unix.close_process_in cin)
+    else
+	(prerr_endline ("# "^cmdline);
+	ignore(Unix.system cmdline))
 
 let do_ctl () =
 	let itsctl, itsctl_out = Filename.open_temp_file "pint" ".ctl"
