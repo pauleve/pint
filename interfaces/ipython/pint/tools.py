@@ -112,6 +112,11 @@ def reduce(model, goal, squeeze=True):
 @modeltool
 def cutsets(model, ai, maxsize=5, exclude_initial_state=True):
     args = []
+
+    info("This computation is an *under-approximation*: returned cut-sets \
+are all exact, but they may be non-minimal, and some cut-sets may be missed.")
+    info("Limiting results to cut-sets with at most %s elements. Use `maxsize` argument to change." % maxsize)
+
     if exclude_initial_state:
         args.append("--no-init-cutsets")
     cp = _run_tool("pint-reach", "--cutsets", str(maxsize), ai, *args,
@@ -122,6 +127,10 @@ def cutsets(model, ai, maxsize=5, exclude_initial_state=True):
 @modeltool
 def bifurcations(model, ai, method="ua"):
     assert method in ["ua", "mole+ua"]
+
+    info("This computation is an *under-approximation*: returned transitions are \
+all bifurcation transitions, but some may have been missed.")
+
     args = ["--bifurcations",
         "--bifurcations-method", method]
     cp = _run_tool("pint-reach", ai, *args, input_model=model)
@@ -135,7 +144,7 @@ def reachability(model, ai, fallback="its"):
     output = cp.stdout.decode()
     output = ternary(json.loads(output))
     if output == Inconc:
-        info("pint is inconclusive, fallback to %s" % fallback)
+        info("pint is inconclusive, fallback to exact model-checking with %s" % fallback)
         # TODO: model reduction
         cp = _run_tool("pint-%s" % fallabck, ai, input_model=model)
         # TODO parse
