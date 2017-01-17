@@ -15,8 +15,15 @@ from .ui import *
 if IN_IPYTHON:
     from IPython.display import display, FileLink
 
-VALID_EXE = ["pint-export", "pint-lcg", "pint-reach", "pint-sg",
-                "pint-stable"]
+VALID_EXE = [
+    "pint-export",
+    "pint-its",
+    "pint-lcg",
+    "pint-nusmv",
+    "pint-reach",
+    "pint-sg",
+    "pint-stable",
+]
 
 class PintProcessError(subprocess.CalledProcessError):
     def __str__(self):
@@ -24,7 +31,7 @@ class PintProcessError(subprocess.CalledProcessError):
         return "Command '%s' returned non-zero exit status %d%s" \
             % (" ".join(self.cmd), self.returncode, stderr)
 
-def _run_tool(cmd, *args, input_model=None, **run_opts):
+def _run_tool(cmd, *args, input_model=None, reduce_for_goal=None, **run_opts):
     assert cmd in VALID_EXE
     args = list(args)
     args.insert(0, "--json-stdout")
@@ -35,12 +42,27 @@ def _run_tool(cmd, *args, input_model=None, **run_opts):
     if "check" not in run_opts:
         run_opts["check"] = True
 
-    if input_model is not None:
-        input_model.populate_popen_args(args, run_opts)
+    assert (not reduce_for_goal or input_model)
 
-    dbg("Running command %s %s" % (cmd, " ".join(args)))
+    args.insert(0, cmd)
+    if reduce_for_goal:
+        pre_args = ["pint-export", "--reduce-for-goal", reduce_for_goal, "--squeeze"]
+        pre_kwargs = {}
+        input_model.populate_popen_args(pre_args, pre_kwargs)
+        pre_cmd = subprocess.Popen(pre_args, stdout=subprocess.PIPE)
+        if "input" in pre_kwargs:
+            pre_cmd.stdin.write(pre_kwargs["input"])
+            pre_cmd.stdin.close()
+        run_opts["stdin"] = pre_cmd.stdout
+        dbg("Running command %s | %s" % (" ".join(pre_args), " ".join(args)))
+
+    else:
+        if input_model is not None:
+            input_model.populate_popen_args(args, run_opts)
+
+        dbg("Running command %s" % (" ".join(args)))
     try:
-        return subprocess.run([cmd]+args, **run_opts)
+        return subprocess.run(args, **run_opts)
     except subprocess.CalledProcessError as e:
         # backward compatible 'raise e from None'
         e = PintProcessError(e.returncode, e.cmd, e.output, e.stderr)
@@ -114,7 +136,7 @@ def cutsets(model, ai, maxsize=5, exclude_initial_state=True):
     args = []
 
     info("This computation is an *under-approximation*: returned cut-sets \
-are all exact, but they may be non-minimal, and some cut-sets may be missed.")
+are all valid, but they may be non-minimal, and some cut-sets may be missed.")
     info("Limiting results to cut-sets with at most %s elements. Use `maxsize` argument to change." % maxsize)
 
     if exclude_initial_state:
@@ -134,21 +156,29 @@ all bifurcation transitions, but some may have been missed.")
     args = ["--bifurcations",
         "--bifurcations-method", method]
     cp = _run_tool("pint-reach", ai, *args, input_model=model)
+
+    # TODO: exact method
+
     output = cp.stdout.decode()
     return [LocalTransition(*d) for d in json.loads(output)]
 
 @modeltool
 def reachability(model, ai, fallback="its"):
-    assert fallback in ["its", "nusmv", "none"]
+    if fallback:
+        fallback = fallback.lower()
+    assert fallback in ["its", "nusmv", "none", None]
+    if fallback == "none":
+        fallback = None
     cp = _run_tool("pint-reach", ai, input_model=model)
     output = cp.stdout.decode()
     output = ternary(json.loads(output))
-    if output == Inconc:
-        info("pint is inconclusive, fallback to exact model-checking with %s" % fallback)
-        # TODO: model reduction
-        cp = _run_tool("pint-%s" % fallabck, ai, input_model=model)
-        # TODO parse
-        return cp.stdout.decode().strip()
+    output = Inconc
+    if output == Inconc and fallback is not None:
+        info("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
+        cp = _run_tool("pint-%s" % fallback, ai, input_model=model,
+                        reduce_for_goal=ai)
+        output = cp.stdout.decode()
+        output = ternary(json.loads(output))
     return output
 
 #TODO requirements
