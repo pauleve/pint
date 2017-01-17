@@ -51,8 +51,13 @@ let _ =
 		^" -m "^mcifile
 	in
 	dbg ~level:1 ("# "^cmdline);
-	match Unix.system cmdline with
-	  Unix.WEXITED 2 -> print_endline (string_of_ternary True)
-	| Unix.WEXITED 0 -> print_endline (string_of_ternary False)
-	| _ -> prerr_endline "Error."
+    let result = match Unix.system cmdline with
+	  Unix.WEXITED 2 -> True
+	| Unix.WEXITED 0 -> False
+	| _ -> failwith "Error executing mole"
+    in
+    if !An_cli.opt_json_stdout then
+        print_endline (json_of_ternary result)
+    else
+        print_endline (string_of_ternary result)
 
