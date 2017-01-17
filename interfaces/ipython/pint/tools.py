@@ -148,17 +148,19 @@ are all valid, but they may be non-minimal, and some cut-sets may be missed.")
 
 @modeltool
 def bifurcations(model, ai, method="ua"):
-    assert method in ["ua", "mole+ua"]
+    assert method in ["exact", "ua", "mole+ua"]
+    if method == "exact":
+        cmd = "pint-nusmv"
+        args = ["--bifurcations"]
+    else:
+        info("This computation is an *under-approximation*: \
+returned transitions are all bifurcation transitions, but some may have been missed. \
+Use `method=\"exact\"` for complete identification.")
+        cmd = "pint-reach"
+        args = ["--bifurcations",
+            "--bifurcations-method", method]
 
-    info("This computation is an *under-approximation*: returned transitions are \
-all bifurcation transitions, but some may have been missed.")
-
-    args = ["--bifurcations",
-        "--bifurcations-method", method]
-    cp = _run_tool("pint-reach", ai, *args, input_model=model)
-
-    # TODO: exact method
-
+    cp = _run_tool(cmd, ai, *args, input_model=model)
     output = cp.stdout.decode()
     return [LocalTransition(*d) for d in json.loads(output)]
 
