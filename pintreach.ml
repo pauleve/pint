@@ -74,6 +74,8 @@ let static_reach () =
 	print_endline (string_of_ternary result)
 
 let bifurcations () =
+    let btrs = Queue.create ()
+    in
 	let bifurcations =
 		match !opt_bifurcations_mode with
 		  "ua" ->
@@ -88,16 +90,22 @@ let bifurcations () =
 	in
 	let handle_solution aij cond =
 		if !An_cli.opt_json_stdout then
-			print_endline (json_of_transition aij cond)
+            Queue.push (json_of_transition aij cond) btrs
 		else
 		print_endline (string_of_transition an aij cond)
 	in
-	if !An_cli.opt_json_stdout then print_char '[';
 	let n = bifurcations handle_solution (an,ctx) goal
 	in
-	if not !An_cli.opt_json_stdout then
+	if !An_cli.opt_json_stdout then
+        let fold (first,b) json_btr = false,
+            if first then json_btr
+            else (b^",\n"^json_btr)
+        in
+        let data = snd (Queue.fold fold (true,"") btrs)
+        in
+        print_endline ("["^data^"]")
+    else
 	prerr_endline (string_of_int n^" bifurcations transitions have been identified.")
-	else print_endline "]"
 
 let json_of_cutset cs =
 	json_of_ctx (ctx_of_lslist cs)
