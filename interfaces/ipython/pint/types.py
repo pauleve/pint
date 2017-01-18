@@ -28,9 +28,37 @@ class LocalTransition(object):
         self.conds = Conditions(conds)
 
     def __repr__(self):
-        return "\"%s\" %d -> %d when %s" % \
-                (self.a, self.i, self.j, self.conds)
+        r_conds = " when %s" % self.conds if self.conds else ""
+        return "\"%s\" %d -> %d%s" % \
+                (self.a, self.i, self.j, r_conds)
 
+    @property
+    def modified_automata(self):
+        return set([self.a])
+
+class SynchronizedLocalTransitions(object):
+    def __init__(self, aijs, conds):
+        self.local_transitions = [tuple(aij) for aij in aijs]
+        self.__automata = set([a for (a,_,_) in aijs])
+        self.conds = Conditions(conds)
+
+    def __repr__(self):
+        r_conds = " when %s" % self.conds if self.conds else ""
+        return "{ %s }%s" % \
+            (" ; ".join(["\"%s\" %d -> %d" % aij \
+                for aij in self.local_transitions]), r_conds)
+
+    @property
+    def modified_automata(self):
+        return self.__automata
+
+
+def local_transition_from_json(tup):
+    if len(tup) == 4:
+        return LocalTransition(*tup)
+    elif len(tup) == 2:
+        return SynchronizedLocalTransitions(*tup)
+    raise ValueError("%s: Invalid tuple for local transition" % tup)
 
 
 

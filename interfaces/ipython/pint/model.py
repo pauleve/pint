@@ -13,6 +13,7 @@ from zipfile import ZipFile
 
 from .cfg import *
 from .tools import *
+from .types import *
 from .ui import *
 
 if IN_IPYTHON:
@@ -122,7 +123,8 @@ def InfoFields(*fields):
     return plug
 
 @EquipTools
-@InfoFields("automata", "local_states", "named_local_states", "features")
+@InfoFields("automata", "local_states", "named_local_states", "features",
+    "local_transitions")
 class Model(object):
     def __init__(self):
         self.named_states = {}
@@ -133,6 +135,10 @@ class Model(object):
         self.__initial_state = None
         self.populate_popen_args(args, kwargs)
         self.info = json.loads(subprocess.check_output(args, **kwargs).decode())
+        key = "local_transitions"
+        if key in self.info:
+            self.info[key] = [local_transition_from_json(d) \
+                                    for d in self.info[key]]
         self.__initial_state = InitialState(self.info)
 
     def set_initial_state(self, state):

@@ -163,7 +163,7 @@ Use `method=\"exact\"` for complete identification.")
 
     cp = _run_tool(cmd, ai, *args, input_model=model)
     output = cp.stdout.decode()
-    return [LocalTransition(*d) for d in json.loads(output)]
+    return [local_transition_from_json(d) for d in json.loads(output)]
 
 @modeltool
 def reachability(model, ai, fallback="its"):
