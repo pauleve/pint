@@ -43,6 +43,7 @@ and opt_ptnet_context = ref false
 and opt_mapfile = ref ""
 and opt_transforms = Queue.create ()
 and opt_ctx_universal = ref false
+and opt_output_transitions = ref true
 
 let push_transform func =
 	Queue.push func opt_transforms
@@ -55,6 +56,8 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"\tContextual petri net (used by: pep)");
 		("--mapfile", Arg.Set_string opt_mapfile,
 			"\tOutput mapping of identifiers (used by: pep, romeo)");
+        ("--skip-transitions", Arg.Clear opt_output_transitions,
+            "\tDo not output transitions (used by: nbjson)");
 		("--partial", Arg.String
 			(fun spec -> push_transform (make_partial spec)),
 			"a,b,..\tConsider only the sub-network composed of a, b, ..");
@@ -91,7 +94,7 @@ let languages = [
 	("ph", ph_of_an);
 	("prism", prism_of_an);
 	("romeo", romeo_of_an ~map:None ~mapfile:!opt_mapfile);
-	("nbjson", nbjson_of_an);
+	("nbjson", nbjson_of_an ~output_transitions:!opt_output_transitions);
 ]
 let translator = List.assoc !opt_language languages
 

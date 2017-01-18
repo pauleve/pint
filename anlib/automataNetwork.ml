@@ -502,9 +502,21 @@ let json_of_ctx ctx =
 	in
 	json_of_bindings json_of_str json_of_elt (SMap.bindings ctx)
 
-let json_of_transition (a,i,j) cond =
-	let json_conds = json_of_bindings json_of_str json_of_int (SMap.bindings cond)
+let json_of_conds conds =
+    json_of_bindings json_of_str json_of_int (SMap.bindings conds)
+
+let json_of_transition (a,i,j) conds =
+	let json_conds = json_of_conds conds
 	in
 	json_of_list id (json_of_str a::json_of_int i::json_of_int j::json_conds::[])
+
+let json_of_sync_transition (aijs, conds) =
+    let json_conds = json_of_conds conds
+    in
+    let json_aijs = json_of_list id (List.map (fun (a,i,j) ->
+            json_of_list id (json_of_str a::json_of_int i::json_of_int j::[]))
+                aijs)
+    in
+    json_of_list id (json_aijs::json_conds::[])
 
 

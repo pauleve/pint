@@ -41,7 +41,7 @@ let dump_of_an an ctx =
 	^ match lss with [] -> "" | _ -> ("initial_context " ^ (String.concat ", "
 	(List.map (string_of_localstate an) lss))^"\n")
 
-let nbjson_of_an an ctx =
+let nbjson_of_an ?(output_transitions=true) an ctx =
 	let features = []
 	in
 	let features = if an.sync_transitions <> [] then "synced_transitions"::features
@@ -59,16 +59,13 @@ let nbjson_of_an an ctx =
 	in
 	let automata = List.sort compare automata
 	in
-	let json_of_string s = "\""^s^"\""
-	and json_of_list json_of_elt l =
-		"["^(String.concat "," (List.map json_of_elt l))^"]"
-	and json_of_smap json_of_value sm =
+	let json_of_smap json_of_value sm =
 		let fold k v buf = (if buf <> "" then buf^",\n" else buf)
 			^"    \""^k^"\": "^json_of_value v
 		in
 		"{\n" ^ (SMap.fold fold sm "") ^ "}"
 	in
-	let json_of_slist = json_of_list json_of_string
+	let json_of_slist = json_of_list json_of_str
 	and json_of_siglist = json_of_list (function
 			  StateId i -> string_of_int i
 			| StateLabel l -> "\""^l^"\"")
@@ -78,6 +75,14 @@ let nbjson_of_an an ctx =
 	^"\"automata\": "^json_of_slist automata^",\n"
 	^"\"local_states\": "^json_of_smap json_of_ilist localstates^",\n"
 	^"\"named_local_states\": "^json_of_smap json_of_siglist nlocalstates^",\n"
+    ^(if output_transitions then
+        "\"local_transitions\": ["
+            ^(String.concat ",\n\t" (
+                (Hashtbl.fold (fun t c l ->
+                    json_of_transition t c::l) an.conditions [])
+                @ (List.map json_of_sync_transition an.sync_transitions)))
+            ^"]\n,"
+    else "")
 	^"\"initial_state\": "^json_of_ctx ctx^",\n"
 	^"\"features\": "^json_of_slist features^"\n"
 	^"}\n"
