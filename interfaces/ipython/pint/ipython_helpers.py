@@ -3,7 +3,7 @@ import networkx as nx
 from .ui import *
 
 def svg_of_graph(g):
-    info("# computing graph layout...")
+    dbg("computing graph layout...")
     return nx.nx_pydot.to_pydot(g).create_svg().decode()
 
 def install_default_formatters():
