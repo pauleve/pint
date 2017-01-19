@@ -328,7 +328,7 @@ let constants an =
 
 (** [squeeze an ctx] removes constant automata and unused local states.
 	The id of local state will probably by modified afterward. *)
-let squeeze an ctx =
+let squeeze ?(preserve=SSet.empty) an ctx =
 	(* get constant automata *)
 	let cset = constants an
 	and ukn = SMap.fold (fun a is uset ->
@@ -336,6 +336,8 @@ let squeeze an ctx =
 								else uset) ctx SSet.empty
 	in
 	let cset = SSet.diff cset ukn
+    in
+    let cset = SSet.diff cset preserve
 	in
 	let ctx' = Util.smap_remove_keys ctx cset
 	and an' = empty_an ~size:(Hashtbl.length an.automata - SSet.cardinal cset, 50) ()
@@ -354,9 +356,10 @@ let squeeze an ctx =
 	let used = Util.smap_remove_keys used cset
 	in
 	(* map for renaming *)
-	let sigmamap = SMap.map (fun iset ->
+	let sigmamap = SMap.mapi (fun a iset ->
 					let register i (n, sigma) =
-						(n+1, IMap.add i n sigma)
+						(n+1, IMap.add i (if SSet.mem a preserve then i else n)
+                                sigma)
 					in
 					snd(ISet.fold register iset (0, IMap.empty))) used
 	in
@@ -374,19 +377,21 @@ let squeeze an ctx =
 	in
 	let register_automaton a def =
 		if not (SSet.mem a cset) then
-			let register def (sig_i, i) =
-				try
-					let i = relabel a i
-					and sig_i = match sig_i with
-						  StateId i -> StateId (relabel a i)
-						| _ -> sig_i
-					in
-					(sig_i, i)::def
-				with Not_found -> def
-			in
-			let def = List.fold_left register [] def
-			in
-			let def = List.fast_sort (fun a b -> compare (snd a) (snd b)) def
+            let def =
+                if SSet.mem a preserve then def else
+                let register def (sig_i, i) =
+                    try
+                        let i = relabel a i
+                        and sig_i = match sig_i with
+                              StateId i -> StateId (relabel a i)
+                            | _ -> sig_i
+                        in
+                        (sig_i, i)::def
+                    with Not_found -> def
+                in
+                let def = List.fold_left register [] def
+                in
+                List.fast_sort (fun a b -> compare (snd a) (snd b)) def
 			in
 			(Hashtbl.add an'.automata a def;
 			List.iter (register_localstate a) def)

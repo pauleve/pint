@@ -23,8 +23,9 @@ let make_reduce_for_goal goal (an, ctx) =
 	in
 	An_reach.reduced_an ~skip_oa:!opt_reduction_skip_oa env, ctx
 
+let opt_squeeze_preserve = ref SSet.empty
 let make_squeeze (an, ctx) =
-	squeeze an ctx
+	squeeze ~preserve:!opt_squeeze_preserve an ctx
 
 let make_simplify (an, ctx) =
 	simplify an, ctx
@@ -70,6 +71,9 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"\tTry to simplify transition conditions of the automata network");
 		("--squeeze", Arg.Unit (fun () -> push_transform make_squeeze),
 			"\tRemove unused automata and local states");
+        ("--squeeze-preserve", Arg.String (fun a ->
+            opt_squeeze_preserve := SSet.add a !opt_squeeze_preserve),
+            "\tDo not squeeze given automaton");
 		("--disable", Arg.String
 			(fun ctx -> push_transform (make_disable (An_cli.parse_sls_list ctx))),
 			"<local state list>\tDisable mentionned local states");
