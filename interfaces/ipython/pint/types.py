@@ -61,4 +61,11 @@ def local_transition_from_json(tup):
     raise ValueError("%s: Invalid tuple for local transition" % tup)
 
 
-
+def goal_automata(goal):
+    """
+    Returns the set of automata referenced in the given `goal`
+    """
+    # TODO type goal specification
+    a,_ = goal.split("=")
+    a = a.strip('"')
+    return set([a])

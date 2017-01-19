@@ -48,6 +48,8 @@ def _run_tool(cmd, *args, input_model=None, reduce_for_goal=None, **run_opts):
     args.insert(0, cmd)
     if reduce_for_goal:
         pre_args = ["pint-export", "--reduce-for-goal", reduce_for_goal, "--squeeze"]
+        for a in goal_automata(reduce_for_goal):
+            pre_args += ["--squeeze-preserve", a]
         pre_kwargs = {}
         input_model.populate_popen_args(pre_args, pre_kwargs)
         pre_cmd = subprocess.Popen(pre_args, stdout=subprocess.PIPE)
@@ -166,19 +168,19 @@ Use `method=\"exact\"` for complete identification.")
     return [local_transition_from_json(d) for d in json.loads(output)]
 
 @modeltool
-def reachability(model, ai, fallback="its"):
+def reachability(model, goal, fallback="its"):
     if fallback:
         fallback = fallback.lower()
     assert fallback in ["its", "nusmv", "mole", "none", None]
     if fallback == "none":
         fallback = None
-    cp = _run_tool("pint-reach", ai, input_model=model)
+    cp = _run_tool("pint-reach", goal, input_model=model)
     output = cp.stdout.decode()
     output = ternary(json.loads(output))
     if output == Inconc and fallback is not None:
         info("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
-        cp = _run_tool("pint-%s" % fallback, ai, input_model=model,
-                        reduce_for_goal=ai)
+        cp = _run_tool("pint-%s" % fallback, goal, input_model=model,
+                        reduce_for_goal=goal)
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
     return output
