@@ -37,6 +37,14 @@ let make_disable dctx (an, ctx) =
 	in
 	restrict an rctx, ctx
 
+let make_lock lctx (an, ctx) =
+    let lctx = ctx_of_siglocalstates an lctx
+    in
+    let rctx = ctx_override_by_ctx (full_ctx an) lctx
+    and ctx = ctx_override_by_ctx ctx lctx
+    in
+    restrict an rctx, ctx
+
 let languages = ["dump";"nusmv";"pep";"ph";"prism";"romeo";"nbjson"]
 and opt_language = ref "dump"
 and opt_output = ref ""
@@ -77,6 +85,9 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		("--disable", Arg.String
 			(fun ctx -> push_transform (make_disable (An_cli.parse_sls_list ctx))),
 			"<local state list>\tDisable mentionned local states");
+		("--lock", Arg.String
+			(fun ctx -> push_transform (make_lock (An_cli.parse_sls_list ctx))),
+			"<local state list>\tLock to local states");
 		("--existential-ctx", Arg.Clear opt_ctx_universal,
 			"Make context existential (default, used by: nusmv)");
 		("--universal-ctx", Arg.Set opt_ctx_universal,
