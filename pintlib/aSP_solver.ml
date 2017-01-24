@@ -30,8 +30,6 @@ let check_clingo () =
 		failwith "Clingo version 4 is required (http://sourceforge.net/projects/potassco/files/clingo/)"
 
 
-type answer = Answer of string * answer list
-
 let solver ?(opts="") ?(inputs=["-"]) () =
 	check_clingo ();
 	dbg ~level:2 "Invoking clingo...";
@@ -95,4 +93,14 @@ let solutions (cin, cout) handler =
 		with End_of_file -> 0
 	in
 	readlines cin
+
+let parse_answerset data =
+	Parsing.clear_parser ();
+	(*Parsing.set_trace true;*)
+	let lexing = Lexing.from_string data
+	in
+	try
+		ASP_parser.solution ASP_lexer.lexer lexing
+	with Parsing.Parse_error ->
+		failwith ("Error while parsing '"^data^"'")
 

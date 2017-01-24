@@ -16,7 +16,7 @@ and opt_legacy = ref false
 and opt_bifurcations = ref false
 and bifurcations_mode_choices = ["ua";"mole+ua"]
 and opt_bifurcations_mode = ref "ua"
-and opt_oneshot_mutations_cut = ref false
+and opt_oneshot_mutations_cut = ref 0
 
 let parse_automata_set =
 	An_input.parse_string An_parser.automata_set
@@ -37,7 +37,7 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"<a,b,..>\tList requirements in term of given automata");
 		("--requirements-universal", Arg.Set opt_req_universal,
 			"\tCompute requirements for all initial state");
-        ("--oneshot-mutations-for-cut", Arg.Set opt_oneshot_mutations_cut,
+        ("--oneshot-mutations-for-cut", Arg.Set_int opt_oneshot_mutations_cut,
             "\tCompute mutations for making goal impossible");
 	]
 
@@ -54,7 +54,7 @@ let do_requirements = SSet.cardinal !opt_req_automata > 0
 let do_bifurcations = !opt_bifurcations
 
 let do_reach = not (do_cutsets || do_requirements || do_bifurcations
-    || !opt_oneshot_mutations_cut)
+    || !opt_oneshot_mutations_cut > 0)
 
 
 (** verify opt_req_automata *)
@@ -111,8 +111,28 @@ let bifurcations () =
     else
 	prerr_endline (string_of_int n^" bifurcations transitions have been identified.")
 
-let json_of_cutset cs =
+let json_of_lss cs =
 	json_of_ctx (ctx_of_lslist cs)
+
+let string_of_ai = string_of_localstate an
+
+let output_lss_list ?(ls_sep=",") lss_list =
+	let print_ps ps =
+		let s = String.concat ls_sep (List.map string_of_ai ps)
+		in
+		print_endline s
+	in
+    let lss_list = List.map (List.sort compare) lss_list
+    in
+    let lss_list = List.sort (fun a b ->
+            let c = compare (List.length a) (List.length b)
+            in
+            if c <> 0 then c else compare a b) lss_list
+    in
+    if !An_cli.opt_json_stdout then
+        print_endline (json_of_list json_of_lss lss_list)
+    else (
+        List.iter print_ps lss_list)
 
 let cutsets n =
 	let gA = lcg_for_cutsets env
@@ -132,13 +152,6 @@ let cutsets n =
 	let resolve_ps =
 		List.map (Hashtbl.find index_proc)
 	in
-	let string_of_ai = string_of_localstate an
-	in
-	let print_ps ps =
-		let s = String.concat "," (List.map string_of_ai ps)
-		in
-		print_endline s
-	in
 	let handle_proc ai =
 		try
 			let pss = fst (Hashtbl.find d_nkp (NodeProc ai))
@@ -149,18 +162,10 @@ let cutsets n =
 			in
 			let elts = List.map resolve_ps elts
 			in
-			let elts = List.map (List.sort compare) elts
-			in
-			let elts = List.sort (fun a b ->
-					let c = compare (List.length a) (List.length b)
-					in
-					if c <> 0 then c else compare a b) elts
-			in
-			if !An_cli.opt_json_stdout then
-				print_endline (json_of_list json_of_cutset elts)
-			else (
-				prerr_endline ("# "^string_of_int n^" cut set(s) for "^string_of_ai ai^":");
-				List.iter print_ps elts)
+            (if not (!An_cli.opt_json_stdout) then
+				prerr_endline ("# "^string_of_int n^" cut set(s) for "
+                       ^string_of_ai ai^":"));
+            output_lss_list elts
 		with Not_found ->
 			if !An_cli.opt_json_stdout then
 				print_endline (json_of_list id [])
@@ -181,14 +186,6 @@ let requirements automata universal =
 	in
 	let resolve_ps = List.map (Hashtbl.find index_proc)
 	in
-	let string_of_ai = string_of_localstate an
-	in
-	let print_ps ps =
-		let s = String.concat " and " (List.map string_of_ai ps)
-		in
-		print_endline s
-	in
-
 	(* TODO: output in the same format as Causalex
 	Hashtbl.iter (fun n v ->
 		let pss = fst v
@@ -221,19 +218,10 @@ let requirements automata universal =
 			in
 			let elts = List.map resolve_ps elts
 			in
-			let elts = List.map (List.sort compare) elts
-			in
-			let elts = List.sort (fun a b ->
-					let c = compare (List.length a) (List.length b)
-					in
-					if c <> 0 then c else compare a b) elts
-			in
-			if !An_cli.opt_json_stdout then
-				print_endline (json_of_list json_of_cutset elts)
-			else (
-			prerr_endline ("# "^string_of_int n^" different requirements for "^string_of_ai ai^":");
-			List.iter print_ps elts)
-
+            (if not (!An_cli.opt_json_stdout) then
+                prerr_endline ("# "^string_of_int n^" different requirements for "
+                    ^string_of_ai ai^":"));
+            output_lss_list ~ls_sep:" and " elts
 		with Not_found ->
 			if !An_cli.opt_json_stdout then
 				print_endline (json_of_list id [])
@@ -246,10 +234,11 @@ let _ =
 	(if do_bifurcations then bifurcations ());
 	(if do_cutsets then cutsets !opt_cutsets_n);
 	(if do_requirements then requirements !opt_req_automata !opt_req_universal);
-    (if !opt_oneshot_mutations_cut then
-        let sols = An_reprogramming.ua_oneshot_mutations_for_cut (an,ctx) goal
+    (if !opt_oneshot_mutations_cut > 0 then
+        let sols = An_reprogramming.ua_oneshot_mutations_for_cut
+                        (an,ctx) goal !opt_oneshot_mutations_cut
         in
-        List.iter print_endline sols
+        output_lss_list sols
     );
 	(if do_reach then static_reach ())
 
