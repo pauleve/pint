@@ -110,24 +110,12 @@ let asp_unfolding asp (an, ctx) =
 
 let asp_bifurcation_lcg asp (an, ctx) goal =
 	(* build full lcg *)
-	let cache = An_localpaths.create_cache ()
+	let full_lcg = full_lcg an
 	in
-	(*let usols = An_localpaths.MinUnordUnsyncSol.solutions cache an
-	in*)
 	let fctx = full_ctx an
 	in
 	let all_ls = PSet.elements (procs_of_ctx fctx)
 	in
-	let sols = An_localpaths.MinUnordSol.solutions cache an
-	in
-	let full_lcg =
-		let lcg = new glc oa_glc_setup fctx all_ls sols make_unord_sol
-		in
-		lcg#set_auto_conts false;
-		lcg#build;
-		lcg
-	in
-
 	(* push local states definition *)
 	let asp = List.fold_left (fun asp ai -> decl asp (ls_asp ai)) asp all_ls
 	in

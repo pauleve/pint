@@ -30,6 +30,8 @@ let check_clingo () =
 		failwith "Clingo version 4 is required (http://sourceforge.net/projects/potassco/files/clingo/)"
 
 
+type answer = Answer of string * answer list
+
 let solver ?(opts="") ?(inputs=["-"]) () =
 	check_clingo ();
 	dbg ~level:2 "Invoking clingo...";

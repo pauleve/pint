@@ -961,3 +961,22 @@ let make_unord_unsync_sol obj (tr,interm) =
 let make_unord_sol obj (tr,interm) =
 	An_localpaths.UnordTrace.abstr tr,
 	NodeSyncSol (obj, tr, interm)
+
+
+
+(**
+    predefined LCGs
+**)
+let full_lcg an =
+	let cache = An_localpaths.create_cache ()
+	in
+	let sols = An_localpaths.MinUnordSol.solutions cache an
+	and ctx = full_ctx an
+	in
+	let goal = PSet.elements (procs_of_ctx ctx)
+	in
+	let lcg = new glc oa_glc_setup ctx goal sols make_unord_sol
+	in
+	lcg#set_auto_conts false;
+	lcg#build;
+	lcg
