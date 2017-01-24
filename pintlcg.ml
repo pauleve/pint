@@ -65,25 +65,13 @@ let saturated_lcg () =
 	lcg#saturate_ctx;
 	lcg
 
-let full_lcg () =
-	let sols = An_localpaths.MinUnordSol.solutions cache an
-	and ctx = full_ctx an
-	in
-	let goal = PSet.elements (procs_of_ctx ctx)
-	in
-	let lcg = new glc oa_glc_setup ctx goal sols make_unord_sol
-	in
-	lcg#set_auto_conts false;
-	lcg#build;
-	lcg
-
 
 let lcg_factories = [
 	("verbose", verbose_lcg);
 	("trimmed", trimmed_lcg);
 	("worth", worth_lcg);
 	("saturated", saturated_lcg);
-	("full", full_lcg);
+	("full", (fun () -> full_lcg an));
 ]
 
 let lcg = (List.assoc !lcg_type lcg_factories) ()

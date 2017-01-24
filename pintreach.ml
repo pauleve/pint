@@ -16,6 +16,7 @@ and opt_legacy = ref false
 and opt_bifurcations = ref false
 and bifurcations_mode_choices = ["ua";"mole+ua"]
 and opt_bifurcations_mode = ref "ua"
+and opt_oneshot_mutations_cut = ref false
 
 let parse_automata_set =
 	An_input.parse_string An_parser.automata_set
@@ -36,6 +37,8 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"<a,b,..>\tList requirements in term of given automata");
 		("--requirements-universal", Arg.Set opt_req_universal,
 			"\tCompute requirements for all initial state");
+        ("--oneshot-mutations-for-cut", Arg.Set opt_oneshot_mutations_cut,
+            "\tCompute mutations for making goal impossible");
 	]
 
 let args, abort = An_cli.parse cmdopts usage_msg
@@ -50,7 +53,8 @@ let do_requirements = SSet.cardinal !opt_req_automata > 0
 
 let do_bifurcations = !opt_bifurcations
 
-let do_reach = not (do_cutsets || do_requirements || do_bifurcations)
+let do_reach = not (do_cutsets || do_requirements || do_bifurcations
+    || !opt_oneshot_mutations_cut)
 
 
 (** verify opt_req_automata *)
@@ -242,5 +246,10 @@ let _ =
 	(if do_bifurcations then bifurcations ());
 	(if do_cutsets then cutsets !opt_cutsets_n);
 	(if do_requirements then requirements !opt_req_automata !opt_req_universal);
+    (if !opt_oneshot_mutations_cut then
+        let sols = An_reprogramming.ua_oneshot_mutations_for_cut (an,ctx) goal
+        in
+        List.iter print_endline sols
+    );
 	(if do_reach then static_reach ())
 

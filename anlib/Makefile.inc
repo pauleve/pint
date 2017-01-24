@@ -15,6 +15,7 @@ SOURCES := \
 	an_cli.ml\
 	an_snippets.ml\
 	an_bifurcations.ml\
+	an_reprogramming.ml\
 
 
 #LIBS := 
