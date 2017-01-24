@@ -13,7 +13,7 @@ let aspf f = ASP_solver.pint_asp_abspath (Filename.concat "reprogramming" f)
     ONESHOT MUTATIONS FOR GOAL CUT
 ***)
 
-let ua_oneshot_mutations_for_cut (an, ctx) goal =
+let ua_oneshot_mutations_for_cut (an, ctx) goal maxcard =
 	let asp = ASP_solver.solver
         ~opts:"0 --project --conf=trendy --heuristic=domain --enum-mode=domRec --dom-mod=5,16"
         ~inputs:["-"; aspf "ua_oneshot_mutations_for_cut.lp"] ()
@@ -34,10 +34,21 @@ let ua_oneshot_mutations_for_cut (an, ctx) goal =
 	(* push goal *)
 	let asp = decl asp ("goal("^automaton_asp (fst goal)^","^string_of_int (snd goal)^")")
 	in
+    let asp = decl asp ("#const maxcard = "^string_of_int maxcard)
+    in
     let solutions = ASP_solver.all_solutions asp
     in
     let lss_of_solution sol =
-        sol
+        let solution = parse_answerset sol
+        in
+        let fold lss (f,args) =
+            if f = "lock" then
+                match args with
+                  a::i::[] -> (a,int_of_string i)::lss
+                | _ -> failwith "bad lock predicate"
+            else lss
+        in
+        List.fold_left fold [] solution
     in
     List.map lss_of_solution solutions
 

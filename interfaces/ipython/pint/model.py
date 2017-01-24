@@ -106,7 +106,7 @@ class InitialState(dict):
             elif type(i) is str:
                 return ["\"%s\"" % i]
             else:
-                return [fmt_values(j) for j in i]
+                return [fmt_values(j)[0] for j in i]
         def pint_of_keyvalue(a,i):
             return ["\"%s\"=%s" % (a,i) for i in fmt_values(i)]
         lss = []

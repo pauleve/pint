@@ -150,6 +150,17 @@ are all valid, but they may be non-minimal, and some cut-sets may be missed.")
     return json.loads(output)
 
 @modeltool
+def oneshot_mutations_for_cut(model, ai, maxsize=5):
+    info("This computation is an *under-approximation*: returned mutations \
+are all valid, but they may be non-minimal, and some solutions may be missed.")
+    info("Limiting solutions to mutations of at most %s automata. Use `maxsize` argument to change." % maxsize)
+
+    args = ["--oneshot-mutations-for-cut", str(maxsize)]
+    cp = _run_tool("pint-reach", ai, *args, input_model=model)
+    output = cp.stdout.decode()
+    return json.loads(output)
+
+@modeltool
 def bifurcations(model, ai, method="ua"):
     assert method in ["exact", "ua", "mole+ua"]
     if method == "exact":
