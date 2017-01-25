@@ -19,6 +19,11 @@ from .ui import *
 if IN_IPYTHON:
     from IPython.display import display, FileLink
 
+def file_ext(filename):
+    filename = os.path.basename(filename)
+    if "." in filename:
+        return filename.split(".")[-1].lower()
+
 class InitialState(dict):
     def __init__(self, info):
         if isinstance(info, InitialState):
@@ -175,6 +180,20 @@ class Model(object):
             m.initial_state = m.initial_state.having(**kwargs)
         return m
 
+    def save_as(self, filename):
+        ext = file_ext(filename)
+        ext2fmt = {
+            "an": "dump",
+            "ll": "pep",
+        }
+        if ext not in ext2fmt:
+            raise NotImplementedError("Saving in %s format is not supported yet." % ext)
+        fmt = ext2fmt[ext]
+        args = ["pint-export", "-l", fmt, "-o", filename]
+        kwargs = {}
+        self.populate_popen_args(args, kwargs)
+        subprocess.check_call(args, **kwargs)
+
 
 class FileModel(Model):
     def __init__(self, filename):
@@ -279,11 +298,6 @@ def sbml_from_cellcollective(modelid):
     os.unlink(filename)
     return sbmlfile
 
-
-def file_ext(filename):
-    filename = os.path.basename(filename)
-    if "." in filename:
-        return filename.split(".")[-1].lower()
 ext2format = {
     "an": "an",
     "bn": "boolfunctions",
