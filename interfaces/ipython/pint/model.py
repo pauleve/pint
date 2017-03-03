@@ -104,7 +104,7 @@ class InitialState(dict):
     def nonzeros(self):
         return dict([(a,i) for (a,i) in self.items() if i > 0])
 
-    def to_pint(self):
+    def to_pint(self, full=False):
         def fmt_values(i):
             if type(i) is int:
                 return [str(i)]
@@ -115,7 +115,8 @@ class InitialState(dict):
         def pint_of_keyvalue(a,i):
             return ["\"%s\"=%s" % (a,i) for i in fmt_values(i)]
         lss = []
-        for a, i in self.__override.items():
+        items = self.items() if full else self.__override.items()
+        for a, i in items:
             lss += pint_of_keyvalue(a,i)
         return ",".join(lss)
 
@@ -234,12 +235,14 @@ def import_using_logicalmodel(fmt, inputfile, anfile, simplify=True):
         def parse_state(value):
             return dict(map(parse_localstate, value.strip().split()))
 
+        initialState_e = "GINsim-data/initialState"
         with ZipFile(inputfile) as z:
-            with z.open("GINsim-data/initialState") as f:
-                dom = xml_parse_dom(f)
-                for state in dom.getElementsByTagName("initialState"):
-                    name = state.getAttribute("name")
-                    states[name] = parse_state(state.getAttribute("value"))
+            if initialState_e in z.namelist():
+                with z.open("GINsim-data/initialState") as f:
+                    dom = xml_parse_dom(f)
+                    for state in dom.getElementsByTagName("initialState"):
+                        name = state.getAttribute("name")
+                        states[name] = parse_state(state.getAttribute("value"))
 
     if fmt in ["zginml", "ginml"]:
         # use GINsim to export to SBML-qual
