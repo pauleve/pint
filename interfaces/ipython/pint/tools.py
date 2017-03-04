@@ -271,6 +271,19 @@ def fixpoints(model):
     return json.loads(output)
 
 
+#
+# misc
+#
+@modeltool
+def dependency_graph(model):
+    g = nx.DiGraph()
+    g.add_nodes_from(model.automata)
+    for tr in model.local_transitions:
+        for a in tr.modified_automata:
+            for b in tr.conds.keys():
+                g.add_edge(b, a)
+    return g
+
 __all__ = [t[0] for t in __MODEL_TOOLS] + [
     "EquipTools",
     ]
