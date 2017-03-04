@@ -29,7 +29,6 @@ bindings/r_stubs.c
 docs/api
 bin/ph*
 bin/pint-*
-gen
 build
 build-stamp
 debian/*.log
@@ -42,3 +41,4 @@ tests/pinttests
 *.cache
 __pycache__
 *.pyc
+.ipynb*
