@@ -15,16 +15,15 @@ from .cfg import *
 from .tools import *
 from .types import *
 from .ui import *
+from .utils import *
 
 if IN_IPYTHON:
     from IPython.display import display, FileLink
 
-def file_ext(filename):
-    filename = os.path.basename(filename)
-    if "." in filename:
-        return filename.split(".")[-1].lower()
-
 class InitialState(dict):
+    """
+    TODO
+    """
     def __init__(self, info):
         if isinstance(info, InitialState):
             # copy constructor
@@ -132,6 +131,9 @@ def InfoFields(*fields):
 @InfoFields("automata", "local_states", "named_local_states", "features",
     "local_transitions")
 class Model(object):
+    """
+    TODO
+    """
     def __init__(self):
         self.named_states = {}
 
@@ -164,13 +166,14 @@ class Model(object):
         """
         Returns a copy of the model with supplied modifications
 
-        initial_state: InitialState
+        initial_state: :py:class:`.InitialState`
           replaces the initial state
 
         If ``kwargs`` are present, the initial state is replaced by a copy
-        updated with kwargs (see `InitialState.having`)
+        updated with kwargs (see :py:meth:`.InitialState.having`)
 
         Exemples:
+
         >>> m.having(m.named_states["ProT1"]).reachability("Tf1=1")
         >>> m.having(HR=1).reachability("Tf1=1")
         """
@@ -180,20 +183,6 @@ class Model(object):
         if kwargs:
             m.initial_state = m.initial_state.having(**kwargs)
         return m
-
-    def save_as(self, filename):
-        ext = file_ext(filename)
-        ext2fmt = {
-            "an": "dump",
-            "ll": "pep",
-        }
-        if ext not in ext2fmt:
-            raise NotImplementedError("Saving in %s format is not supported yet." % ext)
-        fmt = ext2fmt[ext]
-        args = ["pint-export", "-l", fmt, "-o", filename]
-        kwargs = {}
-        self.populate_popen_args(args, kwargs)
-        subprocess.check_call(args, **kwargs)
 
 
 class FileModel(Model):
@@ -317,7 +306,7 @@ def load(filename, format=None, simplify=True):
     Load a Pint model from given filename.
     The format is guessed from the filename extension, but can be enforced with
     the `format` parameter.
-    Except when loading directly from a '.an' file (native format for Pint), the
+    Except when loading directly from a ``.an`` file (native format for Pint), the
     model will be converted to .an and a simplification step is performed.
     This latter stage can be deactivated with `simplify=False`
 
@@ -325,19 +314,24 @@ def load(filename, format=None, simplify=True):
     case, it will be downloaded locally first, and then processed as a local
     file.
 
-    Supported formats:
-    - an (automata network), native Pint file format
-    - ginml, imported using GINsim+logicalmodel (use intermediate SBML
-          conversion)
-    - zginml, like ginml, with in addition the support of named initial states
-    - sbml (SBML-qual), imported using logicalmodel
-    - boolsim, booleannet, boolfunctions: Boolean network formats, imported
-          using logical model. Files with '.bn' extensions are assumed to be in
-          boolfunctions format.
+    Supported file extensions:
 
-    Returns a `Model` instance.
+    * ``.an`` (automata network), native Pint file format
+    * ``.ginml``, imported using GINsim+logicalmodel (use intermediate SBML conversion)
+    * ``.zginml``, like ginml, with in addition the support of named initial states
+    * ``.sbml`` (SBML-qual), imported using logicalmodel
+    * ``.boolsim``, ``.booleannet``, ``.boolfunctions`` (or ``.bn``): Boolean network formats, imported
+      using `logicalmodel`.
+
+    Returns a :py:class:`.Model` instance.
     If the model results from an importation, IPython displays the link to the
     generated .an file.
+
+    Examples:
+
+    >>> m1 = pint.load("mylocalfile.an")
+    >>> m2 = pint.load("http://ginsim.org/sites/default/files/Frontiers-Th-Full-model-annotated.zginml")
+    >>> m3 = pint.load("https://cellcollective.org/#4705/septation-initiation-network")
     """
 
     match_cellcollective = re.search("https?://[^/]*\\bcellcollective\.org/#(\\d+)\\b", filename)
@@ -377,5 +371,5 @@ def load(filename, format=None, simplify=True):
         raise ValueError("Format '%s' is not supported." % format)
 
 
-__all__ = ["load", "FileModel", "InMemoryModel"]
+__all__ = ["load", "Model", "FileModel", "InMemoryModel", "InitialState"]
 

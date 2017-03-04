@@ -11,6 +11,7 @@ import pydotplus
 from .cfg import *
 from .types import *
 from .ui import *
+from .utils import *
 
 if IN_IPYTHON:
     from IPython.display import display, FileLink
@@ -83,6 +84,7 @@ format2ext = {
     "pep": "ll",
     "romeo": "xml",
 }
+ext2format = dict([(j,i) for (i,j) in format2ext.items()])
 
 __MODEL_TOOLS = []
 def modeltool(f):
@@ -115,6 +117,12 @@ def export(model, format, output=None, raw_args=None):
     if IN_IPYTHON:
         return FileLink(output)
     return output
+
+@modeltool
+def save_as(model, filename):
+    ext = file_ext(filename)
+    assert ext in ext2format, "File extension is not supported"
+    return export(model, ext2format[ext], output=filename)
 
 @modeltool
 def reduce(model, goal, squeeze=True):
@@ -266,6 +274,9 @@ def reachable_attractors(model):
 
 @modeltool
 def fixpoints(model):
+    """
+    TODO
+    """
     cp = _run_tool("pint-stable", "--fixpoints", input_model=model)
     output = cp.stdout.decode()
     return json.loads(output)

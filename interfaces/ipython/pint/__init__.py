@@ -6,6 +6,7 @@ from .cfg import *
 from .model import *
 from .ui import *
 from .tools import *
+from .utils import *
 
 __SETUP_DONE = False
 
