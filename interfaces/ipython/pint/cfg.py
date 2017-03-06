@@ -4,6 +4,7 @@ import tempfile
 
 CFG = {
     "output_dir": "gen",
+    "dbg": False,
 }
 
 try:
@@ -30,5 +31,6 @@ __all__ = [
     "output_dir",
     "new_output_file",
     "IN_IPYTHON",
+    "CFG",
 ]
 
