@@ -45,6 +45,9 @@ class InitialState(dict):
         self.__override = {}
 
     def is_custom(self):
+        """
+        :returns: `True` iff the state is different from the default initial state of the AN.
+        """
         return len(self.__override) > 0
 
     def __delitem__(self, key):
@@ -74,14 +77,23 @@ class InitialState(dict):
                                 % (key, ", ".join(map(str, self.domain[key]))))
 
     def copy(self):
+        """
+        :returns: a copy of the object.
+        """
         return InitialState(self)
 
     def having(self, *args, **kwargs):
+        """
+        :returns: a copy of the object modified with :py:meth:`.update` method.
+        """
         s = self.copy()
         s.update(*args, **kwargs)
         return s
 
     def update(self, *args, **F):
+        """
+        TODO
+        """
         for E in args:
             if hasattr(E, "keys"):
                 for k in E:
@@ -93,17 +105,30 @@ class InitialState(dict):
             self[k] = v
 
     def reset(self):
-        """Restore to default initial state"""
+        """
+        Restore to default initial state.
+        """
         self.__override.clear()
         super(InitialState, self).update(self.defaults)
 
     def changes(self):
+        """
+        :returns: A `dict` object of the changes to the default initial state.
+        """
         return self.__override.copy()
 
     def nonzeros(self):
+        """
+        :returns: A `dict` object associating automata to their initial local
+            states when it is different from ``0``.
+        """
         return dict([(a,i) for (a,i) in self.items() if i > 0])
 
     def to_pint(self, full=False):
+        """
+        :returns: Pint text representation of the state
+        :keyword full: if `True`, also output initial states being ``0``.
+        """
         def fmt_values(i):
             if type(i) is int:
                 return [str(i)]
@@ -132,7 +157,44 @@ def InfoFields(*fields):
     "local_transitions")
 class Model(object):
     """
-    TODO
+    Abstract class for manipulating and analyzing an AN (Automata Network) model.
+
+    A `Model` is typically instanciated using the :py:func:`.load` function, or
+    using :py:class:`.InMemoryModel` for small in-memory AN specifications.
+
+    .. py:attribute:: automata
+
+        The list of automata names
+
+    .. py:attribute:: local_states
+
+        Dictionnary associating to each automaton its list of local states
+        (`int` list).
+
+    .. py:attribute:: named_local_states
+
+        Dictionnary associating to each automaton its list of local states,
+        using their names if any (`str` or `int` list).
+
+    .. py:attribute:: local_transitions
+
+        The list of local transitions (:py:class:`.LocalTransition` or
+        :py:class:`.SynchronizedLocalTransitions`) in the AN specification.
+
+    .. py:attribute:: initial_state
+
+        The current initial state of the model (:py:class:`.InitialState`
+        instance).
+
+    .. py:attribute:: named_states
+
+        A dictionnary of named :py:class:`.InitialState` instances.
+
+    .. py:attribute:: features
+
+        A list of features the AN model is using, if any, among:
+
+        * `"synced_transitions"`: the AN uses synchronized local transitions.
     """
     def __init__(self):
         self.named_states = {}
@@ -159,6 +221,13 @@ class Model(object):
             args += ["--initial-context", self.initial_state.to_pint()]
 
     def register_state(self, name, state):
+        """
+        Register a named state in :py:attr:`named_states` attribute.
+
+        :param str name: name of the state
+        :param state: state to register
+        :type state: dict or .InitialState
+        """
         self.named_states[name] = InitialState(self.info)
         self.named_states[name].update(state)
 
@@ -166,11 +235,11 @@ class Model(object):
         """
         Returns a copy of the model with supplied modifications
 
-        initial_state: :py:class:`.InitialState`
-          replaces the initial state
-
-        If ``kwargs`` are present, the initial state is replaced by a copy
-        updated with kwargs (see :py:meth:`.InitialState.having`)
+        :param .InitialState initial_state: new initial state
+        :keyword kwargs: if non-empty, defines a new initial state from
+            :py:attr:`.Model.initial_state` by calling
+            :py:meth:`.InitialState.having`.
+        :rtype: :py:class:`.Model`
 
         Exemples:
 
@@ -186,6 +255,9 @@ class Model(object):
 
 
 class FileModel(Model):
+    """
+    Concrete class of :py:class:`.Model` for AN model stored in a local file.
+    """
     def __init__(self, filename):
         super(FileModel, self).__init__()
         self.filename = filename
@@ -196,6 +268,9 @@ class FileModel(Model):
         super(FileModel, self).populate_popen_args(args, kwargs)
 
 class InMemoryModel(Model):
+    """
+    Concrete class of :py:class:`.Model` for an AN model stored in memory.
+    """
     def __init__(self, data):
         super(InMemoryModel, self).__init__()
         self.data = data
@@ -316,12 +391,20 @@ def load(filename, format=None, simplify=True):
 
     Supported file extensions:
 
-    * ``.an`` (automata network), native Pint file format
-    * ``.ginml``, imported using GINsim+logicalmodel (use intermediate SBML conversion)
-    * ``.zginml``, like ginml, with in addition the support of named initial states
-    * ``.sbml`` (SBML-qual), imported using logicalmodel
+    * ``.an`` (automata network), native Pint file format;
+    * ``.ginml``, imported using GINsim+logicalmodel (use intermediate SBML conversion);
+    * ``.zginml``, like ginml, with in addition the support of named initial states;
+    * ``.sbml`` (SBML-qual), imported using logicalmodel;
     * ``.boolsim``, ``.booleannet``, ``.boolfunctions`` (or ``.bn``): Boolean network formats, imported
       using `logicalmodel`.
+
+    Supported URL schemes:
+
+    * `CellCollective <htts://cellcollective.org>`_ models can be imported by
+      supplying the URL of the model main page. The SBML file location is
+      determined automatically;
+    * any other URL is treated as a link to a file with supported extension. It
+      will be downloaded and then loaded as a local file.
 
     Returns a :py:class:`.Model` instance.
     If the model results from an importation, IPython displays the link to the
@@ -371,5 +454,7 @@ def load(filename, format=None, simplify=True):
         raise ValueError("Format '%s' is not supported." % format)
 
 
-__all__ = ["load", "Model", "FileModel", "InMemoryModel", "InitialState"]
+__all__ = ["load",
+    "Model", "FileModel", "InMemoryModel",
+    "InitialState"]
 

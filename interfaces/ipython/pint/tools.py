@@ -28,6 +28,9 @@ VALID_EXE = [
 ]
 
 class PintProcessError(subprocess.CalledProcessError):
+    """
+    Exception raised when a Pint command fails.
+    """
     def __str__(self):
         stderr = "\n%s" % self.stderr.decode() if self.stderr else None
         return "Command '%s' returned non-zero exit status %d%s" \
@@ -86,6 +89,21 @@ format2ext = {
 }
 ext2format = dict([(j,i) for (i,j) in format2ext.items()])
 
+EXPORT_SUPPORTED_FORMATS = list(sorted(format2ext.keys()))
+"""
+Formats supported by :py:meth:`.Model.export` method.
+"""
+
+EXPORT_SUPPORTED_EXTENSIONS = list(sorted(ext2format.keys()))
+"""
+File extensions supported by :py:meth:`.Model.save_as` method:
+
+* ``.an``: Pint native format
+* ``.ll``: PEP format (Petri net)
+* ``.smv``: NuSMV format
+* ``.xml``: Romeo format (Petri net)
+"""
+
 __MODEL_TOOLS = []
 def modeltool(f):
     __MODEL_TOOLS.append((f.__name__, f))
@@ -101,7 +119,14 @@ def EquipTools(cls):
 #
 
 @modeltool
-def export(model, format, output=None, raw_args=None):
+def export(self, format, output=None, raw_args=None):
+    """
+    Export the AN model to the given `format`. If not provided the `output`
+    filename is generated using :py:func:`.new_output_file` and the extension
+    corresponding to the export format.
+
+    .. seealso:: :py:data:`.EXPORT_SUPPORTED_FORMATS`, and similar method :py:meth:`.save_as`
+    """
     format = format.lower()
     format = format_alias.get(format, format)
     assert format in format2ext
@@ -113,16 +138,27 @@ def export(model, format, output=None, raw_args=None):
         output = new_output_file(ext=format2ext[format])
     args += ["-o", output]
     _run_tool("pint-export", *args, *raw_args,
-                input_model=model, stdout=None)
+                input_model=self, stdout=None)
     if IN_IPYTHON:
         return FileLink(output)
     return output
 
 @modeltool
-def save_as(model, filename):
+def save_as(self, filename):
+    """
+    Save the AN model with its initial state to local file `filename`.
+    The format is guessed from the extension of `filename`.
+
+    .. seealso:: :py:data:`.EXPORT_SUPPORTED_EXTENSIONS`, and similar method :py:meth:`.export`
+
+    Examples:
+
+    >>> m.save_as("mymodel.an") # save to a local file in Pint native format
+    >>> m.save_as("mymodel.ll") # export in PEP format (Petri net)
+    """
     ext = file_ext(filename)
     assert ext in ext2format, "File extension is not supported"
-    return export(model, ext2format[ext], output=filename)
+    return export(self, ext2format[ext], output=filename)
 
 @modeltool
 def reduce(model, goal, squeeze=True):
@@ -273,11 +309,11 @@ def reachable_attractors(model):
 #
 
 @modeltool
-def fixpoints(model):
+def fixpoints(self):
     """
     TODO
     """
-    cp = _run_tool("pint-stable", "--fixpoints", input_model=model)
+    cp = _run_tool("pint-stable", "--fixpoints", input_model=self)
     output = cp.stdout.decode()
     return json.loads(output)
 
@@ -296,6 +332,9 @@ def dependency_graph(model):
     return g
 
 __all__ = [t[0] for t in __MODEL_TOOLS] + [
+    "EXPORT_SUPPORTED_FORMATS",
+    "EXPORT_SUPPORTED_EXTENSIONS",
+    "PintProcessError",
     "EquipTools",
     ]
 

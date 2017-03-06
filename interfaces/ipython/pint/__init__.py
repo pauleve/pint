@@ -1,4 +1,11 @@
+"""
+When loaded, the `pint` module will perform the follow tasks:
 
+* add Pint third-party binary path (`bin` subdirectory of
+  ``pint-config share-path``) to the ``PATH`` environment variable.
+* if in IPython, displays the version of Pint binaries, and executes
+  :py:func:`.ipython_install`.
+"""
 import os
 import subprocess
 
