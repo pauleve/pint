@@ -22,24 +22,33 @@ if IN_IPYTHON:
 
 class InitialState(dict):
     """
-    TODO
+    A state is represented with a ``dict``-like python object, which associates
+    each automaton to a local state, or to a set of initial local states.
+
+    The automata, their value domain, as well as their initial *default* value,
+    are tied to a :py:class:`.Model` object.
+
+    A new `InitialState` should be instanciated only from an existing
+    `InitialState` instance, typically :py:attr:`.Model.initial_state`,
+    either using the copy constructor, or using :py:meth:`.InitialState.copy`,
+    or using :py:meth:`.InitialState.having` method (recommended).
     """
-    def __init__(self, info):
-        if isinstance(info, InitialState):
+    def __init__(self, state):
+        if isinstance(state, InitialState):
             # copy constructor
-            s = info
+            s = state
             for field in ["info", "defaults", "domain"]:
                 setattr(self, field, getattr(s, field))
             self.__override = s.__override.copy()
             super(InitialState, self).__init__(self.defaults)
             return
-        self.info = info
-        self.defaults = info["initial_state"]
+        self.info = state
+        self.defaults = self.info["initial_state"]
         super(InitialState, self).__init__(self.defaults)
         self.domain = {}
-        for a in info["automata"]:
-            self.domain[a] = set(info["local_states"][a] +
-                                info["named_local_states"][a])
+        for a in self.info["automata"]:
+            self.domain[a] = set(self.info["local_states"][a] +
+                                self.info["named_local_states"][a])
             if type(self.defaults[a]) is list:
                 self.defaults[a] = tuple(self.defaults[a])
         self.__override = {}
@@ -50,14 +59,25 @@ class InitialState(dict):
         """
         return len(self.__override) > 0
 
-    def __delitem__(self, key):
-        del self.__override[key]
-        super(InitialState, self).__setitem__(key, self.defaults[key])
+    def __delitem__(self, a):
+        """
+        Restore the default initial value of automaton `a`.
+
+        >>> del m.initial_state["a"]
+        """
+        del self.__override[a]
+        super(InitialState, self).__setitem__(a, self.defaults[a])
 
     def __getitem__(self, key):
         return self.__override.get(key, self.defaults[key])
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, a, i):
+        """
+        Sets the initial state of automaton `a` to `i`.
+        `i` can be either a single local state, or a set of local states.
+        """
+        key = a
+        value = i
         if type(value) not in [int, str, list, set, tuple]:
             raise TypeError("Invalid type value")
         if key not in self.defaults:
@@ -92,7 +112,13 @@ class InitialState(dict):
 
     def update(self, *args, **F):
         """
-        TODO
+        Sets the initial local states of specified automata. Arguments can be
+        either `dict`-like objects, lists of pairs or keywords.
+
+        Examples:
+
+        >>> s.update(a=1, b=0)  # updates automaton 'a' and 'b'
+        >>> s.update({"a": 1, "b": 0})  # equivalent to above
         """
         for E in args:
             if hasattr(E, "keys"):
