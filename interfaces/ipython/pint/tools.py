@@ -1,4 +1,3 @@
-
 from io import StringIO
 import json
 import os
@@ -161,16 +160,44 @@ def save_as(self, filename):
     return export(self, ext2format[ext], output=filename)
 
 @modeltool
-def reduce(model, goal, squeeze=True):
+def reduce(self, goal, squeeze=True, squeeze_preserve=None):
+    """
+    Compute the goal-oriented reduction of the automata network.
+    The reduction removes local transitions that are guaranteed to never
+    contribute to any minimal path from the initial state to the goal
+    (a path is minimal if there exists no paths using a strict subset of
+    transitions leading to the goal).
+
+    The reduced models preserves existential reachability properties, as well as
+    cut sets.
+
+    The complexity of the method is polynomial in the number of local
+    transitions and automata, and exponential in the size of the largest
+    automata minus 1.
+
+    :param str goal: goal specification.
+    :param bool squeeze: if ``True`` (default), unused automata and local states
+        are removed. Warning: this can lead to local state renaming.
+    :param str list squeeze_preserve:
+        do not squeeze the given automata
+    :returns: a new :py:class:`.FileModel` instance for the reduced automata
+        network.
+
+    Example:
+    >>> red = m.reduce("g=1")
+    """
     output = new_output_file(ext="an")
     args = ["-o", output,
         "--reduce-for-goal", goal]
     if squeeze:
         args.append("--squeeze")
-    _run_tool("pint-export", *args, input_model=model, stdout=None)
+        if squeeze_preserve:
+            for a in squeeze_preserve:
+                args += ["--squeeze-preserve", a]
+    _run_tool("pint-export", *args, input_model=self, stdout=None)
     if IN_IPYTHON:
         display(FileLink(output))
-    from .model import FileModel
+    from .self import FileModel
     return FileModel(output)
 
 
@@ -179,7 +206,23 @@ def reduce(model, goal, squeeze=True):
 #
 
 @modeltool
-def cutsets(model, ai, maxsize=5, exclude_initial_state=True):
+def cutsets(self, ai, maxsize=5, exclude_initial_state=True):
+    """
+    Computes sets of local states which are used in all the paths from the
+    initial state to `ai`:
+    if all the local states in a cut-set are disabled (all related local
+    transitions are removed), then it is impossible to reach `ai` from the
+    initial state.
+
+    :param str ai: goal (e.g., ``"a=1"``)
+    :keyword int maxsize: maximal cardinality of a cut-set.
+    :keyword bool exclude_initial_state:
+        if ``True`` (default), cut-sets can not be composed of initial local
+        states.
+    :rtype: TODO list
+
+    .. seealso:: method :py:meth:`.oneshot_mutations_for_cut`, TODO
+    """
     args = []
 
     info("This computation is an *under-approximation*: returned cut-sets \
@@ -189,23 +232,47 @@ are all valid, but they may be non-minimal, and some cut-sets may be missed.")
     if exclude_initial_state:
         args.append("--no-init-cutsets")
     cp = _run_tool("pint-reach", "--cutsets", str(maxsize), ai, *args,
-                input_model=model)
+                input_model=self)
     output = cp.stdout.decode()
     return json.loads(output)
 
 @modeltool
-def oneshot_mutations_for_cut(model, ai, maxsize=5):
+def oneshot_mutations_for_cut(self, ai, maxsize=5):
+    """
+    Computes sets of local states for which the locking in the initial state
+    ensures that `ai` is impossible to reach.
+
+    :param str ai: goal (e.g., ``"a=1"``)
+    :keyword int maxsize: maximal cardinality of returned sets.
+    :rtype: TODO list
+
+    .. seealso:: TODO
+    """
+
     info("This computation is an *under-approximation*: returned mutations \
 are all valid, but they may be non-minimal, and some solutions may be missed.")
     info("Limiting solutions to mutations of at most %s automata. Use `maxsize` argument to change." % maxsize)
 
     args = ["--oneshot-mutations-for-cut", str(maxsize)]
-    cp = _run_tool("pint-reach", ai, *args, input_model=model)
+    cp = _run_tool("pint-reach", ai, *args, input_model=self)
     output = cp.stdout.decode()
     return json.loads(output)
 
 @modeltool
-def bifurcations(model, ai, method="ua"):
+def bifurcations(self, ai, method="ua"):
+    """
+    Identify local transitions after which, in some state, `ai` is no longer reachable.
+
+    :param str ai: goal (e.g., ``"a=1"``)
+    :keyword str method:
+
+        * ``"exact"`` for complete identification of bifurcation transitions
+          (PSPACE);
+        * ``"ua+mole"`` for under-approximation relying on exact the reachable
+          states set prior computation (NP+PSPACE)
+        * ``"ua"`` for under-approximation of bifurcation transitions (NP)
+    :rtype: :py:class:`.LocalTransition` list
+    """
     assert method in ["exact", "ua", "mole+ua"]
     if method == "exact":
         cmd = "pint-nusmv"
@@ -218,23 +285,40 @@ Use `method=\"exact\"` for complete identification.")
         args = ["--bifurcations",
             "--bifurcations-method", method]
 
-    cp = _run_tool(cmd, ai, *args, input_model=model)
+    cp = _run_tool(cmd, ai, *args, input_model=self)
     output = cp.stdout.decode()
     return [local_transition_from_json(d) for d in json.loads(output)]
 
 @modeltool
-def reachability(model, goal, fallback="its"):
+def reachability(self, goal, fallback="its"):
+    """
+    Check if `goal` is reachable from the initial state.
+    At first, Pint tries static analysis for the verification. If
+    non-conclusive, it can fallback to exact model-checking.
+
+    :param str goal: goal (e.g., ``"a=1"``)
+    :keyword str fallback: fallback to exact model-checking if static analysis
+        is not conclusive. Supported model-checkers are: ``"its"``, ``"nusmv"``,
+        and ``"mole"``.
+    :returns:
+
+        * ``True`` if `goal` is reachable from :py:attr:`.initial_state`
+        * ``False`` if `goal` is not reachable from :py:attr:`.initial_state`
+        * :py:class:`.Inconc` if the static analysis is not conclusive and
+          `fallback` is ``None``.
+    """
+
     if fallback:
         fallback = fallback.lower()
     assert fallback in ["its", "nusmv", "mole", "none", None]
     if fallback == "none":
         fallback = None
-    cp = _run_tool("pint-reach", goal, input_model=model)
+    cp = _run_tool("pint-reach", goal, input_model=self)
     output = cp.stdout.decode()
     output = ternary(json.loads(output))
     if output == Inconc and fallback is not None:
         info("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
-        cp = _run_tool("pint-%s" % fallback, goal, input_model=model,
+        cp = _run_tool("pint-%s" % fallback, goal, input_model=self,
                         reduce_for_goal=goal)
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
@@ -248,29 +332,60 @@ def reachability(model, goal, fallback="its"):
 #
 
 @modeltool
-def local_causality_graph(model, kind="full", goal=None):
+def local_causality_graph(self, kind="full", goal=None):
+    """
+    Computes the Local Causality Graph (LCG) of type `kind`.
+
+    :keyword str kind:
+
+        * ``"full"``: LCG for all possible objectives from all possible initial
+          states.
+        * ``"verbose"``: LCG for simple over-approximation of `goal` rechability
+        * ``"trimmed"``: LCG for simple over-approximation of `goal`
+          reachability where impossible objectives have been removed.
+        * ``"saturated"``: LCG for under-approximation of `goal` reachability
+        * ``"worth"``: LCG used for `goal`-oriented reduction (see
+          :py:meth:`.reduce`)
+
+    :keyword str goal: goal (e.g., ``"a=1"``) when `kind` is not ``"full"``.
+    :rtype: NetworkX multigraph (`nx.MultiDiGraph <http://networkx.readthedocs.io/en/stable/reference/classes.multidigraph.html>`_)
+
+    .. seealso: methods :py:meth:`.full_lcg`, :py:meth:`.simple_lcg`, :py:meth:`.worth_lcg`, :py:meth:`.saturated_lcg`
+    """
     assert kind in ["verbose,","trimmed","saturated","worth","full"]
     if kind != "full" and goal is None:
         raise ValueError("goal cannot be None with %s LCG" % kind)
     args = ["-t", kind, "-o", "-"]
     if goal:
         args.append(goal)
-    cp = _run_tool("pint-lcg", *args, input_model=model)
+    cp = _run_tool("pint-lcg", *args, input_model=self)
     g = pydotplus.graph_from_dot_data(cp.stdout.decode())
     return nx.nx_pydot.from_pydot(g)
 
 @modeltool
-def full_lcg(model):
-    return local_causality_graph(model, "full")
+def full_lcg(self):
+    """
+    Shortcut for :py:meth:`.local_causality_graph` with `kind="full"`
+    """
+    return local_causality_graph(self, "full")
 @modeltool
-def simple_lcg(model, goal):
-    return local_causality_graph(model, "trimmed", goal)
+def simple_lcg(self, goal):
+    """
+    Shortcut for :py:meth:`.local_causality_graph` with `kind="trimmed"`
+    """
+    return local_causality_graph(self, "trimmed", goal)
 @modeltool
-def worth_lcg(model, goal):
-    return local_causality_graph(model, "worth", goal)
+def worth_lcg(self, goal):
+    """
+    Shortcut for :py:meth:`.local_causality_graph` with `kind="worth"`
+    """
+    return local_causality_graph(self, "worth", goal)
 @modeltool
-def saturated_lcg(model, goal):
-    return local_causality_graph(model, "saturated", goal)
+def saturated_lcg(self, goal):
+    """
+    Shortcut for :py:meth:`.local_causality_graph` with `kind="saturated"`
+    """
+    return local_causality_graph(self, "saturated", goal)
 
 
 #
@@ -279,18 +394,40 @@ def saturated_lcg(model, goal):
 
 @modeltool
 def count_reachable_states(model):
+    """
+    Counts the exact number of states reachable from :py:attr:`.initial_state`.
+    Uses an explicit state space approach.
+
+    :rtype: int
+    """
     cp = _run_tool("pint-sg", "--count-reachable", input_model=model)
     output = cp.stdout.decode()
     return json.loads(output)
 
 @modeltool
 def summary(model):
+    """
+    Returns a dictionnary with various information on the AN model:
+
+    * ``"nb_automata"``: number of automata (equivalent to `len(m.automata)`)
+    * ``"nb_local_states"``: total number of local states
+    * ``"max_local_states"``: largest number of local states within one automaton.
+    * ``"nb_transitions"``: number of local transitions
+    * ``"nb_states"``: total number of states
+
+    :rtype: dict
+    """
     cp = _run_tool("pint-sg", "--description", input_model=model)
     output = cp.stdout.decode()
     return json.loads(output)
 
 @modeltool
 def reachable_stategraph(model):
+    """
+    Returns the reachable state graph from :py:attr:`.initial_state`.
+
+    :rtype: NetworkX multidigraph (`nx.MultiDiGraph <http://networkx.readthedocs.io/en/stable/reference/classes.multidigraph.html>`_)
+    """
     dotfile = new_output_file(ext="dot")
     _run_tool("pint-sg", "--state-graph", dotfile,
                 input_model=model, stdout=None)
@@ -300,6 +437,20 @@ def reachable_stategraph(model):
 
 @modeltool
 def reachable_attractors(model):
+    """
+    Returns the complete list of attractors reachable from
+    :py:attr:`.initial_state`.
+
+    Uses an explicit state space exploration methods.
+
+    Each attractor is described by a `dict` object with the following keys:
+
+    * ``"type"``: either ``"fixpoint"`` or ``"cyclic"``.
+    * ``"size"``: number of states in the attractor (1 if fixpoint, >1 if
+      cyclic).
+    * ``"sample"``: state (represented as `dict`) belonging to the attractor,
+      i.e., either the fixpoint, or one of the state in the cycle attractor.
+    """
     cp = _run_tool("pint-sg", "--reachable-attractors", input_model=model)
     output = cp.stdout.decode()
     return json.loads(output)
@@ -311,7 +462,9 @@ def reachable_attractors(model):
 @modeltool
 def fixpoints(self):
     """
-    TODO
+    Returns the complete list of fixed points of the model.
+
+    :rtype: dict list
     """
     cp = _run_tool("pint-stable", "--fixpoints", input_model=self)
     output = cp.stdout.decode()
@@ -323,6 +476,14 @@ def fixpoints(self):
 #
 @modeltool
 def dependency_graph(model):
+    """
+    Returns the dependency graph between automata:
+    there is an edge from `a` to `b` if some local transitions of `b` depends on `a`.
+
+    Complexity: linear with the number of local transitions.
+
+    :rtype: NetworkX digraph (`nx.DiGraph <http://networkx.readthedocs.io/en/stable/reference/classes.digraph.html>`_)
+    """
     g = nx.DiGraph()
     g.add_nodes_from(model.automata)
     for tr in model.local_transitions:
