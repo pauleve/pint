@@ -35,7 +35,7 @@ class PintProcessError(subprocess.CalledProcessError):
         return "Command '%s' returned non-zero exit status %d%s" \
             % (" ".join(self.cmd), self.returncode, stderr)
 
-def _run_tool(cmd, *args, input_model=None, reduce_for_goal=None, **run_opts):
+def _run_tool(cmd, *args, goal=None, input_model=None, reduce_for_goal=None, **run_opts):
     assert cmd in VALID_EXE
     args = list(args)
     args.insert(0, "--json-stdout")
@@ -49,6 +49,10 @@ def _run_tool(cmd, *args, input_model=None, reduce_for_goal=None, **run_opts):
     assert (not reduce_for_goal or input_model)
 
     args.insert(0, cmd)
+
+    if goal is not None:
+        args += goal.pint_args()
+
     if reduce_for_goal:
         pre_args = ["pint-export", "--reduce-for-goal", reduce_for_goal, "--squeeze"]
         for a in goal_automata(reduce_for_goal):
@@ -290,13 +294,14 @@ Use `method=\"exact\"` for complete identification.")
     return [local_transition_from_json(d) for d in json.loads(output)]
 
 @modeltool
-def reachability(self, goal, fallback="its"):
+def reachability(self, goal=None, fallback="its", **kwgoal):
     """
     Check if `goal` is reachable from the initial state.
     At first, Pint tries static analysis for the verification. If
     non-conclusive, it can fallback to exact model-checking.
 
-    :param str goal: goal (e.g., ``"a=1"``)
+    :param goal: goal (e.g., ``"a=1"``)
+    :type goal: str or list(str) or .Goal
     :keyword str fallback: fallback to exact model-checking if static analysis
         is not conclusive. Supported model-checkers are: ``"its"``, ``"nusmv"``,
         and ``"mole"``.
@@ -307,6 +312,7 @@ def reachability(self, goal, fallback="its"):
         * :py:class:`.Inconc` if the static analysis is not conclusive and
           `fallback` is ``None``.
     """
+    goal = Goal.from_arg(goal, **kwgoal)
 
     if fallback:
         fallback = fallback.lower()
@@ -318,7 +324,7 @@ def reachability(self, goal, fallback="its"):
     output = ternary(json.loads(output))
     if output == Inconc and fallback is not None:
         info("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
-        cp = _run_tool("pint-%s" % fallback, goal, input_model=self,
+        cp = _run_tool("pint-%s" % fallback, goal=goal, input_model=self,
                         reduce_for_goal=goal)
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
