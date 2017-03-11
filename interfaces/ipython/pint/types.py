@@ -123,19 +123,105 @@ def local_transition_from_json(tup):
     raise ValueError("%s: Invalid tuple for local transition" % tup)
 
 
-def goal_automata(goal):
+class Goal:
     """
-    Returns the set of automata referenced in `goal`
+    Object which represents reachability goal used in most of Pint commands.
+
+    In its simplest form, a goal is the local state of an automaton.
+    A goal can also be a sequence of sub-states.
+
+    It can be instanciated either with arguments or keywords (but not both).
+
+    If instanciated with arguments, each argument specifies a sub-state, and the
+    goal is the sequence of these sub-states.
+    A sub-state can be specified either by a string (in pint format), or by a
+    `dict`-like object.
+
+    If instanciated with keywords, the goal is a single sub-state where the keys
+    correspond to the automata and the values their local states.
+
+
+    Examples:
+
+    >>> Goal(a=1)          # simple goal
+    >>> Goal("a=1")        # equivalent to above
+    >>> Goal(a=1,b=1)      # single sub-state goal
+    >>> Goal("a=1,b=1")    # equivalent to above
+    >>> Goal("a=1", "b=1") # sequence of simple goals
+    >>> Goal({"a": 1, "b": 1}, {"a": 0})    # sequence of sub-state goals
     """
-    # TODO type goal specification
-    a,_ = goal.split("=")
-    a = a.strip('"')
-    return set([a])
+    def __init__(self, *args, **kwargs):
+        if args and kwargs:
+            raise TypeError("Goal cannot be instanciated with both arguments and keywords")
+        if not args and not kwargs:
+            raise TypeError("Goal is empty")
+
+        def parse_ls(s):
+            a,i = s.split("=")
+            a = a.strip('"')
+            i = i.strip('"')
+            return a,i
+
+        def goal_of_arg(a):
+            if isinstance(a, str):
+                return dict(map(parse_ls, a.split(",")))
+            elif isinstance(a, dict):
+                return a.copy()
+            else:
+                raise TypeError("Goal: do not support %s as argument" % type(a))
+
+        if args:
+            self.__goals = [goal_of_arg(arg) for arg in args]
+        if kwargs:
+            self.__goals = [kwargs]
+
+        self.__automata = frozenset()
+        for g in self.__goals:
+            self.__automata.update(g.keys())
+
+    @classmethod
+    def from_arg(celf, arg, **kwargs):
+        """
+        Returns a `Goal` instance corresponding to `arg`
+        """
+        if isinstance(arg, celf):
+            return celf
+        elif isinstance(arg, str):
+            return celf(str)
+        elif isinstance(arg, list):
+            return celf(*arg)
+        elif arg is None:
+            return celf(**kwargs)
+        else:
+            raise TypeError("Cannot convert a %s to %s" % (type(arg), celf))
+
+    @property
+    def automata(self):
+        """
+        Returns the set of automata that are part of the goal specification
+        """
+        return self.__automata
+
+    @property
+    def is_simple_goal(self):
+        """
+        ``True`` iff the goal is only the local state of one automaton
+        """
+        return len(self.__goals) == 1 and len(self.__goals[0]) == 1
+
+    def pint_args(self):
+        """
+        Returns the list of arguments to append to Pint commands for goal
+        specification
+        """
+        return [",".join(["%s=%s" % ai for ai in g.items()]) \
+                    for g in self.__goals]
+
 
 __all__ = [
     "Inconc", "ternary",
     "Conditions", "LocalTransition", "SynchronizedLocalTransitions",
     "local_transition_from_json",
-    "goal_automata",
+    "Goal",
 ]
 
