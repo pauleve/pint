@@ -54,20 +54,16 @@ let load_mci filename =
 			read_cutoffs ()
 		)
 	in
-	let rec read_until_zero () =
-		if read_int mci > 0 then
-			read_until_zero ()
-	in
 	read_cutoffs ();
-	read_until_zero ();
+	assert (read_int mci = 0);
 	let numpl = read_int mci
 	and numtr = read_int mci
 	and _ = read_int mci
 	in
 	let plname = List.map (fun _ -> IO.read_string mci) (Util.range 1 numpl)
-	and _ = IO.read_byte mci
+	and _ = read_int mci
 	and trname = List.map (fun _ -> IO.read_string mci) (Util.range 1 numtr)
-	and _ = IO.read_byte mci
+	and _ = read_int mci
 	in
 	unf.plname <- Array.of_list plname;
 	unf.trname <- Array.of_list trname;
