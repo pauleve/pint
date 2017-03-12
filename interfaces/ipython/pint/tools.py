@@ -35,7 +35,7 @@ class PintProcessError(subprocess.CalledProcessError):
         return "Command '%s' returned non-zero exit status %d%s" \
             % (" ".join(self.cmd), self.returncode, stderr)
 
-def _run_tool(cmd, *args, goal=None, input_model=None, reduce_for_goal=None, **run_opts):
+def _run_tool(cmd, *args, input_model=None, reduce_for_goal=None, **run_opts):
     assert cmd in VALID_EXE
     args = list(args)
     args.insert(0, "--json-stdout")
@@ -48,14 +48,14 @@ def _run_tool(cmd, *args, goal=None, input_model=None, reduce_for_goal=None, **r
 
     assert (not reduce_for_goal or input_model)
 
+    args = [a.to_pint() if isinstance(a, Goal) else a for a in args]
+
     args.insert(0, cmd)
 
-    if goal is not None:
-        args += goal.pint_args()
-
     if reduce_for_goal:
-        pre_args = ["pint-export", "--reduce-for-goal", reduce_for_goal, "--squeeze"]
-        for a in goal_automata(reduce_for_goal):
+        pre_args = ["pint-export", "--reduce-for-goal",
+                        reduce_for_goal.to_pint(), "--squeeze"]
+        for a in reduce_for_goal.automata:
             pre_args += ["--squeeze-preserve", a]
         pre_kwargs = {}
         input_model.populate_popen_args(pre_args, pre_kwargs)
@@ -164,7 +164,7 @@ def save_as(self, filename):
     return export(self, ext2format[ext], output=filename)
 
 @modeltool
-def reduce(self, goal, squeeze=True, squeeze_preserve=None):
+def reduce(self, goal, squeeze=True, squeeze_preserve=None, **kwgoal):
     """
     Compute the goal-oriented reduction of the automata network.
     The reduction removes local transitions that are guaranteed to never
@@ -179,7 +179,9 @@ def reduce(self, goal, squeeze=True, squeeze_preserve=None):
     transitions and automata, and exponential in the size of the largest
     automata minus 1.
 
-    :param str goal: goal specification.
+    :param goal: goal specification (e.g., ``"a=1"``)
+    :type goal: str or list(str) or .Goal
+    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
     :param bool squeeze: if ``True`` (default), unused automata and local states
         are removed. Warning: this can lead to local state renaming.
     :param str list squeeze_preserve:
@@ -190,6 +192,8 @@ def reduce(self, goal, squeeze=True, squeeze_preserve=None):
     Example:
     >>> red = m.reduce("g=1")
     """
+    goal = Goal.from_arg(goal, **kwgoal)
+
     output = new_output_file(ext="an")
     args = ["-o", output,
         "--reduce-for-goal", goal]
@@ -210,15 +214,17 @@ def reduce(self, goal, squeeze=True, squeeze_preserve=None):
 #
 
 @modeltool
-def cutsets(self, ai, maxsize=5, exclude_initial_state=True):
+def cutsets(self, goal=None, maxsize=5, exclude_initial_state=True, **kwgoal):
     """
     Computes sets of local states which are used in all the paths from the
-    initial state to `ai`:
+    initial state to `goal`:
     if all the local states in a cut-set are disabled (all related local
-    transitions are removed), then it is impossible to reach `ai` from the
+    transitions are removed), then it is impossible to reach `goal` from the
     initial state.
 
-    :param str ai: goal (e.g., ``"a=1"``)
+    :param goal: goal specification (e.g., ``"a=1"``)
+    :type goal: str or list(str) or .Goal
+    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
     :keyword int maxsize: maximal cardinality of a cut-set.
     :keyword bool exclude_initial_state:
         if ``True`` (default), cut-sets can not be composed of initial local
@@ -227,6 +233,8 @@ def cutsets(self, ai, maxsize=5, exclude_initial_state=True):
 
     .. seealso:: method :py:meth:`.oneshot_mutations_for_cut`, TODO
     """
+    goal = Goal.from_arg(goal, **kwgoal)
+
     args = []
 
     info("This computation is an *under-approximation*: returned cut-sets \
@@ -235,39 +243,44 @@ are all valid, but they may be non-minimal, and some cut-sets may be missed.")
 
     if exclude_initial_state:
         args.append("--no-init-cutsets")
-    cp = _run_tool("pint-reach", "--cutsets", str(maxsize), ai, *args,
+    cp = _run_tool("pint-reach", "--cutsets", str(maxsize), goal, *args,
                 input_model=self)
     output = cp.stdout.decode()
     return json.loads(output)
 
 @modeltool
-def oneshot_mutations_for_cut(self, ai, maxsize=5):
+def oneshot_mutations_for_cut(self, goal=None, maxsize=5, **kwgoal):
     """
     Computes sets of local states for which the locking in the initial state
-    ensures that `ai` is impossible to reach.
+    ensures that `goal` is impossible to reach.
 
-    :param str ai: goal (e.g., ``"a=1"``)
+    :param goal: goal specification (e.g., ``"a=1"``)
+    :type goal: str or list(str) or .Goal
+    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
     :keyword int maxsize: maximal cardinality of returned sets.
     :rtype: TODO list
 
     .. seealso:: TODO
     """
+    goal = Goal.from_arg(goal, **kwgoal)
 
     info("This computation is an *under-approximation*: returned mutations \
 are all valid, but they may be non-minimal, and some solutions may be missed.")
     info("Limiting solutions to mutations of at most %s automata. Use `maxsize` argument to change." % maxsize)
 
     args = ["--oneshot-mutations-for-cut", str(maxsize)]
-    cp = _run_tool("pint-reach", ai, *args, input_model=self)
+    cp = _run_tool("pint-reach", goal, *args, input_model=self)
     output = cp.stdout.decode()
     return json.loads(output)
 
 @modeltool
-def bifurcations(self, ai, method="ua"):
+def bifurcations(self, goal=None, method="ua", **kwgoal):
     """
-    Identify local transitions after which, in some state, `ai` is no longer reachable.
+    Identify local transitions after which, in some state, `goal` is no longer reachable.
 
-    :param str ai: goal (e.g., ``"a=1"``)
+    :param goal: goal specification (e.g., ``"a=1"``)
+    :type goal: str or list(str) or .Goal
+    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
     :keyword str method:
 
         * ``"exact"`` for complete identification of bifurcation transitions
@@ -278,6 +291,9 @@ def bifurcations(self, ai, method="ua"):
     :rtype: :py:class:`.LocalTransition` list
     """
     assert method in ["exact", "ua", "mole+ua"]
+
+    goal = Goal.from_arg(goal, **kwgoal)
+
     if method == "exact":
         cmd = "pint-nusmv"
         args = ["--bifurcations"]
@@ -289,7 +305,7 @@ Use `method=\"exact\"` for complete identification.")
         args = ["--bifurcations",
             "--bifurcations-method", method]
 
-    cp = _run_tool(cmd, ai, *args, input_model=self)
+    cp = _run_tool(cmd, goal, *args, input_model=self)
     output = cp.stdout.decode()
     return [local_transition_from_json(d) for d in json.loads(output)]
 
@@ -300,8 +316,9 @@ def reachability(self, goal=None, fallback="its", **kwgoal):
     At first, Pint tries static analysis for the verification. If
     non-conclusive, it can fallback to exact model-checking.
 
-    :param goal: goal (e.g., ``"a=1"``)
+    :param goal: goal specification (e.g., ``"a=1"``)
     :type goal: str or list(str) or .Goal
+    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
     :keyword str fallback: fallback to exact model-checking if static analysis
         is not conclusive. Supported model-checkers are: ``"its"``, ``"nusmv"``,
         and ``"mole"``.
@@ -324,7 +341,7 @@ def reachability(self, goal=None, fallback="its", **kwgoal):
     output = ternary(json.loads(output))
     if output == Inconc and fallback is not None:
         info("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
-        cp = _run_tool("pint-%s" % fallback, goal=goal, input_model=self,
+        cp = _run_tool("pint-%s" % fallback, goal, input_model=self,
                         reduce_for_goal=goal)
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
@@ -338,7 +355,7 @@ def reachability(self, goal=None, fallback="its", **kwgoal):
 #
 
 @modeltool
-def local_causality_graph(self, kind="full", goal=None):
+def local_causality_graph(self, kind="full", goal=None, **kwgoal):
     """
     Computes the Local Causality Graph (LCG) of type `kind`.
 
@@ -353,14 +370,15 @@ def local_causality_graph(self, kind="full", goal=None):
         * ``"worth"``: LCG used for `goal`-oriented reduction (see
           :py:meth:`.reduce`)
 
-    :keyword str goal: goal (e.g., ``"a=1"``) when `kind` is not ``"full"``.
+    :param goal: goal specification (e.g., ``"a=1"``) when `kind` is not ``"full"``.
+    :type goal: str or list(str) or .Goal
+    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
     :rtype: NetworkX multigraph (`nx.MultiDiGraph <http://networkx.readthedocs.io/en/stable/reference/classes.multidigraph.html>`_)
 
     .. seealso: methods :py:meth:`.full_lcg`, :py:meth:`.simple_lcg`, :py:meth:`.worth_lcg`, :py:meth:`.saturated_lcg`
     """
     assert kind in ["verbose,","trimmed","saturated","worth","full"]
-    if kind != "full" and goal is None:
-        raise ValueError("goal cannot be None with %s LCG" % kind)
+    goal = Goal.from_arg(goal, **kwgoal) if kind != "full" else None
     args = ["-t", kind, "-o", "-"]
     if goal:
         args.append(goal)
@@ -375,23 +393,23 @@ def full_lcg(self):
     """
     return local_causality_graph(self, "full")
 @modeltool
-def simple_lcg(self, goal):
+def simple_lcg(self, goal=None, **kwgoal):
     """
     Shortcut for :py:meth:`.local_causality_graph` with `kind="trimmed"`
     """
-    return local_causality_graph(self, "trimmed", goal)
+    return local_causality_graph(self, "trimmed", goal=goal, **kwgoal)
 @modeltool
 def worth_lcg(self, goal):
     """
     Shortcut for :py:meth:`.local_causality_graph` with `kind="worth"`
     """
-    return local_causality_graph(self, "worth", goal)
+    return local_causality_graph(self, "worth", goal=goal, **kwgoal)
 @modeltool
 def saturated_lcg(self, goal):
     """
     Shortcut for :py:meth:`.local_causality_graph` with `kind="saturated"`
     """
-    return local_causality_graph(self, "saturated", goal)
+    return local_causality_graph(self, "saturated", goal=goal, **kwgoal)
 
 
 #

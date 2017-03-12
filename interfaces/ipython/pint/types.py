@@ -140,6 +140,9 @@ class Goal:
     If instanciated with keywords, the goal is a single sub-state where the keys
     correspond to the automata and the values their local states.
 
+    Finally, alternative goals can be constructed using the operator ``|`` on
+    the instanciated individual goals (see :py:meth:`Goal.__or__`).
+
 
     Examples:
 
@@ -149,6 +152,7 @@ class Goal:
     >>> Goal("a=1,b=1")    # equivalent to above
     >>> Goal("a=1", "b=1") # sequence of simple goals
     >>> Goal({"a": 1, "b": 1}, {"a": 0})    # sequence of sub-state goals
+    >>> Goal(a=1) | Goal(b=1)  # alternative goals
     """
     def __init__(self, *args, **kwargs):
         if args and kwargs:
@@ -171,13 +175,21 @@ class Goal:
                 raise TypeError("Goal: do not support %s as argument" % type(a))
 
         if args:
-            self.__goals = [goal_of_arg(arg) for arg in args]
+            if isinstance(args[0], Goal):
+                self.__goals = []
+                for arg in args:
+                    if not isinstance(arg, Goal):
+                        raise TypeError("Cannot mix Goal with other types in arguments")
+                    self.__goals += arg.__goals
+            else:
+                self.__goals = [[goal_of_arg(arg) for arg in args]]
         if kwargs:
-            self.__goals = [kwargs]
+            self.__goals = [[kwargs]]
 
-        self.__automata = frozenset()
-        for g in self.__goals:
-            self.__automata.update(g.keys())
+        self.__automata = set()
+        for gs in self.__goals:
+            for g in gs:
+                self.__automata.update(g.keys())
 
     @classmethod
     def from_arg(celf, arg, **kwargs):
@@ -185,9 +197,9 @@ class Goal:
         Returns a `Goal` instance corresponding to `arg`
         """
         if isinstance(arg, celf):
-            return celf
+            return arg
         elif isinstance(arg, str):
-            return celf(str)
+            return celf(arg)
         elif isinstance(arg, list):
             return celf(*arg)
         elif arg is None:
@@ -195,27 +207,46 @@ class Goal:
         else:
             raise TypeError("Cannot convert a %s to %s" % (type(arg), celf))
 
+    def __or__(g1, g2):
+        """
+        Construction of *alternative* goals: the returned goal consists of the
+        disjunction of `g1` and `g2` (at least one of the two goals have to be
+        reached).
+
+        :rtype: Goal
+        """
+        return Goal(g1, g2)
+
     @property
     def automata(self):
         """
         Returns the set of automata that are part of the goal specification
         """
-        return self.__automata
+        return self.__automata.copy()
 
     @property
     def is_simple_goal(self):
         """
         ``True`` iff the goal is only the local state of one automaton
         """
-        return len(self.__goals) == 1 and len(self.__goals[0]) == 1
+        return len(self.__goals) == 1 \
+            and len(self.__goals[0]) == 1 \
+            and len(self.__goals[0][0]) == 1 \
 
-    def pint_args(self):
+    def to_pint(self):
         """
-        Returns the list of arguments to append to Pint commands for goal
-        specification
+        Returns the argument to append to Pint commands for goal specification
         """
-        return [",".join(["%s=%s" % ai for ai in g.items()]) \
-                    for g in self.__goals]
+        args = []
+        for gs in self.__goals:
+            if args:
+                args.append("or")
+            args += [",".join(["%s=%s" % ai for ai in g.items()]) \
+                        for g in gs]
+        return " ".join(args)
+
+    def __str__(self):
+        return self.to_pint()
 
 
 __all__ = [
