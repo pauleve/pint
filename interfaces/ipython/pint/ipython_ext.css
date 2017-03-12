@@ -1,0 +1,10 @@
+div#pint-toolbar:before {
+    content: "Pint";
+    font-variant: small-caps;
+    float: left;
+    margin-right: 1em;
+    margin-top: 0.2em;
+}
+div#pint-toolbar {
+    display: block;
+}
