@@ -17,6 +17,7 @@ and opt_bifurcations = ref false
 and bifurcations_mode_choices = ["ua";"mole+ua"]
 and opt_bifurcations_mode = ref "ua"
 and opt_oneshot_mutations_cut = ref 0
+and opt_ignore_automata = ref SSet.empty
 
 let parse_automata_set =
 	An_input.parse_string An_parser.automata_set
@@ -39,6 +40,9 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"\tCompute requirements for all initial state");
         ("--oneshot-mutations-for-cut", Arg.Set_int opt_oneshot_mutations_cut,
             "\tCompute mutations for making goal impossible");
+        ("--ignore-automata",
+            arg_string_set parse_automata_set opt_ignore_automata,
+            "a,b,..\tIgnore given automata for cutsets or mutations");
 	]
 
 let args, abort = An_cli.parse cmdopts usage_msg
@@ -142,10 +146,13 @@ let cutsets n =
 	prerr_endline ("#procs = "^string_of_int gA#count_procs);
 	prerr_endline ("#objs = "^string_of_int gA#count_objs)
 	) in
+    let exclude_localstate (a,_) =
+        SSet.mem a !opt_ignore_automata
+    in
 	let exclude_localstate =
 		if !opt_cutsets_noinit then
-			fun ai -> ctx_has_proc ai ctx
-		else fun _ -> false
+			fun ai -> exclude_localstate ai || ctx_has_proc ai ctx
+		else exclude_localstate
 	in
     let (d_nkp, index_proc) = cutsets gA n exclude_localstate gA#leafs
 	in
@@ -236,6 +243,7 @@ let _ =
 	(if do_requirements then requirements !opt_req_automata !opt_req_universal);
     (if !opt_oneshot_mutations_cut > 0 then
         let sols = An_reprogramming.ua_oneshot_mutations_for_cut
+                        ~ignore:!opt_ignore_automata
                         (an,ctx) goal !opt_oneshot_mutations_cut
         in
         output_lss_list sols
