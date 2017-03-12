@@ -163,8 +163,15 @@ def save_as(self, filename):
     assert ext in ext2format, "File extension is not supported"
     return export(self, ext2format[ext], output=filename)
 
+def _model_modification(self, args):
+    output = new_output_file(ext="an")
+    args += ["-o", output]
+    _run_tool("pint-export", *args, input_model=self, stdout=None)
+    from .model import FileModel
+    return FileModel(output)
+
 @modeltool
-def reduce(self, goal, squeeze=True, squeeze_preserve=None, **kwgoal):
+def reduce_for_goal(self, goal=None, squeeze=True, squeeze_preserve=None, **kwgoal):
     """
     Compute the goal-oriented reduction of the automata network.
     The reduction removes local transitions that are guaranteed to never
@@ -190,23 +197,64 @@ def reduce(self, goal, squeeze=True, squeeze_preserve=None, **kwgoal):
         network.
 
     Example:
-    >>> red = m.reduce("g=1")
+    >>> redm = m.reduce_for_goal("g=1")
     """
     goal = Goal.from_arg(goal, **kwgoal)
 
-    output = new_output_file(ext="an")
-    args = ["-o", output,
-        "--reduce-for-goal", goal]
+    args = ["--reduce-for-goal", goal.to_pint()]
     if squeeze:
         args.append("--squeeze")
         if squeeze_preserve:
             for a in squeeze_preserve:
                 args += ["--squeeze-preserve", a]
-    _run_tool("pint-export", *args, input_model=self, stdout=None)
+    fm = _model_modification(self, args)
     if IN_IPYTHON:
-        display(FileLink(output))
-    from .self import FileModel
-    return FileModel(output)
+        display(FileLink(fm.filename))
+    return fm
+
+@modeltool
+def lock(self, substate={}, **kwstate):
+    """
+    Returns the AN where the specified automata are lock to the given local state.
+    The initial state is modified accordingly.
+
+    :param substate: local states to lock.
+    :type substate: list(tuple(str,int)) or dict[str,int]
+    :keyword kwstate: complementary specification of local states.
+    :returns: a new :py:class:`.FileModel` instance for the modified AN.
+    """
+    lockstate = dict(**kwstate)
+    if hasattr(substate, "items"):
+        substate = substate.items()
+    for a,i in substate:
+        assert (isinstance(i, (str, int)) and \
+            (not a in lockstate or lockstate[a] == i)), \
+            "Cannot lock an automaton to different local states"
+        lockstate[a] = i
+
+    args = ["--lock", pint_of_localstates(lockstate.items())]
+
+    return _model_modification(self, args)
+
+
+@modeltool
+def disable(self, local_states=[], **kwstate):
+    """
+    Returns the AN where all local transitions involving specified local states
+    have been removed.
+
+    :param local_states: local states to disable.
+    :type local_states: list(tuple(str,int)) or dict[str,int]
+    :keyword kwstate: complementary specification of local states.
+    :returns: a new :py:class:`.FileModel` instance for the modified AN.
+    """
+    if hasattr(local_states, "items"):
+        local_states = local_states.items()
+    local_states += kwstate.items()
+
+    args = ["--disable", pint_of_localstates(local_states)]
+
+    return _model_modification(self, args)
 
 
 #

@@ -247,10 +247,29 @@ class Goal:
         return self.to_pint()
 
 
+def pint_of_localstates(items):
+    """
+    Returns Pint text representation of a list of local states
+    """
+    def fmt_values(i):
+        if type(i) is int:
+            return [str(i)]
+        elif type(i) is str:
+            return ["\"%s\"" % i]
+        else:
+            return [fmt_values(j)[0] for j in i]
+    def pint_of_keyvalue(a,i):
+        return ["\"%s\"=%s" % (a,i) for i in fmt_values(i)]
+    lss = []
+    for a, i in items:
+        lss += pint_of_keyvalue(a,i)
+    return ",".join(lss)
+
 __all__ = [
     "Inconc", "ternary",
     "Conditions", "LocalTransition", "SynchronizedLocalTransitions",
     "local_transition_from_json",
     "Goal",
+    "pint_of_localstates",
 ]
 

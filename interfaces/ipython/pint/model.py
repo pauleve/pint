@@ -155,20 +155,8 @@ class InitialState(dict):
         :returns: Pint text representation of the state
         :keyword full: if `True`, also output initial states being ``0``.
         """
-        def fmt_values(i):
-            if type(i) is int:
-                return [str(i)]
-            elif type(i) is str:
-                return ["\"%s\"" % i]
-            else:
-                return [fmt_values(j)[0] for j in i]
-        def pint_of_keyvalue(a,i):
-            return ["\"%s\"=%s" % (a,i) for i in fmt_values(i)]
-        lss = []
         items = self.items() if full else self.__override.items()
-        for a, i in items:
-            lss += pint_of_keyvalue(a,i)
-        return ",".join(lss)
+        return pint_of_localstates(items)
 
 
 def InfoFields(*fields):
