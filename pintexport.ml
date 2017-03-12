@@ -15,13 +15,19 @@ let make_partial spec (an, ctx) =
 	in
 	an, ctx
 
+let make_goal spec (an,ctx) =
+    fst (An_cli.prepare_goal (an, ctx) [spec])
+
 let opt_reduction_skip_oa = ref false
-let make_reduce_for_goal goal (an, ctx) =
-	let goal = [An_cli.parse_local_state an goal]
+let make_reduce_for_goal spec (an, ctx) =
+    let (an, ctx), goal = An_cli.prepare_goal (an, ctx) [spec]
 	in
-	let env = An_reach.init_env an ctx goal
+	let env = An_reach.init_env an ctx [goal]
 	in
-	An_reach.reduced_an ~skip_oa:!opt_reduction_skip_oa env, ctx
+	let an = An_reach.reduced_an ~skip_oa:!opt_reduction_skip_oa env
+    in
+    remove_automata (an,ctx) (SSet.singleton (fst goal))
+
 
 let opt_squeeze_preserve = ref SSet.empty
 let make_squeeze (an, ctx) =
@@ -70,9 +76,12 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		("--partial", Arg.String
 			(fun spec -> push_transform (make_partial spec)),
 			"a,b,..\tConsider only the sub-network composed of a, b, ..");
+        ("--inject-goal", Arg.String
+            (fun goal -> push_transform (make_goal goal)),
+            "<goal>\tInject the goal automaton - mainly for debugging purpose");
 		("--reduce-for-goal", Arg.String
 			(fun goal -> push_transform (make_reduce_for_goal goal)),
-			"\"a\"=i\tRemove transitions that never occur in minimal traces for reaching the given local state");
+			"<goal>\tRemove transitions that never occur in minimal traces for reaching the given local state");
 		("--test-partial-reduction", Arg.Set opt_reduction_skip_oa,
 			"(for benchmarks only) do not use the over-approximation of the goal-oriented reduction");
 		("--simplify", Arg.Unit (fun () -> push_transform make_simplify),
