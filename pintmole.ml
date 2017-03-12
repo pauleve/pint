@@ -21,11 +21,9 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let an, ctx = An_cli.process_input ()
 
-let goal = match args with
-	  [str_s] -> An_cli.parse_local_state_list an str_s
-	| _ -> abort ()
+let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args
 
-let conds = List.fold_left (fun conds (a,i) -> SMap.add a i conds) SMap.empty goal
+let conds = List.fold_left (fun conds (a,i) -> SMap.add a i conds) SMap.empty [goal]
 
 let opts = {
 	contextual_ptnet = false;

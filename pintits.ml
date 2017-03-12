@@ -31,9 +31,7 @@ let _ = if !opt_tool <> "ctl" && !opt_iscutset <> "" then abort ()
 
 let an, ctx = An_cli.process_input ()
 
-let goal = match args with
-	  [str_s] -> An_cli.parse_local_state_list an str_s
-	| _ -> abort ()
+let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args
 
 let map = Hashtbl.create 50
 
@@ -68,7 +66,7 @@ let rec parse_its_reach cin =
         parse_its_reach cin
 
 let do_reach () =
-    let its_property = its_state goal
+    let its_property = its_state [goal]
     in
 	let cmdline = "its-reach -i "^itsfile^" -t ROMEO"
 		^" -reachable \""^its_property^"\""
@@ -92,13 +90,13 @@ let do_ctl () =
 	in
 	let ctl =
 		if !opt_iscutset = "" then
-			("EF ("^its_state goal^")")
+			("EF ("^its_state [goal]^")")
 		else
 			let sls = An_cli.parse_local_state_list an !opt_iscutset
 			in
 			let sls = List.map (fun ai -> "!"^its_state [ai]) sls
 			in
-			("!E(("^(String.concat " && " sls)^") U "^its_state goal^")")
+			("!E(("^(String.concat " && " sls)^") U "^its_state [goal]^")")
 	in
 	output_string itsctl_out (ctl^";\n");
 	close_out itsctl_out;
