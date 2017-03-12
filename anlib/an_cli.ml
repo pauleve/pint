@@ -74,10 +74,12 @@ let process_input () =
 	in
 	an, ctx
 
-let prepare_goal (an, ctx) args abort =
-	let sig_goal = List.map parse_sls_list args
+let prepare_goal (an, ctx) args =
+    let goal_spec = String.concat " " args
+    in
+    let sig_goal = An_input.parse_string An_parser.goals goal_spec
 	in
-	match sig_goal with [] -> abort ()
-	| [[(a,sig_i)]] -> (an, ctx), (a, get_automaton_state_id an a sig_i)
+	match sig_goal with [] | [[]] -> failwith "No goal specified."
+	| [[[(a,sig_i)]]] -> (an, ctx), (a, get_automaton_state_id an a sig_i)
 	| _ -> An_reach.inject_goal_automaton (an, ctx) sig_goal
 

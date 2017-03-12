@@ -45,7 +45,7 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let an, ctx = An_cli.process_input ()
 
-let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args abort
+let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args
 
 let do_cutsets = !opt_cutsets_n > 0
 
