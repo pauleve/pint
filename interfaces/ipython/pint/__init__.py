@@ -10,6 +10,7 @@ import os
 import subprocess
 
 from .cfg import *
+from .types import *
 from .model import *
 from .ui import *
 from .tools import *
