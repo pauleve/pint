@@ -131,12 +131,10 @@ class Goal:
     A goal can also be a sequence of sub-states.
 
     It can be instanciated either with arguments or keywords (but not both).
-
     If instanciated with arguments, each argument specifies a sub-state, and the
     goal is the sequence of these sub-states.
     A sub-state can be specified either by a string (in pint format), or by a
     `dict`-like object.
-
     If instanciated with keywords, the goal is a single sub-state where the keys
     correspond to the automata and the values their local states.
 
@@ -192,20 +190,20 @@ class Goal:
                 self.__automata.update(g.keys())
 
     @classmethod
-    def from_arg(celf, arg, **kwargs):
+    def from_arg(self, arg, **kwargs):
         """
         Returns a `Goal` instance corresponding to `arg`
         """
-        if isinstance(arg, celf):
+        if isinstance(arg, self):
             return arg
         elif isinstance(arg, str):
-            return celf(arg)
+            return self(arg)
         elif isinstance(arg, list):
-            return celf(*arg)
+            return self(*arg)
         elif arg is None:
-            return celf(**kwargs)
+            return self(**kwargs)
         else:
-            raise TypeError("Cannot convert a %s to %s" % (type(arg), celf))
+            raise TypeError("Cannot convert a %s to %s" % (type(arg), self))
 
     def __or__(g1, g2):
         """

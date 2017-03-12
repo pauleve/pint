@@ -181,7 +181,7 @@ def reduce(self, goal, squeeze=True, squeeze_preserve=None, **kwgoal):
 
     :param goal: goal specification (e.g., ``"a=1"``)
     :type goal: str or list(str) or .Goal
-    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
+    :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
     :param bool squeeze: if ``True`` (default), unused automata and local states
         are removed. Warning: this can lead to local state renaming.
     :param str list squeeze_preserve:
@@ -224,7 +224,7 @@ def cutsets(self, goal=None, maxsize=5, exclude_initial_state=True, **kwgoal):
 
     :param goal: goal specification (e.g., ``"a=1"``)
     :type goal: str or list(str) or .Goal
-    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
+    :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
     :keyword int maxsize: maximal cardinality of a cut-set.
     :keyword bool exclude_initial_state:
         if ``True`` (default), cut-sets can not be composed of initial local
@@ -256,7 +256,7 @@ def oneshot_mutations_for_cut(self, goal=None, maxsize=5, **kwgoal):
 
     :param goal: goal specification (e.g., ``"a=1"``)
     :type goal: str or list(str) or .Goal
-    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
+    :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
     :keyword int maxsize: maximal cardinality of returned sets.
     :rtype: TODO list
 
@@ -280,7 +280,7 @@ def bifurcations(self, goal=None, method="ua", **kwgoal):
 
     :param goal: goal specification (e.g., ``"a=1"``)
     :type goal: str or list(str) or .Goal
-    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
+    :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
     :keyword str method:
 
         * ``"exact"`` for complete identification of bifurcation transitions
@@ -318,7 +318,7 @@ def reachability(self, goal=None, fallback="its", **kwgoal):
 
     :param goal: goal specification (e.g., ``"a=1"``)
     :type goal: str or list(str) or .Goal
-    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
+    :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
     :keyword str fallback: fallback to exact model-checking if static analysis
         is not conclusive. Supported model-checkers are: ``"its"``, ``"nusmv"``,
         and ``"mole"``.
@@ -372,7 +372,7 @@ def local_causality_graph(self, kind="full", goal=None, **kwgoal):
 
     :param goal: goal specification (e.g., ``"a=1"``) when `kind` is not ``"full"``.
     :type goal: str or list(str) or .Goal
-    :keyword kwgoal: keywords for `.Goal` specification (instead of `goal` argument)
+    :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
     :rtype: NetworkX multigraph (`nx.MultiDiGraph <http://networkx.readthedocs.io/en/stable/reference/classes.multidigraph.html>`_)
 
     .. seealso: methods :py:meth:`.full_lcg`, :py:meth:`.simple_lcg`, :py:meth:`.worth_lcg`, :py:meth:`.saturated_lcg`
