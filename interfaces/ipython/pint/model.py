@@ -261,10 +261,11 @@ class Model(object):
         >>> m.having(HR=1).reachability("Tf1=1")
         """
         m = copy.copy(self)
+        m.initial_state = self.initial_state.copy()
+        args = []
         if initial_state:
-            m.initial_state = initial_state
-        if kwargs:
-            m.initial_state = m.initial_state.having(**kwargs)
+            args.append(initial_state)
+        m.initial_state.update(*args, **kwargs)
         return m
 
 

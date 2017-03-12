@@ -13,7 +13,7 @@ let aspf f = ASP_solver.pint_asp_abspath (Filename.concat "reprogramming" f)
     ONESHOT MUTATIONS FOR GOAL CUT
 ***)
 
-let ua_oneshot_mutations_for_cut (an, ctx) goal maxcard =
+let ua_oneshot_mutations_for_cut ?(ignore=SSet.empty) (an, ctx) goal maxcard =
 	let asp = ASP_solver.solver
         ~opts:"0 --project --conf=trendy --heuristic=domain --enum-mode=domRec --dom-mod=5,16"
         ~inputs:["-"; aspf "ua_oneshot_mutations_for_cut.lp"] ()
@@ -34,6 +34,11 @@ let ua_oneshot_mutations_for_cut (an, ctx) goal maxcard =
 	(* push goal *)
 	let asp = decl asp ("goal("^automaton_asp (fst goal)^","^string_of_int (snd goal)^")")
 	in
+    let fold_ignore a asp =
+        decl asp ("ignore("^automaton_asp a^")")
+    in
+    let asp = SSet.fold fold_ignore ignore asp
+    in
     let asp = decl asp ("#const maxcard = "^string_of_int maxcard)
     in
     let solutions = ASP_solver.all_solutions asp

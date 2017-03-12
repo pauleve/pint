@@ -262,7 +262,8 @@ def disable(self, local_states=[], **kwstate):
 #
 
 @modeltool
-def cutsets(self, goal=None, maxsize=5, exclude_initial_state=True, **kwgoal):
+def cutsets(self, goal=None, maxsize=5, exclude=[], exclude_initial_state=True,
+                exclude_goal_automata=True, **kwgoal):
     """
     Computes sets of local states which are used in all the paths from the
     initial state to `goal`:
@@ -270,14 +271,21 @@ def cutsets(self, goal=None, maxsize=5, exclude_initial_state=True, **kwgoal):
     transitions are removed), then it is impossible to reach `goal` from the
     initial state.
 
+    Elements of the returned lists can be notably used as argument for methods
+    :py:meth:`.Model.having` and :py:meth:`.disable`.
+
     :param goal: goal specification (e.g., ``"a=1"``)
     :type goal: str or list(str) or .Goal
     :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
     :keyword int maxsize: maximal cardinality of a cut-set.
+    :keyword set(str) exclude:
+        set/list of automata to exclude from the solutions
     :keyword bool exclude_initial_state:
         if ``True`` (default), cut-sets can not be composed of initial local
         states.
-    :rtype: TODO list
+    :keyword bool exclude_goal_automata:
+        exclude automata involved in the goal specification
+    :rtype: list(dict[str,int or int list])
 
     .. seealso:: method :py:meth:`.oneshot_mutations_for_cut`, TODO
     """
@@ -291,22 +299,42 @@ are all valid, but they may be non-minimal, and some cut-sets may be missed.")
 
     if exclude_initial_state:
         args.append("--no-init-cutsets")
+
+    if isinstance(exclude, str):
+        exclude = set([exclude])
+    else:
+        exclude = set(exclude)
+    if exclude_goal_automata:
+        exclude.update(goal.automata)
+    if exclude:
+        args += ["--ignore-automata", ",".join(exclude)]
+
     cp = _run_tool("pint-reach", "--cutsets", str(maxsize), goal, *args,
                 input_model=self)
     output = cp.stdout.decode()
     return json.loads(output)
 
 @modeltool
-def oneshot_mutations_for_cut(self, goal=None, maxsize=5, **kwgoal):
+def oneshot_mutations_for_cut(self, goal=None, maxsize=5,
+        exclude=[],
+        exclude_goal_automata=True,
+        **kwgoal):
     """
     Computes sets of local states for which the locking in the initial state
     ensures that `goal` is impossible to reach.
+
+    Elements of the returned lists can be notably used as argument for methods
+    :py:meth:`.Model.having` and :py:meth:`.lock`.
 
     :param goal: goal specification (e.g., ``"a=1"``)
     :type goal: str or list(str) or .Goal
     :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
     :keyword int maxsize: maximal cardinality of returned sets.
-    :rtype: TODO list
+    :keyword set(str) exclude:
+        set/list of automata to exclude from the solutions
+    :keyword bool exclude_goal_automata:
+        exclude automata involved in the goal specification
+    :rtype: list(dict[str,int])
 
     .. seealso:: TODO
     """
@@ -317,6 +345,16 @@ are all valid, but they may be non-minimal, and some solutions may be missed.")
     info("Limiting solutions to mutations of at most %s automata. Use `maxsize` argument to change." % maxsize)
 
     args = ["--oneshot-mutations-for-cut", str(maxsize)]
+
+    if isinstance(exclude, str):
+        exclude = set([exclude])
+    else:
+        exclude = set(exclude)
+    if exclude_goal_automata:
+        exclude.update(goal.automata)
+    if exclude:
+        args += ["--ignore-automata", ",".join(exclude)]
+
     cp = _run_tool("pint-reach", goal, *args, input_model=self)
     output = cp.stdout.decode()
     return json.loads(output)

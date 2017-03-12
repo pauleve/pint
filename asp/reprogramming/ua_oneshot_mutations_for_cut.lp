@@ -19,8 +19,10 @@ oa_lcg(reach,goal,ls(A,I)) :- goal(A,I).
 oa_init(reach,A,I) :- lock(A,I).
 oa_init(reach,A,I) :- init(s0,A,I),not lock(A,_).
 
+ignore(A) :- goal(A,_).
+
 % lock local states
-{ lock(A,I) : ls(A,I) } maxcard.
+{ lock(A,I) : ls(A,I),not ignore(A) } maxcard.
 % at most one lock per automaton
 :- lock(A,I),lock(A,J),I!=J.
 
