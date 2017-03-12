@@ -36,9 +36,7 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let an, ctx = An_cli.process_input ()
 
-let goal = match args with
-	  [str_ls] -> An_cli.parse_local_state an str_ls
-	| _ -> abort ()
+let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args
 
 let map = Hashtbl.create 50
 

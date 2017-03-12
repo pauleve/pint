@@ -273,6 +273,41 @@ let partial an sset =
 	Hashtbl.iter register_condition an.conditions;
 	an'
 
+let remove_automata (an,ctx) aset =
+    let an' = empty_an ~size:(Hashtbl.length an.automata - SSet.cardinal aset,
+            Hashtbl.length an.transitions) ()
+	in
+	let match_lsset trcond =
+		not (SMap.exists (fun a _ -> SSet.mem a aset) trcond)
+	in
+	let register_localstate a (sigs,i) =
+		Hashtbl.add an'.transitions (a,i) ISet.empty
+	in
+	let register_automaton a def =
+		if not (SSet.mem a aset) then (
+            Hashtbl.add an'.automata a def;
+			List.iter (register_localstate a) def)
+	and register_condition (a,i,j) lsset =
+		if not (SSet.mem a aset) && match_lsset lsset then
+			let trs =  Hashtbl.find an'.transitions (a,i)
+			in
+			(Hashtbl.replace an'.transitions (a,i) (ISet.add j trs);
+			Hashtbl.add an'.conditions (a,i,j) lsset)
+	in
+	Hashtbl.iter register_automaton an.automata ;
+	Hashtbl.iter register_condition an.conditions;
+    let match_sync_tr (trs, trcond) =
+        List.for_all (fun (a,_,_) -> not (SSet.mem a aset)) trs
+            && match_lsset trcond
+    in
+    let sync_transitions = List.filter match_sync_tr an.sync_transitions
+    in
+    {automata = an'.automata;
+        transitions = an'.transitions;
+        conditions = an'.conditions;
+        sync_transitions = sync_transitions},
+    SMap.filter (fun a _ -> not (SSet.mem a aset)) ctx
+
 let restrict an ctx =
 	let an' = empty_an ~size:(count_automata an, 50) ()
 	in

@@ -25,17 +25,30 @@ let init_env an ctx goal =
 	}
 
 
-
-let inject_goal_automaton (an, ctx) sig_conds =
+let inject_goal_automaton (an, ctx) sig_goals =
+    let ng = List.map List.length sig_goals
+    in
+    let ig = List.fold_left (+) 1 ng - List.length sig_goals
+    in
 	let a = "_pint_goal"
-	and sigstates = StateId 0::(List.mapi (fun i _ -> StateId (i+1)) sig_conds)
-	and n = List.length sig_conds
+	and sigstates = List.map (fun i -> StateId i) (Util.range 0 ig)
 	in
-	declare_automaton an a sigstates;
-	List.iteri (fun i sig_cond ->
-		declare_transition an a (StateId i) (StateId (i+1)) sig_cond) sig_conds;
+    declare_automaton an a sigstates;
+    let fold_goals i0 sig_goal =
+        let n = List.length sig_goal
+        in
+        let register_step i sig_cond =
+            let iorig = if i == 0 then 0 else i0+i
+            and idest = if i == n-1 then ig else i0+i+1
+            in
+            declare_transition an a (StateId iorig) (StateId (idest)) sig_cond
+        in
+        List.iteri register_step sig_goal;
+        n-1
+    in
+    ignore (List.fold_left fold_goals 0 sig_goals);
 	let ia0 = get_automaton_state_id an a (StateId 0)
-	and itop = get_automaton_state_id an a (StateId n)
+	and itop = get_automaton_state_id an a (StateId ig)
 	in
 	(an, SMap.add a (ISet.singleton ia0) ctx), (a, itop)
 

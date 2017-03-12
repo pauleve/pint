@@ -18,7 +18,7 @@ open AutomataNetwork
 %token <char> Sign
 
 %left IN
-%left AND
+%left AND COMMA
 %left OR
 %left NOT
 
@@ -33,6 +33,9 @@ open AutomataNetwork
 
 %start automata_set
 %type <PintTypes.SSet.t> automata_set
+
+%start goals
+%type <AutomataNetwork.sig_local_state list list list> goals
 
 %%
 
@@ -111,6 +114,17 @@ automata_set:
   automaton { SSet.singleton $1 }
 | automaton Eof { SSet.singleton $1 }
 | automaton COMMA automata_set { SSet.add $1 $3 }
+;
+
+goal:
+  local_state_list { $1::[] }
+| local_state_list goal { $1::$2 }
+;
+
+goals:
+  goal  { $1::[] }
+| goal Eof { $1::[] }
+| goal OR goals { $1::$3 }
 ;
 
 %%
