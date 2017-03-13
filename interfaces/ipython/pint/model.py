@@ -417,6 +417,9 @@ def load(filename=None, format=None, simplify=True):
     case, it will be downloaded locally first, and then processed as a local
     file.
 
+    Within IPython/Jupyter web notebook, the `filename` argument can be omited:
+    in that case, a file upload form will be displayed.
+
     Supported file extensions:
 
     * ``.an`` (automata network), native Pint file format;
