@@ -8,3 +8,7 @@ div#pint-toolbar:before {
 div#pint-toolbar {
     display: block;
 }
+#pint_menu {
+    background-color: white;
+    color: red;
+}

@@ -1,8 +1,10 @@
 
+import base64
 import copy
 import json
 import operator
 import os
+import random
 import re
 import subprocess
 import tempfile
@@ -18,7 +20,8 @@ from .ui import *
 from .utils import *
 
 if IN_IPYTHON:
-    from IPython.display import display, FileLink
+    from IPython.display import display, FileLink, HTML
+    from .ipython_helpers import disp_jupyter_js
 
 class InitialState(dict):
     """
@@ -391,7 +394,17 @@ ext2format = {
     "zginml": "zginml",
 }
 
-def load(filename, format=None, simplify=True):
+if IN_IPYTHON:
+    def _js_load_callback(data):
+        filename = new_output_file(suffix=data["name"])
+        content = base64.b64decode(data["content"].split(",")[1])
+        content = content.decode("utf-8")
+        with open(filename, 'w') as f:
+            f.write(content)
+        print(filename,end='')
+        return filename
+
+def load(filename=None, format=None, simplify=True):
     """
     Load a Pint model from given filename.
     The format is guessed from the filename extension, but can be enforced with
@@ -431,6 +444,15 @@ def load(filename, format=None, simplify=True):
     >>> m2 = pint.load("http://ginsim.org/sites/default/files/Frontiers-Th-Full-model-annotated.zginml")
     >>> m3 = pint.load("https://cellcollective.org/#4705/septation-initiation-network")
     """
+
+    if filename is None:
+        if IN_IPYTHON:
+            ssid = "pint-loading-%d" % random.randint(1, 10**7)
+            display(HTML("""<input type="file" id="%s"
+                   onchange="load_with_upload(Jupyter, '%s', this)">""" % (ssid,ssid)))
+            return
+        else:
+            raise TypeError("missing filename argument")
 
     match_cellcollective = re.search("https?://[^/]*\\bcellcollective\.org/#(\\d+)\\b", filename)
     if match_cellcollective:
@@ -472,4 +494,6 @@ def load(filename, format=None, simplify=True):
 __all__ = ["load",
     "Model", "FileModel", "InMemoryModel",
     "InitialState"]
+if IN_IPYTHON:
+    __all__.append("_js_load_callback")
 

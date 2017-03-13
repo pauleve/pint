@@ -10,9 +10,8 @@ def enable_dbg():
     """
     CFG["dbg"] = True
     if IN_IPYTHON:
-        display(HTML("""<script type="text/javascript">
-            pint_ui_debug_enabled(true);
-        </script>"""))
+        from .ipython_helpers import disp_jupyter_js
+        disp_jupyter_js("pint_ui_debug_enabled(true);")
 
 def disable_dbg():
     """
@@ -20,9 +19,8 @@ def disable_dbg():
     """
     CFG["dbg"] = False
     if IN_IPYTHON:
-        display(HTML("""<script type="text/javascript">
-            pint_ui_debug_enabled(false);
-        </script>"""))
+        from .ipython_helpers import disp_jupyter_js
+        disp_jupyter_js("pint_ui_debug_enabled(false);")
 
 def dbg(msg):
     """

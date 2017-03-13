@@ -25,6 +25,13 @@ def install_default_formatters():
     svg_formatter = ip.display_formatter.formatters["image/svg+xml"]
     svg_formatter.for_type(nx.Graph, svg_of_graph)
 
+def jupyter_js(data, args=""):
+    return """<script type="text/javascript" %s>
+        if (typeof Jupyter != 'undefined') {
+            %s }</script>""" % (args, data)
+
+def disp_jupyter_js(data):
+    display(HTML(jupyter_js(data)))
 
 def jupyter_extension():
     """
@@ -35,10 +42,9 @@ def jupyter_extension():
     with open(cssfile) as f:
         css = """<style type="text/css">%s</style>""" % f.read()
     with open(jsfile) as f:
-        js = """<script type="text/javascript">
-        %s
-        pint_ui_debug_enabled(%s);
-        </script>""" % (f.read(), "true" if CFG["dbg"] else "false")
+        js = jupyter_js("%s pint_ui_debug_enabled(%s)" % \
+            (f.read(), "true" if CFG["dbg"] else "false"),
+            'class="to-be-removed"')
     display(HTML("%s%s" % (css, js)))
 
 def ipython_install():
