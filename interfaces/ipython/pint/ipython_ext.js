@@ -60,8 +60,66 @@ function pint_extension(Jupyter) {
             {name:"Upload model",
                 snippet:["model = pint.load()"]},
             "---",
+            {name:"Model description",
+                "sub-menu": [
+                {name: "Dependency graph",
+                    snippet:['model.dependency_graph()']},
+                {name: "Model summary",
+                    snippet:['model.summary()']}
+                ]},
+            "---",
+            {name:"Model transformation",
+                "sub-menu": [
+                {name: "Change initial state",
+                    snippet:['model.having(a=1,b=1)']},
+                {name: "Lock automata (mutations)",
+                    snippet:['model.lock({"a":1,"b":0})']},
+                {name: "Disable local states",
+                    snippet:['model.disable({"a":1,"b":1})']},
+                {name: "Goal-oriented reduction",
+                    snippet:['model.reduce_for_goal("a=1")']}
+                ]},
+            "---",
             {name:"Compute mutations for cutting goal reachability",
-                snippet:['model.oneshot_mutations_for_cut("a=1")']}
+                snippet:['model.oneshot_mutations_for_cut("a=1")']},
+            {name:"Compute cut sets of paths to goal",
+                snippet:['model.cutsets("a=1")']},
+            {name:"Compute bifurcation transitions from goal",
+                snippet:['model.bifurcations("a=1")']},
+            {name:"Verify reachability of goal",
+                snippet:['model.reachability("a=1")']},
+            "---",
+            {name:"Local Causality Graph",
+                "sub-menu": [
+                {name: "Full LCG", snippet:['model.full_lcg()']},
+                {name: "Simple LCG for goal reachability over-approximation",
+                    snippet:['model.simple_lcg("a=1")']},
+                {name: "Saturated LCG for goal reachability under-approximation",
+                    snippet:['model.saturated_lcg("a=1")']},
+                {name: "Worth LCG for goal-oriented model reduction",
+                    snippet:['model.worth_lcg("a=1")']}
+                ]},
+            "---",
+            {name:"State graph analysis",
+                "sub-menu": [
+                {name: "Count reachable states",
+                    snippet:['model.count_reachable_set()']},
+                {name: "Reachable state graph",
+                    snippet:['model.reachable_state_graph()']},
+                {name: "Reachable attractors",
+                    snippet:['model.reachable_attractors()']},
+                {name: "Fixpoints",
+                    snippet:['model.fixpoints()']}
+                ]},
+            "---",
+            {name:"Goal specification",
+                "sub-menu": [
+                {name: "Simple goal", snippet:['"a=1"']},
+                {name: "Sub-state goal", snippet:['"a=1,b=1"']},
+                {name: "Sequence of simple goals", snippet:['"a=1","b=1"']},
+                {name: "Sequence of sub-state goals", snippet:['"a=1,c=1","b=1,d=0"']},
+                {name: "Alternative goals", snippet:['pint.Goal("a=1")|pint.Goal("b=1")']}
+                ]}
         ]
     }
 
@@ -207,7 +265,9 @@ function pint_extension(Jupyter) {
             icon    : "fa-upload",
             help    : "Upload model",
             handler : function() {
-                insert_snippet_code("model = pint.load()");
+                var cell = Jupyter.notebook.get_selected_cell();
+                cell.set_text('model = pint.load()');
+                cell.focus_editor();
             }
         }, "upload", prefix);
         var act_enable_debug = Jupyter.actions.register({

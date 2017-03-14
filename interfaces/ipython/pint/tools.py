@@ -503,14 +503,14 @@ def saturated_lcg(self, goal):
 #
 
 @modeltool
-def count_reachable_states(model):
+def count_reachable_states(self):
     """
     Counts the exact number of states reachable from :py:attr:`.initial_state`.
     Uses an explicit state space approach.
 
     :rtype: int
     """
-    cp = _run_tool("pint-sg", "--count-reachable", input_model=model)
+    cp = _run_tool("pint-sg", "--count-reachable", input_model=self)
     output = cp.stdout.decode()
     return json.loads(output)
 
@@ -532,7 +532,7 @@ def summary(model):
     return json.loads(output)
 
 @modeltool
-def reachable_stategraph(model):
+def reachable_stategraph(self):
     """
     Returns the reachable state graph from :py:attr:`.initial_state`.
 
@@ -540,13 +540,13 @@ def reachable_stategraph(model):
     """
     dotfile = new_output_file(ext="dot")
     _run_tool("pint-sg", "--state-graph", dotfile,
-                input_model=model, stdout=None)
+                input_model=self, stdout=None)
     g = nx.nx_agraph.read_dot(dotfile)
     os.unlink(dotfile)
     return g
 
 @modeltool
-def reachable_attractors(model):
+def reachable_attractors(self):
     """
     Returns the complete list of attractors reachable from
     :py:attr:`.initial_state`.
@@ -561,7 +561,7 @@ def reachable_attractors(model):
     * ``"sample"``: state (represented as `dict`) belonging to the attractor,
       i.e., either the fixpoint, or one of the state in the cycle attractor.
     """
-    cp = _run_tool("pint-sg", "--reachable-attractors", input_model=model)
+    cp = _run_tool("pint-sg", "--reachable-attractors", input_model=self)
     output = cp.stdout.decode()
     return json.loads(output)
 
@@ -585,7 +585,7 @@ def fixpoints(self):
 # misc
 #
 @modeltool
-def dependency_graph(model):
+def dependency_graph(self):
     """
     Returns the dependency graph between automata:
     there is an edge from `a` to `b` if some local transitions of `b` depends on `a`.
@@ -595,8 +595,8 @@ def dependency_graph(model):
     :rtype: NetworkX digraph (`nx.DiGraph <http://networkx.readthedocs.io/en/stable/reference/classes.digraph.html>`_)
     """
     g = nx.DiGraph()
-    g.add_nodes_from(model.automata)
-    for tr in model.local_transitions:
+    g.add_nodes_from(self.automata)
+    for tr in self.local_transitions:
         for a in tr.modified_automata:
             for b in tr.conds.keys():
                 g.add_edge(b, a)
