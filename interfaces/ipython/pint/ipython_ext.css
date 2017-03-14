@@ -1,12 +1,15 @@
 div#pint-toolbar:before {
     content: "Pint";
-    font-variant: small-caps;
     float: left;
+    margin-left: 1em;
     margin-right: 1em;
     margin-top: 0.2em;
 }
 div#pint-toolbar {
-    display: block;
+    color: red;
+}
+div#pint-toolbar button {
+    color: red;
 }
 #pint_menu {
     background-color: white;

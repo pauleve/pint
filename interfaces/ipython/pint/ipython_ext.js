@@ -13,7 +13,6 @@ function load_with_upload(Jupyter, ssid, input) {
                 "pint.load(\""+filename+"\",$1)").replace('",)', '")')
         cell.set_text(code);
 
-        //cell.execute();
         Jupyter.notebook.select(cell_idx);
         Jupyter.notebook.execute_cell_and_select_below();
     }
@@ -31,7 +30,6 @@ function load_with_upload(Jupyter, ssid, input) {
                 content: e.target.result,
                 name: f.name
             };
-            IPython.notebook.kernel.execute("data = "+JSON.stringify(obj));
             var pycb = "pint._js_load_callback("+JSON.stringify(obj)+")"
             IPython.notebook.kernel.execute(pycb, {iopub: {output: callback}});
         };
@@ -66,6 +64,17 @@ function pint_extension(Jupyter) {
                     snippet:['model.dependency_graph()']},
                 {name: "Model summary",
                     snippet:['model.summary()']}
+                ]},
+            {name:"Model export",
+                "sub-menu": [
+                {name: "Pint native format (.an)",
+                    snippet:['model.export("an")']},
+                {name: "NuSMV model (.smv)",
+                    snippet:['model.export("nusmv")']},
+                {name: "Safe Petri net in PEP format (.ll)",
+                    snippet:['model.export("pep")']},
+                {name: "Safe Petri net in ROMEO format (.xml)",
+                    snippet:['model.export("romeo")']},
                 ]},
             "---",
             {name:"Model transformation",
