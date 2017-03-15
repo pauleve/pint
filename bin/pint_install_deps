@@ -16,7 +16,7 @@ is_64bits = platform.architecture()[0] == '64bit'
 
 def chmod_x(filename):
     st = os.stat(filename)
-    os.chmod(filename, st.st_mode | stat.S_IEXEC)
+    os.chmod(filename, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
 class Tool:
 
