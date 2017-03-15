@@ -1,0 +1,106 @@
+#!/usr/bin/env python
+
+import os
+import platform
+import shutil
+import stat
+import sys
+import tarfile
+
+try:
+    from urllib.request import urlretrieve
+except:
+    from urllib import urlretrieve
+
+is_64bits = platform.architecture()[0] == '64bit'
+
+def chmod_x(filename):
+    st = os.stat(filename)
+    os.chmod(filename, st.st_mode | stat.S_IEXEC)
+
+class Tool:
+
+    @classmethod
+    def is_installed(self):
+        return shutil.which(self.exe) is not None
+
+    @classmethod
+    def name(self):
+        return self.__name__.lower()
+
+
+class Clingo(Tool):
+    exe = "clingo"
+    def install_linux():
+        pass
+    def install_darwin():
+        pass
+
+class NuSMV(Tool):
+    exe = "NuSMV"
+    binfile_pat = "NuSMV-2.6.0-%s.tar.gz"
+
+    @classmethod
+    def install_linux(self, bindest):
+        binfile = self.binfile_pat % ("linux64" if is_64bits else "linux32")
+        self._install(binfile, bindest)
+
+    @classmethod
+    def install_darwin(self, bindest):
+        binfile = self.binfile_pat % "macosx64"
+        self._install(binfile, bindest)
+
+    @classmethod
+    def _install(self, binfile, bindest):
+        url = "http://nusmv.fbk.eu/distrib/%s" % binfile
+        localfile = urlretrieve(url)[0]
+        with tarfile.open(localfile, "r:gz") as t:
+            for m in t:
+                if m.name.endswith("bin/NuSMV"):
+                    fd = t.extractfile(m)
+                    dest = os.path.join(bindest, "NuSMV")
+                    with open(dest, "w") as o:
+                        dest.write(fd.read())
+                    fd.close()
+                    chmod_x(dest)
+        os.unlink(localfile)
+
+
+class ITS(Tool):
+    exe = "its-reach"
+    def install_linux():
+        pass
+    def install_darwin():
+        pass
+
+class Mole(Tool):
+    exe = "mole"
+    def install_linux():
+        pass
+    def install_darwin():
+        pass
+
+
+tools = [Clingo, NuSMV, ITS, Mole]
+
+if __name__ == "__main__":
+    system = platform.system()
+    assert system in ["Linux", "Darwin"], "Plaform %s is not supported" % system
+
+    from argparse import ArgumentParser
+    parser = ArgumentParser(prog=sys.argv[0])
+    for t in tools:
+        n = t.name()
+        parser.add_argument("--no-%s" % n, dest=n, action="store_false",
+                default=True)
+    args = parser.parse_args()
+
+    bindest = "/usr/local/bin"
+
+    for t in tools:
+        if t.is_installed():
+            continue
+        print("%s Installing %s " % ("#"*5, t.name()))
+        getattr(t, "install_%s" % system.lower())(bindest)
+
+
