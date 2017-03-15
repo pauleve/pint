@@ -1,0 +1,2 @@
+include pint/ipython_ext.css
+include pint/ipython_ext.js
