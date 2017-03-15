@@ -21,7 +21,8 @@ __SETUP_DONE = False
 def setup_environ():
     global __SETUP_DONE
     share_path = subprocess.check_output(["pint-config", "share-path"]).decode()
-    os.environ["PATH"] = "%s/bin:%s" % (share_path, os.environ["PATH"])
+    bin_path = os.path.join(share_path.strip(), "bin")
+    os.environ["PATH"] = "%s:%s" % (bin_path, os.environ["PATH"])
     __SETUP_DONE = True
 
 def hello_ipython():

@@ -9,6 +9,8 @@ RUN apt-get update \
 		gringo \
 		libgmpxx4ldbl \
 		openjdk-8-jre-headless \
+		python3-pydotplus \
+		python3-networkx \
 		python3-pip \
 	&& apt-get clean
 
