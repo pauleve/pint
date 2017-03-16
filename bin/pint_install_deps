@@ -63,7 +63,7 @@ class Clingo(Tool):
         binfile = self.binfile[system]
         def match_entry(m):
             return os.path.basename(m.name) == "clingo"
-        install_from_tarurl(binfile, match_entry)
+        install_from_tarurl(binfile, match_entry, args)
 
 class NuSMV(Tool):
     exe = "NuSMV"
@@ -79,7 +79,7 @@ class NuSMV(Tool):
         binfile = self.binfile[system]
         def match_entry(m):
             return m.name.endswith("bin/NuSMV")
-        install_from_tarurl(binfile, match_entry)
+        install_from_tarurl(binfile, match_entry, args)
 
 class ITS(Tool):
     exe = "its-reach"
@@ -94,17 +94,17 @@ class ITS(Tool):
         binfile = self.binfile[system]
         def match_entry(m):
             return m.name in ["its-reach", "its-ctl", "its-ltl"]
-        install_from_tarurl(binfile, match_entry)
+        install_from_tarurl(binfile, match_entry, args)
 
 class Mole(Tool):
     exe = "mole"
     binfile_pat = "http://loicpauleve.name/mole-%s.tgz"
     @classmethod
     def install(self, system, args):
-        binfile = self.binfile_path % system
+        binfile = self.binfile_pat % system
         def match_entry(m):
             return m.name in ["mole", "mci2dot"]
-        install_from_tarurl(binfile, match_entry)
+        install_from_tarurl(binfile, match_entry, args)
 
 class GINsim(Tool):
     exe = "GINsim"
