@@ -13,13 +13,10 @@ RUN apt-get update \
 ENV TINI_VERSION 0.13.1
 ADD https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}-amd64.deb /usr/src
 RUN dpkg -i /usr/src/tini_${TINI_VERSION}-amd64.deb \
-	&& pip3 install jupyter networkx pydotplus \
+	&& pip3 install jupyter \
 	&& echo '#!/bin/bash' > /usr/bin/pint-nb \
 	&& echo 'jupyter notebook --no-browser --ip=* --port 8888 "${@}"' >>/usr/bin/pint-nb \
-	&& chmod +x /usr/bin/pint-nb \
-	&& mkdir -p ~/.jupyter \
-	&& echo 'from IPython.lib import passwd' > ~/.jupyter/jupyter_notebook_config.py\
-	&& echo 'get_config().NotebookApp.password = passwd("notebook")' >> ~/.jupyter/jupyter_notebook_config.py
+	&& chmod +x /usr/bin/pint-nb
 
 ARG PINT_VERSION
 ADD dist/pint_${PINT_VERSION}_amd64.deb /usr/src
@@ -31,5 +28,5 @@ RUN dpkg -i /usr/src/pint_${PINT_VERSION}_amd64.deb \
 ADD notebook /notebook
 WORKDIR /notebook
 ENTRYPOINT ["tini", "--"]
-CMD ["pint-nb"]
+CMD ["pint-nb", "--NotebookApp.token="]
 EXPOSE 8888
