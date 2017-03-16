@@ -4,6 +4,7 @@ import os
 import platform
 import shutil
 import stat
+import subprocess
 import sys
 import tarfile
 
@@ -12,18 +13,38 @@ try:
 except:
     from urllib import urlretrieve
 
-is_64bits = platform.architecture()[0] == '64bit'
-
 def chmod_x(filename):
     st = os.stat(filename)
     os.chmod(filename, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
+def install_bin_from_tar(tar, member, dest):
+    fd = tar.extractfile(member)
+    print("installing %s" % dest)
+    with open(dest, "w") as o:
+        o.write(fd.read())
+    fd.close()
+    chmod_x(dest)
+
+def install_from_tarurl(url, match_member, args):
+    localfile = urlretrieve(url)[0]
+    with tarfile.open(localfile, "r:gz") as t:
+        for m in t:
+            if match_member(m):
+                dest = os.path.join(args.bindir, os.path.basename(m.name))
+                install_bin_from_tar(t, m, dest)
+    os.unlink(localfile)
+
 class Tool:
-
     @classmethod
-    def is_installed(self):
-        return shutil.which(self.exe) is not None
-
+    def is_installed(self, *args):
+        if hasattr(self, "exe"):
+            if sys.version_info[0] < 3:
+                paths = os.environ["PATH"].split(":")
+                for p in paths:
+                    if os.path.exists(os.path.join(p, self.exe)):
+                        return True
+                return False
+            return shutil.which(self.exe) is not None
     @classmethod
     def name(self):
         return self.__name__.lower()
@@ -31,61 +52,87 @@ class Tool:
 
 class Clingo(Tool):
     exe = "clingo"
-    def install_linux():
-        pass
-    def install_darwin():
-        pass
+    binfile_pat = "https://downloads.sourceforge.net/project/potassco/clingo/4.5.4/clingo-4.5.4-%s.tar.gz"
+    binfile = {
+        "linux64": binfile_pat % "linux-x86_64",
+        "darwin": binfile_pat % "macos-10.9",
+    }
+    @classmethod
+    def install(self, system, args):
+        assert system in binfile, "Cannot install binaries for %s" % system
+        binfile = self.binfile[system]
+        def match_entry(m):
+            return os.path.basename(m.name) == "clingo"
+        install_from_tarurl(binfile, match_entry)
 
 class NuSMV(Tool):
     exe = "NuSMV"
-    binfile_pat = "NuSMV-2.6.0-%s.tar.gz"
+    url_pat = "http://nusmv.fbk.eu/distrib/NuSMV-2.6.0-%s.tar.gz"
+    binfile = {
+        "linux64": url_pat % "linux64",
+        "linux32": url_pat % "linux32",
+        "darwin": url_pat % "macosx64",
+    }
 
     @classmethod
-    def install_linux(self, bindest):
-        binfile = self.binfile_pat % ("linux64" if is_64bits else "linux32")
-        self._install(binfile, bindest)
-
-    @classmethod
-    def install_darwin(self, bindest):
-        binfile = self.binfile_pat % "macosx64"
-        self._install(binfile, bindest)
-
-    @classmethod
-    def _install(self, binfile, bindest):
-        url = "http://nusmv.fbk.eu/distrib/%s" % binfile
-        localfile = urlretrieve(url)[0]
-        with tarfile.open(localfile, "r:gz") as t:
-            for m in t:
-                if m.name.endswith("bin/NuSMV"):
-                    fd = t.extractfile(m)
-                    dest = os.path.join(bindest, "NuSMV")
-                    with open(dest, "w") as o:
-                        dest.write(fd.read())
-                    fd.close()
-                    chmod_x(dest)
-        os.unlink(localfile)
-
+    def install(self, system, args):
+        binfile = self.binfile[system]
+        def match_entry(m):
+            return m.name.endswith("bin/NuSMV")
+        install_from_tarurl(binfile, match_entry)
 
 class ITS(Tool):
     exe = "its-reach"
-    def install_linux():
-        pass
-    def install_darwin():
-        pass
+    url_pat = "http://teamcity-systeme.lip6.fr/guestAuth/repository/download/%s"
+    binfile = {
+        "linux64": url_pat % "bt54/.lastSuccessful/ITS_linux_64.tar.gz",
+        "linux32": url_pat % "bt53/.lastSuccessful/ITS_linux_32.tar.gz",
+        "darwin": url_pat % "bt52/.lastSuccessful/ITS_darwin_64.tar.gz",
+    }
+    @classmethod
+    def install(self, system, args):
+        binfile = self.binfile[system]
+        def match_entry(m):
+            return m.name in ["its-reach", "its-ctl", "its-ltl"]
+        install_from_tarurl(binfile, match_entry)
 
 class Mole(Tool):
     exe = "mole"
-    def install_linux():
-        pass
-    def install_darwin():
-        pass
+    binfile_pat = "http://loicpauleve.name/mole-%s.tgz"
+    @classmethod
+    def install(self, system, args):
+        binfile = self.binfile_path % system
+        def match_entry(m):
+            return m.name in ["mole", "mci2dot"]
+        install_from_tarurl(binfile, match_entry)
 
+class GINsim(Tool):
+    exe = "GINsim"
+    binfile = "http://ginsim.org/sites/default/files/GINsim-2.9.4-with-deps.jar"
+    @classmethod
+    def install(self, system, args):
+        destjar = os.path.join(args.pintsharedir, "3rdparty", "colomoto",
+                        "GINsim.jar")
+        print("installing %s" % destjar)
+        urlretrieve(binfile, destjar)
+        destbin = os.path.join(args.pintsharedir, "bin", "GINsim")
+        print("installing %s" % destbin)
+        with open(destbin, "w") as fd:
+            fd.write("""#!/usr/bin/env bash\njava -jar "%s" "${@}"\n""" % destjar)
+        chmod_x(destbin)
 
-tools = [Clingo, NuSMV, ITS, Mole]
+tools = [Clingo, NuSMV, ITS, Mole, GINsim]
 
 if __name__ == "__main__":
-    system = platform.system()
-    assert system in ["Linux", "Darwin"], "Plaform %s is not supported" % system
+    system = platform.system().lower()
+    if system == "linux":
+        system = "%s%s" % (system, platform.architecture()[0][:2])
+    assert system in ["linux64", "linux32", "darwin"], \
+        "Plaform %s is not supported" % system
+
+    pintsharedir = subprocess.check_output(["pint-config", "share-path"])\
+                        .decode().strip()
+    os.environ["PATH"] = "%s/bin:%s" % (pintsharedir, os.environ["PATH"])
 
     from argparse import ArgumentParser
     parser = ArgumentParser(prog=sys.argv[0])
@@ -93,14 +140,17 @@ if __name__ == "__main__":
         n = t.name()
         parser.add_argument("--no-%s" % n, dest=n, action="store_false",
                 default=True)
+    parser.add_argument("--bindir", default="/usr/local/bin")
+    parser.add_argument("--pintsharedir", default=pintsharedir)
     args = parser.parse_args()
 
-    bindest = "/usr/local/bin"
-
     for t in tools:
-        if t.is_installed():
+        if not getattr(args, t.name()):
             continue
-        print("%s Installing %s " % ("#"*5, t.name()))
-        getattr(t, "install_%s" % system.lower())(bindest)
+        if t.is_installed(args):
+            print("# %s is already installed" % t.__name__)
+            continue
+        print("%s Installing %s " % ("#"*5, t.__name__))
+        t.install(system, args)
 
 
