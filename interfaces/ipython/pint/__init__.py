@@ -8,6 +8,10 @@ When loaded, the `pint` module will perform the follow tasks:
 """
 import os
 import subprocess
+import sys
+
+if sys.version_info[0] < 3:
+    raise Exception("python >= 3 is required")
 
 from .cfg import *
 from .types import *
