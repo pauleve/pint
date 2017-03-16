@@ -33,6 +33,7 @@ OSX_TARGETS=\
 
 
 MISC_TOOLS = \
+	bin/pint_install_deps\
 	converters/pint_converter.py\
 	converters/bcx2ph\
 	converters/CNA2an\
