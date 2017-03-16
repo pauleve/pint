@@ -114,7 +114,7 @@ class GINsim(Tool):
         destjar = os.path.join(args.pintsharedir, "3rdparty", "colomoto",
                         "GINsim.jar")
         print("installing %s" % destjar)
-        urlretrieve(binfile, destjar)
+        urlretrieve(self.binfile, destjar)
         destbin = os.path.join(args.pintsharedir, "bin", "GINsim")
         print("installing %s" % destbin)
         with open(destbin, "w") as fd:
