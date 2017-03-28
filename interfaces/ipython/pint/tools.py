@@ -249,8 +249,8 @@ def disable(self, local_states=[], **kwstate):
     :returns: a new :py:class:`.FileModel` instance for the modified AN.
     """
     if hasattr(local_states, "items"):
-        local_states = local_states.items()
-    local_states += kwstate.items()
+        local_states = list(local_states.items())
+    local_states += list(kwstate.items())
 
     args = ["--disable", pint_of_localstates(local_states)]
 
@@ -501,13 +501,13 @@ def simple_lcg(self, goal=None, **kwgoal):
     """
     return local_causality_graph(self, "trimmed", goal=goal, **kwgoal)
 @modeltool
-def worth_lcg(self, goal):
+def worth_lcg(self, goal, **kwgoal):
     """
     Shortcut for :py:meth:`.local_causality_graph` with `kind="worth"`
     """
     return local_causality_graph(self, "worth", goal=goal, **kwgoal)
 @modeltool
-def saturated_lcg(self, goal):
+def saturated_lcg(self, goal, **kwgoal):
     """
     Shortcut for :py:meth:`.local_causality_graph` with `kind="saturated"`
     """

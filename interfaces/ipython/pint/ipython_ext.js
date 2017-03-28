@@ -112,9 +112,9 @@ function pint_extension(Jupyter) {
             {name:"State graph analysis",
                 "sub-menu": [
                 {name: "Count reachable states",
-                    snippet:['model.count_reachable_set()']},
+                    snippet:['model.count_reachable_states()']},
                 {name: "Reachable state graph",
-                    snippet:['model.reachable_state_graph()']},
+                    snippet:['model.reachable_stategraph()']},
                 {name: "Reachable attractors",
                     snippet:['model.reachable_attractors()']},
                 {name: "Fixpoints",
