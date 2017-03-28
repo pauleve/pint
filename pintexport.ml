@@ -26,8 +26,10 @@ let make_reduce_for_goal spec (an, ctx) =
 	in
 	let an = An_reach.reduced_an ~skip_oa:!opt_reduction_skip_oa env
     in
-    remove_automata (an,ctx) (SSet.singleton (fst goal))
-
+    if fst goal = "_pint_goal" then
+        remove_automata (an,ctx) (SSet.singleton (fst goal))
+    else
+        an, ctx
 
 let opt_squeeze_preserve = ref SSet.empty
 let make_squeeze (an, ctx) =
