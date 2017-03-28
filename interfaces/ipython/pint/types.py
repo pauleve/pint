@@ -139,7 +139,7 @@ class Goal:
     correspond to the automata and the values their local states.
 
     Finally, alternative goals can be constructed using the operator ``|`` on
-    the instanciated individual goals (see :py:meth:`Goal.__or__`).
+    the instanciated individual goals (see :py:meth:`.Goal.__or__`).
 
 
     Examples:

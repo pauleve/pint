@@ -6,6 +6,8 @@ When loaded, the `pint` module will perform the follow tasks:
 * if in IPython, displays the version of Pint binaries, and executes
   :py:func:`.ipython_install`.
 """
+__version__ = "1.0"
+
 import os
 import subprocess
 import sys
@@ -31,7 +33,8 @@ def setup_environ():
 
 def hello_ipython():
     version = subprocess.check_output(["pint-config", "version"]).decode()
-    info("You are using Pint version %s" % version)
+    version = version.strip()
+    info("You are using Pint version %s/%s" % (version,__version__))
 
 
 if not __SETUP_DONE:

@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install
 
 setup(name = "pint",
-    version = "0.1",
+    version = "1.0",
     author = "Loïc Paulevé",
     author_email = "loic.pauleve@ens-cachan.org",
     url = "http://loicpauleve.name/pint",
