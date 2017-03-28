@@ -395,8 +395,12 @@ Use `method=\"exact\"` for complete identification.")
     output = cp.stdout.decode()
     return [local_transition_from_json(d) for d in json.loads(output)]
 
+
+__reachability_tools = ["its", "nusmv", "mole"]
+
 @modeltool
-def reachability(self, goal=None, fallback="its", **kwgoal):
+def reachability(self, goal=None, fallback="its", tool="sa",
+        reduce_for_goal=True, **kwgoal):
     """
     Check if `goal` is reachable from the initial state.
     At first, Pint tries static analysis for the verification. If
@@ -408,6 +412,13 @@ def reachability(self, goal=None, fallback="its", **kwgoal):
     :keyword str fallback: fallback to exact model-checking if static analysis
         is not conclusive. Supported model-checkers are: ``"its"``, ``"nusmv"``,
         and ``"mole"``.
+    :keyword str tool: tool for the model-checking:
+        * ``"sa"``: static analysis with potential fallback method if not
+        conclusive
+        * ``"its"``, ``"nusmv"``, ``"its"``: directly use the specified
+        model-checker.
+    :keyword bool reduce_for_goal: before invoking a model-checker, perform the
+        goal-oriented reduction of the automata network
     :returns:
 
         * ``True`` if `goal` is reachable from :py:attr:`.initial_state`
@@ -419,16 +430,21 @@ def reachability(self, goal=None, fallback="its", **kwgoal):
 
     if fallback:
         fallback = fallback.lower()
-    assert fallback in ["its", "nusmv", "mole", "none", None]
-    if fallback == "none":
-        fallback = None
-    cp = _run_tool("pint-reach", goal, input_model=self)
-    output = cp.stdout.decode()
-    output = ternary(json.loads(output))
-    if output == Inconc and fallback is not None:
-        info("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
-        cp = _run_tool("pint-%s" % fallback, goal, input_model=self,
-                        reduce_for_goal=goal)
+        if fallback == "none":
+            fallback = None
+    tool = tool.lower()
+    assert fallback in __reachability_tools + [None]
+    assert tool in ["sa"] + __reachability_tools
+    if tool == "sa":
+        cp = _run_tool("pint-reach", goal, input_model=self)
+        output = cp.stdout.decode()
+        output = ternary(json.loads(output))
+        if output == Inconc and fallback is not None:
+            info("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
+            tool = fallback
+    if tool != "sa":
+        cp = _run_tool("pint-%s" % tool, goal, input_model=self,
+                        reduce_for_goal=goal if reduce_for_goal else None)
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
     return output
