@@ -552,12 +552,12 @@ def reachable_stategraph(self):
     """
     Returns the reachable state graph from :py:attr:`.initial_state`.
 
-    :rtype: NetworkX multidigraph (`nx.MultiDiGraph <http://networkx.readthedocs.io/en/stable/reference/classes.multidigraph.html>`_)
+    :rtype: NetworkX digraph (`nx.DiGraph <http://networkx.readthedocs.io/en/stable/reference/classes.digraph.html>`_)
     """
     dotfile = new_output_file(ext="dot")
     _run_tool("pint-sg", "--state-graph", dotfile,
                 input_model=self, stdout=None)
-    g = nx.nx_agraph.read_dot(dotfile)
+    g = nx.DiGraph(nx.nx_agraph.read_dot(dotfile))
     os.unlink(dotfile)
     return g
 
