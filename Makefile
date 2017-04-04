@@ -72,13 +72,6 @@ test_clean:
 
 clean: $(addsuffix _clean,$(TARGETS)) test_clean 3rdparty_clean
 
-apidoc:
-	rm -f docs/api/*
-	ocamldoc -sort -html -d docs/api -I bindings -I pintlib -I anlib -I phlib \
-		-t "Pint OCaml API" \
-		bindings/r.mli pintlib/*.mli anlib/*.mli phlib/*.mli *.mli
-
-
 RELNAME=$(shell date -I)
 RELBRANCH=master
 
