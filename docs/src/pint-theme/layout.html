@@ -1,0 +1,123 @@
+{#
+    haiku/layout.html
+    ~~~~~~~~~~~~~~~~~
+
+    Sphinx layout template for the haiku theme.
+
+    :copyright: Copyright 2007-2016 by the Sphinx team, see AUTHORS.
+    :license: BSD, see LICENSE for details.
+#}
+{%- extends "haiku/layout.html" %}
+
+{# do not display relbars #}
+{% block relbar1 %}{% endblock %}
+{% block relbar2 %}{% endblock %}
+
+{% macro nav() %}
+        <p>
+        {%- block haikurel1 %}
+        {%- endblock %}
+        {%- if prev %}
+        «&#160;&#160;<a href="{{ prev.link|e }}">{{ prev.title }}</a>
+        &#160;&#160;::&#160;&#160;
+        {%- endif %}
+        <a class="uplink" href="{{ pathto(master_doc) }}">{{ _('Documentation') }}</a>
+        {%- if next %}
+        &#160;&#160;::&#160;&#160;
+        <a href="{{ next.link|e }}">{{ next.title }}</a>&#160;&#160;»
+        {%- endif %}
+        {%- block haikurel2 %}
+        {%- endblock %}
+        </p>
+{% endmacro %}
+
+{% block haikuheader %}
+{% endblock %}
+
+{%- block htmltitle %}
+    {% if meta and meta.part and meta.part == "index" %}
+    <title>{{ project }}</title>
+    {% elif meta and meta.title %}
+    <title>{{ meta.title }}{{ titlesuffix }}</title>
+    {% else %}
+    <title>{{ title|striptags|e }}{{ titlesuffix }}</title>
+    {% endif %}
+{%- endblock %}
+
+{% block content %}
+    <div id="header_wrap" class="outer{% if meta and meta.part and meta.part == "index" %} index{% endif %}" role="banner">
+        <header class="inner">
+          <h1 id="project_title"><a href="/pint/">Pint</a></h1>
+          <h2 id="project_tagline">Static analyzer for dynamics of Automata Networks</h2>
+        {% if meta and meta.part and meta.part == "index" %}
+            <section id="downloads">
+				  <a class="zip_download_link" title="Source code"
+					  href="https://github.com/pauleve/pint/archive/{{ release }}.zip">Download source code</a>
+					<a class="docker_download_link" title="Docker image"
+						href="https://hub.docker.com/r/pauleve/pint/">Docker
+						image</a>
+				  <a class="dmg_download_link"
+					  href="https://github.com/pauleve/pint/releases/download/{{ release }}/pint-{{ release }}.dmg"
+					  title="Mac OS X package">Download Mac OS X package"</a>
+				<a class="deb_download_link"
+					  href="https://github.com/pauleve/pint/releases/download/{{ release }}/pint_{{ release }}_amd64.deb"
+					  title="Ubuntu/Debian package (amd64)">Download Ubuntu/Debian package</a>
+				<span class="pint_version">version <a href="https://github.com/pauleve/pint/releases">{{ release }}</a></span>
+            </section>
+         {% endif %}
+        </header>
+    </div>
+  <section id="main_content" class="inner">
+    {% if meta and meta.part %}
+      <div class="sitepart">
+        {% if meta.part == "doc" %}
+        <h1>Documentation</h1>
+        {% elif meta.part == "doc-python" %}
+        <h1>Documentation &bull; Python/notebook interface</h1>
+        {% endif %}
+      </div>
+    {% endif %}
+    {% if not(meta and meta.part and meta.part == "index") %}
+      <div class="topnav" role="navigation" aria-label="top navigation">
+      {{ nav() }}
+      </div>
+    {% endif %}
+      <div class="content">
+        {#{%- if display_toc %}
+        <div id="toc">
+          <h3>{{ _('Table Of Contents') }}</h3>
+          {{ toc }}
+        </div>
+        {%- endif %}#}
+        {% block body %}{% endblock %}
+      </div>
+    {% if not(meta and meta.part and meta.part == "index") %}
+      <div class="bottomnav" role="navigation" aria-label="bottom navigation">
+      {{ nav() }}
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}
+
+{%- block footer %}
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+		<p class="copyright">
+    {%- if show_copyright %}
+      {%- if hasdoc('copyright') %}
+        {% trans path=pathto('copyright'), copyright=copyright|e %}&#169; <a href="{{ path }}">Copyright</a> {{ copyright }}.{% endtrans %}
+      {%- else %}
+        {% trans copyright=copyright|e %}&#169; Copyright {{ copyright }}{% endtrans %}
+      {%- endif %}
+    {%- endif %}
+    &bull;
+        Pint is distributed under the
+<a href="http://cecill.info/licences/Licence_CeCILL_V2-en.html">CeCILL licence</a></p>
+    <p>Sources are available on <a
+    href="https://github.com/pauleve/pint">GitHub</a></p>
+    <p>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> {{ sphinx_version }}
+        &bull; Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+{%- endblock %}
