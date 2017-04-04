@@ -36,7 +36,7 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
-    'sphinx.ext.githubpages',
+    'sphinx.ext.extlinks',
     "nbsphinx",
     'IPython.sphinxext.ipython_console_highlighting',
 ]
@@ -167,4 +167,15 @@ texinfo_documents = [
 
 
 add_module_names = False
+
+deb_filename = "pint_%s_amd64" % release
+dmg_filename = "pint-%s" % release
+extlinks = {
+'distdeb':
+    ('https://github.com/pauleve/pint/releases/download/{0}/{1}%s'\
+        .format(release, deb_filename), deb_filename),
+'distdmg':
+    ('https://github.com/pauleve/pint/releases/download/{0}/{1}%s'\
+        .format(release, dmg_filename), dmg_filename),
+}
 
