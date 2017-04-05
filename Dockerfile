@@ -20,7 +20,7 @@ RUN dpkg -i /usr/src/tini_${TINI_VERSION}-amd64.deb \
 
 ARG PINT_VERSION
 ADD dist/pint_${PINT_VERSION}_amd64.deb /usr/src
-ADD interfaces/ipython /usr/src/pint
+ADD interfaces/ipython /usr/src/pypint
 RUN dpkg -i /usr/src/pint_${PINT_VERSION}_amd64.deb \
     && pip3 install /usr/src/pypint \
 	&& rm -rf /usr/src
