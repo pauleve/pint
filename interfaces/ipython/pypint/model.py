@@ -252,7 +252,8 @@ class Model(object):
         """
         Returns a copy of the model with supplied modifications
 
-        :param .InitialState initial_state: new initial state
+        :param initial_state: new initial state
+        :type initial_state: .InitialState or str
         :keyword kwargs: if non-empty, defines a new initial state from
             :py:attr:`.Model.initial_state` by calling
             :py:meth:`.InitialState.having`.
@@ -264,6 +265,9 @@ class Model(object):
         >>> m.having(HR=1).reachability("Tf1=1")
         """
         m = copy.copy(self)
+        if isinstance(initial_state, str):
+            m.initial_state = m.named_states[initial_state]
+            return m
         m.initial_state = self.initial_state.copy()
         args = []
         if initial_state:

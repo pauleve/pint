@@ -1,0 +1,104 @@
+"CK1" [0, 1]
+"Rga4" [0, 1]
+"SIP" [0, 1]
+"byr4" [0, 1]
+"byr4-cdc16" [0, 1]
+"cdc11" [0, 1]
+"cdc14-sid1" [0, 1]
+"cdc16" [0, 1]
+"cdc42" [0, 1]
+"cdc7" [0, 1]
+"cdk-0" [0, 1]
+"cdk-H" [0, 1]
+"cdk-L" [0, 1]
+"dma1" [0, 1]
+"etd1" [0, 1]
+"fin1" [0, 1]
+"flp1" [0, 1]
+"gef1" [0, 1]
+"nak1" [0, 1]
+"orb6" [0, 1]
+"pak1" [0, 1]
+"plo1" [0, 1]
+"pmo25" [0, 1]
+"pom1" [0, 1]
+"ppc89" [0, 1]
+"ras1" [0, 1]
+"scd1" [0, 1]
+"sid2" [0, 1]
+"sid2-mob1" [0, 1]
+"sid4" [0, 1]
+"spg1" [0, 1]
+
+"Rga4" 0 -> 1 when "pom1"=0
+"Rga4" 1 -> 0 when "pom1"=1
+"SIP" 0 -> 1 when "cdk-0"=0 and "cdk-H"=1 and "ppc89"=1
+"SIP" 1 -> 0 when "cdk-0"=0 and "cdk-H"=0 and "ppc89"=1
+"SIP" 1 -> 0 when "cdk-0"=1 and "ppc89"=1
+"SIP" 1 -> 0 when "ppc89"=0
+"byr4" 0 -> 1 when "cdc42"=0 and "cdk-H"=0 and "cdk-L"=1 and "plo1"=1
+"byr4" 1 -> 0 when "cdc42"=1 and "cdk-H"=0 and "cdk-L"=1 and "plo1"=1
+"byr4" 1 -> 0 when "cdk-H"=0 and "cdk-L"=1 and "plo1"=0
+"byr4" 1 -> 0 when "cdk-H"=1 and "cdk-L"=1
+"byr4" 1 -> 0 when "cdk-L"=0
+"byr4-cdc16" 0 -> 1 when "byr4"=1 and "cdc16"=1
+"byr4-cdc16" 1 -> 0 when "byr4"=0
+"byr4-cdc16" 1 -> 0 when "byr4"=1 and "cdc16"=0
+"cdc11" 0 -> 1 when "cdc16"=1 and "cdc7"=0 and "sid4"=0
+"cdc11" 0 -> 1 when "cdc7"=0 and "sid4"=1
+"cdc11" 0 -> 1 when "cdc7"=1
+"cdc11" 1 -> 0 when "cdc16"=0 and "cdc7"=0 and "sid4"=0
+"cdc14-sid1" 0 -> 1 when "cdc7"=1
+"cdc14-sid1" 1 -> 0 when "cdc7"=0
+"cdc16" 0 -> 1 when "fin1"=0
+"cdc16" 1 -> 0 when "fin1"=1
+"cdc42" 0 -> 1 when "Rga4"=0 and "gef1"=0 and "scd1"=1
+"cdc42" 0 -> 1 when "Rga4"=0 and "gef1"=1
+"cdc42" 1 -> 0 when "Rga4"=0 and "gef1"=0 and "scd1"=0
+"cdc42" 1 -> 0 when "Rga4"=1
+"cdc7" 0 -> 1 when "cdc11"=1 and "spg1"=1
+"cdc7" 1 -> 0 when "cdc11"=0 and "spg1"=1
+"cdc7" 1 -> 0 when "spg1"=0
+"dma1" 0 -> 1 when "CK1"=1 and "sid4"=1
+"dma1" 1 -> 0 when "CK1"=0
+"dma1" 1 -> 0 when "CK1"=1 and "sid4"=0
+"fin1" 0 -> 1 when "cdk-H"=1
+"fin1" 1 -> 0 when "cdk-H"=0
+"flp1" 0 -> 1 when "cdk-0"=0 and "cdk-H"=0 and "sid2-mob1"=1
+"flp1" 0 -> 1 when "cdk-0"=1 and "cdk-H"=0
+"flp1" 1 -> 0 when "cdk-0"=0 and "cdk-H"=0 and "sid2-mob1"=0
+"flp1" 1 -> 0 when "cdk-H"=1
+"gef1" 0 -> 1 when "orb6"=1
+"gef1" 1 -> 0 when "orb6"=0
+"nak1" 0 -> 1 when "cdk-H"=0 and "pmo25"=1
+"nak1" 0 -> 1 when "cdk-H"=1 and "pmo25"=1 and "sid2-mob1"=0
+"nak1" 0 -> 1 when "cdk-H"=1 and "sid2-mob1"=1
+"nak1" 1 -> 0 when "cdk-H"=0 and "pmo25"=0
+"nak1" 1 -> 0 when "cdk-H"=1 and "pmo25"=0 and "sid2-mob1"=0
+"orb6" 0 -> 1 when "nak1"=1 and "pak1"=0
+"orb6" 0 -> 1 when "pak1"=1
+"orb6" 1 -> 0 when "nak1"=0 and "pak1"=0
+"pak1" 0 -> 1 when "cdc42"=1
+"pak1" 1 -> 0 when "cdc42"=0
+"plo1" 0 -> 1 when "cdk-H"=1 and "cdk-L"=0 and "dma1"=1 and "sid4"=0
+"plo1" 1 -> 0 when "cdk-H"=0 and "cdk-L"=0
+"plo1" 1 -> 0 when "cdk-H"=1 and "cdk-L"=0 and "dma1"=0
+"plo1" 1 -> 0 when "cdk-H"=1 and "cdk-L"=0 and "dma1"=1 and "sid4"=1
+"plo1" 1 -> 0 when "cdk-L"=1
+"pmo25" 0 -> 1 when "cdc14-sid1"=0 and "cdc7"=1
+"pmo25" 0 -> 1 when "cdc14-sid1"=1
+"pmo25" 1 -> 0 when "cdc14-sid1"=0 and "cdc7"=0
+"pom1" 0 -> 1 when "pak1"=1
+"pom1" 1 -> 0 when "pak1"=0
+"scd1" 0 -> 1 when "ras1"=1
+"scd1" 1 -> 0 when "ras1"=0
+"sid2" 0 -> 1 when "cdc7"=1
+"sid2" 1 -> 0 when "cdc7"=0
+"sid4" 0 -> 1 when "ppc89"=1
+"sid4" 1 -> 0 when "ppc89"=0
+"spg1" 0 -> 1 when "byr4-cdc16"=0 and "cdc11"=1 and "etd1"=0
+"spg1" 0 -> 1 when "byr4-cdc16"=0 and "etd1"=1
+"spg1" 1 -> 0 when "byr4-cdc16"=0 and "cdc11"=0 and "etd1"=0
+"spg1" 1 -> 0 when "byr4-cdc16"=1
+
+initial_context "CK1"=0, "Rga4"=0, "SIP"=0, "byr4"=0, "byr4-cdc16"=0, "cdc11"=0, "cdc14-sid1"=0, "cdc16"=0, "cdc42"=0, "cdc7"=0, "cdk-0"=0, "cdk-H"=0, "cdk-L"=0, "dma1"=0, "etd1"=0, "fin1"=0, "flp1"=0, "gef1"=0, "nak1"=0, "orb6"=0, "pak1"=0, "plo1"=0, "pmo25"=0, "pom1"=0, "ppc89"=0, "ras1"=0, "scd1"=0, "sid2"=0, "sid2-mob1"=0, "sid4"=0, "spg1"=0
