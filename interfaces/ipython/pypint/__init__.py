@@ -1,12 +1,12 @@
 """
-When loaded, the `pint` module will perform the follow tasks:
+When loaded, the `pypint` module will perform the follow tasks:
 
 * add Pint third-party binary path (`bin` subdirectory of
   ``pint-config share-path``) to the ``PATH`` environment variable.
 * if in IPython, displays the version of Pint binaries, and executes
   :py:func:`.ipython_install`.
 """
-__version__ = "1.0"
+__version__ = "1.0rc2"
 
 import os
 import subprocess
@@ -34,7 +34,7 @@ def setup_environ():
 def hello_ipython():
     version = subprocess.check_output(["pint-config", "version"]).decode()
     version = version.strip()
-    info("You are using Pint version %s/%s" % (version,__version__))
+    info("You are using Pint version %s and pypint %s" % (version,__version__))
 
 
 if not __SETUP_DONE:

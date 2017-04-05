@@ -1,14 +1,32 @@
 # -*- coding: utf-8
 
+import os
+import re
+import sys
+
+if sys.version_info[0] < 3:
+    raise Exception("python >= 3 is required")
+
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-setup(name = "pint",
-    version = "1.0",
+NAME = "pypint"
+
+META = {}
+META_FILE = os.path.join(NAME, "__init__.py")
+with open(META_FILE) as f:
+    __data = f.read()
+for key in ["version"]:
+    match = re.search(r"^__{0}__ = ['\"]([^'\"]*)['\"]".format(key), __data, re.M)
+    if not match:
+        raise RuntimeError("Unable to find __{meta}__ string.".format(meta=key))
+    META[key] = match.group(1)
+
+setup(name = NAME,
     author = "Loïc Paulevé",
     author_email = "loic.pauleve@ens-cachan.org",
     url = "http://loicpauleve.name/pint",
-    licence = "CeCILL",
+    license = "CeCILL",
     classifiers=[
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering",
@@ -23,6 +41,7 @@ setup(name = "pint",
         "pydotplus",
     ],
     include_package_data = True,
-    packages = find_packages()
+    packages = [NAME],
+    **META
 )
 

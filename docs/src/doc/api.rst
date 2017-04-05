@@ -1,9 +1,9 @@
 :part: doc-python
 
-API of pint python module
-=========================
+API of pypint module
+====================
 
-.. automodule:: pint
+.. automodule:: pypint
     :members:
     :show-inheritance:
 
@@ -13,7 +13,7 @@ API of pint python module
 Pint types
 ----------
 
-.. automodule:: pint.types
+.. automodule:: pypint.types
     :members:
     :special-members: __or__, __str__, __repr__
     :show-inheritance:
@@ -21,11 +21,11 @@ Pint types
 Model input and analysis
 ------------------------
 
-.. automodule:: pint.model
+.. automodule:: pypint.model
     :members:
     :show-inheritance:
 
-.. automodule:: pint.tools
+.. automodule:: pypint.tools
     :members: EXPORT_SUPPORTED_FORMATS, EXPORT_SUPPORTED_EXTENSIONS, PintProcessError
     :show-inheritance:
 
@@ -33,28 +33,28 @@ Model input and analysis
 Helper functions
 ----------------
 
-.. automodule:: pint.utils
+.. automodule:: pypint.utils
     :members:
     :show-inheritance:
 
 Setup functions
 ---------------
 
-.. automodule:: pint.cfg
+.. automodule:: pypint.cfg
     :members:
     :show-inheritance:
 
 User interface functions
 ------------------------
 
-.. automodule:: pint.ui
+.. automodule:: pypint.ui
     :members:
     :show-inheritance:
 
 IPython interface functions
 ---------------------------
 
-.. automodule:: pint.ipython_helpers
+.. automodule:: pypint.ipython_helpers
     :members:
     :show-inheritance:
 

@@ -9,8 +9,8 @@ function load_with_upload(Jupyter, ssid, input) {
         var filename = out_data.content.text;
 
         var code = cell.get_text();
-        code = code.replace(/\bpint.load\(\s*((format|simplify)=[^\)]*)?\)/,
-                "pint.load(\""+filename+"\",$1)").replace('",)', '")')
+        code = code.replace(/\bpypint.load\(\s*((format|simplify)=[^\)]*)?\)/,
+                "pypint.load(\""+filename+"\",$1)").replace('",)', '")')
         cell.set_text(code);
 
         Jupyter.notebook.select(cell_idx);
@@ -30,7 +30,7 @@ function load_with_upload(Jupyter, ssid, input) {
                 content: e.target.result,
                 name: f.name
             };
-            var pycb = "pint._js_load_callback("+JSON.stringify(obj)+")"
+            var pycb = "pypint._js_load_callback("+JSON.stringify(obj)+")"
             IPython.notebook.kernel.execute(pycb, {iopub: {output: callback}});
         };
     })(f);
@@ -54,9 +54,9 @@ function pint_extension(Jupyter) {
     var pint_menu = {name: "Pint",
         'sub-menu': [
             {name:"Load model",
-                snippet:["model = pint.load(\"filename_or_URL\")"]},
+                snippet:["model = pypint.load(\"filename_or_URL\")"]},
             {name:"Upload model",
-                snippet:["model = pint.load()"]},
+                snippet:["model = pypint.load()"]},
             "---",
             {name:"Model description",
                 "sub-menu": [
@@ -127,7 +127,7 @@ function pint_extension(Jupyter) {
                 {name: "Sub-state goal", snippet:['"a=1,b=1"']},
                 {name: "Sequence of simple goals", snippet:['"a=1","b=1"']},
                 {name: "Sequence of sub-state goals", snippet:['"a=1,c=1","b=1,d=0"']},
-                {name: "Alternative goals", snippet:['pint.Goal("a=1")|pint.Goal("b=1")']}
+                {name: "Alternative goals", snippet:['pypint.Goal("a=1")|pypint.Goal("b=1")']}
                 ]}
         ]
     }
@@ -275,21 +275,21 @@ function pint_extension(Jupyter) {
             help    : "Upload model",
             handler : function() {
                 var cell = Jupyter.notebook.get_selected_cell();
-                cell.set_text('model = pint.load()');
+                cell.set_text('model = pypint.load()');
                 cell.focus_editor();
             }
         }, "upload", prefix);
         var act_enable_debug = Jupyter.actions.register({
             help    : 'Enable debug',
             handler : function() {
-                IPython.notebook.kernel.execute("pint.enable_dbg()");
+                IPython.notebook.kernel.execute("pypint.enable_dbg()");
                 pint_ui_debug_enabled(true);
             }
         }, "enable-debug", prefix);
         var act_disable_debug = Jupyter.actions.register({
             help    : 'Disable debug',
             handler : function() {
-                IPython.notebook.kernel.execute("pint.disable_dbg()");
+                IPython.notebook.kernel.execute("pypint.disable_dbg()");
                 pint_ui_debug_enabled(false);
             }
         }, "disable-debug", prefix);

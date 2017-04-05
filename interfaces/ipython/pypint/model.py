@@ -443,9 +443,9 @@ def load(filename=None, format=None, simplify=True):
 
     Examples:
 
-    >>> m1 = pint.load("mylocalfile.an")
-    >>> m2 = pint.load("http://ginsim.org/sites/default/files/Frontiers-Th-Full-model-annotated.zginml")
-    >>> m3 = pint.load("https://cellcollective.org/#4705/septation-initiation-network")
+    >>> m1 = pypint.load("mylocalfile.an")
+    >>> m2 = pypint.load("http://ginsim.org/sites/default/files/Frontiers-Th-Full-model-annotated.zginml")
+    >>> m3 = pypint.load("https://cellcollective.org/#4705/septation-initiation-network")
     """
 
     if filename is None:

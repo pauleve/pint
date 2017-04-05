@@ -1,2 +1,2 @@
-include pint/ipython_ext.css
-include pint/ipython_ext.js
+include pypint/ipython_ext.css
+include pypint/ipython_ext.js

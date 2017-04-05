@@ -22,7 +22,7 @@ ARG PINT_VERSION
 ADD dist/pint_${PINT_VERSION}_amd64.deb /usr/src
 ADD interfaces/ipython /usr/src/pint
 RUN dpkg -i /usr/src/pint_${PINT_VERSION}_amd64.deb \
-    && pip3 install /usr/src/pint \
+    && pip3 install /usr/src/pypint \
 	&& rm -rf /usr/src
 
 ADD notebook /notebook
