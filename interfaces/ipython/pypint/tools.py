@@ -197,6 +197,7 @@ def reduce_for_goal(self, goal=None, squeeze=True, squeeze_preserve=None, **kwgo
         network.
 
     Example:
+
     >>> redm = m.reduce_for_goal("g=1")
     """
     goal = Goal.from_arg(goal, **kwgoal)
@@ -287,7 +288,7 @@ def cutsets(self, goal=None, maxsize=5, exclude=[], exclude_initial_state=True,
         exclude automata involved in the goal specification
     :rtype: list(dict[str,int or int list])
 
-    .. seealso:: method :py:meth:`.oneshot_mutations_for_cut`, TODO
+    .. seealso:: method :py:meth:`.oneshot_mutations_for_cut`
     """
     goal = Goal.from_arg(goal, **kwgoal)
 
@@ -335,8 +336,6 @@ def oneshot_mutations_for_cut(self, goal=None, maxsize=5,
     :keyword bool exclude_goal_automata:
         exclude automata involved in the goal specification
     :rtype: list(dict[str,int])
-
-    .. seealso:: TODO
     """
     goal = Goal.from_arg(goal, **kwgoal)
 
