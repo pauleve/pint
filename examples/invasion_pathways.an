@@ -1,0 +1,279 @@
+"AKT1" [0, 1]
+"AKT2" [0, 1]
+"Apoptosis" [0, 1]
+"CDH1" [0, 1]
+"CDH2" [0, 1]
+"CTNNB1" [0, 1]
+"CellCycleArrest" [0, 1]
+"DKK1" [0, 1]
+"DNAdamage" [0, 1]
+"ECMicroenv" [0, 1]
+"EMT" [0, 1]
+"ERK" [0, 1]
+"GF" [0, 1]
+"Invasion" [0, 1]
+"Metastasis" [0, 1]
+"Migration" [0, 1]
+"NICD" [0, 1]
+"SMAD" [0, 1]
+"SNAI1" [0, 1]
+"SNAI2" [0, 1]
+"TGFbeta" [0, 1]
+"TWIST1" [0, 1]
+"VIM" [0, 1]
+"ZEB1" [0, 1]
+"ZEB2" [0, 1]
+"miR200" [0, 1]
+"miR203" [0, 1]
+"miR34" [0, 1]
+"p21" [0, 1]
+"p53" [0, 1]
+"p63" [0, 1]
+"p73" [0, 1]
+
+"AKT1" 0 -> 1 when "CDH1"=0 and "CDH2"=0 and "CTNNB1"=1 and "GF"=0 and "NICD"=1 and "TGFbeta"=0 and "miR34"=0 and "p53"=0
+"AKT1" 0 -> 1 when "CDH1"=0 and "CDH2"=1 and "CTNNB1"=1 and "GF"=0 and "TGFbeta"=0 and "miR34"=0 and "p53"=0
+"AKT1" 0 -> 1 when "CDH1"=0 and "CTNNB1"=1 and "GF"=0 and "TGFbeta"=1 and "miR34"=0 and "p53"=0
+"AKT1" 0 -> 1 when "CDH1"=0 and "CTNNB1"=1 and "GF"=1 and "miR34"=0 and "p53"=0
+"AKT1" 1 -> 0 when "CDH1"=0 and "CDH2"=0 and "CTNNB1"=1 and "GF"=0 and "NICD"=0 and "TGFbeta"=0
+"AKT1" 1 -> 0 when "CDH1"=0 and "CDH2"=0 and "CTNNB1"=1 and "GF"=0 and "NICD"=1 and "TGFbeta"=0 and "miR34"=1 and "p53"=0
+"AKT1" 1 -> 0 when "CDH1"=0 and "CDH2"=0 and "CTNNB1"=1 and "GF"=0 and "NICD"=1 and "TGFbeta"=0 and "p53"=1
+"AKT1" 1 -> 0 when "CDH1"=0 and "CDH2"=1 and "CTNNB1"=1 and "GF"=0 and "TGFbeta"=0 and "miR34"=1 and "p53"=0
+"AKT1" 1 -> 0 when "CDH1"=0 and "CDH2"=1 and "CTNNB1"=1 and "GF"=0 and "TGFbeta"=0 and "p53"=1
+"AKT1" 1 -> 0 when "CDH1"=0 and "CTNNB1"=0
+"AKT1" 1 -> 0 when "CDH1"=0 and "CTNNB1"=1 and "GF"=0 and "TGFbeta"=1 and "miR34"=1 and "p53"=0
+"AKT1" 1 -> 0 when "CDH1"=0 and "CTNNB1"=1 and "GF"=0 and "TGFbeta"=1 and "p53"=1
+"AKT1" 1 -> 0 when "CDH1"=0 and "CTNNB1"=1 and "GF"=1 and "miR34"=1 and "p53"=0
+"AKT1" 1 -> 0 when "CDH1"=0 and "CTNNB1"=1 and "GF"=1 and "p53"=1
+"AKT1" 1 -> 0 when "CDH1"=1
+"AKT2" 0 -> 1 when "CDH2"=0 and "GF"=0 and "NICD"=1 and "TGFbeta"=0 and "TWIST1"=1 and "miR203"=0 and "miR34"=0 and "p53"=0
+"AKT2" 0 -> 1 when "CDH2"=1 and "GF"=0 and "TGFbeta"=0 and "TWIST1"=1 and "miR203"=0 and "miR34"=0 and "p53"=0
+"AKT2" 0 -> 1 when "GF"=0 and "TGFbeta"=1 and "TWIST1"=1 and "miR203"=0 and "miR34"=0 and "p53"=0
+"AKT2" 0 -> 1 when "GF"=1 and "TWIST1"=1 and "miR203"=0 and "miR34"=0 and "p53"=0
+"AKT2" 1 -> 0 when "CDH2"=0 and "GF"=0 and "NICD"=0 and "TGFbeta"=0 and "TWIST1"=1
+"AKT2" 1 -> 0 when "CDH2"=0 and "GF"=0 and "NICD"=1 and "TGFbeta"=0 and "TWIST1"=1 and "miR203"=0 and "miR34"=1 and "p53"=0
+"AKT2" 1 -> 0 when "CDH2"=0 and "GF"=0 and "NICD"=1 and "TGFbeta"=0 and "TWIST1"=1 and "miR203"=1 and "p53"=0
+"AKT2" 1 -> 0 when "CDH2"=0 and "GF"=0 and "NICD"=1 and "TGFbeta"=0 and "TWIST1"=1 and "p53"=1
+"AKT2" 1 -> 0 when "CDH2"=1 and "GF"=0 and "TGFbeta"=0 and "TWIST1"=1 and "miR203"=0 and "miR34"=1 and "p53"=0
+"AKT2" 1 -> 0 when "CDH2"=1 and "GF"=0 and "TGFbeta"=0 and "TWIST1"=1 and "miR203"=1 and "p53"=0
+"AKT2" 1 -> 0 when "CDH2"=1 and "GF"=0 and "TGFbeta"=0 and "TWIST1"=1 and "p53"=1
+"AKT2" 1 -> 0 when "GF"=0 and "TGFbeta"=1 and "TWIST1"=1 and "miR203"=0 and "miR34"=1 and "p53"=0
+"AKT2" 1 -> 0 when "GF"=0 and "TGFbeta"=1 and "TWIST1"=1 and "miR203"=1 and "p53"=0
+"AKT2" 1 -> 0 when "GF"=0 and "TGFbeta"=1 and "TWIST1"=1 and "p53"=1
+"AKT2" 1 -> 0 when "GF"=0 and "TWIST1"=0
+"AKT2" 1 -> 0 when "GF"=1 and "TWIST1"=0
+"AKT2" 1 -> 0 when "GF"=1 and "TWIST1"=1 and "miR203"=0 and "miR34"=1 and "p53"=0
+"AKT2" 1 -> 0 when "GF"=1 and "TWIST1"=1 and "miR203"=1 and "p53"=0
+"AKT2" 1 -> 0 when "GF"=1 and "TWIST1"=1 and "p53"=1
+"Apoptosis" 0 -> 1 when "AKT1"=0 and "ERK"=0 and "ZEB2"=0 and "miR200"=0 and "miR34"=1 and "p53"=0 and "p63"=0 and "p73"=0
+"Apoptosis" 0 -> 1 when "AKT1"=0 and "ERK"=0 and "ZEB2"=0 and "miR200"=1 and "p53"=0 and "p63"=0 and "p73"=0
+"Apoptosis" 0 -> 1 when "AKT1"=0 and "ERK"=0 and "ZEB2"=0 and "p53"=0 and "p63"=0 and "p73"=1
+"Apoptosis" 0 -> 1 when "AKT1"=0 and "ERK"=0 and "ZEB2"=0 and "p53"=1 and "p63"=0
+"Apoptosis" 0 -> 1 when "AKT1"=0 and "ERK"=0 and "ZEB2"=0 and "p63"=1
+"Apoptosis" 1 -> 0 when "AKT1"=0 and "ERK"=1 and "ZEB2"=0 and "miR200"=0 and "miR34"=1 and "p53"=0 and "p63"=0 and "p73"=0
+"Apoptosis" 1 -> 0 when "AKT1"=0 and "ERK"=1 and "ZEB2"=0 and "miR200"=1 and "p53"=0 and "p63"=0 and "p73"=0
+"Apoptosis" 1 -> 0 when "AKT1"=0 and "ERK"=1 and "ZEB2"=0 and "p53"=0 and "p63"=0 and "p73"=1
+"Apoptosis" 1 -> 0 when "AKT1"=0 and "ERK"=1 and "ZEB2"=0 and "p53"=1 and "p63"=0
+"Apoptosis" 1 -> 0 when "AKT1"=0 and "ERK"=1 and "ZEB2"=0 and "p63"=1
+"Apoptosis" 1 -> 0 when "AKT1"=0 and "ZEB2"=0 and "miR200"=0 and "miR34"=0 and "p53"=0 and "p63"=0 and "p73"=0
+"Apoptosis" 1 -> 0 when "AKT1"=1 and "ZEB2"=0
+"Apoptosis" 1 -> 0 when "ZEB2"=1
+"CDH1" 0 -> 1 when "AKT2"=0 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=0 and "ZEB1"=0 and "ZEB2"=0
+"CDH1" 1 -> 0 when "AKT2"=1 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=0 and "ZEB1"=0 and "ZEB2"=0
+"CDH1" 1 -> 0 when "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=0 and "ZEB1"=0 and "ZEB2"=1
+"CDH1" 1 -> 0 when "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=0 and "ZEB1"=1
+"CDH1" 1 -> 0 when "SNAI1"=0 and "SNAI2"=1 and "TWIST1"=0
+"CDH1" 1 -> 0 when "SNAI1"=1 and "TWIST1"=0
+"CDH1" 1 -> 0 when "TWIST1"=1
+"CDH2" 0 -> 1 when "TWIST1"=1
+"CDH2" 1 -> 0 when "TWIST1"=0
+"CTNNB1" 0 -> 1 when "AKT1"=0 and "CDH1"=0 and "CDH2"=0 and "DKK1"=0 and "miR200"=0 and "miR34"=0 and "p53"=0 and "p63"=0
+"CTNNB1" 1 -> 0 when "AKT1"=0 and "CDH1"=0 and "CDH2"=0 and "DKK1"=0 and "miR200"=0 and "miR34"=1 and "p53"=0 and "p63"=0
+"CTNNB1" 1 -> 0 when "AKT1"=0 and "CDH1"=0 and "CDH2"=0 and "DKK1"=0 and "miR200"=1 and "p53"=0 and "p63"=0
+"CTNNB1" 1 -> 0 when "AKT1"=0 and "CDH1"=0 and "CDH2"=0 and "DKK1"=0 and "p53"=1 and "p63"=0
+"CTNNB1" 1 -> 0 when "AKT1"=0 and "CDH1"=0 and "CDH2"=0 and "DKK1"=0 and "p63"=1
+"CTNNB1" 1 -> 0 when "AKT1"=0 and "CDH1"=0 and "CDH2"=0 and "DKK1"=1
+"CTNNB1" 1 -> 0 when "AKT1"=1 and "CDH1"=0 and "CDH2"=0
+"CTNNB1" 1 -> 0 when "CDH1"=0 and "CDH2"=1
+"CTNNB1" 1 -> 0 when "CDH1"=1
+"CellCycleArrest" 0 -> 1 when "AKT1"=0 and "ZEB2"=0 and "miR200"=0 and "miR203"=0 and "miR34"=1 and "p21"=0
+"CellCycleArrest" 0 -> 1 when "AKT1"=0 and "ZEB2"=0 and "miR200"=0 and "miR203"=1 and "p21"=0
+"CellCycleArrest" 0 -> 1 when "AKT1"=0 and "ZEB2"=0 and "miR200"=1 and "p21"=0
+"CellCycleArrest" 0 -> 1 when "AKT1"=0 and "ZEB2"=1 and "p21"=0
+"CellCycleArrest" 0 -> 1 when "AKT1"=0 and "p21"=1
+"CellCycleArrest" 1 -> 0 when "AKT1"=0 and "ZEB2"=0 and "miR200"=0 and "miR203"=0 and "miR34"=0 and "p21"=0
+"CellCycleArrest" 1 -> 0 when "AKT1"=1 and "p21"=0
+"CellCycleArrest" 1 -> 0 when "AKT1"=1 and "p21"=1
+"DKK1" 0 -> 1 when "CTNNB1"=0 and "NICD"=1
+"DKK1" 0 -> 1 when "CTNNB1"=1
+"DKK1" 1 -> 0 when "CTNNB1"=0 and "NICD"=0
+"EMT" 0 -> 1 when "CDH1"=0 and "CDH2"=1
+"EMT" 1 -> 0 when "CDH1"=0 and "CDH2"=0
+"EMT" 1 -> 0 when "CDH1"=1
+"ERK" 0 -> 1 when "AKT1"=0 and "CDH2"=0 and "GF"=0 and "NICD"=0 and "SMAD"=1
+"ERK" 0 -> 1 when "AKT1"=0 and "CDH2"=0 and "GF"=0 and "NICD"=1
+"ERK" 0 -> 1 when "AKT1"=0 and "CDH2"=1 and "GF"=0
+"ERK" 0 -> 1 when "AKT1"=0 and "GF"=1
+"ERK" 1 -> 0 when "AKT1"=0 and "CDH2"=0 and "GF"=0 and "NICD"=0 and "SMAD"=0
+"ERK" 1 -> 0 when "AKT1"=1 and "GF"=0
+"ERK" 1 -> 0 when "AKT1"=1 and "GF"=1
+"GF" 0 -> 1 when "CDH1"=0 and "CDH2"=1
+"GF" 1 -> 0 when "CDH1"=1
+"Invasion" 0 -> 1 when "CDH2"=1 and "CTNNB1"=0 and "SMAD"=1
+"Invasion" 0 -> 1 when "CTNNB1"=1
+"Invasion" 1 -> 0 when "CDH2"=0 and "CTNNB1"=0
+"Invasion" 1 -> 0 when "CDH2"=1 and "CTNNB1"=0 and "SMAD"=0
+"Metastasis" 0 -> 1 when "Migration"=1
+"Metastasis" 1 -> 0 when "Migration"=0
+"Migration" 0 -> 1 when "AKT1"=0 and "AKT2"=1 and "EMT"=1 and "ERK"=1 and "Invasion"=1 and "VIM"=1 and "miR200"=0 and "p63"=0
+"Migration" 1 -> 0 when "AKT1"=0 and "AKT2"=0 and "EMT"=1 and "Invasion"=1 and "VIM"=1 and "miR200"=0 and "p63"=0
+"Migration" 1 -> 0 when "AKT1"=0 and "AKT2"=1 and "EMT"=1 and "ERK"=0 and "Invasion"=1 and "VIM"=1 and "miR200"=0 and "p63"=0
+"Migration" 1 -> 0 when "AKT1"=0 and "EMT"=1 and "Invasion"=1 and "VIM"=1 and "miR200"=1 and "p63"=0
+"Migration" 1 -> 0 when "AKT1"=0 and "EMT"=1 and "Invasion"=1 and "VIM"=1 and "p63"=1
+"Migration" 1 -> 0 when "AKT1"=1 and "EMT"=1 and "Invasion"=1 and "VIM"=1
+"Migration" 1 -> 0 when "EMT"=0 and "Invasion"=1
+"Migration" 1 -> 0 when "EMT"=1 and "Invasion"=1 and "VIM"=0
+"Migration" 1 -> 0 when "Invasion"=0
+"NICD" 0 -> 1 when "ECMicroenv"=1 and "miR200"=0 and "miR34"=0 and "p53"=0 and "p63"=0 and "p73"=0
+"NICD" 1 -> 0 when "ECMicroenv"=0
+"NICD" 1 -> 0 when "ECMicroenv"=1 and "miR200"=0 and "miR34"=1 and "p53"=0 and "p63"=0 and "p73"=0
+"NICD" 1 -> 0 when "ECMicroenv"=1 and "miR200"=1 and "p53"=0 and "p63"=0 and "p73"=0
+"NICD" 1 -> 0 when "ECMicroenv"=1 and "p53"=0 and "p63"=0 and "p73"=1
+"NICD" 1 -> 0 when "ECMicroenv"=1 and "p53"=1 and "p63"=0
+"NICD" 1 -> 0 when "ECMicroenv"=1 and "p63"=1
+"SMAD" 0 -> 1 when "TGFbeta"=1 and "miR200"=0 and "miR203"=0
+"SMAD" 1 -> 0 when "TGFbeta"=0
+"SMAD" 1 -> 0 when "TGFbeta"=1 and "miR200"=0 and "miR203"=1
+"SMAD" 1 -> 0 when "TGFbeta"=1 and "miR200"=1
+"SNAI1" 0 -> 1 when "CTNNB1"=0 and "NICD"=1 and "TWIST1"=0 and "miR203"=0 and "miR34"=0 and "p53"=0
+"SNAI1" 0 -> 1 when "CTNNB1"=0 and "TWIST1"=1 and "miR203"=0 and "miR34"=0 and "p53"=0
+"SNAI1" 1 -> 0 when "CTNNB1"=0 and "NICD"=0 and "TWIST1"=0
+"SNAI1" 1 -> 0 when "CTNNB1"=0 and "NICD"=1 and "TWIST1"=0 and "miR203"=0 and "miR34"=1 and "p53"=0
+"SNAI1" 1 -> 0 when "CTNNB1"=0 and "NICD"=1 and "TWIST1"=0 and "miR203"=1 and "p53"=0
+"SNAI1" 1 -> 0 when "CTNNB1"=0 and "NICD"=1 and "TWIST1"=0 and "p53"=1
+"SNAI1" 1 -> 0 when "CTNNB1"=0 and "TWIST1"=1 and "miR203"=0 and "miR34"=1 and "p53"=0
+"SNAI1" 1 -> 0 when "CTNNB1"=0 and "TWIST1"=1 and "miR203"=1 and "p53"=0
+"SNAI1" 1 -> 0 when "CTNNB1"=0 and "TWIST1"=1 and "p53"=1
+"SNAI1" 1 -> 0 when "CTNNB1"=1
+"SNAI2" 0 -> 1 when "CTNNB1"=0 and "NICD"=1 and "TWIST1"=0 and "miR200"=0 and "miR203"=0 and "p53"=0
+"SNAI2" 0 -> 1 when "CTNNB1"=1 and "TWIST1"=0 and "miR200"=0 and "miR203"=0 and "p53"=0
+"SNAI2" 0 -> 1 when "TWIST1"=1 and "miR200"=0 and "miR203"=0 and "p53"=0
+"SNAI2" 1 -> 0 when "CTNNB1"=0 and "NICD"=0 and "TWIST1"=0
+"SNAI2" 1 -> 0 when "CTNNB1"=0 and "NICD"=1 and "TWIST1"=0 and "miR200"=0 and "miR203"=1 and "p53"=0
+"SNAI2" 1 -> 0 when "CTNNB1"=0 and "NICD"=1 and "TWIST1"=0 and "miR200"=1 and "p53"=0
+"SNAI2" 1 -> 0 when "CTNNB1"=0 and "NICD"=1 and "TWIST1"=0 and "p53"=1
+"SNAI2" 1 -> 0 when "CTNNB1"=1 and "TWIST1"=0 and "miR200"=0 and "miR203"=1 and "p53"=0
+"SNAI2" 1 -> 0 when "CTNNB1"=1 and "TWIST1"=0 and "miR200"=1 and "p53"=0
+"SNAI2" 1 -> 0 when "CTNNB1"=1 and "TWIST1"=0 and "p53"=1
+"SNAI2" 1 -> 0 when "TWIST1"=1 and "miR200"=0 and "miR203"=1 and "p53"=0
+"SNAI2" 1 -> 0 when "TWIST1"=1 and "miR200"=1 and "p53"=0
+"SNAI2" 1 -> 0 when "TWIST1"=1 and "p53"=1
+"TGFbeta" 0 -> 1 when "CTNNB1"=0 and "ECMicroenv"=0 and "NICD"=1
+"TGFbeta" 0 -> 1 when "CTNNB1"=0 and "ECMicroenv"=1
+"TGFbeta" 1 -> 0 when "CTNNB1"=0 and "ECMicroenv"=0 and "NICD"=0
+"TGFbeta" 1 -> 0 when "CTNNB1"=1
+"TWIST1" 0 -> 1 when "CTNNB1"=0 and "NICD"=1 and "SNAI1"=0
+"TWIST1" 0 -> 1 when "CTNNB1"=1 and "SNAI1"=0
+"TWIST1" 0 -> 1 when "SNAI1"=1
+"TWIST1" 1 -> 0 when "CTNNB1"=0 and "NICD"=0 and "SNAI1"=0
+"VIM" 0 -> 1 when "CTNNB1"=1 and "ZEB2"=0
+"VIM" 0 -> 1 when "ZEB2"=1
+"VIM" 1 -> 0 when "CTNNB1"=0 and "ZEB2"=0
+"ZEB1" 0 -> 1 when "CTNNB1"=0 and "NICD"=1 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=1 and "miR200"=0
+"ZEB1" 0 -> 1 when "CTNNB1"=0 and "NICD"=1 and "SNAI2"=0 and "TWIST1"=0 and "miR200"=0
+"ZEB1" 0 -> 1 when "CTNNB1"=1 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=1 and "miR200"=0
+"ZEB1" 0 -> 1 when "CTNNB1"=1 and "SNAI2"=0 and "TWIST1"=0 and "miR200"=0
+"ZEB1" 0 -> 1 when "SNAI1"=0 and "SNAI2"=1 and "TWIST1"=1 and "miR200"=0
+"ZEB1" 0 -> 1 when "SNAI1"=1 and "TWIST1"=1 and "miR200"=0
+"ZEB1" 0 -> 1 when "SNAI2"=1 and "TWIST1"=0 and "miR200"=0
+"ZEB1" 1 -> 0 when "CTNNB1"=0 and "NICD"=0 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=1
+"ZEB1" 1 -> 0 when "CTNNB1"=0 and "NICD"=0 and "SNAI2"=0 and "TWIST1"=0
+"ZEB1" 1 -> 0 when "CTNNB1"=0 and "NICD"=1 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=1 and "miR200"=1
+"ZEB1" 1 -> 0 when "CTNNB1"=0 and "NICD"=1 and "SNAI2"=0 and "TWIST1"=0 and "miR200"=1
+"ZEB1" 1 -> 0 when "CTNNB1"=1 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=1 and "miR200"=1
+"ZEB1" 1 -> 0 when "CTNNB1"=1 and "SNAI2"=0 and "TWIST1"=0 and "miR200"=1
+"ZEB1" 1 -> 0 when "SNAI1"=0 and "SNAI2"=1 and "TWIST1"=1 and "miR200"=1
+"ZEB1" 1 -> 0 when "SNAI1"=1 and "TWIST1"=1 and "miR200"=1
+"ZEB1" 1 -> 0 when "SNAI2"=1 and "TWIST1"=0 and "miR200"=1
+"ZEB2" 0 -> 1 when "NICD"=1 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=1 and "miR200"=0 and "miR203"=0
+"ZEB2" 0 -> 1 when "NICD"=1 and "SNAI1"=0 and "TWIST1"=0 and "miR200"=0 and "miR203"=0
+"ZEB2" 0 -> 1 when "SNAI1"=0 and "SNAI2"=1 and "TWIST1"=1 and "miR200"=0 and "miR203"=0
+"ZEB2" 0 -> 1 when "SNAI1"=1 and "miR200"=0 and "miR203"=0
+"ZEB2" 1 -> 0 when "NICD"=0 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=1
+"ZEB2" 1 -> 0 when "NICD"=0 and "SNAI1"=0 and "TWIST1"=0
+"ZEB2" 1 -> 0 when "NICD"=1 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=1 and "miR200"=0 and "miR203"=1
+"ZEB2" 1 -> 0 when "NICD"=1 and "SNAI1"=0 and "SNAI2"=0 and "TWIST1"=1 and "miR200"=1
+"ZEB2" 1 -> 0 when "NICD"=1 and "SNAI1"=0 and "TWIST1"=0 and "miR200"=0 and "miR203"=1
+"ZEB2" 1 -> 0 when "NICD"=1 and "SNAI1"=0 and "TWIST1"=0 and "miR200"=1
+"ZEB2" 1 -> 0 when "SNAI1"=0 and "SNAI2"=1 and "TWIST1"=1 and "miR200"=0 and "miR203"=1
+"ZEB2" 1 -> 0 when "SNAI1"=0 and "SNAI2"=1 and "TWIST1"=1 and "miR200"=1
+"ZEB2" 1 -> 0 when "SNAI1"=1 and "miR200"=0 and "miR203"=1
+"ZEB2" 1 -> 0 when "SNAI1"=1 and "miR200"=1
+"miR200" 0 -> 1 when "AKT2"=0 and "SNAI1"=0 and "SNAI2"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=0 and "p63"=0 and "p73"=1
+"miR200" 0 -> 1 when "AKT2"=0 and "SNAI1"=0 and "SNAI2"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=1 and "p63"=0
+"miR200" 0 -> 1 when "AKT2"=0 and "SNAI1"=0 and "SNAI2"=0 and "ZEB1"=0 and "ZEB2"=0 and "p63"=1
+"miR200" 1 -> 0 when "AKT2"=1 and "SNAI1"=0 and "SNAI2"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=0 and "p63"=0 and "p73"=1
+"miR200" 1 -> 0 when "AKT2"=1 and "SNAI1"=0 and "SNAI2"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=1 and "p63"=0
+"miR200" 1 -> 0 when "AKT2"=1 and "SNAI1"=0 and "SNAI2"=0 and "ZEB1"=0 and "ZEB2"=0 and "p63"=1
+"miR200" 1 -> 0 when "SNAI1"=0 and "SNAI2"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=0 and "p63"=0 and "p73"=0
+"miR200" 1 -> 0 when "SNAI1"=0 and "SNAI2"=0 and "ZEB1"=0 and "ZEB2"=1
+"miR200" 1 -> 0 when "SNAI1"=0 and "SNAI2"=0 and "ZEB1"=1
+"miR200" 1 -> 0 when "SNAI1"=0 and "SNAI2"=1
+"miR200" 1 -> 0 when "SNAI1"=1
+"miR203" 0 -> 1 when "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=1
+"miR203" 1 -> 0 when "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=0
+"miR203" 1 -> 0 when "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=1
+"miR203" 1 -> 0 when "SNAI1"=0 and "ZEB1"=1
+"miR203" 1 -> 0 when "SNAI1"=1
+"miR34" 0 -> 1 when "AKT1"=0 and "AKT2"=1 and "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=0 and "p63"=0 and "p73"=1
+"miR34" 0 -> 1 when "AKT1"=0 and "AKT2"=1 and "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=1 and "p63"=0
+"miR34" 1 -> 0 when "AKT1"=0 and "AKT2"=0 and "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=0 and "p63"=0 and "p73"=1
+"miR34" 1 -> 0 when "AKT1"=0 and "AKT2"=0 and "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=1 and "p63"=0
+"miR34" 1 -> 0 when "AKT1"=0 and "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=0 and "p53"=0 and "p63"=0 and "p73"=0
+"miR34" 1 -> 0 when "AKT1"=0 and "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=0 and "p63"=1
+"miR34" 1 -> 0 when "AKT1"=1 and "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=0
+"miR34" 1 -> 0 when "SNAI1"=0 and "ZEB1"=0 and "ZEB2"=1
+"miR34" 1 -> 0 when "SNAI1"=0 and "ZEB1"=1
+"miR34" 1 -> 0 when "SNAI1"=1
+"p21" 0 -> 1 when "AKT1"=0 and "AKT2"=0 and "ERK"=0 and "NICD"=1 and "SMAD"=1 and "p53"=0 and "p63"=0 and "p73"=0
+"p21" 0 -> 1 when "AKT1"=0 and "AKT2"=1 and "ERK"=0 and "p53"=0 and "p63"=0 and "p73"=0
+"p21" 0 -> 1 when "AKT1"=0 and "ERK"=0 and "p53"=0 and "p63"=0 and "p73"=1
+"p21" 0 -> 1 when "AKT1"=0 and "ERK"=0 and "p53"=1 and "p63"=0
+"p21" 0 -> 1 when "AKT1"=0 and "ERK"=0 and "p63"=1
+"p21" 1 -> 0 when "AKT1"=0 and "AKT2"=0 and "ERK"=0 and "NICD"=1 and "SMAD"=0 and "p53"=0 and "p63"=0 and "p73"=0
+"p21" 1 -> 0 when "AKT1"=0 and "AKT2"=0 and "NICD"=0 and "p53"=0 and "p63"=0 and "p73"=0
+"p21" 1 -> 0 when "AKT1"=0 and "AKT2"=1 and "ERK"=1 and "p53"=0 and "p63"=0 and "p73"=0
+"p21" 1 -> 0 when "AKT1"=0 and "ERK"=1 and "NICD"=1 and "p53"=0 and "p63"=0 and "p73"=0
+"p21" 1 -> 0 when "AKT1"=0 and "ERK"=1 and "p53"=0 and "p63"=0 and "p73"=1
+"p21" 1 -> 0 when "AKT1"=0 and "ERK"=1 and "p53"=1 and "p63"=0
+"p21" 1 -> 0 when "AKT1"=0 and "ERK"=1 and "p63"=1
+"p21" 1 -> 0 when "AKT1"=1
+"p53" 0 -> 1 when "AKT1"=0 and "AKT2"=0 and "CTNNB1"=0 and "DNAdamage"=0 and "NICD"=0 and "SNAI2"=0 and "miR34"=1 and "p73"=0
+"p53" 0 -> 1 when "AKT1"=0 and "AKT2"=0 and "CTNNB1"=0 and "DNAdamage"=0 and "NICD"=1 and "SNAI2"=0 and "p73"=0
+"p53" 0 -> 1 when "AKT1"=0 and "AKT2"=0 and "CTNNB1"=1 and "DNAdamage"=0 and "SNAI2"=0 and "p73"=0
+"p53" 0 -> 1 when "AKT1"=0 and "AKT2"=0 and "DNAdamage"=1 and "SNAI2"=0 and "p73"=0
+"p53" 1 -> 0 when "AKT1"=0 and "AKT2"=1 and "CTNNB1"=0 and "DNAdamage"=0 and "NICD"=0 and "SNAI2"=0 and "miR34"=1 and "p73"=0
+"p53" 1 -> 0 when "AKT1"=0 and "AKT2"=1 and "CTNNB1"=0 and "DNAdamage"=0 and "NICD"=1 and "SNAI2"=0 and "p73"=0
+"p53" 1 -> 0 when "AKT1"=0 and "AKT2"=1 and "CTNNB1"=1 and "DNAdamage"=0 and "SNAI2"=0 and "p73"=0
+"p53" 1 -> 0 when "AKT1"=0 and "AKT2"=1 and "DNAdamage"=1 and "SNAI2"=0 and "p73"=0
+"p53" 1 -> 0 when "AKT1"=0 and "CTNNB1"=0 and "DNAdamage"=0 and "NICD"=0 and "SNAI2"=0 and "miR34"=0 and "p73"=0
+"p53" 1 -> 0 when "AKT1"=0 and "CTNNB1"=0 and "DNAdamage"=0 and "SNAI2"=0 and "p73"=1
+"p53" 1 -> 0 when "AKT1"=0 and "CTNNB1"=1 and "DNAdamage"=0 and "SNAI2"=0 and "p73"=1
+"p53" 1 -> 0 when "AKT1"=0 and "DNAdamage"=1 and "SNAI2"=0 and "p73"=1
+"p53" 1 -> 0 when "AKT1"=1 and "SNAI2"=0
+"p53" 1 -> 0 when "SNAI2"=1
+"p63" 0 -> 1 when "AKT1"=0 and "AKT2"=0 and "DNAdamage"=1 and "NICD"=0 and "miR203"=0 and "p53"=0
+"p63" 1 -> 0 when "AKT1"=0 and "AKT2"=1 and "DNAdamage"=1 and "NICD"=0 and "miR203"=0 and "p53"=0
+"p63" 1 -> 0 when "AKT1"=0 and "DNAdamage"=1 and "NICD"=0 and "miR203"=1 and "p53"=0
+"p63" 1 -> 0 when "AKT1"=0 and "DNAdamage"=1 and "NICD"=0 and "p53"=1
+"p63" 1 -> 0 when "AKT1"=0 and "DNAdamage"=1 and "NICD"=1
+"p63" 1 -> 0 when "AKT1"=1 and "DNAdamage"=1
+"p63" 1 -> 0 when "DNAdamage"=0
+"p73" 0 -> 1 when "AKT1"=0 and "AKT2"=0 and "DNAdamage"=1 and "ZEB1"=0 and "p53"=0
+"p73" 1 -> 0 when "AKT1"=0 and "AKT2"=1 and "DNAdamage"=1 and "ZEB1"=0 and "p53"=0
+"p73" 1 -> 0 when "AKT1"=0 and "DNAdamage"=1 and "ZEB1"=0 and "p53"=1
+"p73" 1 -> 0 when "AKT1"=1 and "DNAdamage"=1 and "ZEB1"=0
+"p73" 1 -> 0 when "DNAdamage"=0
+"p73" 1 -> 0 when "DNAdamage"=1 and "ZEB1"=1
+
+initial_context "AKT1"=0, "AKT2"=0, "Apoptosis"=0, "CDH1"=0, "CDH2"=0, "CTNNB1"=0, "CellCycleArrest"=0, "DKK1"=0, "DNAdamage"=0, "ECMicroenv"=0, "EMT"=0, "ERK"=0, "GF"=0, "Invasion"=0, "Metastasis"=0, "Migration"=0, "NICD"=0, "SMAD"=0, "SNAI1"=0, "SNAI2"=0, "TGFbeta"=0, "TWIST1"=0, "VIM"=0, "ZEB1"=0, "ZEB2"=0, "miR200"=0, "miR203"=0, "miR34"=0, "p21"=0, "p53"=0, "p63"=0, "p73"=0

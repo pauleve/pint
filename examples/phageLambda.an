@@ -1,0 +1,53 @@
+"CI" [0, 1, 2]
+"CII" [0, 1]
+"Cro" [0, 1, 2, 3]
+"N" [0, 1]
+
+"CI" 0 -> 1 when "CII"=1 and "Cro"=1
+"CI" 0 -> 1 when "CII"=1 and "Cro"=2
+"CI" 0 -> 1 when "CII"=1 and "Cro"=3
+"CI" 0 -> 1 when "Cro"=0
+"CI" 1 -> 0 when "CII"=0 and "Cro"=1
+"CI" 1 -> 0 when "CII"=0 and "Cro"=2
+"CI" 1 -> 0 when "CII"=0 and "Cro"=3
+"CI" 1 -> 2 when "CII"=1 and "Cro"=1
+"CI" 1 -> 2 when "CII"=1 and "Cro"=2
+"CI" 1 -> 2 when "CII"=1 and "Cro"=3
+"CI" 1 -> 2 when "Cro"=0
+"CI" 2 -> 1 when "CII"=0 and "Cro"=1
+"CI" 2 -> 1 when "CII"=0 and "Cro"=2
+"CI" 2 -> 1 when "CII"=0 and "Cro"=3
+"CII" 0 -> 1 when "CI"=0 and "Cro"=0 and "N"=1
+"CII" 0 -> 1 when "CI"=0 and "Cro"=1 and "N"=1
+"CII" 0 -> 1 when "CI"=0 and "Cro"=2 and "N"=1
+"CII" 0 -> 1 when "CI"=1 and "Cro"=0 and "N"=1
+"CII" 0 -> 1 when "CI"=1 and "Cro"=1 and "N"=1
+"CII" 0 -> 1 when "CI"=1 and "Cro"=2 and "N"=1
+"CII" 1 -> 0 when "CI"=0 and "Cro"=0 and "N"=0
+"CII" 1 -> 0 when "CI"=0 and "Cro"=1 and "N"=0
+"CII" 1 -> 0 when "CI"=0 and "Cro"=2 and "N"=0
+"CII" 1 -> 0 when "CI"=0 and "Cro"=3
+"CII" 1 -> 0 when "CI"=1 and "Cro"=0 and "N"=0
+"CII" 1 -> 0 when "CI"=1 and "Cro"=1 and "N"=0
+"CII" 1 -> 0 when "CI"=1 and "Cro"=2 and "N"=0
+"CII" 1 -> 0 when "CI"=1 and "Cro"=3
+"CII" 1 -> 0 when "CI"=2
+"Cro" 0 -> 1 when "CI"=0
+"Cro" 0 -> 1 when "CI"=1
+"Cro" 1 -> 0 when "CI"=2
+"Cro" 1 -> 2 when "CI"=0
+"Cro" 1 -> 2 when "CI"=1
+"Cro" 2 -> 1 when "CI"=2
+"Cro" 2 -> 3 when "CI"=0
+"Cro" 2 -> 3 when "CI"=1
+"Cro" 3 -> 2 when "CI"=0
+"Cro" 3 -> 2 when "CI"=1
+"Cro" 3 -> 2 when "CI"=2
+"N" 0 -> 1 when "CI"=0 and "Cro"=0
+"N" 0 -> 1 when "CI"=0 and "Cro"=1
+"N" 1 -> 0 when "CI"=0 and "Cro"=2
+"N" 1 -> 0 when "CI"=0 and "Cro"=3
+"N" 1 -> 0 when "CI"=1
+"N" 1 -> 0 when "CI"=2
+
+initial_context "CI"=0, "CII"=0, "Cro"=0, "N"=0
