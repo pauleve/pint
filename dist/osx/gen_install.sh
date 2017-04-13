@@ -11,10 +11,8 @@ done
 for x in bin/*.mac; do
 	cp -v \$x /usr/local/\${x/.mac/}
 done
-for x in bin/clingo bin/mole; do
-	cp -iv \$x /usr/local/\$x
-done
 mkdir -p /usr/local/share/pint
 cp -rv share/* /usr/local/share/pint
 cp -v bin/*.dylib /usr/local/lib/
+pint_install_deps
 EOF

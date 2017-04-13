@@ -59,10 +59,10 @@ class Clingo(Tool):
     }
     @classmethod
     def install(self, system, args):
-        assert system in binfile, "Cannot install binaries for %s" % system
+        assert system in self.binfile, "Cannot install binaries for %s" % system
         binfile = self.binfile[system]
         def match_entry(m):
-            return os.path.basename(m.name) == "clingo"
+            return m.isfile() and os.path.basename(m.name) == "clingo"
         install_from_tarurl(binfile, match_entry, args)
 
 class NuSMV(Tool):
