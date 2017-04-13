@@ -112,8 +112,6 @@ dist-osx: 3rdparty
 	#install -d $(OSX_W_BIN)
 	#install -m 755 $(OSX_BINS:%=bin/%) $(MISC_TOOLS) $(OSX_W_BIN)
 	install -m 644 dist/osx/*.dylib $(OSX_BIN)
-	install -m 755 dist/osx/clingo $(OSX_BIN)
-	install -m 755 dist/osx/mole $(OSX_BIN)
 	for i in $(OSX_TARGETS); do \
 		install -m 755 -b -B .mac dist/osx/wrapper.sh $(OSX_BIN)/$$i; \
 	done
