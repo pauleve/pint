@@ -105,7 +105,7 @@ OSX_DMG=../pint-$(RELNAME).dmg
 
 # should be called using ./dist/osx/do.sh
 #dist-osx: $(OXS_BINS)
-dist-osx:
+dist-osx: 3rdparty
 	-rm -rf $(OSX_W)
 	make $(OSX_TARGETS)
 	make DESTDIR="$(OSX_W)" PREFIX="$(OSX_PREFIX)" PINT_SHARE_PATH="$(OSX_SHARE)" $(addsuffix _install,$(OSX_TARGETS)) misc_install aspfiles_install
