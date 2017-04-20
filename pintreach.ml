@@ -238,6 +238,7 @@ let requirements automata universal =
 	List.iter handle_proc env.goal
 
 let _ =
+    opt_ignore_automata := SSet.add "_pint_goal" !opt_ignore_automata;
 	(if do_bifurcations then bifurcations ());
 	(if do_cutsets then cutsets !opt_cutsets_n);
 	(if do_requirements then requirements !opt_req_automata !opt_req_universal);
