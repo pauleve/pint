@@ -378,13 +378,7 @@ def download(url, suffix=None):
 
 def sbml_from_cellcollective(modelid):
     url = "http://api.cellcollective.org/model/export/%s?type=SBML" % modelid
-    filename = download(url, suffix="%s.zip" % modelid)
-    sbmlfile = new_output_file(suffix="%s.sbml" % modelid)
-    with ZipFile(filename) as z:
-        with z.open("sbml/%s.sbml" % modelid) as z:
-            with open(sbmlfile, "w") as s:
-                s.write(z.read().decode())
-    os.unlink(filename)
+    sbmlfile = download(url, suffix="%s.sbml" % modelid)
     return sbmlfile
 
 ext2format = {
