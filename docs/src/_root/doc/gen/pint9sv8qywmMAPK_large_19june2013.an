@@ -1,0 +1,233 @@
+"AKT" [0, 1]
+"AP1" [0, 1]
+"ATF2" [0, 1]
+"ATM" [0, 1]
+"Apoptosis" [0, 1]
+"BCL2" [0, 1]
+"CREB" [0, 1]
+"DNA_damage" [0, 1]
+"DUSP1" [0, 1]
+"EGFR" [0, 1]
+"EGFR_stimulus" [0, 1]
+"ELK1" [0, 1]
+"ERK" [0, 1]
+"FGFR3" [0, 1]
+"FGFR3_stimulus" [0, 1]
+"FOS" [0, 1]
+"FOXO3" [0, 1]
+"FRS2" [0, 1]
+"GAB1" [0, 1]
+"GADD45" [0, 1]
+"GRB2" [0, 1]
+"Growth_Arrest" [0, 1]
+"JNK" [0, 1]
+"JUN" [0, 1]
+"MAP3K1_3" [0, 1]
+"MAX" [0, 1]
+"MDM2" [0, 1]
+"MEK1_2" [0, 1]
+"MSK" [0, 1]
+"MTK1" [0, 1]
+"MYC" [0, 1]
+"PDK1" [0, 1]
+"PI3K" [0, 1]
+"PKC" [0, 1]
+"PLCG" [0, 1]
+"PPP2CA" [0, 1]
+"PTEN" [0, 1]
+"Proliferation" [0, 1]
+"RAF" [0, 1]
+"RAS" [0, 1]
+"RSK" [0, 1]
+"SMAD" [0, 1]
+"SOS" [0, 1]
+"SPRY" [0, 1]
+"TAK1" [0, 1]
+"TAOK" [0, 1]
+"TGFBR" [0, 1]
+"TGFBR_stimulus" [0, 1]
+"p14" [0, 1]
+"p21" [0, 1]
+"p38" [0, 1]
+"p53" [0, 1]
+"p70" [0, 1]
+
+"AKT" 0 -> 1 when "PDK1"=1 and "PTEN"=0
+"AKT" 1 -> 0 when "PDK1"=0
+"AKT" 1 -> 0 when "PDK1"=1 and "PTEN"=1
+"AP1" 0 -> 1 when "ATF2"=1 and "FOS"=0 and "JUN"=1
+"AP1" 0 -> 1 when "FOS"=1 and "JUN"=1
+"AP1" 1 -> 0 when "ATF2"=0 and "FOS"=0
+"AP1" 1 -> 0 when "ATF2"=1 and "FOS"=0 and "JUN"=0
+"AP1" 1 -> 0 when "FOS"=1 and "JUN"=0
+"ATF2" 0 -> 1 when "JNK"=1 and "p38"=0
+"ATF2" 0 -> 1 when "p38"=1
+"ATF2" 1 -> 0 when "JNK"=0 and "p38"=0
+"ATM" 0 -> 1 when "DNA_damage"=1
+"ATM" 1 -> 0 when "DNA_damage"=0
+"Apoptosis" 0 -> 1 when "BCL2"=0 and "ERK"=0 and "FOXO3"=1 and "p53"=1
+"Apoptosis" 1 -> 0 when "BCL2"=1 and "ERK"=0 and "FOXO3"=1 and "p53"=1
+"Apoptosis" 1 -> 0 when "ERK"=0 and "FOXO3"=0 and "p53"=1
+"Apoptosis" 1 -> 0 when "ERK"=0 and "p53"=0
+"Apoptosis" 1 -> 0 when "ERK"=1
+"BCL2" 0 -> 1 when "AKT"=1 and "CREB"=1
+"BCL2" 1 -> 0 when "AKT"=0
+"BCL2" 1 -> 0 when "AKT"=1 and "CREB"=0
+"CREB" 0 -> 1 when "MSK"=1
+"CREB" 1 -> 0 when "MSK"=0
+"DUSP1" 0 -> 1 when "CREB"=1
+"DUSP1" 1 -> 0 when "CREB"=0
+"EGFR" 0 -> 1 when "EGFR_stimulus"=0 and "GRB2"=0 and "PKC"=0 and "SPRY"=1
+"EGFR" 0 -> 1 when "EGFR_stimulus"=1 and "GRB2"=0 and "PKC"=0
+"EGFR" 1 -> 0 when "EGFR_stimulus"=0 and "GRB2"=0 and "PKC"=0 and "SPRY"=0
+"EGFR" 1 -> 0 when "GRB2"=0 and "PKC"=1
+"EGFR" 1 -> 0 when "GRB2"=1
+"ELK1" 0 -> 1 when "ERK"=0 and "JNK"=1 and "p38"=0
+"ELK1" 0 -> 1 when "ERK"=0 and "p38"=1
+"ELK1" 0 -> 1 when "ERK"=1
+"ELK1" 1 -> 0 when "ERK"=0 and "JNK"=0 and "p38"=0
+"ERK" 0 -> 1 when "MEK1_2"=1
+"ERK" 1 -> 0 when "MEK1_2"=0
+"FGFR3" 0 -> 1 when "FGFR3_stimulus"=1 and "GRB2"=0 and "PKC"=0
+"FGFR3" 1 -> 0 when "FGFR3_stimulus"=0
+"FGFR3" 1 -> 0 when "FGFR3_stimulus"=1 and "GRB2"=0 and "PKC"=1
+"FGFR3" 1 -> 0 when "FGFR3_stimulus"=1 and "GRB2"=1
+"FOS" 0 -> 1 when "CREB"=1 and "ELK1"=0 and "ERK"=1 and "RSK"=1
+"FOS" 0 -> 1 when "ELK1"=1 and "ERK"=1 and "RSK"=1
+"FOS" 1 -> 0 when "CREB"=0 and "ELK1"=0 and "ERK"=1
+"FOS" 1 -> 0 when "CREB"=1 and "ELK1"=0 and "ERK"=1 and "RSK"=0
+"FOS" 1 -> 0 when "ELK1"=1 and "ERK"=1 and "RSK"=0
+"FOS" 1 -> 0 when "ERK"=0
+"FOXO3" 0 -> 1 when "AKT"=0 and "JNK"=1
+"FOXO3" 1 -> 0 when "AKT"=1 and "JNK"=1
+"FOXO3" 1 -> 0 when "JNK"=0
+"FRS2" 0 -> 1 when "FGFR3"=1 and "GRB2"=0 and "SPRY"=0
+"FRS2" 1 -> 0 when "FGFR3"=0
+"FRS2" 1 -> 0 when "FGFR3"=1 and "GRB2"=0 and "SPRY"=1
+"FRS2" 1 -> 0 when "FGFR3"=1 and "GRB2"=1
+"GAB1" 0 -> 1 when "GRB2"=0 and "PI3K"=1
+"GAB1" 0 -> 1 when "GRB2"=1
+"GAB1" 1 -> 0 when "GRB2"=0 and "PI3K"=0
+"GADD45" 0 -> 1 when "SMAD"=1 and "p53"=0
+"GADD45" 0 -> 1 when "p53"=1
+"GADD45" 1 -> 0 when "SMAD"=0 and "p53"=0
+"GRB2" 0 -> 1 when "EGFR"=0 and "FRS2"=1 and "TGFBR"=0
+"GRB2" 0 -> 1 when "EGFR"=1 and "TGFBR"=0
+"GRB2" 0 -> 1 when "TGFBR"=1
+"GRB2" 1 -> 0 when "EGFR"=0 and "FRS2"=0 and "TGFBR"=0
+"Growth_Arrest" 0 -> 1 when "p21"=1
+"Growth_Arrest" 1 -> 0 when "p21"=0
+"JNK" 0 -> 1 when "DUSP1"=0 and "MAP3K1_3"=1 and "MTK1"=0 and "TAK1"=0 and "TAOK"=0
+"JNK" 0 -> 1 when "DUSP1"=0 and "MTK1"=0 and "TAK1"=1 and "TAOK"=0
+"JNK" 0 -> 1 when "DUSP1"=0 and "MTK1"=1 and "TAOK"=0
+"JNK" 0 -> 1 when "DUSP1"=0 and "TAOK"=1
+"JNK" 0 -> 1 when "DUSP1"=1 and "MAP3K1_3"=1 and "MTK1"=0 and "TAK1"=0 and "TAOK"=1
+"JNK" 0 -> 1 when "DUSP1"=1 and "MAP3K1_3"=1 and "MTK1"=0 and "TAK1"=1 and "TAOK"=0
+"JNK" 0 -> 1 when "DUSP1"=1 and "MAP3K1_3"=1 and "MTK1"=1 and "TAK1"=0 and "TAOK"=0
+"JNK" 0 -> 1 when "DUSP1"=1 and "MTK1"=0 and "TAK1"=1 and "TAOK"=1
+"JNK" 0 -> 1 when "DUSP1"=1 and "MTK1"=1 and "TAK1"=1 and "TAOK"=0
+"JNK" 0 -> 1 when "DUSP1"=1 and "MTK1"=1 and "TAOK"=1
+"JNK" 1 -> 0 when "DUSP1"=0 and "MAP3K1_3"=0 and "MTK1"=0 and "TAK1"=0 and "TAOK"=0
+"JNK" 1 -> 0 when "DUSP1"=1 and "MAP3K1_3"=0 and "MTK1"=0 and "TAK1"=0 and "TAOK"=1
+"JNK" 1 -> 0 when "DUSP1"=1 and "MAP3K1_3"=0 and "MTK1"=0 and "TAK1"=1 and "TAOK"=0
+"JNK" 1 -> 0 when "DUSP1"=1 and "MAP3K1_3"=0 and "MTK1"=1 and "TAK1"=0 and "TAOK"=0
+"JNK" 1 -> 0 when "DUSP1"=1 and "MTK1"=0 and "TAK1"=0 and "TAOK"=0
+"JUN" 0 -> 1 when "JNK"=1
+"JUN" 1 -> 0 when "JNK"=0
+"MAP3K1_3" 0 -> 1 when "RAS"=1
+"MAP3K1_3" 1 -> 0 when "RAS"=0
+"MAX" 0 -> 1 when "p38"=1
+"MAX" 1 -> 0 when "p38"=0
+"MDM2" 0 -> 1 when "AKT"=1 and "p14"=0 and "p53"=0
+"MDM2" 0 -> 1 when "p14"=0 and "p53"=1
+"MDM2" 1 -> 0 when "AKT"=0 and "p53"=0
+"MDM2" 1 -> 0 when "AKT"=1 and "p14"=1 and "p53"=0
+"MDM2" 1 -> 0 when "p14"=1 and "p53"=1
+"MEK1_2" 0 -> 1 when "AP1"=0 and "MAP3K1_3"=1 and "PPP2CA"=0 and "RAF"=0
+"MEK1_2" 0 -> 1 when "AP1"=0 and "PPP2CA"=0 and "RAF"=1
+"MEK1_2" 1 -> 0 when "AP1"=0 and "MAP3K1_3"=0 and "PPP2CA"=0 and "RAF"=0
+"MEK1_2" 1 -> 0 when "AP1"=0 and "PPP2CA"=1
+"MEK1_2" 1 -> 0 when "AP1"=1
+"MSK" 0 -> 1 when "ERK"=0 and "p38"=1
+"MSK" 0 -> 1 when "ERK"=1
+"MSK" 1 -> 0 when "ERK"=0 and "p38"=0
+"MTK1" 0 -> 1 when "GADD45"=1
+"MTK1" 1 -> 0 when "GADD45"=0
+"MYC" 0 -> 1 when "AKT"=1 and "MAX"=0 and "MSK"=1
+"MYC" 0 -> 1 when "MAX"=1 and "MSK"=1
+"MYC" 1 -> 0 when "AKT"=0 and "MAX"=0
+"MYC" 1 -> 0 when "AKT"=1 and "MAX"=0 and "MSK"=0
+"MYC" 1 -> 0 when "MAX"=1 and "MSK"=0
+"PDK1" 0 -> 1 when "PI3K"=1
+"PDK1" 1 -> 0 when "PI3K"=0
+"PI3K" 0 -> 1 when "GAB1"=0 and "RAS"=1 and "SOS"=1
+"PI3K" 0 -> 1 when "GAB1"=1
+"PI3K" 1 -> 0 when "GAB1"=0 and "RAS"=0
+"PI3K" 1 -> 0 when "GAB1"=0 and "RAS"=1 and "SOS"=0
+"PKC" 0 -> 1 when "PLCG"=1
+"PKC" 1 -> 0 when "PLCG"=0
+"PLCG" 0 -> 1 when "EGFR"=0 and "FGFR3"=1
+"PLCG" 0 -> 1 when "EGFR"=1
+"PLCG" 1 -> 0 when "EGFR"=0 and "FGFR3"=0
+"PPP2CA" 0 -> 1 when "p38"=1
+"PPP2CA" 1 -> 0 when "p38"=0
+"PTEN" 0 -> 1 when "p53"=1
+"PTEN" 1 -> 0 when "p53"=0
+"Proliferation" 0 -> 1 when "MYC"=1 and "p21"=0 and "p70"=1
+"Proliferation" 1 -> 0 when "MYC"=0 and "p21"=0
+"Proliferation" 1 -> 0 when "MYC"=1 and "p21"=0 and "p70"=0
+"Proliferation" 1 -> 0 when "p21"=1
+"RAF" 0 -> 1 when "AKT"=0 and "ERK"=0 and "PKC"=0 and "RAS"=1
+"RAF" 0 -> 1 when "AKT"=0 and "ERK"=0 and "PKC"=1
+"RAF" 1 -> 0 when "AKT"=0 and "ERK"=0 and "PKC"=0 and "RAS"=0
+"RAF" 1 -> 0 when "AKT"=1 and "ERK"=0
+"RAF" 1 -> 0 when "ERK"=1
+"RAS" 0 -> 1 when "PLCG"=0 and "SOS"=1
+"RAS" 0 -> 1 when "PLCG"=1
+"RAS" 1 -> 0 when "PLCG"=0 and "SOS"=0
+"RSK" 0 -> 1 when "ERK"=1
+"RSK" 1 -> 0 when "ERK"=0
+"SMAD" 0 -> 1 when "TGFBR"=1
+"SMAD" 1 -> 0 when "TGFBR"=0
+"SOS" 0 -> 1 when "GRB2"=1 and "RSK"=0
+"SOS" 1 -> 0 when "GRB2"=0
+"SOS" 1 -> 0 when "GRB2"=1 and "RSK"=1
+"SPRY" 0 -> 1 when "ERK"=1
+"SPRY" 1 -> 0 when "ERK"=0
+"TAK1" 0 -> 1 when "TGFBR"=1
+"TAK1" 1 -> 0 when "TGFBR"=0
+"TAOK" 0 -> 1 when "ATM"=1
+"TAOK" 1 -> 0 when "ATM"=0
+"TGFBR" 0 -> 1 when "TGFBR_stimulus"=1
+"TGFBR" 1 -> 0 when "TGFBR_stimulus"=0
+"p14" 0 -> 1 when "MYC"=1
+"p14" 1 -> 0 when "MYC"=0
+"p21" 0 -> 1 when "AKT"=0 and "p53"=1
+"p21" 1 -> 0 when "AKT"=1 and "p53"=1
+"p21" 1 -> 0 when "p53"=0
+"p38" 0 -> 1 when "DUSP1"=0 and "MAP3K1_3"=1 and "MTK1"=0 and "TAK1"=0 and "TAOK"=0
+"p38" 0 -> 1 when "DUSP1"=0 and "MTK1"=0 and "TAK1"=1 and "TAOK"=0
+"p38" 0 -> 1 when "DUSP1"=0 and "MTK1"=1 and "TAOK"=0
+"p38" 0 -> 1 when "DUSP1"=0 and "TAOK"=1
+"p38" 0 -> 1 when "DUSP1"=1 and "MAP3K1_3"=1 and "MTK1"=0 and "TAK1"=0 and "TAOK"=1
+"p38" 0 -> 1 when "DUSP1"=1 and "MAP3K1_3"=1 and "MTK1"=0 and "TAK1"=1 and "TAOK"=0
+"p38" 0 -> 1 when "DUSP1"=1 and "MAP3K1_3"=1 and "MTK1"=1 and "TAK1"=0 and "TAOK"=0
+"p38" 0 -> 1 when "DUSP1"=1 and "MTK1"=0 and "TAK1"=1 and "TAOK"=1
+"p38" 0 -> 1 when "DUSP1"=1 and "MTK1"=1 and "TAK1"=1 and "TAOK"=0
+"p38" 0 -> 1 when "DUSP1"=1 and "MTK1"=1 and "TAOK"=1
+"p38" 1 -> 0 when "DUSP1"=0 and "MAP3K1_3"=0 and "MTK1"=0 and "TAK1"=0 and "TAOK"=0
+"p38" 1 -> 0 when "DUSP1"=1 and "MAP3K1_3"=0 and "MTK1"=0 and "TAK1"=0 and "TAOK"=1
+"p38" 1 -> 0 when "DUSP1"=1 and "MAP3K1_3"=0 and "MTK1"=0 and "TAK1"=1 and "TAOK"=0
+"p38" 1 -> 0 when "DUSP1"=1 and "MAP3K1_3"=0 and "MTK1"=1 and "TAK1"=0 and "TAOK"=0
+"p38" 1 -> 0 when "DUSP1"=1 and "MTK1"=0 and "TAK1"=0 and "TAOK"=0
+"p53" 0 -> 1 when "ATM"=0 and "MDM2"=0 and "p38"=1
+"p53" 0 -> 1 when "ATM"=1 and "MDM2"=0 and "p38"=0
+"p53" 0 -> 1 when "ATM"=1 and "p38"=1
+"p53" 1 -> 0 when "ATM"=0 and "MDM2"=1 and "p38"=1
+"p53" 1 -> 0 when "ATM"=0 and "p38"=0
+"p53" 1 -> 0 when "ATM"=1 and "MDM2"=1 and "p38"=0
+"p70" 0 -> 1 when "ERK"=1 and "PDK1"=1
+"p70" 1 -> 0 when "ERK"=0
+"p70" 1 -> 0 when "ERK"=1 and "PDK1"=0
+
+initial_context "AKT"=0, "AP1"=0, "ATF2"=0, "ATM"=0, "Apoptosis"=0, "BCL2"=0, "CREB"=0, "DNA_damage"=0, "DUSP1"=0, "EGFR"=0, "EGFR_stimulus"=0, "ELK1"=0, "ERK"=0, "FGFR3"=0, "FGFR3_stimulus"=0, "FOS"=0, "FOXO3"=0, "FRS2"=0, "GAB1"=0, "GADD45"=0, "GRB2"=0, "Growth_Arrest"=0, "JNK"=0, "JUN"=0, "MAP3K1_3"=0, "MAX"=0, "MDM2"=0, "MEK1_2"=0, "MSK"=0, "MTK1"=0, "MYC"=0, "PDK1"=0, "PI3K"=0, "PKC"=0, "PLCG"=0, "PPP2CA"=0, "PTEN"=0, "Proliferation"=0, "RAF"=0, "RAS"=0, "RSK"=0, "SMAD"=0, "SOS"=0, "SPRY"=0, "TAK1"=0, "TAOK"=0, "TGFBR"=0, "TGFBR_stimulus"=0, "p14"=0, "p21"=0, "p38"=0, "p53"=0, "p70"=0
