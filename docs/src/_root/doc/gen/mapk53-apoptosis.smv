@@ -1,0 +1,318 @@
+MODULE main
+
+IVAR
+	u: {u_AKT, u_AP1, u_ATF2, u_ATM, u_Apoptosis, u_CREB, u_DUSP1, u_EGFR, u_ERK, u_FGFR3, u_FOXO3, u_FRS2, u_GAB1, u_GADD45, u_GRB2, u_JNK, u_JUN, u_MAP3K1_3, u_MAX, u_MDM2, u_MEK1_2, u_MSK, u_MTK1, u_MYC, u_PDK1, u_PI3K, u_PKC, u_PLCG, u_PPP2CA, u_PTEN, u_RAF, u_RAS, u_SOS, u_SPRY, u_TAOK, u_TGFBR, u_p14, u_p38, u_p53};
+
+VAR
+	a_AKT: {0,1};
+	a_AP1: {0,1};
+	a_ATF2: {0,1};
+	a_ATM: {0,1};
+	a_Apoptosis: {0,1};
+	a_CREB: {0,1};
+	a_DUSP1: {0,1};
+	a_EGFR: {0,1};
+	a_ERK: {0,1};
+	a_FGFR3: {0,1};
+	a_FOXO3: {0,1};
+	a_FRS2: {0,1};
+	a_GAB1: {0,1};
+	a_GADD45: {0,1};
+	a_GRB2: {0,1};
+	a_JNK: {0,1};
+	a_JUN: {0,1};
+	a_MAP3K1_3: {0,1};
+	a_MAX: {0,1};
+	a_MDM2: {0,1};
+	a_MEK1_2: {0,1};
+	a_MSK: {0,1};
+	a_MTK1: {0,1};
+	a_MYC: {0,1};
+	a_PDK1: {0,1};
+	a_PI3K: {0,1};
+	a_PKC: {0,1};
+	a_PLCG: {0,1};
+	a_PPP2CA: {0,1};
+	a_PTEN: {0,1};
+	a_RAF: {0,1};
+	a_RAS: {0,1};
+	a_SOS: {0,1};
+	a_SPRY: {0,1};
+	a_TAOK: {0,1};
+	a_TGFBR: {0,1};
+	a_p14: {0,1};
+	a_p38: {0,1};
+	a_p53: {0,1};
+
+ASSIGN
+next(a_AKT) := case
+	u=u_AKT: {
+		a_AKT=1 & a_PTEN=1?0:a_AKT,
+		a_AKT=1 & a_PDK1=0?0:a_AKT};
+	TRUE: a_AKT;
+esac;
+next(a_AP1) := case
+	u=u_AP1: {
+		a_AP1=0 & a_ATF2=1 & a_JUN=1?1:a_AP1};
+	TRUE: a_AP1;
+esac;
+next(a_ATF2) := case
+	u=u_ATF2: {
+		a_ATF2=0 & a_p38=1?1:a_ATF2,
+		a_ATF2=0 & a_JNK=1?1:a_ATF2};
+	TRUE: a_ATF2;
+esac;
+next(a_ATM) := case
+	u=u_ATM: {
+		a_ATM=0?1:a_ATM};
+	TRUE: a_ATM;
+esac;
+next(a_Apoptosis) := case
+	u=u_Apoptosis: {
+		a_Apoptosis=0 & a_ERK=0 & a_FOXO3=1 & a_p53=1?1:a_Apoptosis};
+	TRUE: a_Apoptosis;
+esac;
+next(a_CREB) := case
+	u=u_CREB: {
+		a_CREB=0 & a_MSK=1?1:a_CREB,
+		a_CREB=1 & a_MSK=0?0:a_CREB};
+	TRUE: a_CREB;
+esac;
+next(a_DUSP1) := case
+	u=u_DUSP1: {
+		a_DUSP1=0 & a_CREB=1?1:a_DUSP1,
+		a_DUSP1=1 & a_CREB=0?0:a_DUSP1};
+	TRUE: a_DUSP1;
+esac;
+next(a_EGFR) := case
+	u=u_EGFR: {
+		a_EGFR=1 & a_SPRY=0?0:a_EGFR};
+	TRUE: a_EGFR;
+esac;
+next(a_ERK) := case
+	u=u_ERK: {
+		a_ERK=1 & a_MEK1_2=0?0:a_ERK};
+	TRUE: a_ERK;
+esac;
+next(a_FGFR3) := case
+	u=u_FGFR3: {
+		a_FGFR3=1?0:a_FGFR3};
+	TRUE: a_FGFR3;
+esac;
+next(a_FOXO3) := case
+	u=u_FOXO3: {
+		a_FOXO3=0 & a_AKT=0 & a_JNK=1?1:a_FOXO3};
+	TRUE: a_FOXO3;
+esac;
+next(a_FRS2) := case
+	u=u_FRS2: {
+		a_FRS2=1 & a_FGFR3=0?0:a_FRS2};
+	TRUE: a_FRS2;
+esac;
+next(a_GAB1) := case
+	u=u_GAB1: {
+		a_GAB1=1 & a_GRB2=0 & a_PI3K=0?0:a_GAB1};
+	TRUE: a_GAB1;
+esac;
+next(a_GADD45) := case
+	u=u_GADD45: {
+		a_GADD45=0 & a_p53=1?1:a_GADD45,
+		a_GADD45=1 & a_p53=0?0:a_GADD45};
+	TRUE: a_GADD45;
+esac;
+next(a_GRB2) := case
+	u=u_GRB2: {
+		a_GRB2=1 & a_EGFR=0 & a_FRS2=0 & a_TGFBR=0?0:a_GRB2};
+	TRUE: a_GRB2;
+esac;
+next(a_JNK) := case
+	u=u_JNK: {
+		a_JNK=0 & a_DUSP1=1 & a_MAP3K1_3=0 & a_MTK1=1 & a_TAOK=1?1:a_JNK,
+		a_JNK=0 & a_DUSP1=0 & a_TAOK=1?1:a_JNK,
+		a_JNK=0 & a_DUSP1=0 & a_MTK1=1?1:a_JNK};
+	TRUE: a_JNK;
+esac;
+next(a_JUN) := case
+	u=u_JUN: {
+		a_JUN=0 & a_JNK=1?1:a_JUN};
+	TRUE: a_JUN;
+esac;
+next(a_MAP3K1_3) := case
+	u=u_MAP3K1_3: {
+		a_MAP3K1_3=1 & a_RAS=0?0:a_MAP3K1_3};
+	TRUE: a_MAP3K1_3;
+esac;
+next(a_MAX) := case
+	u=u_MAX: {
+		a_MAX=0 & a_p38=1?1:a_MAX,
+		a_MAX=1 & a_p38=0?0:a_MAX};
+	TRUE: a_MAX;
+esac;
+next(a_MDM2) := case
+	u=u_MDM2: {
+		a_MDM2=0 & a_AKT=0 & a_p14=0 & a_p53=1?1:a_MDM2,
+		a_MDM2=1 & a_p14=1?0:a_MDM2,
+		a_MDM2=1 & a_AKT=0 & a_p53=0?0:a_MDM2};
+	TRUE: a_MDM2;
+esac;
+next(a_MEK1_2) := case
+	u=u_MEK1_2: {
+		a_MEK1_2=1 & a_PPP2CA=1?0:a_MEK1_2,
+		a_MEK1_2=1 & a_MAP3K1_3=0 & a_RAF=0?0:a_MEK1_2,
+		a_MEK1_2=1 & a_AP1=1?0:a_MEK1_2};
+	TRUE: a_MEK1_2;
+esac;
+next(a_MSK) := case
+	u=u_MSK: {
+		a_MSK=0 & a_p38=1?1:a_MSK,
+		a_MSK=1 & a_ERK=0 & a_p38=0?0:a_MSK};
+	TRUE: a_MSK;
+esac;
+next(a_MTK1) := case
+	u=u_MTK1: {
+		a_MTK1=0 & a_GADD45=1?1:a_MTK1,
+		a_MTK1=1 & a_GADD45=0?0:a_MTK1};
+	TRUE: a_MTK1;
+esac;
+next(a_MYC) := case
+	u=u_MYC: {
+		a_MYC=0 & a_AKT=0 & a_MAX=1 & a_MSK=1?1:a_MYC,
+		a_MYC=1 & a_MSK=0?0:a_MYC,
+		a_MYC=1 & a_AKT=0 & a_MAX=0?0:a_MYC};
+	TRUE: a_MYC;
+esac;
+next(a_PDK1) := case
+	u=u_PDK1: {
+		a_PDK1=1 & a_PI3K=0?0:a_PDK1};
+	TRUE: a_PDK1;
+esac;
+next(a_PI3K) := case
+	u=u_PI3K: {
+		a_PI3K=1 & a_GAB1=0 & a_SOS=0?0:a_PI3K,
+		a_PI3K=1 & a_GAB1=0 & a_RAS=0?0:a_PI3K};
+	TRUE: a_PI3K;
+esac;
+next(a_PKC) := case
+	u=u_PKC: {
+		a_PKC=1 & a_PLCG=0?0:a_PKC};
+	TRUE: a_PKC;
+esac;
+next(a_PLCG) := case
+	u=u_PLCG: {
+		a_PLCG=1 & a_EGFR=0 & a_FGFR3=0?0:a_PLCG};
+	TRUE: a_PLCG;
+esac;
+next(a_PPP2CA) := case
+	u=u_PPP2CA: {
+		a_PPP2CA=0 & a_p38=1?1:a_PPP2CA};
+	TRUE: a_PPP2CA;
+esac;
+next(a_PTEN) := case
+	u=u_PTEN: {
+		a_PTEN=0 & a_p53=1?1:a_PTEN};
+	TRUE: a_PTEN;
+esac;
+next(a_RAF) := case
+	u=u_RAF: {
+		a_RAF=1 & a_PKC=0 & a_RAS=0?0:a_RAF};
+	TRUE: a_RAF;
+esac;
+next(a_RAS) := case
+	u=u_RAS: {
+		a_RAS=1 & a_PLCG=0 & a_SOS=0?0:a_RAS};
+	TRUE: a_RAS;
+esac;
+next(a_SOS) := case
+	u=u_SOS: {
+		a_SOS=1 & a_GRB2=0?0:a_SOS};
+	TRUE: a_SOS;
+esac;
+next(a_SPRY) := case
+	u=u_SPRY: {
+		a_SPRY=1 & a_ERK=0?0:a_SPRY};
+	TRUE: a_SPRY;
+esac;
+next(a_TAOK) := case
+	u=u_TAOK: {
+		a_TAOK=0 & a_ATM=1?1:a_TAOK,
+		a_TAOK=1 & a_ATM=0?0:a_TAOK};
+	TRUE: a_TAOK;
+esac;
+next(a_TGFBR) := case
+	u=u_TGFBR: {
+		a_TGFBR=1?0:a_TGFBR};
+	TRUE: a_TGFBR;
+esac;
+next(a_p14) := case
+	u=u_p14: {
+		a_p14=0 & a_MYC=1?1:a_p14,
+		a_p14=1 & a_MYC=0?0:a_p14};
+	TRUE: a_p14;
+esac;
+next(a_p38) := case
+	u=u_p38: {
+		a_p38=0 & a_DUSP1=1 & a_MAP3K1_3=0 & a_MTK1=1 & a_TAOK=1?1:a_p38,
+		a_p38=0 & a_DUSP1=0 & a_TAOK=1?1:a_p38,
+		a_p38=0 & a_DUSP1=0 & a_MTK1=1?1:a_p38,
+		a_p38=1 & a_DUSP1=1 & a_MAP3K1_3=0 & a_MTK1=1 & a_TAOK=0?0:a_p38,
+		a_p38=1 & a_DUSP1=1 & a_MAP3K1_3=0 & a_MTK1=0 & a_TAOK=0?0:a_p38,
+		a_p38=1 & a_DUSP1=1 & a_MAP3K1_3=0 & a_MTK1=0?0:a_p38,
+		a_p38=1 & a_DUSP1=0 & a_MAP3K1_3=0 & a_MTK1=0 & a_TAOK=0?0:a_p38};
+	TRUE: a_p38;
+esac;
+next(a_p53) := case
+	u=u_p53: {
+		a_p53=0 & a_ATM=1 & a_p38=1?1:a_p53,
+		a_p53=0 & a_ATM=1 & a_MDM2=0?1:a_p53,
+		a_p53=0 & a_ATM=0 & a_MDM2=0 & a_p38=1?1:a_p53,
+		a_p53=1 & a_ATM=1 & a_MDM2=1 & a_p38=0?0:a_p53,
+		a_p53=1 & a_ATM=0 & a_p38=0?0:a_p53,
+		a_p53=1 & a_ATM=0 & a_MDM2=1?0:a_p53};
+	TRUE: a_p53;
+esac;
+
+TRANS
+	next(a_AKT) != a_AKT |
+	next(a_AP1) != a_AP1 |
+	next(a_ATF2) != a_ATF2 |
+	next(a_ATM) != a_ATM |
+	next(a_Apoptosis) != a_Apoptosis |
+	next(a_CREB) != a_CREB |
+	next(a_DUSP1) != a_DUSP1 |
+	next(a_EGFR) != a_EGFR |
+	next(a_ERK) != a_ERK |
+	next(a_FGFR3) != a_FGFR3 |
+	next(a_FOXO3) != a_FOXO3 |
+	next(a_FRS2) != a_FRS2 |
+	next(a_GAB1) != a_GAB1 |
+	next(a_GADD45) != a_GADD45 |
+	next(a_GRB2) != a_GRB2 |
+	next(a_JNK) != a_JNK |
+	next(a_JUN) != a_JUN |
+	next(a_MAP3K1_3) != a_MAP3K1_3 |
+	next(a_MAX) != a_MAX |
+	next(a_MDM2) != a_MDM2 |
+	next(a_MEK1_2) != a_MEK1_2 |
+	next(a_MSK) != a_MSK |
+	next(a_MTK1) != a_MTK1 |
+	next(a_MYC) != a_MYC |
+	next(a_PDK1) != a_PDK1 |
+	next(a_PI3K) != a_PI3K |
+	next(a_PKC) != a_PKC |
+	next(a_PLCG) != a_PLCG |
+	next(a_PPP2CA) != a_PPP2CA |
+	next(a_PTEN) != a_PTEN |
+	next(a_RAF) != a_RAF |
+	next(a_RAS) != a_RAS |
+	next(a_SOS) != a_SOS |
+	next(a_SPRY) != a_SPRY |
+	next(a_TAOK) != a_TAOK |
+	next(a_TGFBR) != a_TGFBR |
+	next(a_p14) != a_p14 |
+	next(a_p38) != a_p38 |
+	next(a_p53) != a_p53 |
+	(!(a_MAX=1 & a_p38=0) & !(a_MSK=0 & a_p38=1) & !(a_GRB2=1 & a_EGFR=0 & a_FRS2=0 & a_TGFBR=0) & !(a_GADD45=1 & a_p53=0) & !(a_MTK1=1 & a_GADD45=0) & !(a_p14=0 & a_MYC=1) & !(a_CREB=1 & a_MSK=0) & !(a_MDM2=1 & a_AKT=0 & a_p53=0) & !(a_MDM2=1 & a_p14=1) & !(a_ERK=1 & a_MEK1_2=0) & !(a_SOS=1 & a_GRB2=0) & !(a_GAB1=1 & a_GRB2=0 & a_PI3K=0) & !(a_AP1=0 & a_ATF2=1 & a_JUN=1) & !(a_PDK1=1 & a_PI3K=0) & !(a_TAOK=1 & a_ATM=0) & !(a_p53=1 & a_ATM=0 & a_MDM2=1) & !(a_p53=1 & a_ATM=0 & a_p38=0) & !(a_p53=1 & a_ATM=1 & a_MDM2=1 & a_p38=0) & !(a_MTK1=0 & a_GADD45=1) & !(a_MAX=0 & a_p38=1) & !(a_TGFBR=1) & !(a_JNK=0 & a_DUSP1=0 & a_MTK1=1) & !(a_JNK=0 & a_DUSP1=0 & a_TAOK=1) & !(a_JNK=0 & a_DUSP1=1 & a_MAP3K1_3=0 & a_MTK1=1 & a_TAOK=1) & !(a_RAF=1 & a_PKC=0 & a_RAS=0) & !(a_DUSP1=1 & a_CREB=0) & !(a_MEK1_2=1 & a_AP1=1) & !(a_MEK1_2=1 & a_MAP3K1_3=0 & a_RAF=0) & !(a_MEK1_2=1 & a_PPP2CA=1) & !(a_ATM=0) & !(a_PPP2CA=0 & a_p38=1) & !(a_PI3K=1 & a_GAB1=0 & a_RAS=0) & !(a_PI3K=1 & a_GAB1=0 & a_SOS=0) & !(a_JUN=0 & a_JNK=1) & !(a_MSK=1 & a_ERK=0 & a_p38=0) & !(a_MYC=0 & a_AKT=0 & a_MAX=1 & a_MSK=1) & !(a_TAOK=0 & a_ATM=1) & !(a_Apoptosis=0 & a_ERK=0 & a_FOXO3=1 & a_p53=1) & !(a_EGFR=1 & a_SPRY=0) & !(a_FRS2=1 & a_FGFR3=0) & !(a_RAS=1 & a_PLCG=0 & a_SOS=0) & !(a_p38=1 & a_DUSP1=0 & a_MAP3K1_3=0 & a_MTK1=0 & a_TAOK=0) & !(a_p38=1 & a_DUSP1=1 & a_MAP3K1_3=0 & a_MTK1=0) & !(a_p38=1 & a_DUSP1=1 & a_MAP3K1_3=0 & a_MTK1=0 & a_TAOK=0) & !(a_p38=1 & a_DUSP1=1 & a_MAP3K1_3=0 & a_MTK1=1 & a_TAOK=0) & !(a_p53=0 & a_ATM=0 & a_MDM2=0 & a_p38=1) & !(a_p53=0 & a_ATM=1 & a_MDM2=0) & !(a_p53=0 & a_ATM=1 & a_p38=1) & !(a_MYC=1 & a_AKT=0 & a_MAX=0) & !(a_MYC=1 & a_MSK=0) & !(a_p38=0 & a_DUSP1=0 & a_MTK1=1) & !(a_p38=0 & a_DUSP1=0 & a_TAOK=1) & !(a_p38=0 & a_DUSP1=1 & a_MAP3K1_3=0 & a_MTK1=1 & a_TAOK=1) & !(a_AKT=1 & a_PDK1=0) & !(a_AKT=1 & a_PTEN=1) & !(a_p14=1 & a_MYC=0) & !(a_DUSP1=0 & a_CREB=1) & !(a_CREB=0 & a_MSK=1) & !(a_FGFR3=1) & !(a_FOXO3=0 & a_AKT=0 & a_JNK=1) & !(a_PLCG=1 & a_EGFR=0 & a_FGFR3=0) & !(a_GADD45=0 & a_p53=1) & !(a_ATF2=0 & a_JNK=1) & !(a_ATF2=0 & a_p38=1) & !(a_PKC=1 & a_PLCG=0) & !(a_PTEN=0 & a_p53=1) & !(a_MAP3K1_3=1 & a_RAS=0) & !(a_SPRY=1 & a_ERK=0) & !(a_MDM2=0 & a_AKT=0 & a_p14=0 & a_p53=1));
+
+INIT
+	a_AKT=0 & a_AP1=0 & a_ATF2=0 & a_ATM=0 & a_Apoptosis=0 & a_CREB=0 & a_DUSP1=0 & a_EGFR=0 & a_ERK=0 & a_FGFR3=0 & a_FOXO3=0 & a_FRS2=0 & a_GAB1=0 & a_GADD45=0 & a_GRB2=0 & a_JNK=0 & a_JUN=0 & a_MAP3K1_3=0 & a_MAX=0 & a_MDM2=0 & a_MEK1_2=0 & a_MSK=0 & a_MTK1=0 & a_MYC=0 & a_PDK1=0 & a_PI3K=0 & a_PKC=0 & a_PLCG=0 & a_PPP2CA=0 & a_PTEN=0 & a_RAF=0 & a_RAS=0 & a_SOS=0 & a_SPRY=0 & a_TAOK=0 & a_TGFBR=0 & a_p14=0 & a_p38=0 & a_p53=0;
+
