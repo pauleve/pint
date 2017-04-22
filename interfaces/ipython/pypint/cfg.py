@@ -2,8 +2,14 @@
 import os
 import tempfile
 
+try:
+    get_ipython()
+    IN_IPYTHON = True
+except NameError:
+    IN_IPYTHON = False
+
 CFG = {
-    "output_dir": "gen",
+    "output_dir": "gen" if IN_IPYTHON else tempfile.gettempdir(),
     "dbg": False,
 }
 """
@@ -14,11 +20,6 @@ Python module configuation:
   :py:func:`.disable_dbg`, :py:func:`.dbg`).
 """
 
-try:
-    get_ipython()
-    IN_IPYTHON = True
-except NameError:
-    IN_IPYTHON = False
 
 def output_dir():
     """
