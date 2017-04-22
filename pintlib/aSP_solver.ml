@@ -15,6 +15,7 @@ let has_clingo () =
 		in
 		let line = input_line cin
 		in
+        ignore(Unix.close_process_in cin);
 		Str.string_partial_match
 			(Str.regexp "clingo version 4\\.") line 0
 	with _ -> false
