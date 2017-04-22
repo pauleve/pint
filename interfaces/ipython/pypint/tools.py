@@ -264,7 +264,7 @@ def disable(self, local_states=[], **kwstate):
 
 @modeltool
 def cutsets(self, goal=None, maxsize=5, exclude=[], exclude_initial_state=True,
-                exclude_goal_automata=True, **kwgoal):
+                exclude_goal_automata=True, timeout=None, **kwgoal):
     """
     Computes sets of local states which are used in all the paths from the
     initial state to `goal`:
@@ -286,6 +286,7 @@ def cutsets(self, goal=None, maxsize=5, exclude=[], exclude_initial_state=True,
         states.
     :keyword bool exclude_goal_automata:
         exclude automata involved in the goal specification
+    :param int timeout: command timeout in seconds
     :rtype: list(dict[str,int or int list])
 
     .. seealso:: method :py:meth:`.oneshot_mutations_for_cut`
@@ -311,7 +312,7 @@ are all valid, but they may be non-minimal, and some cut-sets may be missed.")
         args += ["--ignore-automata", ",".join(exclude)]
 
     cp = _run_tool("pint-reach", "--cutsets", str(maxsize), goal, *args,
-                input_model=self)
+                input_model=self, timeout=timeout)
     output = cp.stdout.decode()
     return json.loads(output)
 
@@ -319,6 +320,7 @@ are all valid, but they may be non-minimal, and some cut-sets may be missed.")
 def oneshot_mutations_for_cut(self, goal=None, maxsize=5,
         exclude=[],
         exclude_goal_automata=True,
+        timeout=None,
         **kwgoal):
     """
     Computes sets of local states for which the locking in the initial state
@@ -335,6 +337,7 @@ def oneshot_mutations_for_cut(self, goal=None, maxsize=5,
         set/list of automata to exclude from the solutions
     :keyword bool exclude_goal_automata:
         exclude automata involved in the goal specification
+    :param int timeout: command timeout in seconds
     :rtype: list(dict[str,int])
     """
     goal = Goal.from_arg(goal, **kwgoal)
@@ -354,12 +357,12 @@ are all valid, but they may be non-minimal, and some solutions may be missed.")
     if exclude:
         args += ["--ignore-automata", ",".join(exclude)]
 
-    cp = _run_tool("pint-reach", goal, *args, input_model=self)
+    cp = _run_tool("pint-reach", goal, *args, input_model=self, timeout=timeout)
     output = cp.stdout.decode()
     return json.loads(output)
 
 @modeltool
-def bifurcations(self, goal=None, method="ua", **kwgoal):
+def bifurcations(self, goal=None, method="ua", timeout=None, **kwgoal):
     """
     Identify local transitions after which, in some state, `goal` is no longer reachable.
 
@@ -373,6 +376,7 @@ def bifurcations(self, goal=None, method="ua", **kwgoal):
         * ``"ua+mole"`` for under-approximation relying on exact the reachable
           states set prior computation (NP+PSPACE)
         * ``"ua"`` for under-approximation of bifurcation transitions (NP)
+    :param int timeout: command timeout in seconds
     :rtype: :py:class:`.LocalTransition` list
     """
     assert method in ["exact", "ua", "mole+ua"]
@@ -390,7 +394,7 @@ Use `method=\"exact\"` for complete identification.")
         args = ["--bifurcations",
             "--bifurcations-method", method]
 
-    cp = _run_tool(cmd, goal, *args, input_model=self)
+    cp = _run_tool(cmd, goal, *args, input_model=self, timeout=timeout)
     output = cp.stdout.decode()
     return [local_transition_from_json(d) for d in json.loads(output)]
 
@@ -399,7 +403,7 @@ __reachability_tools = ["its", "nusmv", "mole"]
 
 @modeltool
 def reachability(self, goal=None, fallback="its", tool="sa",
-        reduce_for_goal=True, **kwgoal):
+        reduce_for_goal=True, timeout=None, **kwgoal):
     """
     Check if `goal` is reachable from the initial state.
     At first, Pint tries static analysis for the verification. If
@@ -418,6 +422,7 @@ def reachability(self, goal=None, fallback="its", tool="sa",
         model-checker.
     :keyword bool reduce_for_goal: before invoking a model-checker, perform the
         goal-oriented reduction of the automata network
+    :param int timeout: command timeout in seconds
     :returns:
 
         * ``True`` if `goal` is reachable from :py:attr:`.initial_state`
@@ -435,7 +440,7 @@ def reachability(self, goal=None, fallback="its", tool="sa",
     assert fallback in __reachability_tools + [None]
     assert tool in ["sa"] + __reachability_tools
     if tool == "sa":
-        cp = _run_tool("pint-reach", goal, input_model=self)
+        cp = _run_tool("pint-reach", goal, input_model=self, timeout=None)
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
         if output == Inconc and fallback is not None:
@@ -443,7 +448,8 @@ def reachability(self, goal=None, fallback="its", tool="sa",
             tool = fallback
     if tool != "sa":
         cp = _run_tool("pint-%s" % tool, goal, input_model=self,
-                        reduce_for_goal=goal if reduce_for_goal else None)
+                        reduce_for_goal=goal if reduce_for_goal else None,
+                        timeout=timeout)
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
     return output
@@ -518,14 +524,16 @@ def saturated_lcg(self, goal, **kwgoal):
 #
 
 @modeltool
-def count_reachable_states(self):
+def count_reachable_states(self, timeout=None):
     """
     Counts the exact number of states reachable from :py:attr:`.initial_state`.
     Uses an explicit state space approach.
 
+    :param int timeout: command timeout in seconds
     :rtype: int
     """
-    cp = _run_tool("pint-sg", "--count-reachable", input_model=self)
+    cp = _run_tool("pint-sg", "--count-reachable", input_model=self,
+            timeout=timeout)
     output = cp.stdout.decode()
     return json.loads(output)
 
@@ -547,26 +555,29 @@ def summary(model):
     return json.loads(output)
 
 @modeltool
-def reachable_stategraph(self):
+def reachable_stategraph(self, timeout=None):
     """
     Returns the reachable state graph from :py:attr:`.initial_state`.
 
+    :param int timeout: command timeout in seconds
     :rtype: NetworkX digraph (`nx.DiGraph <http://networkx.readthedocs.io/en/stable/reference/classes.digraph.html>`_)
     """
     dotfile = new_output_file(ext="dot")
     _run_tool("pint-sg", "--state-graph", dotfile,
-                input_model=self, stdout=None)
+                input_model=self, stdout=None, timeout=timeout)
     g = nx.DiGraph(nx.nx_agraph.read_dot(dotfile))
     os.unlink(dotfile)
     return g
 
 @modeltool
-def reachable_attractors(self):
+def reachable_attractors(self, timeout=None):
     """
     Returns the complete list of attractors reachable from
     :py:attr:`.initial_state`.
 
     Uses an explicit state space exploration methods.
+
+    :param int timeout: command timeout in seconds
 
     Each attractor is described by a `dict` object with the following keys:
 
@@ -576,7 +587,8 @@ def reachable_attractors(self):
     * ``"sample"``: state (represented as `dict`) belonging to the attractor,
       i.e., either the fixpoint, or one of the state in the cycle attractor.
     """
-    cp = _run_tool("pint-sg", "--reachable-attractors", input_model=self)
+    cp = _run_tool("pint-sg", "--reachable-attractors", input_model=self,
+            timeout=timeout)
     output = cp.stdout.decode()
     return json.loads(output)
 
@@ -585,13 +597,15 @@ def reachable_attractors(self):
 #
 
 @modeltool
-def fixpoints(self):
+def fixpoints(self, timeout=None):
     """
     Returns the complete list of fixed points of the model.
 
+    :param int timeout: command timeout in seconds
     :rtype: dict list
     """
-    cp = _run_tool("pint-stable", "--fixpoints", input_model=self)
+    cp = _run_tool("pint-stable", "--fixpoints", input_model=self,
+            timeout=timeout)
     output = cp.stdout.decode()
     return json.loads(output)
 
