@@ -11,6 +11,7 @@ except NameError:
 CFG = {
     "output_dir": "gen" if IN_IPYTHON else tempfile.gettempdir(),
     "dbg": False,
+    "console": False,
 }
 """
 Python module configuation:
@@ -18,8 +19,10 @@ Python module configuation:
 * `output_dir`: directory to use for saving intermediary files.
 * `dbg`: enable debug output (see also :py:func:`.enable_dbg`,
   :py:func:`.disable_dbg`, :py:func:`.dbg`).
+* `console`: assume console output
 """
 
+__TMPFILES = []
 
 def output_dir():
     """
@@ -44,7 +47,17 @@ def new_output_file(ext=None, **tempargs):
     if ext is not None:
         tempargs["suffix"] = "%s.%s" % (tempargs.get("suffix", ""), ext)
     _, filename = tempfile.mkstemp(dir=output_dir(), **tempargs)
+    __TMPFILES.append(filename)
     return os.path.relpath(filename)
+
+def remove_output_files():
+    """
+    Removes files created by pint
+    """
+    for filename in __TMPFILES:
+        if os.path.exists(filename):
+            os.unlink(filename)
+    __TMPFILES.clear()
 
 __all__ = [
     "CFG",

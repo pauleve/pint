@@ -397,6 +397,7 @@ def sbml_from_cellcollective(modelid):
 ext2format = {
     "an": "an",
     "bc": "biocham",
+    "bcx": "cadbiom",
     "bn": "boolfunctions",
     "booleannet": "booleannet",
     "boolfunctions": "boolfunctions",
