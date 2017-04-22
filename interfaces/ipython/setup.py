@@ -40,6 +40,11 @@ setup(name = NAME,
         "networkx",
         "pydotplus",
     ],
+    entry_points = {
+        "console_scripts": [
+            "pint-import=pypint.console:import_model",
+        ],
+    },
     include_package_data = True,
     packages = [NAME],
     **META

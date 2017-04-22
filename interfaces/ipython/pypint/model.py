@@ -18,6 +18,7 @@ from .tools import *
 from .types import *
 from .ui import *
 from .utils import *
+from .converters import CONVERTERS
 
 if IN_IPYTHON:
     from IPython.display import display, FileLink, HTML
@@ -289,6 +290,14 @@ class FileModel(Model):
         args += ["-i", self.filename]
         super(FileModel, self).populate_popen_args(args, kwargs)
 
+    def source(self):
+        """
+        Returns the text source in Pint native format
+        """
+        with open(self.filename) as f:
+            data = f.read()
+        return data
+
 class InMemoryModel(Model):
     """
     Concrete class of :py:class:`.Model` for an AN model stored in memory.
@@ -302,7 +311,11 @@ class InMemoryModel(Model):
         kwargs["input"] = self.data
         super(FileModel, self).populate_popen_args(args, kwargs)
 
-
+    def source(self):
+        """
+        Returns the text source in Pint native format
+        """
+        return self.data
 
 
 
@@ -383,6 +396,7 @@ def sbml_from_cellcollective(modelid):
 
 ext2format = {
     "an": "an",
+    "bc": "biocham",
     "bn": "boolfunctions",
     "booleannet": "booleannet",
     "boolfunctions": "boolfunctions",
@@ -426,6 +440,8 @@ def load(filename=None, format=None, simplify=True):
     * ``.sbml`` (SBML-qual), imported using logicalmodel;
     * ``.boolsim``, ``.booleannet``, ``.boolfunctions`` (or ``.bn``): Boolean network formats, imported
       using `logicalmodel`.
+    * ``.bc``: Biocham model - the importation implements its Boolean semantics
+      (experimental feature)
 
     Supported URL schemes:
 
@@ -476,6 +492,9 @@ def load(filename=None, format=None, simplify=True):
     else:
         assert os.path.exists(filename)
 
+    def make_anfile():
+        return new_output_file(suffix="%s.an"%name)
+
     if format == "an":
         info("Source file is in Automata Network (an) format")
         return FileModel(filename)
@@ -484,10 +503,16 @@ def load(filename=None, format=None, simplify=True):
                     "ginml", "zginml"]:
         info("Source file is in %s format, importing with logicalmodel" \
                     % format)
-        anfile = new_output_file(suffix="%s.an"%name)
+        anfile = make_anfile()
         return import_using_logicalmodel(format, filename, anfile,
                     simplify=simplify)
 
+    elif format in CONVERTERS:
+        info("Source file is in %s format" % format)
+        anfile = make_anfile()
+        with open(anfile, "w") as outfd:
+            CONVERTERS[format](filename, outfd)
+        return FileModel(anfile)
     else:
         raise ValueError("Format '%s' is not supported." % format)
 

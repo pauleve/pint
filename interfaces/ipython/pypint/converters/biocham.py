@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 import re
 
@@ -104,14 +103,7 @@ class model:
         init = ", ".join(["%s=1" % n(a) for a in self.present])
         print("initial_state %s" % init, file=fd)
 
-
-if __name__ == "__main__":
-    import sys
-    m = model.from_file(sys.argv[1])
-    m.to_an(sys.stdout)
-
-
-
-
-
+def import_biocham(localfile, outfd, **args):
+    m = model.from_file(localfile)
+    m.to_an(outfd)
 
