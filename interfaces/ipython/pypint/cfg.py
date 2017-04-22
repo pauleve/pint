@@ -63,6 +63,7 @@ __all__ = [
     "CFG",
     "output_dir",
     "new_output_file",
+    "remove_output_files",
     "IN_IPYTHON",
 ]
 
