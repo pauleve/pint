@@ -7,5 +7,7 @@ install:
 	install -d $(DESTDIR)$(PINT_SHARE_PATH)/asp
 	install -d $(DESTDIR)$(PINT_SHARE_PATH)/asp/bifurcations
 	install -m 0644 asp/bifurcations/*.asp $(DESTDIR)$(PINT_SHARE_PATH)/asp/bifurcations
+	install -d $(DESTDIR)$(PINT_SHARE_PATH)/asp/reprogramming
+	install -m 0644 asp/reprogramming/*.lp $(DESTDIR)$(PINT_SHARE_PATH)/asp/reprogramming
 
 # vi:set syntax=make:
