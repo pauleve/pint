@@ -2,7 +2,6 @@ notebook/start
 notebook/*.txt
 notebook/*.log
 notebook/gen
-notebook/models
 notebook/tests
 notebook/.*
 interfaces/ipython/pint/__pycache__
