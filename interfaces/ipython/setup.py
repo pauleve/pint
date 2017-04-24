@@ -46,7 +46,7 @@ setup(name = NAME,
         ],
     },
     include_package_data = True,
-    packages = [NAME],
+    packages = find_packages(),
     **META
 )
 
