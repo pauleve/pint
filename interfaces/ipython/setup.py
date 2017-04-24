@@ -39,6 +39,7 @@ setup(name = NAME,
     install_requires = [
         "networkx",
         "pydotplus",
+        "pygraphviz",
     ],
     entry_points = {
         "console_scripts": [
