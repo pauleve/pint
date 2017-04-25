@@ -141,11 +141,6 @@ let output_lss_list ?(ls_sep=",") lss_list =
 let cutsets n =
 	let gA = lcg_for_cutsets env
 	in
-	let _ = if not !An_cli.opt_json_stdout then (
-	prerr_endline ("#nodes = "^string_of_int gA#count_nodes);
-	prerr_endline ("#procs = "^string_of_int gA#count_procs);
-	prerr_endline ("#objs = "^string_of_int gA#count_objs)
-	) in
     let exclude_localstate (a,_) =
         SSet.mem a !opt_ignore_automata
     in
@@ -184,11 +179,6 @@ let cutsets n =
 let requirements automata universal =
 	let gA = lcg_for_requirements env
 	in
-	let _ = if not !An_cli.opt_json_stdout then (
-	prerr_endline ("#nodes = "^string_of_int gA#count_nodes);
-	prerr_endline ("#procs = "^string_of_int gA#count_procs);
-	prerr_endline ("#objs = "^string_of_int gA#count_objs)
-	) in
     let reqs, index_proc = requirements gA automata gA#leafs universal
 	in
 	let resolve_ps = List.map (Hashtbl.find index_proc)
