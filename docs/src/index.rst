@@ -62,7 +62,7 @@ Related Papers
   Computer Science (MSCS)*, 2012)
 - `Refining Dynamics of Gene Regulatory Networks in a Stochastic π-Calculus <http://hal.archives-ouvertes.fr/hal-00397235>`_ (L.
   Paulevé, M. Magnin, O. Roux in *Transactions on Computational Systems Biology
-  TCSB)*, 2011)
+  (TCSB)*, 2011)
 
 Authors and contributors
 ========================
