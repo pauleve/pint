@@ -407,14 +407,9 @@ ext2format = {
     "zginml": "zginml",
 }
 
-LOAD_SUPPORTED_FORMATS = list(sorted(ext2format.values()))
+LOAD_SUPPORTED_FORMATS = list(sorted(set(ext2format.values())))
 """
 Formats supported by :py:meth:`.load` method
-"""
-
-LOAD_SUPPORTED_EXTENSIONS = list(sorted(ext2format.keys()))
-"""
-File extensions supported by :py:meth:`.load` method
 """
 
 if IN_IPYTHON:
@@ -532,7 +527,6 @@ def load(filename=None, format=None, simplify=True):
 
 __all__ = [
     "LOAD_SUPPORTED_FORMATS",
-    "LOAD_SUPPORTED_EXTENSIONS",
     "load",
     "Model", "FileModel", "InMemoryModel",
     "InitialState"]
