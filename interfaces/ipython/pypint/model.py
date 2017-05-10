@@ -407,6 +407,16 @@ ext2format = {
     "zginml": "zginml",
 }
 
+LOAD_SUPPORTED_FORMATS = list(sorted(ext2format.values()))
+"""
+Formats supported by :py:meth:`.load` method
+"""
+
+LOAD_SUPPORTED_EXTENSIONS = list(sorted(ext2format.keys()))
+"""
+File extensions supported by :py:meth:`.load` method
+"""
+
 if IN_IPYTHON:
     def _js_load_callback(data):
         filename = new_output_file(suffix=data["name"])
@@ -461,6 +471,8 @@ def load(filename=None, format=None, simplify=True):
     >>> m1 = pypint.load("mylocalfile.an")
     >>> m2 = pypint.load("http://ginsim.org/sites/default/files/Frontiers-Th-Full-model-annotated.zginml")
     >>> m3 = pypint.load("https://cellcollective.org/#4705/septation-initiation-network")
+
+    .. seealso:: :py:data:`.LOAD_SUPPORTED_FORMATS` for supported formats.
     """
 
     if filename is None:
@@ -518,7 +530,10 @@ def load(filename=None, format=None, simplify=True):
         raise ValueError("Format '%s' is not supported." % format)
 
 
-__all__ = ["load",
+__all__ = [
+    "LOAD_SUPPORTED_FORMATS",
+    "LOAD_SUPPORTED_EXTENSIONS",
+    "load",
     "Model", "FileModel", "InMemoryModel",
     "InitialState"]
 if IN_IPYTHON:
