@@ -409,7 +409,7 @@ ext2format = {
 
 LOAD_SUPPORTED_FORMATS = list(sorted(set(ext2format.values())))
 """
-Formats supported by :py:meth:`.load` method
+Formats supported by :py:func:`.load` method
 """
 
 if IN_IPYTHON:
