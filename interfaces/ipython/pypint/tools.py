@@ -555,6 +555,19 @@ def summary(model):
     return json.loads(output)
 
 @modeltool
+def reachable_states(self, timeout=None):
+    """
+    Returns the list of states reachable from :py:attr:`.initial_state`.
+
+    :param int timeout: command timeout in seconds
+    :rtype: state list
+    """
+    cp = _run_tool("pint-sg", "--reachable-states", input_model=self,
+            timeout=timeout)
+    output = cp.stdout.decode()
+    return json.loads(output)
+
+@modeltool
 def reachable_stategraph(self, timeout=None):
     """
     Returns the reachable state graph from :py:attr:`.initial_state`.

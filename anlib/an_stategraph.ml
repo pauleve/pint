@@ -133,7 +133,7 @@ let prepare_sts an state =
 	sid0, next_sids, state_of_sid
 
 let reachable_states an state =
-	let sid0, next_sids, _ = prepare_sts an state
+	let sid0, next_sids, sid2state = prepare_sts an state
 	and known = BigHashtbl.create 10240
 	in
 	let rec explore sid (counter, todo) =
@@ -160,7 +160,7 @@ let reachable_states an state =
 			)
 		)
 	in
-	fst (explore sid0 (zero_big_int, BigISet.empty)), known
+	fst (explore sid0 (zero_big_int, BigISet.empty)), known, sid2state
 
 let reachable_stategraph an state =
 	let sid0, next_sids, sid2state = prepare_sts an state
