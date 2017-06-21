@@ -15,11 +15,13 @@ let usage_msg = "pint-sg - State graph analyser"
 let do_count = ref false
 let do_attractors = ref false
 let do_description = ref false
+let do_states = ref false
 let do_sg = ref ""
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		("--count-reachable", Arg.Set do_count, "\tCount reachable states.");
 		("--state-graph", Arg.Set_string do_sg, "graph.dot\tCompute reachable state graph (DOT format).");
+		("--reachable-states", Arg.Set do_states, "\tCompute reachable states.");
 		("--reachable-attractors", Arg.Set do_attractors, "\tList reachable attractors.");
 		("--description", Arg.Set do_description,
 			"\tShow basic counts.");
@@ -34,12 +36,33 @@ let an, ctx = An_cli.process_input ()
 let count () =
 	let state = Ph_types.state_of_ctx ctx
 	in
-	let nb_states, _ = An_stategraph.reachable_states an state
+	let nb_states, _, _ = An_stategraph.reachable_states an state
 	in
 	if !An_cli.opt_json_stdout then
 		print_endline (string_of_big_int nb_states)
 	else
 		print_endline (string_of_big_int nb_states ^ " reachable states.")
+
+let reachable_states () =
+	let state = Ph_types.state_of_ctx ctx
+	in
+    let _, states, state_of_sid = An_stategraph.reachable_states an state
+    in
+    if !An_cli.opt_json_stdout then (
+        let first = ref true
+        in
+        let output_state sid _ =
+            (if !first then first := false else print_string ", ");
+            print_endline (json_of_state (state_of_sid sid))
+        in
+        print_string "[ ";
+        An_stategraph.BigHashtbl.iter output_state states;
+        print_endline "]";
+    ) else
+        let output_state sid _ =
+            print_endline (string_of_state an (state_of_sid sid))
+        in
+        An_stategraph.BigHashtbl.iter output_state states
 
 let stategraph output =
 	let state = Ph_types.state_of_ctx ctx
@@ -123,6 +146,7 @@ let description () =
 
 let _ =
 	if !do_count then count ();
+	if !do_states then reachable_states ();
 	if !do_sg <> "" then stategraph !do_sg;
 	if !do_attractors then attractors ();
 	if !do_description then description ()
