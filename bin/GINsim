@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-java -jar "/home/pauleve/rech/pint/3rdparty/colomoto/GINsim.jar" "${@}"
