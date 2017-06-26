@@ -20,7 +20,7 @@ def chmod_x(filename):
 def install_bin_from_tar(tar, member, dest):
     fd = tar.extractfile(member)
     print("installing %s" % dest)
-    with open(dest, "w") as o:
+    with open(dest, "wb") as o:
         o.write(fd.read())
     fd.close()
     chmod_x(dest)
