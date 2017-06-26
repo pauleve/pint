@@ -524,16 +524,24 @@ def saturated_lcg(self, goal, **kwgoal):
 #
 
 @modeltool
-def count_reachable_states(self, timeout=None):
+def count_reachable_states(self, tool="pint", timeout=None):
     """
     Counts the exact number of states reachable from :py:attr:`.initial_state`.
     Uses an explicit state space approach.
 
+    :keyword str tool:
+
+        * ``"pint"`` explicit reachable state space computation (default);
+        * ``"its"`` symbolic reable stae space computation
     :param int timeout: command timeout in seconds
     :rtype: int
     """
-    cp = _run_tool("pint-sg", "--count-reachable", input_model=self,
-            timeout=timeout)
+    assert tool in ["pint", "its"], "Wrong `tool` argument. See help."
+    if tool == "pint":
+        argv = ["pint-sg", "--count-reachable"]
+    else:
+        argv = ["pint-its", "--tool", "count"]
+    cp = _run_tool(*argv, input_model=self, timeout=timeout)
     output = cp.stdout.decode()
     return json.loads(output)
 
