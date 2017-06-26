@@ -29,6 +29,7 @@ bindings/r_stubs.c
 docs/api
 bin/ph*
 bin/pint-*
+bin/GINsim
 build
 build-stamp
 debian/*.log
