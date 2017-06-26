@@ -5,7 +5,7 @@ open An_export
 
 let usage_msg = "pint-its [opts] <sub-state> -- [its opts] # symbolic model-checking with ITS tools [http://ddd.lip6.fr/itstools.php]"
 
-let tools = ["reach";"ctl"]
+let tools = ["reach";"ctl";"count"]
 and opt_tool = ref "reach"
 and opt_witness = ref false
 and opt_extra = ref []
@@ -31,7 +31,11 @@ let _ = if !opt_tool <> "ctl" && !opt_iscutset <> "" then abort ()
 
 let an, ctx = An_cli.process_input ()
 
-let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args
+let (an, ctx), goal =
+    if !opt_tool = "count" then
+        (an,ctx), ("", 0)
+    else
+        An_cli.prepare_goal (an, ctx) args
 
 let map = Hashtbl.create 50
 
@@ -48,6 +52,34 @@ let place_of_ls ls =
 
 let its_state substate =
 	String.concat " && " (List.map (fun ai -> place_of_ls ai^"=1") substate)
+
+
+let do_count () =
+	let cmdline = "its-reach -i "^itsfile^" -t ROMEO"
+		^" --fixpass 0 --quiet"
+		^" "^String.concat " " !opt_extra
+	in
+    let regex_result =
+        Str.regexp "^ Total reachable state count : \\([0-9]+\\)$"
+    in
+    let rec parse_its_output cin =
+        let line = input_line cin
+        in
+        if Str.string_match regex_result line 0 then
+            Str.matched_group 1 line
+        else
+            parse_its_output cin
+    in
+    if !An_cli.opt_json_stdout then
+        let cin = Unix.open_process_in cmdline
+        in
+        let result = parse_its_output cin
+        in
+        print_endline result;
+        ignore(Unix.close_process_in cin)
+    else
+	(prerr_endline ("# "^cmdline);
+	ignore(Unix.system cmdline))
 
 
 let regex_reach_prop_true =
@@ -112,4 +144,5 @@ let _ = at_exit (fun () -> Unix.unlink itsfile)
 
 let _ = if !opt_tool = "reach" then do_reach ()
 		else if !opt_tool = "ctl" then do_ctl ()
+		else if !opt_tool = "count" then do_count ()
 
