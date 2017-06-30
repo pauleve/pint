@@ -43,4 +43,4 @@ tests/pinttests
 __pycache__
 *.pyc
 .ipynb*
-GINsim.jar
+3rdparty/colomoto
