@@ -319,7 +319,7 @@ class InMemoryModel(Model):
 
 
 
-def import_using_logicalmodel(fmt, inputfile, anfile, simplify=True):
+def import_with_ginsim(fmt, inputfile, anfile, simplify=True):
 
     # some file formats, such as zginml, can define named states
     states = {}
@@ -344,22 +344,13 @@ def import_using_logicalmodel(fmt, inputfile, anfile, simplify=True):
                         states[name] = parse_state(state.getAttribute("value"))
 
     if fmt in ["zginml", "ginml"]:
-        # use GINsim to export to SBML-qual
-        info("Invoking GINsim...")
-        _, sbmlfile = tempfile.mkstemp(suffix=".sbml")
-        _, tmps = tempfile.mkstemp(suffix=".py")
-        fd = open(tmps, "w")
-        fd.write("""gs.service("SBML").export(gs.open("%s"), "%s")""" % \
-                        (os.path.abspath(inputfile), os.path.abspath(sbmlfile)))
-        fd.close()
-        subprocess.check_call(["GINsim", "-s", os.path.abspath(tmps)])
-        os.unlink(tmps)
-        inputfile = sbmlfile
-        cleanup_files.append(sbmlfile)
-        fmt = "sbml"
+        fmt = "ginsim"
 
-    subprocess.check_call(["logicalmodel", "%s:an" % fmt,
-                                inputfile, anfile])
+    args = ["GINsim", "-s", data_file("ginsim_export_an.py"),
+                fmt, inputfile, anfile]
+
+    subprocess.check_call(args)
+
     if simplify:
         info("Simplifying model...")
         subprocess.check_call(["pint-export", "--simplify", "-i", anfile,
@@ -441,11 +432,11 @@ def load(filename=None, format=None, simplify=True):
     Supported file extensions:
 
     * ``.an`` (automata network), native Pint file format;
-    * ``.ginml``, imported using GINsim+logicalmodel (use intermediate SBML conversion);
+    * ``.ginml``, imported using GINsim
     * ``.zginml``, like ginml, with in addition the support of named initial states;
-    * ``.sbml`` (SBML-qual), imported using logicalmodel;
+    * ``.sbml`` (SBML-qual), imported using GINsim (with bioLQM);
     * ``.boolsim``, ``.booleannet``, ``.boolfunctions`` (or ``.bn``): Boolean network formats, imported
-      using `logicalmodel`.
+      using GINsim (with bioLQM)`.
     * ``.bc``: Biocham model - the importation implements its Boolean semantics
       (experimental feature)
 
@@ -509,10 +500,10 @@ def load(filename=None, format=None, simplify=True):
 
     elif format in ["boolfunctions", "boolsim", "booleannet", "sbml",
                     "ginml", "zginml"]:
-        info("Source file is in %s format, importing with logicalmodel" \
+        info("Source file is in %s format, importing with GINsim" \
                     % format)
         anfile = make_anfile()
-        return import_using_logicalmodel(format, filename, anfile,
+        return import_with_ginsim(format, filename, anfile,
                     simplify=simplify)
 
     elif format in CONVERTERS:

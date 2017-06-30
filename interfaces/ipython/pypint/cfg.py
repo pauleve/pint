@@ -23,6 +23,7 @@ Python module configuation:
 """
 
 __TMPFILES = []
+__DATAFILES_DIR__ = os.path.join(os.path.dirname(__file__), "files")
 
 def output_dir():
     """
@@ -59,8 +60,16 @@ def remove_output_files():
             os.unlink(filename)
     __TMPFILES.clear()
 
+
+def data_file(name):
+    """
+    Returns path to file `name` distributed with ``pypint``.
+    """
+    return os.path.join(__DATAFILES_DIR__, name)
+
 __all__ = [
     "CFG",
+    "data_file",
     "output_dir",
     "new_output_file",
     "remove_output_files",
