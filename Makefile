@@ -86,7 +86,7 @@ misc_install:
 install: $(addsuffix _install,$(TARGETS)) misc_install aspfiles_install
 
 pre-release:
-	sed -i 's/:.*##VERSION##/: "$(RELNAME)",##VERSION##/' setup.py
+	sed -i 's/=.*(\*VERSION\*)/= "$(RELNAME)" (\*VERSION\*)/' pintlib/pintmeta.ml
 
 release:
 	git commit -a -m "release $(RELNAME)"

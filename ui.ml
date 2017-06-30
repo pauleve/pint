@@ -51,7 +51,7 @@ let common_cmdopts = [
 	("--debug", Arg.Set Debug.dodebug, "Enable debugging");
 	("--debug-level", Arg.Set_int Debug.debuglevel, "Maximum debug level");
 	("--version", Arg.Unit (fun () ->
-			print_endline ("Pint version "^Distenv.version);
+			print_endline ("Pint version "^Pintmeta.version);
 			ignore(exit 0)), "Print Pint version and quit");
 ];;
 

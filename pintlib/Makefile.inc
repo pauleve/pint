@@ -1,5 +1,6 @@
 
 SOURCES := \
+	pintmeta.ml\
 	pintTypes.mli\
 	pintTypes.ml\
 	debug.mli\
