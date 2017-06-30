@@ -1,5 +1,6 @@
 
 open Debug
+open Pintenv
 
 let cached_has_clingo = ref false
 let clingo_checked = ref false

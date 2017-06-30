@@ -11,6 +11,7 @@ SOURCES := \
 	util.ml\
 	interactionGraph.ml\
 	valSet.ml\
+	pintenv.ml\
 	aSP_parser.mly\
 	aSP_lexer.mll\
 	aSP_solver.ml\
