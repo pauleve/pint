@@ -1,7 +1,7 @@
 
 let commands = [
 	("share-path", fun () -> print_endline (Distenv.pint_share_path));
-	("version", fun () -> print_endline (Distenv.version));
+	("version", fun () -> print_endline (Pintmeta.version));
 ]
 in
 let usage () = 

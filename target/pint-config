@@ -4,6 +4,7 @@ include Makefile.common
 
 SOURCES = \
 	$(DIST_SOURCES) \
+    pintlib/pintmeta.ml \
 	pintconfig.ml
 
 LIBS = $(COMMON_LIBS) $(PINTLIB_LIBS)
