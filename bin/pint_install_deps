@@ -7,6 +7,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 
 try:
     from urllib.request import urlretrieve
@@ -34,7 +35,7 @@ def install_from_tarurl(url, match_member, args):
                 install_bin_from_tar(t, m, dest)
     os.unlink(localfile)
 
-class Tool:
+class Tool(object):
     @classmethod
     def is_installed(self, *args):
         if hasattr(self, "exe"):
@@ -109,6 +110,21 @@ class Mole(Tool):
 class GINsim(Tool):
     exe = "GINsim"
     binfile = "http://ginsim.org/sites/default/files/ginsim-dev/GINsim-2.9.6-SNAPSHOT-jar-with-dependencies.jar"
+
+    @classmethod
+    def is_installed(self, args):
+        if super(GINsim, self).is_installed(args):
+            print("# checking GINsim version")
+            fd, script = tempfile.mkstemp(".py")
+            try:
+                f = os.fdopen(fd, "w")
+                f.write('assert "lqm" in globals()\n')
+                f.close()
+                return subprocess.call(["GINsim", "-s", script]) == 0
+            finally:
+                os.unlink(script)
+        return False
+
     @classmethod
     def install(self, system, args):
         destdir = os.path.join(args.pintsharedir, "3rdparty", "colomoto")
