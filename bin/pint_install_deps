@@ -31,7 +31,7 @@ def install_from_tarurl(url, match_member, args):
     with tarfile.open(localfile, "r:gz") as t:
         for m in t:
             if match_member(m):
-                dest = os.path.join(args.bindir, os.path.basename(m.name))
+                dest = os.path.join(args.prefix, "bin", os.path.basename(m.name))
                 install_bin_from_tar(t, m, dest)
     os.unlink(localfile)
 
@@ -53,11 +53,28 @@ class Tool(object):
 
 class Clingo(Tool):
     exe = "clingo"
-    binfile_pat = "https://downloads.sourceforge.net/project/potassco/clingo/4.5.4/clingo-4.5.4-%s.tar.gz"
+    min_version = (4,3)
+    binfile_pat = "https://github.com/potassco/clingo/releases/download/v{0}/clingo-{0}-%s.tar.gz".format("5.2.0")
     binfile = {
         "linux64": binfile_pat % "linux-x86_64",
         "darwin": binfile_pat % "macos-10.9",
     }
+
+    @classmethod
+    def is_installed(self, args):
+        if super(Clingo, self).is_installed(args):
+            print("# checking clingo version (>=%s)" % \
+                    ".".join(map(str, self.min_version)))
+            try:
+                output = subprocess.check_output([self.exe, "--version"]).decode()
+                version = output.split("\n")[0].split()[2]
+                print("# your clingo version is %s" % version)
+                version = tuple(map(int, version.split(".")[:2]))
+                return self.min_version <= version
+            except:
+                raise
+            return True
+
     @classmethod
     def install(self, system, args):
         assert system in self.binfile, "Cannot install binaries for %s" % system
@@ -133,7 +150,7 @@ class GINsim(Tool):
         destjar = os.path.join(destdir, "GINsim.jar")
         print("installing %s" % destjar)
         urlretrieve(self.binfile, destjar)
-        destbin = os.path.join(args.pintsharedir, "bin", "GINsim")
+        destbin = os.path.join(args.prefix, "bin", "GINsim")
         print("installing %s" % destbin)
         with open(destbin, "w") as fd:
             fd.write("""#!/usr/bin/env bash\njava -jar "%s" "${@}"\n""" % destjar)
@@ -158,7 +175,7 @@ if __name__ == "__main__":
         n = t.name()
         parser.add_argument("--no-%s" % n, dest=n, action="store_false",
                 default=True)
-    parser.add_argument("--bindir", default="/usr/local/bin")
+    parser.add_argument("--prefix", default=pintsharedir)
     parser.add_argument("--pintsharedir", default=pintsharedir)
     args = parser.parse_args()
 
