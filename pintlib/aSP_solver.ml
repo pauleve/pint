@@ -17,7 +17,7 @@ let has_clingo () =
 		in
         ignore(Unix.close_process_in cin);
 		Str.string_partial_match
-			(Str.regexp "clingo version 4\\.") line 0
+			(Str.regexp "clingo version [45]\\.") line 0
 	with _ -> false
 
 let has_clingo () =
@@ -28,7 +28,7 @@ let has_clingo () =
 
 let check_clingo () =
 	if not (has_clingo ()) then
-		failwith "Clingo version 4 is required (http://sourceforge.net/projects/potassco/files/clingo/)"
+		failwith "Clingo version >= 4 is required (https://github.com/potassco/clingo/releases)"
 
 
 let solver ?(opts="") ?(inputs=["-"]) () =
