@@ -53,6 +53,7 @@ def setup_environ():
 
 def hello_ipython():
     info("You are using Pint version %s and pypint %s" % (__PINT_VERSION__,__version__))
+    info("API is documented at https://loicpauleve.name/pint/doc/api.html")
 
 
 if not __SETUP_DONE:
