@@ -5,9 +5,36 @@ open PintTypes
 
 open Ph_types
 
-type sig_automaton_p = string
+type id = int
+type idmap = id IMap.t
+
+type lsid = id*id
+
+type sig_automaton = string
 type sig_automaton_state = StateId of int | StateLabel of string
-type sig_local_state = sig_automaton_p * sig_automaton_state
+type sig_local_state = sig_automaton * sig_automaton_state
+
+let next_trid = ref 0
+
+type t = {
+
+    (* signature/internal id mapping *)
+    a2sig: (id, sig_automaton) Hashtbl.t;
+    ls2sig: (id, sig_local_state) Hashtbl.t;
+    sig2a: (sig_automaton, id) Hashtbl.t;
+    sig2ls: (sig_local_state, id) Hashtbl.t;
+
+    (* local transitions *)
+    trcond: (id, idmap) Hashtbl.t;
+    trdest: (id, idmap) Hashtbl.t;
+    trorig: (id, idmap) Hashtbl.t;
+
+    (* local states graph *)
+    lsnext: (lsid, id) Hashtbl.t; (* out-going transitions *)
+    lsprev: (lsid, id) Hashtbl.t; (* in-going transitions *)
+}
+
+
 
 type automaton_p = string
 type automaton_state = int
