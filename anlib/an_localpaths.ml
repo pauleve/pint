@@ -12,23 +12,24 @@ let enumerate_acyclic_paths register append discard elt0 set0 an (a,i,goal) =
 			register results path
 		else
 			let visited = ISet.add i visited
-			and nexts = Hashtbl.find an.transitions (a,i)
+			and nexts = Hashtbl.find_all an.lsnext (a,i)
 			in
-			let visit j results =
+			let visit results j =
 				if ISet.mem j visited then results
 				else
-					let path = append results path (a,i,j)
+					let path = append results path (i,j)
 					in
 					if discard results path then
 						results
 					else
 						walk path j visited results
 			in
-			ISet.fold visit nexts results
+            List.fold_left visit results nexts
 	in
 	walk elt0 i ISet.empty set0
 
 
+(*
 type cache = {
 	csol: (transition, transition list list) Hashtbl.t;
 	asol: (transition, (LSSet.t * ISet.t) list) Hashtbl.t;
@@ -38,7 +39,7 @@ let create_cache ?size:(size=50) () = {
 	csol = Hashtbl.create size;
 	asol = Hashtbl.create size;
 	asyncsol = Hashtbl.create size;
-}
+}*)
 let _cache_computation func subcache an obj =
 	try Hashtbl.find subcache obj
 	with Not_found -> (
@@ -48,9 +49,11 @@ let _cache_computation func subcache an obj =
 		res)
 
 
-(*** concrete solutions ***)
-
-let simple_acyclic_paths =
+(**
+    Compute raw local paths, i.e., local paths expressed only in term of local
+    state changes and not resolved yet into transitions.
+**)
+let raw_local_paths =
 	let paths = []
 	and path0 = []
 	and append _ path tr = path@[tr]
@@ -59,10 +62,10 @@ let simple_acyclic_paths =
 	in
 	enumerate_acyclic_paths register append discard path0 paths
 
-let simple_acyclic_paths cache =
-	_cache_computation simple_acyclic_paths cache.csol
+let raw_local_paths rlp_cache =
+	_cache_computation raw_local_paths rlp_cache
 
-
+(*
 let intermediates cache an obj =
 	let fold_paths ps = function [] -> ps
 		| _::path ->
@@ -334,4 +337,5 @@ let lasthitters cache ph ?filter:(filter = fun _ -> true) obj =
 
 
 
+*)
 *)

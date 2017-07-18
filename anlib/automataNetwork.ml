@@ -6,6 +6,7 @@ open PintTypes
 open Ph_types
 
 type id = int
+type trid = int
 type idmap = id IMap.t
 
 type lsid = id*id
@@ -17,30 +18,40 @@ type sig_local_state = sig_automaton * sig_automaton_state
 let next_trid = ref 0
 
 type t = {
-
     (* signature/internal id mapping *)
     a2sig: (id, sig_automaton) Hashtbl.t;
-    ls2sig: (id, sig_local_state) Hashtbl.t;
     sig2a: (sig_automaton, id) Hashtbl.t;
-    sig2ls: (sig_local_state, id) Hashtbl.t;
+    ls2sig: (lsid, sig_local_state) Hashtbl.t;
+    sig2ls: (sig_local_state, lsid) Hashtbl.t;
+
+    ls: (id, int) Hashtbl.t;
 
     (* local transitions *)
-    trcond: (id, idmap) Hashtbl.t;
-    trdest: (id, idmap) Hashtbl.t;
-    trorig: (id, idmap) Hashtbl.t;
+    trcond: (trid, idmap) Hashtbl.t;
+    trdest: (trid, idmap) Hashtbl.t;
+    trorig: (trid, idmap) Hashtbl.t;
+
+    trpre: (trid, idmap) Hashtbl.t; (* trorig + trcond *)
 
     (* local states graph *)
     lsnext: (lsid, id) Hashtbl.t; (* out-going transitions *)
     lsprev: (lsid, id) Hashtbl.t; (* in-going transitions *)
+
+    (* map local changes to transitions *)
+    change2tr: ((lsid*id), trid) Hashtbl.t;
 }
 
+(** Number of automata *)
+let count_automata an =
+    Hashtbl.length an.a2sig
+
+(** Number of local states in automata [a] *)
+let automaton_length an a =
+    Hashtbl.find an.ls a
 
 
-type automaton_p = string
-type automaton_state = int
-type local_state = automaton_p * automaton_state
-
-module LSOrd = struct type t = local_state let compare = compare end
+(*
+module LSOrd = struct type t = lsid let compare = compare end
 
 (** state **)
 
@@ -79,13 +90,6 @@ type transition = automaton_p
 type trcond = automaton_state SMap.t
 
 let tr_dest (_,_,j) = j
-
-type t = {
-	automata: (automaton_p, (sig_automaton_state * automaton_state) list) Hashtbl.t;
-	transitions: (local_state, ISet.t) Hashtbl.t;
-	conditions: (transition, trcond) Hashtbl.t;
-	sync_transitions: (transition list * trcond) list;
-}
 
 let empty_an ?size:(size=(20,50)) () = {
 	automata = Hashtbl.create (fst size);
@@ -586,4 +590,4 @@ let json_of_sync_transition (aijs, conds) =
     in
     json_of_list id (json_aijs::json_conds::[])
 
-
+*)
