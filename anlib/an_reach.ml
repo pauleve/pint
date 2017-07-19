@@ -184,103 +184,6 @@ let top_trimmed_lcg env gA =
 	NodeSet.iter check_node gA#nodes
 
 
-(**
- ** UNDER-APPROXIMATIONS (Sufficient conditions)
- **)
-
-
-let ua_lcg_setup an = {oa_glc_setup with
-	conts_flooder = max_conts_flooder (boolean_automata an)
-}
-
-(** Unordered Under-Approximation *)
-let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
-	let validate (glc:StateSet.t #glc) =
-		(* associate to each nodes the children processes *)
-		let child_procs = glc#call_rflood top_localstates_flooder glc#leafs
-		in
-		(* iter over cooperative objectives and check their solutions *)
-		let validate_obj obj =
-			let validate_sync state =
-				if SMap.cardinal state <= 1 then true else
-				let validate_ls a i =
-					let conn = fst (Hashtbl.find child_procs (NodeProc (a,i)))
-					in
-					dbg (". top("^string_of_ls (a,i)^") = "^string_of_ctx conn);
-					SMap.for_all (fun b j -> b = a ||
-						try
-							let js = ctx_get b conn
-							in
-							ISet.cardinal js <= 1 && ISet.choose js = j
-						with Not_found -> true) state
-				in
-				SMap.for_all validate_ls state
-			in
-			let validate_syncsol nsol =
-				dbg ("checking "^string_of_node nsol);
-				let (obj, states, _) = match nsol with NodeSyncSol x -> x | _ -> assert false
-				in
-				StateSet.for_all validate_sync states
-			in
-			let syncsols = List.filter (function NodeSyncSol _ -> true | _ -> false)
-						(glc#childs (NodeObj obj))
-			in
-			List.for_all validate_syncsol syncsols
-		in
-		ObjSet.for_all validate_obj glc#objs
-	in
-	let gB_iterator = new lcg_generator (ua_lcg_setup env.an) env.ctx env.goal sols make_unord_sol
-	in
-	(*let i = ref 0 in*)
-	let rec __check gB =
-		if gB#has_impossible_objs then (
-			dbg ~level:1 ("has_impossible_objs! "^
-				(String.concat ";" (List.map string_of_obj gB#get_impossible_objs)));
-			(*
-			let cout = open_out ("/tmp/glc"^string_of_int !i^".dot")
-			in
-			i := !i + 1;
-			output_string cout gB#to_dot;
-			close_out cout;*)
-			let ms_objs =  gB_iterator#multisols_objs
-			in
-			let seq_objs = gB#avoid_impossible_objs ms_objs
-			in
-			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
-						(List.rev seq_objs);
-			false
-		) else if gB#has_loops then (
-			dbg ~level:1 "has_loops!";
-			let seq_objs = gB#avoid_loop gB_iterator#multisols_objs gB#last_loop
-			in
-			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
-						seq_objs;
-			false
-		) else (
-			if not gB#auto_conts then (
-				gB#set_auto_conts true;
-				gB#commit ();
-				gB#saturate_ctx;
-				__check gB
-			) else
-				validate gB
-		)
-	in
-	let rec iter_gBs () =
-		if gB_iterator#has_next then (
-			let gB = gB_iterator#next
-			in
-			dbg "!! unordered underapprox";
-			gB#debug ();
-			if __check gB then (
-				saveLCG := Some gB;
-				raise Found
-			) else iter_gBs ()
-		)
-	in
-	try iter_gBs (); false with Found -> true
-
-
 
 (**** Local reachability ****)
 
@@ -302,24 +205,6 @@ let local_reachability env =
 		else
 			Inconc
 
-
-let legacy_local_reachability ?saveLCG:(saveLCG = ref None) env =
-	assert_async_an env.an;
-	let cache = env.sol_cache
-	in
-	let sols = An_localpaths.MinUnordUnsyncSol.solutions cache env.an
-	in
-	let uoa, oadom = unordered_oa' env sols
-	in
-	if not uoa then
-		False
-	else
-		let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
-		in
-		if unordered_ua ~saveLCG env sols then
-			True
-		else
-			Inconc
 
 
 
