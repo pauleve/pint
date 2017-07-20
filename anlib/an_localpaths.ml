@@ -4,6 +4,8 @@ open Debug
 open PintTypes
 open AutomataNetwork
 
+open Ph_types
+
 let enumerate_acyclic_paths register append discard elt0 set0 an (a,i,goal) =
 	let rec walk path i visited results =
 		if i = goal then
@@ -195,7 +197,6 @@ module UnordUnsyncTrace = struct
 	let abstr _ = Universe
 	let match_abstr a e = true
 end
-*)
 
 module UnordTrace = struct
 	type t = StateSet.t
@@ -217,8 +218,6 @@ module UnordTrace = struct
 		in
 		List.exists (fun lss -> UnordUnsyncTrace.leq lss astates) lss_l
 end
-
-(*
 
 exception Nothing
 

@@ -39,7 +39,7 @@ open Easy
 open PintTypes
 open AutomataNetwork
 
-let fixpoints_jit push_state restrict an =
+let fixpoints forcelss an =
 	let v_arrays = Hashtbl.create (count_automata an)
 	in
 	let register_automata a n goal =
@@ -66,7 +66,7 @@ let fixpoints_jit push_state restrict an =
 	let register_restrict ai =
 		Cstr.post (e ai =~ i2e 1)
 	in
-	List.iter register_restrict restrict;
+	List.iter register_restrict forcelss;
 
 	let register_tr trid precond =
 		let vars = List.map e (IMap.bindings precond)
@@ -78,6 +78,8 @@ let fixpoints_jit push_state restrict an =
 	in
 	Hashtbl.iter register_tr an.trpre;
 
+	let sols = ref []
+	in
 	let register_sol () =
 		let fold_vs a vs state =
 			let i = List.find (fun i -> Fd.int_value vs.(i) == 1)
@@ -87,17 +89,12 @@ let fixpoints_jit push_state restrict an =
 		in
 		let state = Hashtbl.fold fold_vs v_arrays IMap.empty
 		in
-        push_state state
+		(*prerr_endline (string_of_state state);*)
+		sols := state::!sols
 	in
-    try
-    ignore(Goals.solve ((goal &&~ Goals.atomic register_sol &&~ Goals.fail) ||~ Goals.success))
-    with Stak.Fail _ -> ()
+	ignore(Goals.solve ((goal &&~ Goals.atomic register_sol &&~ Goals.fail) ||~ Goals.success));
+	!sols
 
-let fixpoints ?(restrict=[]) args =
-    let sols = ref []
-    in
-    let push_state state = sols := state::!sols
-    in
-    fixpoints_jit push_state restrict args;
-    !sols
+let fixpoints ?restrict:(lss=[]) args =
+	try fixpoints lss args with Stak.Fail _ -> []
 
