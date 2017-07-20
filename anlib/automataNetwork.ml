@@ -3,40 +3,42 @@ open Big_int
 
 open PintTypes
 
+open Ph_types
+
 type id = int
 type trid = int
-type state = id IMap.t
+type idmap = id IMap.t
 
-type ls = id*id
-
+type lsid = id*id
 
 type sig_automaton = string
 type sig_automaton_state = StateId of int | StateLabel of string
 type sig_local_state = sig_automaton * sig_automaton_state
 
 let next_trid = ref 0
+
 type t = {
     (* signature/internal id mapping *)
     a2sig: (id, sig_automaton) Hashtbl.t;
     sig2a: (sig_automaton, id) Hashtbl.t;
-    ls2sig: (ls, sig_local_state) Hashtbl.t;
-    sig2ls: (sig_local_state, ls) Hashtbl.t;
+    ls2sig: (lsid, sig_local_state) Hashtbl.t;
+    sig2ls: (sig_local_state, lsid) Hashtbl.t;
 
     ls: (id, int) Hashtbl.t;
 
     (* local transitions *)
-    trcond: (trid, state) Hashtbl.t;
-    trdest: (trid, state) Hashtbl.t;
-    trorig: (trid, state) Hashtbl.t;
+    trcond: (trid, idmap) Hashtbl.t;
+    trdest: (trid, idmap) Hashtbl.t;
+    trorig: (trid, idmap) Hashtbl.t;
 
-    trpre: (trid, state) Hashtbl.t; (* trorig + trcond *)
+    trpre: (trid, idmap) Hashtbl.t; (* trorig + trcond *)
 
     (* local states graph *)
-    lsnext: (ls, id) Hashtbl.t; (* out-going transitions *)
-    lsprev: (ls, id) Hashtbl.t; (* in-going transitions *)
+    lsnext: (lsid, id) Hashtbl.t; (* out-going transitions *)
+    lsprev: (lsid, id) Hashtbl.t; (* in-going transitions *)
 
     (* map local changes to transitions *)
-    change2tr: ((ls*id), trid) Hashtbl.t;
+    change2tr: ((lsid*id), trid) Hashtbl.t;
 }
 
 (** Number of automata *)
@@ -47,50 +49,20 @@ let count_automata an =
 let automaton_length an a =
     Hashtbl.find an.ls a
 
-let string_of_a an =
-    Hashtbl.find an.a2sig
 
-let string_of_sigls ?(protect=true) = function
-	  StateId i -> string_of_int i
-	| StateLabel n -> if protect then "\""^n^"\"" else n
-
-let string_of_lsid an a i =
-    let _, sigi = Hashtbl.find an.ls2sig (a,i)
-    in
-    string_of_sigls sigi
-
-let string_of_ls an ai =
-    let sa, sigi = Hashtbl.find an.ls2sig ai
-    in
-    let si = string_of_sigls sigi
-    in
-    sa^"="^si
-
-let string_of_lsids an a =
-    string_of_set (string_of_lsid an a) ISet.elements
-
-let string_of_cls an a lsids =
-    let sa = string_of_a an a
-    and scls = string_of_lsids an a lsids
-    in
-    sa^"="^scls
-
-let string_of_state an =
-    string_of_map (string_of_ls an) IMap.fold
-
-module LSOrd = struct type t = ls let compare = compare end
+(*
+module LSOrd = struct type t = lsid let compare = compare end
 
 (** state **)
 
-let substate (s1:state) (s2:state) =
-    Util.imap_subset (=) s1 s2
+let substate (s1:state) (s2:state) = Util.smap_subset (=) s1 s2
 
-let is_emptystate = IMap.is_empty
+let is_emptystate = SMap.is_empty
 
 let compare_state s1 s2 =
-	let c = compare (IMap.cardinal s1) (IMap.cardinal s2)
+	let c = compare (SMap.cardinal s1) (SMap.cardinal s2)
 	in
-	if c = 0 then IMap.compare compare s1 s2 else c
+	if c = 0 then SMap.compare compare s1 s2 else c
 
 module StateOrd = struct type t = state let compare = compare_state end
 
@@ -98,161 +70,16 @@ module LSSet = Set.Make (LSOrd)
 module LSMap = Map.Make (LSOrd)
 module StateSet = Set.Make (StateOrd)
 
-let string_of_lsset an =
-    string_of_set (string_of_ls an) LSSet.elements
-
 let lsset_of_state s =
-	IMap.fold (fun a i s -> LSSet.add (a,i) s) s LSSet.empty
+	SMap.fold (fun a i s -> LSSet.add (a,i) s) s LSSet.empty
 
 let lsset_of_list = set_of_list LSSet.empty LSSet.add
 
-(** Context *)
-type ctx = ISet.t IMap.t
-
-let ctx_equal = IMap.equal ISet.equal
-
-let ctx_empty = IMap.empty
-
-let ctx_get = IMap.find
-
-let ctx_safe_get a ctx =
-	try ctx_get a ctx with Not_found -> ISet.empty
-
-let ctx_has_ls (a,i) ctx =
-	try
-		ISet.mem i (ctx_get a ctx)
-	with Not_found -> false
-
-let ctx_add_ls (a,i) ctx =
-	let is = ctx_safe_get a ctx
-	in
-	IMap.add a (ISet.add i is) ctx
-
-let ctx_rm_ls (a,i) ctx =
-	try
-		let is = ctx_get a ctx
-		in
-		let is = ISet.remove i is
-		in
-		IMap.add a is ctx
-	with Not_found -> ctx
-
-let ctx_of_lslist =
-	let group ctx ls =
-        ctx_add_ls ls ctx
-	in
-	List.fold_left group IMap.empty
-
-let ctx_of_lsset ps = ctx_of_lslist (LSSet.elements ps)
-
-(*
-let string_of_ctx ctx = 
-	let folder a is str =
-		str ^ (if str = "" then "" else "; ")
-		^ a ^ "="^ string_of_iset is
-	in
-	"<"^(SMap.fold folder ctx "")^">"
-*)
-
-(*
-let procs_of_ctx ctx =
-	let register a is ps =
-		let register i ps =
-			PSet.add (a,i) ps
-		in
-		ISet.fold register is ps
-	in
-	SMap.fold register ctx PSet.empty
-
-let procs_to_ctx ps =
-	let group (a,i) ctx =
-		let is = try SMap.find a ctx with Not_found -> ISet.empty
-		in
-		let is = ISet.add i is
-		in
-		SMap.add a is ctx
-	in
-	PSet.fold group ps SMap.empty
-;;
-
-let ctx_sorts ctx =
-	let register_sort a _ sorts =
-		SSet.add a sorts
-	in
-	SMap.fold register_sort ctx SSet.empty
-;;
-
-let state_of_ctx ctx =
-	let register a is state = 
-		if ISet.cardinal is <> 1 then
-			raise (Invalid_argument "state_of_ctx: given ctx is not a state")
-		else
-			SMap.add a (ISet.choose is) state
-	in
-	SMap.fold register ctx SMap.empty
-;;
-
-let ctx_override_by_ctx ctx ctx' =
-	SMap.fold SMap.add ctx' ctx
-;;
-
-let ctx_override ctx ps =
-	ctx_override_by_ctx ctx (procs_to_ctx ps)
-;;
-*)
-
-let ctx_union ctx1 ctx2 =
-	let register a is2 ctx1 =
-		let is1 = try IMap.find a ctx1 with Not_found -> ISet.empty
-		in
-		IMap.add a (ISet.union is1 is2) ctx1
-	in
-	IMap.fold register ctx2 ctx1
-
-(*
-let ctx_union_state ctx state =
-	let register a i ctx =
-		let is = ctx_safe_get a ctx
-		in
-		SMap.add a (ISet.add i is) ctx
-	in
-	SMap.fold register state ctx
-;;
-*)
-
-let ctx_inter ctx1 ctx2 =
-	let register a is2 ctx =
-        try
-			let is1 = IMap.find a ctx1
-			in
-			IMap.add a (ISet.inter is1 is2) ctx
-		with Not_found -> ctx
-	in
-	IMap.fold register ctx2 IMap.empty
-
-(*
-let ctx_diff ctx1 ctx2 =
-	let diff a is ctx =
-		let is =
-			if SMap.mem a ctx2 then ISet.diff is (SMap.find a ctx2)
-			else is
-		in
-		SMap.add a is ctx
-	in
-	SMap.fold diff ctx1 SMap.empty
-
-let ctx_of_state state =
-	SMap.map ISet.singleton state
-;;
-*)
-
 let flatten_stateset ss =
 	let folder s ls =
-		IMap.fold (fun a i ls -> LSSet.add (a,i) ls) s ls
+		SMap.fold (fun a i ls -> LSSet.add (a,i) ls) s ls
 	in
 	StateSet.fold folder ss LSSet.empty
-
-(*
 
 
 type local_transition = (int * (local_state list))
@@ -303,6 +130,9 @@ let get_automaton_state_sig an a i =
 let get_automaton_state_id an a sig_i =
 	List.assoc sig_i (Hashtbl.find an.automata a)
 
+let string_of_sig_state ?(protect=true) = function
+	  StateId i -> string_of_int i
+	| StateLabel n -> if protect then "\""^n^"\"" else n
 
 let string_of_astate ?(protect=true) an a i =
 	string_of_sig_state ~protect (get_automaton_state_sig an a i)
@@ -312,6 +142,12 @@ let string_of_localstate ?(protect=true) an (a,i) =
 
 let string_of_localstates an lsset =
 	String.concat ", " (List.map (string_of_localstate an) (SMap.bindings lsset))
+
+let string_of_ls (a,i) =
+	a^" "^string_of_int i
+
+let string_of_lsset lsset =
+	String.concat ", " (List.map string_of_ls (LSSet.elements lsset))
 
 let _string_of_local_transition an (a,i,j) =
 	"\""^a^"\" "^(string_of_astate an a i)^" -> " ^(string_of_astate an a j)
@@ -644,6 +480,9 @@ let squeeze ?(preserve=SSet.empty) an ctx =
 	in
 	an', ctx'
 
+let string_of_state an s =
+	String.concat ", " (List.map (string_of_localstate an) (SMap.bindings s))
+
 let resolve_siglocalstates an =
 	List.map (fun (a,sig_i) -> (a,get_automaton_state_id an a sig_i))
 (**
@@ -680,7 +519,17 @@ let state_of_lsset ps =
 	in
 	LSSet.fold fold ps SMap.empty
 
+let ctx_of_lslist =
+	let group ctx (a,i) =
+		let is = try SMap.find a ctx with Not_found -> ISet.empty
+		in
+		let is = ISet.add i is
+		in
+		SMap.add a is ctx
+	in
+	List.fold_left group SMap.empty
 
+let ctx_of_lsset ps = ctx_of_lslist (LSSet.elements ps)
 
 let lsset_of_ctx ctx =
 	let register a is ps =
@@ -742,22 +591,3 @@ let json_of_sync_transition (aijs, conds) =
     json_of_list id (json_aijs::json_conds::[])
 
 *)
-
-
-(** Objectives *)
-
-type objective = id*id*id (* a,i,j *)
-
-module ObjOrd = struct type t = objective let compare = compare end
-module ObjSet = Set.Make (ObjOrd)
-module ObjMap = Map.Make (ObjOrd)
-
-let string_of_obj an (a,i,j) =
-    let sa, i = Hashtbl.find an.ls2sig (a,i)
-    and _, j = Hashtbl.find an.ls2sig (a,j)
-    in
-    let si = string_of_sigls i
-    and sj = string_of_sigls j
-    in
-    sa^" "^si^" "^sj
-
