@@ -1,5 +1,5 @@
 (*
-Copyright or © or Copr. Loïc Paulevé 2015-2017
+Copyright or © or Copr. Loïc Paulevé (2015)
 
 loic.pauleve@ens-cachan.org
 
@@ -40,10 +40,10 @@ open PintTypes
 open AutomataNetwork
 
 let fixpoints forcelss an =
-	let v_arrays = Hashtbl.create (count_automata an)
+	let v_arrays = Hashtbl.create (Hashtbl.length an.automata)
 	in
-	let register_automata a n goal =
-		let vs = Array.init n (fun _ -> Fd.create Domain.boolean)
+	let register_automata a lsdefs goal =
+		let vs = Array.init (List.length lsdefs) (fun _ -> Fd.create Domain.boolean)
 		in
 		Hashtbl.add v_arrays a vs;
 
@@ -52,7 +52,7 @@ let fixpoints forcelss an =
 
 		goal &&~ Goals.Array.labeling vs
 	in
-	let goal = Hashtbl.fold register_automata an.ls Goals.success
+	let goal = Hashtbl.fold register_automata an.automata Goals.success
 	in
 	let lsvar (a,i) =
 		let vs = Hashtbl.find v_arrays a
@@ -68,33 +68,42 @@ let fixpoints forcelss an =
 	in
 	List.iter register_restrict forcelss;
 
-	let register_tr trid precond =
-		let vars = List.map e (IMap.bindings precond)
+	let register_sync_tr (trs,cond) =
+		let precond = SMap.bindings cond
+				@ (List.map (fun (a,i,_) -> (a,i)) trs)
 		in
-		let sume = List.fold_left (+~) (List.hd vars) (List.tl vars)
+		let fold sume ai = sume +~ e ai
+		in
+		let sume = List.fold_left fold
+				(e (List.hd precond)) (List.tl precond)
 		in
 		(* Constraint: tr is not applicable *)
-		Cstr.post (sume <~ i2e (IMap.cardinal precond))
+		Cstr.post (sume <~ i2e (SMap.cardinal cond + List.length trs))
 	in
-	Hashtbl.iter register_tr an.trpre;
+	let register_tr tr cond =
+		register_sync_tr ([tr],cond)
+	in
+	Hashtbl.iter register_tr an.conditions;
+	List.iter register_sync_tr an.sync_transitions;
 
 	let sols = ref []
 	in
 	let register_sol () =
-		let fold_vs a vs state =
+		let fold_vs a vs ps =
 			let i = List.find (fun i -> Fd.int_value vs.(i) == 1)
 				(Util.range 0 (Array.length vs))
 			in
-            IMap.add a i state
+			LSSet.add (a,i) ps
 		in
-		let state = Hashtbl.fold fold_vs v_arrays IMap.empty
+		let lss = Hashtbl.fold fold_vs v_arrays LSSet.empty
 		in
-		(*prerr_endline (string_of_state state);*)
-		sols := state::!sols
+		(*prerr_endline (string_of_procs ps);*)
+		sols := lss::!sols
 	in
 	ignore(Goals.solve ((goal &&~ Goals.atomic register_sol &&~ Goals.fail) ||~ Goals.success));
+	(*prerr_newline ();*)
 	!sols
 
 let fixpoints ?restrict:(lss=[]) args =
-	try fixpoints lss args with Stak.Fail _ -> []
+	try List.map state_of_lsset (fixpoints lss args) with Stak.Fail _ -> []
 
