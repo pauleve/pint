@@ -15,7 +15,7 @@ let enumerate_acyclic_paths register append discard elt0 set0 an (a,i,goal) =
 			let visit results j =
 				if ISet.mem j visited then results
 				else
-					let path = append results path (i,j)
+					let path = append results path ((a,i),j)
 					in
 					if discard results path then
 						results
@@ -60,8 +60,30 @@ let raw_local_paths =
 	in
 	enumerate_acyclic_paths register append discard path0 paths
 
-let raw_local_paths rlp_cache =
-	_cache_computation raw_local_paths rlp_cache
+let local_paths an obj =
+    let expand lps lp = lps @
+        let x = List.map (Hashtbl.find_all an.change2tr) lp
+        in
+        Util.cross_list x
+    and lps = raw_local_paths an obj
+    in
+    List.fold_left expand [] lps
+
+let abstract_local_path an (a,_,_) trs =
+    let interm = List.map (fun trid ->
+        IMap.find a (Hashtbl.find an.trorig trid)) (List.tl trs)
+    in
+    let interm = iset_of_list interm
+    and fold view trid =
+        let pre = Hashtbl.find an.trpre trid
+        in
+        let trview = IMap.remove a pre
+        in
+        StateSet.add trview view
+    in
+    let view = List.fold_left fold StateSet.empty trs
+    in
+    view, interm
 
 (*
 let intermediates cache an obj =
@@ -156,8 +178,10 @@ let concrete_solutions cache an obj (conds, interm) =
 	let csols = simple_acyclic_paths cache an obj
 	in
 	List.fold_left fold_csol [] csols
+*)
 
 
+(*
 module type UnorderedAbstractTraceType = sig
 	type t
 
@@ -195,7 +219,6 @@ module UnordUnsyncTrace = struct
 	let abstr _ = Universe
 	let match_abstr a e = true
 end
-*)
 
 module UnordTrace = struct
 	type t = StateSet.t
@@ -218,7 +241,6 @@ module UnordTrace = struct
 		List.exists (fun lss -> UnordUnsyncTrace.leq lss astates) lss_l
 end
 
-(*
 
 exception Nothing
 
@@ -239,7 +261,31 @@ module MinimalUnorderedAbstractTraces (Uat: UnorderedAbstractTraceType) = struct
 		in
 		(if j <> goal then ISet.add j interm else interm)
 
-	let solutions an obj =
+	let solutions cache an obj =
+        let fold_view sols (view, interm) =
+            if List.exists (fun (v,_) -> Uat.leq v view) then
+                sols
+            else
+                (view,interm)::
+                List.filter (fun (v,_) -> not (Uat.leq v view)) sols
+        in
+        let fold_solution sols rawlp =
+            let interm = List.map fst List.tl rawlp
+            in
+            let interm = List.fold_left (fun a b -> Iset.add b a) ISet.empty
+                            interm
+            and lps = List.map (Hashtbl.find_all an.change2tr) rawlp
+            in
+            let views = ...
+            in
+        and raw_lps = raw_local_paths an obj
+        in
+        List.fold_left fold_solution [] raw_lps
+
+
+
+
+
 		let goal = tr_dest obj
 		in
 		let push_tr = extend_trace an goal
