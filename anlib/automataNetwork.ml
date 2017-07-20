@@ -752,8 +752,6 @@ module ObjOrd = struct type t = objective let compare = compare end
 module ObjSet = Set.Make (ObjOrd)
 module ObjMap = Map.Make (ObjOrd)
 
-let obj_a (a,_,_) = a
-
 let string_of_obj an (a,i,j) =
     let sa, i = Hashtbl.find an.ls2sig (a,i)
     and _, j = Hashtbl.find an.ls2sig (a,j)
