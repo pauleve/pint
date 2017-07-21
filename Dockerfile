@@ -14,13 +14,16 @@ RUN apt-get update \
         python3-pandas \
         python3-pip \
         python3-pygraphviz \
-        r-mathlib \
     && apt-get clean \
     && pip3 install jupyter \
     && cd /usr/src \
     && curl -LO https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}-amd64.deb \
     && dpkg -i tini_${TINI_VERSION}-amd64.deb \
     && rm *.deb
+
+RUN apt-get install -y --no-install-recommands \
+        r-mathlib \
+    && apt-get clean
 
 ARG PINT_VERSION
 COPY dist/pint_${PINT_VERSION}_amd64.deb /usr/src
