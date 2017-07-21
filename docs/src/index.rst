@@ -42,7 +42,9 @@ GitHub.
 Related Papers
 ==============
 
-- `Goal-Oriented Reduction of Automata Networks <https://hal.archives-ouvertes.fr/hal-01149118/file/gored.pdf>`_ (L. Paulevé at *CMSB 2016*).
+- `Identification of bifurcation transitions in biological regulatory networks using Answer-Set Programming <http://dx.doi.org/10.1186/s13015-017-0110-3>`_
+  (L. F. Fitime,  O. Roux, C. Guziolowski, and L. Paulevé in *Algorithms for Molecular Biology*, 2017)
+- `Goal-Oriented Reduction of Automata Networks <https://hal.archives-ouvertes.fr/hal-01149118/file/gored.pdf>`_ (L. Paulevé at *CMSB 2016*)
 - `Sufficient conditions for reachability in automata networks with priorities <https://hal.archives-ouvertes.fr/hal-01202671/file/main.pdf>`_
   (M.  Folschette, L. Paulevé, M. Magnin, and O. Roux in *Theoretical Computer Science (TCS)*, 2015)
 - `Analyses statiques de la dynamique des réseaux d'automates indéterministes
