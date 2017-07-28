@@ -24,10 +24,6 @@ let string_of_node an = function
 
 let string_of_nodeset an = string_of_set (string_of_node an) NodeSet.elements;;
 
-let nodeset_of_list = set_of_list NodeSet.empty NodeSet.add
-
-exception Found
-
 (**
 	flooder setup
 **)
