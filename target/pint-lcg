@@ -9,7 +9,7 @@ SOURCES = \
 	$(ANLIB_SOURCES) \
 	pintlcg.ml
 
-LIBS = $(COMMON_LIBS) $(PINTLIB_LIBS) $(PHLIB_LIBS)
+LIBS = $(COMMON_LIBS) $(PINTLIB_LIBS) $(ANLIB_LIBS)
 
 RESULT = bin/pint-lcg
 
