@@ -66,8 +66,38 @@ let string_of_iset = string_of_set string_of_int ISet.elements
 
 let string_of_sset = string_of_set id SSet.elements
 
+let map_of_bindings add empty =
+    List.fold_left (fun m (k,v) -> add k v m) empty
+
+
+
 type ternary = True | False | Inconc
 let string_of_ternary = function True -> "True" | False -> "False" | Inconc -> "Inconc"
+
+type id = int
+let prev_id = ref 0
+let new_id () =
+    incr prev_id;
+    !prev_id
+
+type 'a reg_t = {
+    elt2id: ('a, id) Hashtbl.t;
+    id2elt: (id, 'a) Hashtbl.t;
+}
+let new_reg n = {
+    elt2id = Hashtbl.create n;
+    id2elt = Hashtbl.create n;
+}
+
+let register_elt reg elt =
+    try
+        Hashtbl.find reg.elt2id elt
+    with Not_found ->
+        let eltid = new_id ()
+        in (
+        Hashtbl.add reg.elt2id elt eltid;
+        Hashtbl.add reg.id2elt eltid elt;
+        eltid)
 
 type stochatime =
 	  Instantaneous
@@ -88,9 +118,11 @@ let json_of_int i =
 let json_of_list json_of_elt l =
 	"["^(String.concat ", " (List.map json_of_elt l))^"]"
 
-let json_of_bindings json_of_key json_of_elt b =
+let json_of_bindings json_of_key_elt b =
 	let json_of_binding (k,v) =
-		json_of_key k^": "^json_of_elt v
+        let k, v = json_of_key_elt k v
+        in
+        k^": "^v
 	in
 	"{"^(String.concat ", " (List.map json_of_binding b))^"}"
 

@@ -6,56 +6,48 @@ type opts = {
 	contextual_ptnet: bool;
 }
 
+let protect = true
+
 let dump_of_an an ctx =
-	let fold_defs a def_states buf =
-		let def_states = List.map fst def_states
-		in
-		(a, "\""^a^"\" ["^(String.concat ", "
-			(List.map string_of_sig_state def_states))^"]\n")::buf
-	and fold_tr (a,i,j) cond buf =
-		let bcond = SMap.bindings cond
-		in
-		((a,i,j,bcond), (string_of_transition an (a,i,j) cond)^"\n")::buf
-	and fold_sync_tr buf (trs, cond) =
-		let bcond = SMap.bindings cond
-		and a,i,j = List.hd trs
-		in
-		((a,i,j,bcond), (string_of_sync_transition an trs cond)^"\n")::buf
+	let fold_defs a n buf =
+        let aname = Hashtbl.find an.a2sig a
+        and def_states = automaton_sigls an a
+        in
+		(a, "\""^aname^"\" ["^(String.concat ", "
+			(List.map string_of_sigls def_states))^"]\n")::buf
+	and fold_tr trid tr buf =
+		(trid, (string_of_transition an tr)^"\n")::buf
+	in
+	let defs = Hashtbl.fold fold_defs an.ls []
+	and trs = Hashtbl.fold fold_tr an.trs []
 	and lss = LSSet.elements (lsset_of_ctx ctx)
 	in
-	let defs = Hashtbl.fold fold_defs an.automata []
-	and trs = Hashtbl.fold fold_tr an.conditions []
-	in
-	let trs = List.fold_left fold_sync_tr trs an.sync_transitions
-	in
-	let defs = List.sort compare defs
-	and trs = List.sort compare trs
-	in
-	let defs = List.map snd defs
-	and trs = List.map snd trs
+	let defs = List.map snd (List.sort compare defs)
+	and trs = List.map snd (List.sort compare trs)
 	in
 	(String.concat "" defs)
 	^ "\n"
 	^ (String.concat "" trs)
 	^ "\n"
-	^ match lss with [] -> "" | _ -> ("initial_context " ^ (String.concat ", "
-	(List.map (string_of_localstate an) lss))^"\n")
+	^ match lss with [] -> "" | _ -> (
+        (if ctx_is_state ctx then "initial_state " else "initial_context ")
+        ^ (String.concat ", " (List.map (string_of_ls ~protect an) lss))^"\n")
 
 let nbjson_of_an ?(output_transitions=true) an ctx =
 	let features = []
 	in
-	let features = if an.sync_transitions <> [] then "synced_transitions"::features
+	let features = if is_async_automata_network an then "synced_transitions"::features
 					else features
 	in
-	let fold_a a _ l = a::l
-	and fold_ls a def_states m =
-		SMap.add a (List.map snd def_states) m
-	and fold_nls a def_states m =
-		SMap.add a (List.map fst def_states) m
+	let fold_a _ a l = a::l
+	and fold_ls a n m =
+        let aname = Hashtbl.find an.a2sig a
+        and sigls = automaton_sigls an a
+        in
+		SMap.add aname sigls m
 	in
-	let automata = Hashtbl.fold fold_a an.automata []
-	and localstates = Hashtbl.fold fold_ls an.automata SMap.empty
-	and nlocalstates = Hashtbl.fold fold_nls an.automata SMap.empty
+	let automata = Hashtbl.fold fold_a an.a2sig []
+	and localstates = Hashtbl.fold fold_ls an.ls SMap.empty
 	in
 	let automata = List.sort compare automata
 	in
@@ -66,80 +58,31 @@ let nbjson_of_an ?(output_transitions=true) an ctx =
 		"{\n" ^ (SMap.fold fold sm "") ^ "}"
 	in
 	let json_of_slist = json_of_list json_of_str
-	and json_of_siglist = json_of_list (function
-			  StateId i -> string_of_int i
-			| StateLabel l -> "\""^l^"\"")
-	and json_of_ilist = json_of_list string_of_int
+	and json_of_siglist = json_of_list json_of_sigls
 	in
 	"{\n"
 	^"\"automata\": "^json_of_slist automata^",\n"
-	^"\"local_states\": "^json_of_smap json_of_ilist localstates^",\n"
-	^"\"named_local_states\": "^json_of_smap json_of_siglist nlocalstates^",\n"
+	^"\"local_states\": "^json_of_smap json_of_siglist localstates^",\n"
     ^(if output_transitions then
         "\"local_transitions\": ["
-            ^(String.concat ",\n\t" (
-                (Hashtbl.fold (fun t c l ->
-                    json_of_transition t c::l) an.conditions [])
-                @ (List.map json_of_sync_transition an.sync_transitions)))
+            ^(String.concat ",\n\t"
+                (Hashtbl.fold (fun trid tr l ->
+                    json_of_transition an tr::l) an.trs []))
             ^"]\n,"
     else "")
-	^"\"initial_state\": "^json_of_ctx ctx^",\n"
+	^"\"initial_state\": "^json_of_ctx an ctx^",\n"
 	^"\"features\": "^json_of_slist features^"\n"
 	^"}\n"
-
-let ph_of_an an ctx =
-	assert_async_an an;
-	let ph_of_ls = Ph_types.pintstring_of_proc
-	in
-	let fold_defs a def_states buf =
-		let l = List.length def_states - 1
-		in
-		(a, "process "^a^" "^string_of_int l^"\n")::buf
-	and fold_tr (a,i,j) cond buf =
-		let cond = SMap.bindings cond
-		in
-		let bounce = " -> "^ph_of_ls (a,i)^" "^string_of_int j
-		in
-		let str = match cond with [] -> ph_of_ls (a,i) ^ bounce
-			| [bk] -> ph_of_ls bk ^ bounce
-			| _ ->
-				(* TODO: improve *)
-				("COOPERATIVITY(["
-					^ (String.concat ";" (List.map fst cond))
-					^ "]" ^ bounce ^ ", [["
-					^ (String.concat ";" (List.map string_of_int
-						(List.map snd cond)))
-					^ "]])")
-		in
-		((a,i,j,cond), str^"\n")::buf
-	and lss = LSSet.elements (lsset_of_ctx ctx)
-	in
-	let defs = Hashtbl.fold fold_defs an.automata []
-	and trs = Hashtbl.fold fold_tr an.conditions []
-	and lss = List.filter (fun (_,i) -> i > 0) lss
-	in
-	let defs = List.sort compare defs
-	and trs = List.sort compare trs
-	in
-	let defs = List.map snd defs
-	and trs = List.map snd trs
-	in
-	(String.concat "" defs)
-	^ "\n"
-	^ (String.concat "" trs)
-	^ "\n"
-	^ "initial_context " ^ (String.concat ", " (List.map ph_of_ls lss))
-	^ "\n"
 
 
 module PetriNet =
 struct
 	type place_t =
-		  LS of local_state
+		  LS of sig_local_state
 		| Custom of string
 
 	type transition_t =
-		  LT of (transition list * local_state list)
+		  LT of (sig_state * sig_state * sig_state)
 		| TCustom of string
 
 	type arc_t = TP | PT | RA
@@ -210,20 +153,26 @@ let pn_of_an ?(goal=None) contextual an ctx =
 		in
 		List.map (fun ai -> PetriNet.place pn (PetriNet.LS ai)) conds
 	in
-	let register_automaton a =
-		List.iter (fun (_, i) ->
-			ignore(PetriNet.place pn (PetriNet.LS (a,i))))
-	and register_sync_transition (trs,conds) =
-		let conds = SMap.bindings conds
+	let register_automaton aname a =
+		List.iter (fun isig ->
+			ignore(PetriNet.place pn (PetriNet.LS (aname,isig))))
+            (automaton_sigls an a)
+	and register_transition trid =
+        let tr = Hashtbl.find an.trs trid
+        in
+        let cond = resolve_state an tr.cond
+        and orig = resolve_state an tr.orig
+        and dest = resolve_state an tr.dest
+        in
+		let t = PetriNet.transition pn (PetriNet.LT (orig, dest, cond))
 		in
-		let t = PetriNet.transition pn (PetriNet.LT (trs,conds))
-		in
-		let _ = List.iter (fun (a,i,j) ->
+        let _ = SMap.iter (fun a i ->
+            let j = SMap.find a dest
+            in
 			PetriNet.add_pt pn (PetriNet.place pn (PetriNet.LS (a,i))) t;
-			PetriNet.add_tp pn t (PetriNet.place pn (PetriNet.LS (a,j))))
-				trs
-		in
-		let ps = List.map (fun ai -> PetriNet.place pn (PetriNet.LS ai)) conds
+			PetriNet.add_tp pn t (PetriNet.place pn (PetriNet.LS (a,j)))) orig
+        in
+		let ps = SMap.fold (fun a i ps -> PetriNet.place pn (PetriNet.LS (a,i))::ps) cond []
 		in
 		if contextual then
 			List.iter (PetriNet.add_ra pn t) ps
@@ -231,25 +180,32 @@ let pn_of_an ?(goal=None) contextual an ctx =
 			List.iter (fun p -> PetriNet.add_pt pn p t; PetriNet.add_tp pn t p) ps
 
 	and register_ctx a is =
+        let aname = label_of_a an a
+        in
 		if ISet.cardinal is > 1 then
-			let p = PetriNet.place pn (PetriNet.Custom (a^"_TBD"))
+			let p = PetriNet.place pn (PetriNet.Custom (aname^"_TBD"))
 			in
 			let register_i i =
-				let t = PetriNet.transition pn (PetriNet.TCustom (a^"_TBD_"^string_of_int i))
+				let t = PetriNet.transition pn (PetriNet.TCustom (aname^"_TBD_"^string_of_int i))
 				in
+                let i = snd (Hashtbl.find an.ls2sig (a,i))
+                in
 				PetriNet.add_pt pn p t;
-				PetriNet.add_tp pn t (PetriNet.place pn (PetriNet.LS (a,i)))
+				PetriNet.add_tp pn t (PetriNet.place pn (PetriNet.LS (aname,i)))
 			in
 			ISet.iter register_i is;
 			PetriNet.mark pn p
 		else
-			PetriNet.mark pn (PetriNet.place pn (PetriNet.LS (a,ISet.choose is)))
+            let i = snd (Hashtbl.find an.ls2sig (a, ISet.choose is))
+            in
+			PetriNet.mark pn (PetriNet.place pn (PetriNet.LS (aname,i)))
 	in
-	let register_transition (tr,conds) =
-		register_sync_transition ([tr],conds)
-	in
-	let sorted_automata = Hashtbl.fold (fun a spec sa ->
-							SMap.add a spec sa) an.automata SMap.empty
+	let sorted_automata = Hashtbl.fold (fun a n ->
+                            let aname = label_of_a an a
+                            in
+							SMap.add aname a) an.ls SMap.empty
+    and sorted_transitions = Hashtbl.fold (fun trid _ -> ISet.add trid)
+                                an.trs ISet.empty
 	in
 	SMap.iter register_automaton sorted_automata;
 	(match goal with None -> ()
@@ -257,11 +213,8 @@ let pn_of_an ?(goal=None) contextual an ctx =
 		let t = PetriNet.transition pn (PetriNet.TCustom trname)
 		in
 		List.iter (fun p -> PetriNet.add_pt pn p t) (places_of_conds conds));
-	let trs = an_sorted_transitions an
-	in
-	TRSet.iter register_transition trs;
-	List.iter register_sync_transition an.sync_transitions;
-	SMap.iter register_ctx ctx;
+    ISet.iter register_transition sorted_transitions;
+	IMap.iter register_ctx ctx;
 	pn
 
 
@@ -272,41 +225,49 @@ let pep_of_an ?(goal=None) ?(mapfile="") opts an ctx =
 	and transitions = PetriNet.transitions pn
 	and arcs = PetriNet.arcs pn
 	in
+    let protect = false
+    in
 	(if mapfile <> "" then
 		let mapplaces = List.filter
 			(function (_, PetriNet.LS _) -> true | _ -> false) places
 		in
 		let string_of_map (id, p) =
 			match p with PetriNet.LS (a,i) ->
-				string_of_int id^" "^a^" "^string_of_int i^"\n"
+				string_of_int id^" "^a^" "^(string_of_sigls ~protect i)^"\n"
 			| _ -> raise (Invalid_argument "string_of_map")
 		in
 		let mapdata = String.concat "" (List.map string_of_map mapplaces)
 		in
 		Util.dump_to_file mapfile mapdata
 	);
-
-	let name_of_tr (a,i,j) =
-		a ^ " " ^ (string_of_astate ~protect:false an a i)
-			^ " -> " ^ (string_of_astate ~protect:false an a j)
+    let string_of_resolved_ls (a,isig) =
+        a^"="^string_of_sigls ~protect isig
+    in
+	let name_of_set smap =
+        string_of_map
+            ~lbracket:(if SMap.cardinal smap > 1 then "{" else "")
+            ~rbracket:(if SMap.cardinal smap > 1 then "}" else "")
+            string_of_resolved_ls
+            SMap.fold smap
 	in
-	let name_of_trs trs =
-		String.concat "/" (List.map name_of_tr trs)
+	let name_of_trs orig dest =
+        name_of_set orig ^ " -> " ^name_of_set dest
 	in
 	let pep_of_place (pid, p) =
 		string_of_int pid^"\""
-		^ (match p with PetriNet.LS ai -> string_of_localstate ~protect:false an ai
+		^ (match p with
+              PetriNet.LS ai -> string_of_resolved_ls ai
 		    | PetriNet.Custom name -> name)^"\""
 		^(if PetriNet.marked pn pid then "M1" else "M0")
 		^"\n"
 	and pep_of_transition (tid, t) =
 		let name = match t with
-			  PetriNet.LT (trs,conds) ->
-				(name_of_trs (trs)
-					^ (match conds with [] -> "" | _ -> " when "^
-						String.concat " and "
-							(List.map (string_of_localstate ~protect:false an)
-							conds)))
+			  PetriNet.LT (orig,dest,conds) ->
+				(name_of_trs orig dest)
+                ^ (if SMap.is_empty conds then "" else
+                    " when "^string_of_map ~lbracket:"" ~rbracket:""
+                                ~delim:" and "
+                                string_of_resolved_ls SMap.fold conds)
 			| PetriNet.TCustom name -> name
 		in
 		string_of_int tid^"\""^name^"\"\n"
@@ -334,32 +295,35 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 	and margin = 100
 	in
 	let register_automaton a _ (id, pos) =
-		let pos = SMap.add a (id*space) pos
+		let pos = SMap.add (label_of_a an a) (id*space) pos
 		in
 		(id+1, pos)
 	in
-	let _, a_x = Hashtbl.fold register_automaton an.automata (1, SMap.empty)
+	let _, a_x = Hashtbl.fold register_automaton an.ls (1, SMap.empty)
 	in
 	let places = PetriNet.places pn
 	and transitions = PetriNet.transitions pn
 	and arcs = PetriNet.arcs pn
 	in
-	let repr_i = string_of_astate ~protect:false an
+    let rank_of_ls ai =
+        snd (Hashtbl.find an.sig2ls ai)
+	and repr_i _ = string_of_sigls ~protect:false
 	in
 	let repr_ls (a,i) = a^"_"^repr_i a i
 	in
-	let name_of_tr (a,i,j) =
-		a^"_"^(repr_i a i)^"_"^(repr_i a j)
+	let name_of_state state =
+        String.concat "_" (List.map repr_ls (SMap.bindings state))
 	in
-	let name_of_trs trs =
-		String.concat "_" (List.map name_of_tr trs)
+	let name_of_trs orig dest =
+        name_of_state orig ^ "___" ^ name_of_state dest
 	in
 	let romeo_of_place (pid, p) =
 		let name = match p with
 			  PetriNet.LS ai -> repr_ls ai
 			| PetriNet.Custom name -> name
 		and x,y = match p with
-			  PetriNet.LS (a,i) -> SMap.find a a_x, i*space
+			  PetriNet.LS (a,i) -> 
+                SMap.find a a_x, (rank_of_ls (a,i))*space
 			| PetriNet.Custom _ -> 0,0
 		in
 		"<place id=\""^string_of_int pid^"\" label=\""^name^"\" "
@@ -370,16 +334,15 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 		^"</place>\n"
 	and romeo_of_transition (tid, t) =
 		let name = match t with PetriNet.TCustom name -> name
-			| PetriNet.LT (trs,conds) ->
-				name_of_trs trs
-				^(match conds with [] -> "" | _ -> "_"^
-					String.concat "__" (List.map repr_ls conds))
+			| PetriNet.LT (orig,dest,conds) ->
+				name_of_trs orig dest
+				^(if SMap.is_empty conds then "" else "___"^name_of_state conds)
 		and x, y = match t with PetriNet.TCustom _ -> 0, 200
-			| PetriNet.LT (trs,_) ->
-				let a,_,j = List.hd trs
+			| PetriNet.LT (_,dest,_) ->
+				let a,j = SMap.choose dest
 				in
 				let x = SMap.find a a_x + margin + space / 2
-				and y = j * space - space/2 + margin
+				and y = (rank_of_ls (a,j)) * space - space/2 + margin
 				in
 				x,y
 		and sid = string_of_int tid
@@ -429,148 +392,124 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 
 let prism_of_an an ctx =
 	assert_async_an an;
-	let a_counter = ref 0
-	and a2i = ref SMap.empty
-	in
-	let index a =
-		try SMap.find a !a2i
-		with Not_found -> (
-			a_counter := !a_counter + 1;
-			a2i := SMap.add a !a_counter !a2i;
-			!a_counter
-		)
-	in
-	let modname a =
-		let i = index a
-		in
-		"A"^string_of_int i
-	and varname a =
-		let i = index a
-		in
-		"s"^string_of_int i
+	let modname a = "A"^string_of_int a
+	and varname a = "s"^string_of_int a
 	in
 	let prism_state (a,i) =
 		varname a ^ "=" ^ string_of_int i
 	and prism_state' (a,i) =
 		varname a ^ "'=" ^ string_of_int i
 	in
-	let prism_of_transition a i j conds =
-		let conds = SMap.bindings conds
-		in
-		"\t[] " ^ (String.concat " & " (List.map prism_state ((a,i)::conds)))
+	let prism_of_transition a trid =
+        let tr = Hashtbl.find an.trs trid
+        in
+        let j = IMap.find a tr.dest
+        and pre = IMap.bindings tr.pre
+        in
+		"\t[] " ^ (String.concat " & " (List.map prism_state pre))
 			^ " -> (" ^ prism_state' (a,j)^");\n"
 	in
-	let prism_of_transitions a i =
-		let transitions = Hashtbl.find an.transitions (a,i)
-		in
-		let fold_jump j str_trs =
-			let conds_list = Hashtbl.find_all an.conditions (a,i,j)
-			in
-			let str_conds = List.map (prism_of_transition a i j) conds_list
-			in
-			str_trs ^ String.concat "" str_conds
-		in
-		ISet.fold fold_jump transitions ""
-	in
-	let prism_of_automaton a spec str =
-		let ls = snd (List.split spec)
-		in
+	let prism_of_automaton a n str =
 		str
-		^ "// automaton \""^a^"\"\n"
+		^ "// automaton \""^label_of_a an a^"\"\n"
 		^ "module "^modname a^"\n"
 		^ "\t// "
-			^ (String.concat "; " (List.map 
-					(fun (s_i, i) -> string_of_int i^"=\""
-										^string_of_sig_state s_i^"\"") spec))
-			^"\n"
-		^ "\t"^varname a^": [0.."^string_of_int (List.length spec - 1)^"]"
-		^ " init "^string_of_int (ISet.choose (SMap.find a ctx))^";\n\n"
-		^ (String.concat "\n" (List.map (prism_of_transitions a) ls))
+        ^ (String.concat "; "
+            (List.mapi
+                (fun i isig -> string_of_int i^" is \"" ^string_of_sigls isig^"\"")
+                (automaton_sigls an a)))^"\n"
+		^ "\t"^varname a^": [0.."^string_of_int (n-1)^"]"
+		^ " init "^string_of_int (ISet.choose (IMap.find a ctx))^";\n\n"
+        ^ (String.concat ""
+            (List.map
+                (fun i ->
+                    let trs = Hashtbl.find_all an.lsnext (a,i)
+                    in
+                    String.concat "\n" (List.map (prism_of_transition a) trs))
+                (Util.range 0 (n-1))))
 		^ "\n\nendmodule\n\n"
 	in
 	"mdp\n\n"
-	^ Hashtbl.fold prism_of_automaton an.automata ""
+	^ Hashtbl.fold prism_of_automaton an.ls ""
 
 
 let nusmv_of_an ?(map=None) universal an ctx =
 	assert_async_an an;
-	let varname a = "a_"^a
-	and updname a = "u_"^a
+	let varname a = "a"^string_of_int a
+	and updname a = "u"^string_of_int a
 	and tbd_state = "TBD"
 	in
-	let automaton_spec a spec specs =
-		(a, List.map snd spec)::specs
+	let automaton_spec a n specs = (a, n)::specs
 	in
-	let automata_spec = Hashtbl.fold automaton_spec an.automata []
+	let automata_spec = Hashtbl.fold automaton_spec an.ls []
 	in
 	let automata_spec = List.sort compare automata_spec
 	in
 	let automata_tbd =
-		if universal then SSet.empty else
-			SMap.fold (fun a is aset ->
+		if universal then ISet.empty else
+			IMap.fold (fun a is iset ->
 				if ISet.cardinal is > 1 then
-					SSet.add a aset else aset) ctx SSet.empty
+					ISet.add a iset else iset) ctx ISet.empty
 	in
-	let def_automaton (a, is) =
+	let def_automaton (a, n) =
+        let isigs = automaton_sigls an a
+        in
 		(match map with None -> ()
-		| Some m -> List.iter (fun i ->
-				Hashtbl.add m (a,i) (varname a, string_of_int i)) is
+		| Some m -> List.iteri (fun i _ ->
+				Hashtbl.add m (a,i) (varname a, string_of_int i)) isigs
 		);
-		let sis = List.map string_of_int is
+		let sis = List.mapi (fun i _ -> string_of_int i) isigs
 		in
-		let sis = if SSet.mem a automata_tbd then
+		let sis = if ISet.mem a automata_tbd then
 			tbd_state::sis else sis
 		in
 		varname a^": {"^(String.concat "," sis)^"};"
+        ^ " // automaton "^(label_of_a an a)^" with local states "
+            ^String.concat ", "
+                (List.mapi (fun i isig ->
+                        string_of_int i^"="^string_of_sigls ~protect:false isig)
+                    isigs)
 	in
-	let nusmv_of_conditions (a, i, j) conds =
-		let conds = (a,i)::SMap.bindings conds
+	let nusmv_of_conditions conds =
+		let conds = IMap.bindings conds
 		in
 		let conds = List.map (fun (a,i) -> varname a^"="^string_of_int i) conds
 		in
 		String.concat " & " conds
 	in
-	let nusmv_of_transitions (a, is) =
-		let nusmv_of_transition a i j conds =
-			(** DISABLED
-			"\tu="^updname a^" & "^nusmv_of_conditions (a,i,j) conds
-				^": "^string_of_int j^";\n"*)
-			"\t\t"^nusmv_of_conditions (a,i,j) conds^"?"
-				^string_of_int j^":"^varname a
+	let nusmv_of_transitions (a,n) =
+		let nusmv_of_transition (a,i,j) trid =
+            let tr = Hashtbl.find an.trs trid
+            in
+			"\t\t"^nusmv_of_conditions tr.pre^"?"^string_of_int j^":"^varname a
 		in
 		let nusmv_of_transitions a i =
-			let transitions = Hashtbl.find an.transitions (a,i)
-			in
-			let nusmv_trs = List.map (fun j ->
-				let conds_list = Hashtbl.find_all an.conditions (a,i,j)
-				in
-				List.map (nusmv_of_transition a i j) conds_list)
-					(ISet.elements transitions)
-			in
-			List.flatten nusmv_trs
+            let js = Hashtbl.find_all an.lsnext (a,i)
+            in
+            List.flatten (List.map (fun j ->
+                let trids = Hashtbl.find_all an.change2tr ((a,i),j)
+                in
+                List.map (nusmv_of_transition (a,i,j)) trids) js)
 		in
-		match is with
-		  i1::i2::_ ->
-		"next("^varname a^") := case\n"
-		^(if SSet.mem a automata_tbd then
-			("\t"^varname a^"="^tbd_state^": {"
-			^(String.concat "," (List.map string_of_int is))
-			^"};\n") else "")
-		^ (let trs = List.flatten (List.map (nusmv_of_transitions a) is)
-		in
-		match trs with [] -> "" | _ ->
-			"\tu="^updname a^": {\n"^(String.concat ",\n" trs)^"};\n")
-		(** TODO: restore this exportation if automaton is deterministic
-		^(String.concat "" (List.flatten
-				(List.map (nusmv_of_transitions a) is))) *)
-		^"\tTRUE: "^varname a^";\nesac;"
-		| _ -> ""
+        if n >= 2 then
+            let trs = List.flatten
+                (List.map (nusmv_of_transitions a) (Util.range 0 (n-1)))
+            in
+            "next("^varname a^") := case\n"
+            ^(if ISet.mem a automata_tbd then
+                let is = ISet.elements (IMap.find a ctx)
+                in
+                ("\t"^varname a^"="^tbd_state^": {" ^(String.concat "," (List.map string_of_int is)) ^"};\n") else "")
+		    ^(match trs with [] -> "" | _ ->
+                "\tu="^updname a^": {\n"^(String.concat ",\n" trs)^"};\n")
+            ^"\tTRUE: "^varname a^";\nesac;"
+        else ""
 	in
 	let nusmv_fp_cond =
-		let fold tr conds acc =
-			nusmv_of_conditions tr conds::acc
+		let fold _ tr acc =
+			nusmv_of_conditions tr.pre::acc
 		in
-		let conds = Hashtbl.fold fold an.conditions []
+		let conds = Hashtbl.fold fold an.trs []
 		in
 		let conds = List.map (fun expr -> "!("^expr^")") conds
 		in
@@ -587,7 +526,7 @@ let nusmv_of_an ?(map=None) universal an ctx =
 			else (varname a^"="^tbd_state)
 	in
 	"MODULE main\n\n"
-	^"IVAR\n\tu: {u_"^(String.concat ", u_" (List.map fst automata_spec)) ^"};\n"
+	^"IVAR\n\tu: {"^(String.concat ", " (List.map (fun (a,_) -> updname a) automata_spec))^"};\n"
 	^"\nVAR\n\t"
 	^(String.concat "\n\t" (List.map def_automaton automata_spec))^"\n"
 	^"\nASSIGN\n"
@@ -597,6 +536,6 @@ let nusmv_of_an ?(map=None) universal an ctx =
 		"next("^varname a^") != "^varname a) automata_spec))
 	^ " |\n\t("^nusmv_fp_cond^");\n"
 	^"\nINIT\n"
-	^"\t"^(String.concat " & " (List.map nusmv_of_init (SMap.bindings ctx)))^";\n"
+	^"\t"^(String.concat " & " (List.map nusmv_of_init (IMap.bindings ctx)))^";\n"
 	^"\n"
 

@@ -2,7 +2,6 @@
 open Debug
 
 open PintTypes
-open Ph_types
 
 open LocalCausalityGraph
 open AutomataNetwork
@@ -20,28 +19,28 @@ let asp_ucont_lcg asp lcg =
 	let nodesol_asp obj asp (i, n) =
 		let orig = sol_asp obj i
 		in
-		let children = lcg#childs n
+		let children = lcg#children n
 		in
 		match children with [] ->
 			decl asp (edge_asp orig "top"^" :- "^edge_asp "_" orig)
-		| _ -> 
+		| _ ->
 		let asp = List.fold_left (fun asp ->
-			(function NodeProc ai ->
+			(function NodeLS ai ->
 				decl asp (edge_asp orig (ls_asp ai)^" :- "^edge_asp "_" orig)
 			| _ -> asp)) asp children
 		in
 		decl asp ("oa_valid(G,"^orig^") :- "^
 			String.concat ","
-				(List.map (function NodeProc ai -> "oa_valid(G,"^ls_asp ai^")"
+				(List.map (function NodeLS ai -> "oa_valid(G,"^ls_asp ai^")"
 				| _ -> "") children))
 	in
 	let nodeobj_asp n asp = match n with
 		  NodeObj obj ->
 			let orig = obj_asp obj
 			in
-			let children = lcg#childs n
+			let children = lcg#children n
 			in
-			let sols = List.filter (function NodeSol _ | NodeSyncSol _ -> true | _ -> false) children
+			let sols = List.filter (function NodeSol _ -> true | _ -> false) children
 			in
 			let isols = List.mapi (fun i s -> (i,s)) sols
 			in
@@ -108,34 +107,35 @@ let asp_unfolding asp (an, ctx) =
 			decl asp ("name(\""^name^"\")")), i+1)
 		(asp, 1) unf.plname)
 
-let asp_bifurcation_lcg asp (an, ctx) goal =
+let asp_bifurcation_lcg asp ac (an, ctx) goal =
+    assert_async_an an;
 	(* build full lcg *)
-	let full_lcg = full_lcg an
+	let full_lcg = full_lcg ac an
 	in
 	let fctx = full_ctx an
 	in
-	let all_ls = PSet.elements (procs_of_ctx fctx)
+	let all_ls = lsset_of_ctx fctx
 	in
 	(* push local states definition *)
-	let asp = List.fold_left (fun asp ai -> decl asp (ls_asp ai)) asp all_ls
+	let asp = LSSet.fold (fun ai asp -> decl asp (ls_asp ai)) all_ls asp
 	in
 	(* reference boolean automata *)
-	let asp = SSet.fold (fun a asp -> decl asp (bool_asp a)) (boolean_automata an) asp
-	and trmap = Hashtbl.create (count_transitions an)
+	let asp = ISet.fold (fun a asp -> decl asp (bool_asp a)) (boolean_automata an) asp
 	in
 	(* push transitions definition *)
-	let register_transition (a,i,j) pstate (asp, trid) =
-		if (a,i) = goal then (asp, trid) else
+	let register_transition trid tr asp =
+        let a,i = IMap.choose tr.orig
+        and _,j = IMap.choose tr.dest
+        in
+		if (a,i) = goal then asp else
 		let asp = decl asp ("tr("^string_of_int trid^","
 			^automaton_asp a^","^string_of_int i^","^string_of_int j^")")
 		in
-		Hashtbl.add trmap trid ((a,i,j),pstate);
-		SMap.fold (fun b k asp ->
+		IMap.fold (fun b k asp ->
 			decl asp ("trcond("^string_of_int trid^","^
-			automaton_asp b^","^string_of_int k^")")) pstate asp,
-			(trid+1)
+			automaton_asp b^","^string_of_int k^")")) tr.cond asp
 	in
-	let asp = fst(Hashtbl.fold register_transition an.conditions (asp, 0))
+	let asp = Hashtbl.fold register_transition an.trs asp
 	in
 	(* push LCG for over-approximation *)
 	let asp = asp_ucont_lcg asp full_lcg
@@ -152,28 +152,21 @@ let asp_bifurcation_lcg asp (an, ctx) goal =
 	(* push initial state *)
 	let asp = asp_ctx ~instance:"s0" asp ctx
 	in
-	asp, trmap
+	asp
 
 let bifurcations_solver inputs =
 	ASP_solver.solver ~opts:"0 --project --conf=trendy" ~inputs ()
 
 let regexp_trid = Str.regexp "^btr(\\([0-9]+\\)\\b"
 
-let parse_solution trmap sol =
+let parse_solution sol =
 	assert(Str.string_match regexp_trid sol 0);
-	let trid = int_of_string (Str.matched_group 1 sol)
-	in
-	Hashtbl.find trmap trid
+	int_of_string (Str.matched_group 1 sol)
 
-let solve_bifurcations solver handler (an,ctx) goal =
-	let solver, trmap = asp_bifurcation_lcg solver (an,ctx) goal
+let solve_bifurcations solver handler ac (an,ctx) goal =
+	let solver = asp_bifurcation_lcg solver ac (an,ctx) goal
 	in
-	let handler sol =
-		let aij,cond = parse_solution trmap sol
-		in
-		handler aij cond
-	in
-	ASP_solver.solutions solver handler
+	ASP_solver.solutions solver (fun sol -> handler (parse_solution sol))
 
 let aspf f = ASP_solver.pint_asp_abspath (Filename.concat "bifurcations" f)
 
@@ -185,7 +178,7 @@ let ua_bifurcations_ua handler =
 	in
 	solve_bifurcations solver handler
 
-let ua_bifurcations_mole handler (an, ctx) =
+let ua_bifurcations_mole handler ac (an, ctx) =
 	let solver = bifurcations_solver [
 			"-";
 			aspf "reachability.asp";
@@ -194,9 +187,6 @@ let ua_bifurcations_mole handler (an, ctx) =
 	in
 	let solver = asp_unfolding solver (an, ctx)
 	in
-	solve_bifurcations solver handler (an, ctx)
-
-
-
+	solve_bifurcations solver handler ac (an, ctx)
 
 

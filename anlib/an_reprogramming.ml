@@ -1,5 +1,4 @@
 open PintTypes
-open Ph_types
 
 open AutomataNetwork
 open LocalCausalityGraph
@@ -13,7 +12,7 @@ let aspf f = ASP_solver.pint_asp_abspath (Filename.concat "reprogramming" f)
     ONESHOT MUTATIONS FOR GOAL CUT
 ***)
 
-let ua_oneshot_mutations_for_cut ?(ignore=SSet.empty) (an, ctx) goal maxcard =
+let ua_oneshot_mutations_for_cut ?(ignore=ISet.empty) ac (an, ctx) goal maxcard =
 	let asp = ASP_solver.solver
         ~opts:"0 --project --conf=trendy --heuristic=domain --enum-mode=domRec --dom-mod=5,16"
         ~inputs:["-"; aspf "ua_oneshot_mutations_for_cut.lp"] ()
@@ -21,11 +20,11 @@ let ua_oneshot_mutations_for_cut ?(ignore=SSet.empty) (an, ctx) goal maxcard =
 	(* push local states definition *)
 	let fctx = full_ctx an
 	in
-	let all_ls = PSet.elements (procs_of_ctx fctx)
+	let all_ls = lsset_of_ctx fctx
 	in
-	let asp = List.fold_left (fun asp ai -> decl asp (ls_asp ai)) asp all_ls
+	let asp = LSSet.fold (fun ai asp -> decl asp (ls_asp ai)) all_ls asp
 	in
-    let full_lcg = full_lcg an
+    let full_lcg = full_lcg ac an
     in
     let asp = An_bifurcations.asp_ucont_lcg asp full_lcg
     in
@@ -37,7 +36,7 @@ let ua_oneshot_mutations_for_cut ?(ignore=SSet.empty) (an, ctx) goal maxcard =
     let fold_ignore a asp =
         decl asp ("ignore("^automaton_asp a^")")
     in
-    let asp = SSet.fold fold_ignore ignore asp
+    let asp = ISet.fold fold_ignore ignore asp
     in
     let asp = decl asp ("#const maxcard = "^string_of_int maxcard)
     in
@@ -49,7 +48,7 @@ let ua_oneshot_mutations_for_cut ?(ignore=SSet.empty) (an, ctx) goal maxcard =
         let fold lss (f,args) =
             if f = "lock" then
                 match args with
-                  a::i::[] -> (a,int_of_string i)::lss
+                  a::i::[] -> (int_of_string a,int_of_string i)::lss
                 | _ -> failwith "bad lock predicate"
             else lss
         in

@@ -2,38 +2,40 @@
 open PintTypes
 open AutomataNetwork
 open An_export
-open Ph_types
-
+open An_transformers
 
 let make_partial spec (an, ctx) =
 	let aset = An_input.parse_string An_parser.automata_set spec
 	in
-	SSet.iter (fun a -> if not(Hashtbl.mem an.automata a) then
-					failwith ("Unknown automaton '"^a^"'")) aset;
+    let aset = SSet.fold (fun a -> ISet.add (resolve_sig_a an a)) aset ISet.empty
+    in
 	let an = partial an aset
-	and ctx = SMap.filter (fun a _ -> SSet.mem a aset) ctx
+	and ctx = IMap.filter (fun a _ -> ISet.mem a aset) ctx
 	in
 	an, ctx
 
-let make_goal spec (an,ctx) =
-    fst (An_cli.prepare_goal (an, ctx) [spec])
+let make_goal spec anctx =
+    let anctx, _, _ = An_cli.prepare_goal anctx [spec]
+    in
+    anctx
 
 let opt_reduction_skip_oa = ref false
 let make_reduce_for_goal spec (an, ctx) =
-    let (an, ctx), goal = An_cli.prepare_goal (an, ctx) [spec]
+    let (an, ctx), (g,top), extra_a = An_cli.prepare_goal (an, ctx) [spec]
 	in
-	let env = An_reach.init_env an ctx [goal]
+	let env = An_reach.init_env an ctx [g,top]
 	in
 	let an = An_reach.reduced_an ~skip_oa:!opt_reduction_skip_oa env
     in
-    if fst goal = "_pint_goal" then
-        remove_automata (an,ctx) (SSet.singleton (fst goal))
-    else
-        an, ctx
+    let ctx = List.fold_left (fun ctx a ->
+        remove_sink_automaton an a;
+        IMap.remove a ctx) ctx extra_a
+    in
+    an, ctx
 
 let opt_squeeze_preserve = ref SSet.empty
 let make_squeeze (an, ctx) =
-	squeeze ~preserve:!opt_squeeze_preserve an ctx
+	squeeze ~preserve:(resolve_sig_a_set an !opt_squeeze_preserve) an ctx
 
 let make_simplify (an, ctx) =
 	simplify an, ctx
@@ -41,17 +43,25 @@ let make_simplify (an, ctx) =
 let make_disable dctx (an, ctx) =
 	let dctx = ctx_of_siglocalstates an dctx
 	in
-	let rctx = ctx_diff (full_ctx an) dctx
-	in
-	restrict an rctx, ctx
+    let state_match state =
+        IMap.exists (fun a is -> match IMap.find_opt a state with
+                  Some i -> ISet.mem i is
+                | None -> false) dctx
+    in
+    let filter _ tr =
+        not (state_match tr.pre)
+    in
+    an_with_filtered_transitions an filter, ctx
 
 let make_lock lctx (an, ctx) =
     let lctx = ctx_of_siglocalstates an lctx
     in
-    let rctx = ctx_override_by_ctx (full_ctx an) lctx
-    and ctx = ctx_override_by_ctx ctx lctx
+    let filter _ tr =
+        not (IMap.exists (fun a _ -> IMap.mem a tr.orig) lctx)
     in
-    restrict an rctx, ctx
+    let ctx = ctx_override_by_ctx ctx lctx
+    in
+    an_with_filtered_transitions an filter, ctx
 
 let languages = ["dump";"nusmv";"pep";"ph";"prism";"romeo";"nbjson"]
 and opt_language = ref "dump"
@@ -117,7 +127,6 @@ let languages = [
 	("dump", dump_of_an);
 	("pep", pep_of_an opts ~mapfile:!opt_mapfile);
 	("nusmv", nusmv_of_an ~map:None !opt_ctx_universal);
-	("ph", ph_of_an);
 	("prism", prism_of_an);
 	("romeo", romeo_of_an ~map:None ~mapfile:!opt_mapfile);
 	("nbjson", nbjson_of_an ~output_transitions:!opt_output_transitions);

@@ -4,16 +4,17 @@ open AutomataNetwork
 
 let restrict_conditions ctx conds =
 	let extend a is cond =
-		try if ISet.mem (SMap.find a cond) is then [cond] else []
+		try if ISet.mem (IMap.find a cond) is then [cond] else []
 		with Not_found ->
-		List.map (fun i -> SMap.add a i cond) (ISet.elements is)
+		List.map (fun i -> IMap.add a i cond) (ISet.elements is)
 	in
 	let extend_conds a is rconds = rconds @
 		List.flatten (List.map (extend a is) conds)
 	in
-	SMap.fold extend_conds ctx []
+	IMap.fold extend_conds ctx []
 
 let restrict_focal an a ctx values =
+    assert_async_an an;
 	let bad_trconds i trconds =
 		let active_transitions j trconds =
 			let conds = Hashtbl.find_all an.conditions (a,i,j)

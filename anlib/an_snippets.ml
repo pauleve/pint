@@ -4,7 +4,9 @@ open InteractionGraph
 open AutomataNetwork
 
 let an_of_ig ig limits =
-	let an = empty_an ()
+    let nb_a = SMap.cardinal ig
+    in
+	let an = new_an ~nb_a ~nb_trs:(nb_a*2) ()
 	in
 	let register_node (a,l) =
 		let sigstates = List.map (fun i -> StateId i) (Util.range 0 l)

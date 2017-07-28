@@ -36,7 +36,7 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let an, ctx = An_cli.process_input ()
 
-let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args
+let (an, ctx), goal, _ = An_cli.prepare_goal (an, ctx) args
 
 let map = Hashtbl.create 50
 
@@ -78,9 +78,9 @@ let do_ctl () =
 		if !opt_bifurcations then
 			let smv_goal = smv_ls goal
 			in
-			let ctl_of_tr ((a,i,j),conds) =
-				let preconds = (a,i)::SMap.bindings conds
-				and postconds = [a,j]
+			let ctl_of_tr tr =
+				let preconds = IMap.bindings tr.pre
+				and postconds = IMap.bindings tr.dest
 				in
 				let preconds = String.concat " & " (List.map smv_ls preconds)
 				and postconds = String.concat " & " (List.map smv_ls postconds)
@@ -88,7 +88,7 @@ let do_ctl () =
 				"CTLSPEC EF ("^preconds^" & (EF ("^smv_goal^")) "^
 					"& EX ("^postconds^" & !EF ("^smv_goal^")));"
 			in
-			let trs = TRSet.elements (an_sorted_transitions an)
+            let trs = Hashtbl.fold (fun _ tr trs -> tr::trs) an.trs []
 			in
 			let ctls = List.map ctl_of_tr trs
 			in
@@ -98,8 +98,8 @@ let do_ctl () =
                 in
                 let results = List.filter (fun ((_,res),_) -> res) results
                 in
-                let results= List.map (fun (_,(aij,conds)) ->
-                                json_of_transition aij conds) results
+                let results = List.map (fun (_, tr) ->
+                                json_of_transition an tr) results
                 in
                 print_endline ("["^(String.concat ",\n" results)^"]")
             )

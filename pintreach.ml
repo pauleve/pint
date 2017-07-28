@@ -1,6 +1,5 @@
 
 open PintTypes
-open Ph_types
 open LocalCausalityGraph
 open AutomataNetwork
 open An_cli
@@ -12,7 +11,6 @@ and opt_cutsets_n = ref 0
 and opt_cutsets_noinit = ref false
 and opt_req_automata = ref SSet.empty
 and opt_req_universal = ref false
-and opt_legacy = ref false
 and opt_bifurcations = ref false
 and bifurcations_mode_choices = ["ua";"mole+ua"]
 and opt_bifurcations_mode = ref "ua"
@@ -23,8 +21,6 @@ let parse_automata_set =
 	An_input.parse_string An_parser.automata_set
 
 let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
-		("--legacy", Arg.Set opt_legacy,
-			"\tUse legacy under-approximation implementation (no clingo required).");
 		("--bifurcations", Arg.Set opt_bifurcations,
 			"\tIdentify bifurcation transitions for goal reachability (under-approximation)");
 		("--bifurcations-method", Arg.Symbol (bifurcations_mode_choices,
@@ -49,7 +45,12 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let an, ctx = An_cli.process_input ()
 
-let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args
+let (an, ctx), goal, extra_automata = An_cli.prepare_goal (an, ctx) args
+
+let ignore_automata =
+    let aset = resolve_sig_a_set an !opt_ignore_automata
+    in
+    List.fold_left (fun aset a -> ISet.remove a aset) aset extra_automata
 
 let do_cutsets = !opt_cutsets_n > 0
 
@@ -62,19 +63,15 @@ let do_reach = not (do_cutsets || do_requirements || do_bifurcations
 
 
 (** verify opt_req_automata *)
-let ukn = SSet.filter (fun a -> not (Hashtbl.mem an.automata a)) !opt_req_automata
-
+let ukn = SSet.filter (fun a -> not (has_automaton an a)) !opt_req_automata
 let _ = if not (SSet.is_empty ukn) then
 	failwith ("Invalid --requirements argument: unknown automata "^ string_of_sset ukn)
+let req_automata = resolve_sig_a_set an !opt_req_automata
 
 let env = init_env an ctx [goal]
 
 let static_reach () =
-	let result =
-		if !opt_legacy then
-			legacy_local_reachability env
-		else
-			local_reachability env
+	let result = local_reachability env
 	in
 	if !An_cli.opt_json_stdout then
 		print_endline (json_of_ternary result)
@@ -96,13 +93,15 @@ let bifurcations () =
 			An_bifurcations.ua_bifurcations_mole
 		| _ -> failwith "Invalid mode for bifurcations."
 	in
-	let handle_solution aij cond =
+	let handle_solution trid =
+        let tr = Hashtbl.find an.trs trid
+        in
 		if !An_cli.opt_json_stdout then
-            Queue.push (json_of_transition aij cond) btrs
+            Queue.push (json_of_transition an tr) btrs
 		else
-		print_endline (string_of_transition an aij cond)
+		print_endline (string_of_transition an tr)
 	in
-	let n = bifurcations handle_solution (an,ctx) goal
+	let n = bifurcations handle_solution env.ac (an,ctx) goal
 	in
 	if !An_cli.opt_json_stdout then
         let fold (first,b) json_btr = false,
@@ -116,9 +115,9 @@ let bifurcations () =
 	prerr_endline (string_of_int n^" bifurcations transitions have been identified.")
 
 let json_of_lss cs =
-	json_of_ctx (ctx_of_lslist cs)
+	json_of_ctx an (ctx_of_lslist cs)
 
-let string_of_ai = string_of_localstate an
+let string_of_ai = string_of_ls an
 
 let output_lss_list ?(ls_sep=",") lss_list =
 	let print_ps ps =
@@ -142,11 +141,11 @@ let cutsets n =
 	let gA = lcg_for_cutsets env
 	in
     let exclude_localstate (a,_) =
-        SSet.mem a !opt_ignore_automata
+        ISet.mem a ignore_automata
     in
 	let exclude_localstate =
 		if !opt_cutsets_noinit then
-			fun ai -> exclude_localstate ai || ctx_has_proc ai ctx
+			fun ai -> exclude_localstate ai || ctx_has_ls ai ctx
 		else exclude_localstate
 	in
     let (d_nkp, index_proc) = cutsets gA n exclude_localstate gA#leafs
@@ -156,7 +155,7 @@ let cutsets n =
 	in
 	let handle_proc ai =
 		try
-			let pss = fst (Hashtbl.find d_nkp (NodeProc ai))
+			let pss = fst (Hashtbl.find d_nkp (NodeLS ai))
 			in
 			let n = PSSet.cardinal pss
 			in
@@ -172,7 +171,7 @@ let cutsets n =
 			if !An_cli.opt_json_stdout then
 				print_endline (json_of_list id [])
 			else
-			print_endline (string_of_node (NodeProc ai)^" is not reachable.")
+			print_endline (string_of_node an (NodeLS ai)^" is not reachable.")
 	in
 	List.iter handle_proc env.goal
 
@@ -183,31 +182,9 @@ let requirements automata universal =
 	in
 	let resolve_ps = List.map (Hashtbl.find index_proc)
 	in
-	(* TODO: output in the same format as Causalex
-	Hashtbl.iter (fun n v ->
-		let pss = fst v
-		in
-		let elts = PSSet.elements pss
-		in
-		let elts = List.map resolve_ps elts
-		in
-		let elts = List.map (List.sort compare) elts
-		in
-		let elts = List.sort (fun a b ->
-				let c = compare (List.length a) (List.length b)
-				in
-				if c <> 0 then c else compare a b) elts
-		in
-		let sv = String.concat " OR " (List.map (fun ps ->
-				String.concat ";" (List.map string_of_ai ps)) elts)
-		in
-		prerr_endline ("["^string_of_node n^"] "^sv)) reqs;
-	*)
-
-
 	let handle_proc ai =
 		try
-			let pss = fst (Hashtbl.find reqs (NodeProc ai))
+			let pss = fst (Hashtbl.find reqs (NodeLS ai))
 			in
 			let n = PSSet.cardinal pss
 			in
@@ -223,19 +200,18 @@ let requirements automata universal =
 			if !An_cli.opt_json_stdout then
 				print_endline (json_of_list id [])
 			else
-			print_endline (string_of_node (NodeProc ai)^" is not reachable.")
+			print_endline (string_of_node an (NodeLS ai)^" is not reachable.")
 	in
 	List.iter handle_proc env.goal
 
 let _ =
-    opt_ignore_automata := SSet.add "_pint_goal" !opt_ignore_automata;
 	(if do_bifurcations then bifurcations ());
 	(if do_cutsets then cutsets !opt_cutsets_n);
-	(if do_requirements then requirements !opt_req_automata !opt_req_universal);
+	(if do_requirements then requirements req_automata !opt_req_universal);
     (if !opt_oneshot_mutations_cut > 0 then
         let sols = An_reprogramming.ua_oneshot_mutations_for_cut
-                        ~ignore:!opt_ignore_automata
-                        (an,ctx) goal !opt_oneshot_mutations_cut
+                        ~ignore:ignore_automata
+                        env.ac (an,ctx) goal !opt_oneshot_mutations_cut
         in
         output_lss_list sols
     );

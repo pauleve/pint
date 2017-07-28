@@ -23,7 +23,7 @@ open AutomataNetwork
 %left NOT
 
 %start main
-%type <AutomataNetwork.t * Ph_types.ctx> main
+%type <AutomataNetwork.t * AutomataNetwork.ctx> main
 
 %start local_state
 %type <AutomataNetwork.sig_local_state> local_state
@@ -35,7 +35,7 @@ open AutomataNetwork
 %type <PintTypes.SSet.t> automata_set
 
 %start goals
-%type <AutomataNetwork.sig_local_state list list list> goals
+%type <AutomataNetwork.sig_state list list> goals
 
 %%
 
@@ -48,11 +48,11 @@ content :
   content decl_automaton 	{ let a, states = $2 in
   								declare_automaton $1 a states; $1 }
 | content decl_transition 	{ let a, sigi, sigj, sigconds = $2 in
-								declare_transition $1 a sigi sigj sigconds; $1 }
+								declare_transition $1 [a,sigi,sigj] sigconds; $1 }
 | content decl_sync_transition
 							{ let trs, trsconds = $2 in
-								declare_sync_transition $1 trs trsconds }
-| decl_automaton			{ let an = empty_an () in
+								declare_transition $1 trs trsconds; $1 }
+| decl_automaton			{ let an = new_an () in
 								let a, states = $1 in
 									declare_automaton an a states; an }
 ;
@@ -77,11 +77,11 @@ state_sig_list_t:
 ;
 
 decl_transition:
-  transition { let a,i,j = $1 in (a,i,j,[]) }
+  transition { let a,i,j = $1 in (a,i,j,SMap.empty) }
 | transition WHEN transition_conds { let a,i,j = $1 in (a,i,j,$3) }
 ;
 decl_sync_transition:
-  transition_set { ($1,[]) }
+  transition_set { ($1,SMap.empty) }
 | transition_set WHEN transition_conds { ($1,$3) }
 ;
 transition_set: LCURLY transition_set_t RCURLY { $2 };
@@ -93,9 +93,21 @@ transition:
 	automaton state_sig ARROW state_sig	{ ($1, $2, $4) }
 ;
 transition_conds:
-  local_state	{ [$1] }
-| local_state AND transition_conds	{ $1::$3 }
+  local_state	{ let a,i = $1 in SMap.singleton a i }
+| local_state AND transition_conds { let a,i = $1 and conds = $3 in
+                                     (if SMap.mem a conds then
+                                        failwith ("'"^a^"' referenced twice."));
+                                     SMap.add a i conds }
 ;
+
+state:
+  local_state	{ let a,i = $1 in SMap.singleton a i }
+| local_state COMMA state { let a,i = $1 and conds = $3 in
+                                     (if SMap.mem a conds then
+                                        failwith ("'"^a^"' referenced twice."));
+                                     SMap.add a i conds }
+;
+
 local_state:
   automaton EQUAL state_sig	{ ($1,$3) }
 ;
@@ -106,7 +118,7 @@ local_state_list:
 ;
 
 initial_ctx:
-  Initial_state	local_state_list	{ $2 }
+  Initial_state	state	{ SMap.bindings $2 }
 | Initial_context local_state_list	{ $2 }
 ;
 
@@ -117,8 +129,8 @@ automata_set:
 ;
 
 goal:
-  local_state_list { $1::[] }
-| local_state_list goal { $1::$2 }
+  state { $1::[] }
+| state goal { $1::$2 }
 ;
 
 goals:
