@@ -21,9 +21,10 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let an, ctx = An_cli.process_input ()
 
-let (an, ctx), goal = An_cli.prepare_goal (an, ctx) args
+let (an, ctx), goal, _ = An_cli.prepare_goal (an, ctx) args
 
-let conds = List.fold_left (fun conds (a,i) -> SMap.add a i conds) SMap.empty [goal]
+let conds = let sig_goal = resolve_ls an goal
+    in SMap.singleton (fst sig_goal) (snd sig_goal)
 
 let opts = {
 	contextual_ptnet = false;

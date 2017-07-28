@@ -12,18 +12,17 @@ let log2 = log 2.
 let bits n = int_of_float (ceil (log (float_of_int n) /. log2))
 
 let required_bits_per_automaton an =
-	let fold_automata _ states b =
-		max (bits (List.length states)) b
+	let fold_automata _ n b = max (bits n) b
 	in
-	Hashtbl.fold fold_automata an.automata 0
+	Hashtbl.fold fold_automata an.ls 0
 
 let automata_index an =
 	let fold_automata a _ (i, index) =
-		let index = SMap.add a i index
+		let index = IMap.add a i index
 		in
 		(i+1, index)
 	in
-	snd (Hashtbl.fold fold_automata an.automata (0, SMap.empty))
+	snd (Hashtbl.fold fold_automata an.ls (0, IMap.empty))
 
 (*
 let index_automata aindex =
@@ -47,48 +46,40 @@ let extract_local_state base sid i =
 let encode_transitions base aindex an =
 	let single_sid = single_sid base
 	and prepare_cond (b,j) =
-		let id = SMap.find b aindex
+		let id = IMap.find b aindex
 		in
 		let j = big_int_of_int j
 		in
 		(fun sid -> extract_local_state base sid id), eq_big_int j
 	in
 	let make_precond conds =
-		let conds = List.map prepare_cond conds
+		let conds = List.map prepare_cond (IMap.bindings conds)
 		in
 		let precond sid = List.for_all
 				(fun (get_comp, test_comp) -> test_comp (get_comp sid))
 					conds
 		in
 		precond
-	and make_shift (a,i,j) =
-		let id = SMap.find a aindex
-		in
-		single_sid id (j-i)
+	and make_shift orig dest =
+        let fold a i shift =
+            let j = IMap.find a dest
+            and id = IMap.find a aindex
+            in
+            add_big_int shift (single_sid id (j-i))
+        in
+        IMap.fold fold orig zero_big_int
 	in
-	let fold_transitions (a,i,j) conds etransitions =
-		let precond = make_precond ((a,i)::SMap.bindings conds)
-		and shift = make_shift (a,i,j)
+	let fold_transition trid tr etransitions =
+		let precond = make_precond tr.pre
+		and shifts = make_shift tr.orig tr.dest
 		in
-		(precond, shift)::etransitions
-	and fold_sync_transitions etransitions (trs,conds) =
-		let conds = List.fold_left (fun conds (a,i,_) -> (a,i)::conds)
-						(SMap.bindings conds) trs
-		in
-		let precond = make_precond conds
-		and shifts = List.map make_shift trs
-		in
-		let shift = List.fold_left add_big_int (List.hd shifts) (List.tl shifts)
-		in
-		(precond, shift)::etransitions
+		(precond, shifts)::etransitions
 	in
-	let etrs = Hashtbl.fold fold_transitions an.conditions []
-	in
-	List.fold_left fold_sync_transitions etrs an.sync_transitions
+    Hashtbl.fold fold_transition an.trs []
 
 let sid_of_state base aindex state =
 	let fold a i sid =
-		let ai = SMap.find a state
+		let ai = IMap.find a state
 		in
 		if ai > 0 then
 			let aid = single_sid base i ai
@@ -96,7 +87,7 @@ let sid_of_state base aindex state =
 			or_big_int aid sid
 		else sid
 	in
-	SMap.fold fold aindex zero_big_int
+	IMap.fold fold aindex zero_big_int
 
 let state_of_sid base aindex sid =
 	let folder a id state =
@@ -104,9 +95,9 @@ let state_of_sid base aindex sid =
 		in
 		let i = int_of_big_int i
 		in
-		SMap.add a i state
+		IMap.add a i state
 	in
-	SMap.fold folder aindex SMap.empty
+	IMap.fold folder aindex IMap.empty
 
 module BigHashtbl = Hashtbl.Make(struct
 		type t = big_int

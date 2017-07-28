@@ -1,4 +1,6 @@
 
+import os
+
 from .cfg import *
 
 if IN_IPYTHON:
@@ -9,6 +11,7 @@ def enable_dbg():
     Enable debug output (executed command lines, etc.)
     """
     CFG["dbg"] = True
+    os.environ["OCAMLRUNPARAM"] = "b"
     if IN_IPYTHON:
         from .ipython_helpers import disp_jupyter_js
         disp_jupyter_js("pint_ui_debug_enabled(true);")
@@ -18,6 +21,7 @@ def disable_dbg():
     Disable debug output (executed command lines, etc.)
     """
     CFG["dbg"] = False
+    del os.environ["OCAMLRUNPARAM"]
     if IN_IPYTHON:
         from .ipython_helpers import disp_jupyter_js
         disp_jupyter_js("pint_ui_debug_enabled(false);")

@@ -6,16 +6,13 @@ open PintTypes
 open LocalCausalityGraph
 open AutomataNetwork
 
-open Ph_types
-
 open ASP_solver
 
 let any_instance = "G"
 
 let has_indep = ref false
 
-let automaton_asp a =
-	"\""^a^"\""
+let automaton_asp a = string_of_int a
 
 let obj_asp (a,i,j) =
 	"obj("^automaton_asp a^","^string_of_int i^","^string_of_int j^")"
@@ -56,11 +53,7 @@ let asp_unordua asp =
 	]
 	in
 	if !has_indep then
-	(* synchronisation independence
-	":- indep(G,A,I,ls(A,J)), I != J";
-	"indep(G,A,I,N) :- indep(G,A,I,ls(B,J)), B != A, ua_lcg(G,ls(B,J),N)";
-	"indep(G,A,I,N) :- indep(G,A,I,obj(B,J,K)), ua_lcg(G,obj(B,J,K),N)";
-	"indep(G,A,I,N) :- indep(G,A,I,sol(obj(B,J,K),L)), ua_lcg(G,sol(obj(B,J,K),L),N)";*)
+	(* synchronisation independence *)
 	decls asp [
 		"indepfailure(Y,ls(A,I)) :- indep(G,Y,A,I,N),conn(G,N,ls(A,J)),J!=I";
 		":- indepfailure(Y,N),indepfailure(Y,M),M!=N";
@@ -72,40 +65,40 @@ let asp_lcg asp lcg =
 	let nodesol_asp obj asp (i, n) =
 		let orig = sol_asp obj i
 		in
-		let children = lcg#childs n
+		let children = lcg#children n
 		in
 		let asp = List.fold_left (fun asp ->
-			(function NodeProc ai ->
+			(function NodeLS ai ->
 				decl asp (edge_asp orig (ls_asp ai)^" :- "^edge_asp "_" orig)
 			| _ -> asp)) asp children
 		in
 		match n with
-		  NodeSyncSol (_, states, _) ->
+		  NodeSol (_, alp) ->
 			let asp_indep state asp =
-				if SMap.cardinal state > 1 then
+				if IMap.cardinal state > 1 then
 				let asp_indep_ls a i asp =
-					SMap.fold (fun b j asp ->
+					IMap.fold (fun b j asp ->
 						if b <> a then
 							decl asp (indep_asp orig a i (b,j)^" :- "^edge_asp "_" orig)
 						else asp) state asp
 				in
-				SMap.fold asp_indep_ls state asp else asp
+				IMap.fold asp_indep_ls state asp else asp
 			in
-			StateSet.fold asp_indep states asp
+			StateSet.fold asp_indep alp.An_localpaths.conds asp
 		| _ -> asp
 	in
 	let nodeobj_asp n asp = match n with
 		  NodeObj obj ->
 			let orig = obj_asp obj
 			in
-			let children = lcg#childs n
+			let children = lcg#children n
 			in
-			let sols = List.filter (function NodeSol _ | NodeSyncSol _ -> true | _ -> false) children
+			let sols = List.filter (function NodeSol _ -> true | _ -> false) children
 			in
 			let isols = List.mapi (fun i s -> (i,s)) sols
 			in
-			let only_quick = List.for_all (function 
-				NodeSol (_,_,inter) | NodeSyncSol (_,_,inter) -> ISet.is_empty inter
+			let only_quick = List.for_all (function
+				NodeSol (_, alp) -> ISet.is_empty (alp.An_localpaths.interm)
 				| _ -> true) sols
 			in
 			let asp = if only_quick then
@@ -129,7 +122,7 @@ let asp_lcg asp lcg =
 	NodeSet.fold nodeobj_asp lcg#nodes asp
 
 let asp_ctx ?(instance=any_instance) asp ctx =
-	SMap.fold (fun a is asp ->
+	IMap.fold (fun a is asp ->
 		ISet.fold (fun i asp ->
 			decl asp (init_asp ~instance a i)) is asp) ctx asp
 
@@ -137,16 +130,16 @@ let unordered_ua an ctx goal sols =
 	dbg ~level:1 ". unordered under-approximation (ASP implementation)";
 	let asp = solver ()
 	in
-	let asp = SSet.fold (fun a asp -> decl asp (bool_asp a))
+	let asp = ISet.fold (fun a asp -> decl asp (bool_asp a))
 				(boolean_automata an) asp
 	and instance = "uua"
 	in
-	let lcg = new glc oa_glc_setup ctx goal sols make_unord_sol
+	let ua = new lcg default_lcg_setup an ctx goal sols
 	in
-	lcg#set_auto_conts false;
-	lcg#build;
-	lcg#saturate_ctx;
-	let asp = asp_lcg asp lcg
+	ua#set_auto_conts false;
+	ua#build;
+	ua#saturate_ctx;
+	let asp = asp_lcg asp ua
 	in
 	let asp = asp_ctx ~instance asp ctx
 	in

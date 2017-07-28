@@ -1,8 +1,6 @@
 
 open PintTypes
 
-open Ph_types
-
 open LocalCausalityGraph
 open AutomataNetwork
 
@@ -24,41 +22,40 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let an, ctx = An_cli.process_input ()
 
-let (an, ctx), goal =
+let (an, ctx), goal, _ =
     if !lcg_type = "full" then
-        (an,ctx), ("",0)
+        (an,ctx), (0,0), []
     else
         An_cli.prepare_goal (an, ctx) args
 
-let cache = An_localpaths.create_cache ()
-
 let env = init_env an ctx [goal]
 
-let min_asols = An_localpaths.MinUnordUnsyncSol.solutions cache an
+let sols = An_localpaths.abstract_local_paths env.ac env.an
 
 let verbose_lcg () =
-	let lcg = new glc oa_glc_setup ctx env.goal min_asols make_unord_unsync_sol
-	in
-	lcg#build;
-	lcg
+    build_oa_lcg env.an env.ctx env.goal sols
 
 let trimmed_lcg () =
 	let lcg = verbose_lcg ()
 	in
-	let lcg = bot_trimmed_lcg env min_asols lcg
+	let lcg = bot_trimmed_lcg env sols lcg
 	in
 	top_trimmed_lcg env lcg;
 	lcg
 
 let worth_lcg () =
-	worth_lcg env
+	gored_lcg env
 
 let saturated_lcg () =
-	let uoa, oadom = unordered_oa' env min_asols
+    assert_async_an env.an; (* TODO *)
+	let uoa, (oa_lcg, valid) = unordered_oa env sols
 	in
-	let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
+    let overlay = Hashtbl.create (NodeSet.cardinal valid)
+    in
+    restrict_sols overlay oa_lcg valid;
+    let sols = An_localpaths.restricted_abstract_local_paths env.ac env.an overlay
 	in
-	let lcg = new glc (ua_lcg_setup env.an) ctx env.goal sols make_unord_sol
+	let lcg = new lcg default_lcg_setup an ctx env.goal sols
 	in
 	lcg#set_auto_conts false;
 	lcg#build;
@@ -71,7 +68,7 @@ let lcg_factories = [
 	("trimmed", trimmed_lcg);
 	("worth", worth_lcg);
 	("saturated", saturated_lcg);
-	("full", (fun () -> full_lcg an));
+	("full", (fun () -> full_lcg env.ac env.an));
 ]
 
 let lcg = (List.assoc !lcg_type lcg_factories) ()
@@ -84,69 +81,3 @@ let _ =
 	output_string channel_out data;
 	close_out channel_out
 
-(*
-old code that might be ported
-
-
-let env = Ph_reach.init_env ph ctx pl
-in
-
-(if do_extract_graph then 
-	let get_Sols = Ph_bounce_seq.get_aBS env.ph env.bs_cache
-	in
-	let build_glc () =
-		let gA = new glc oa_glc_setup env.ctx env.pl env.concrete get_Sols
-		in
-		gA#set_auto_conts false;
-		gA#build;
-		gA
-	and build_saturated_glc () =
-		let glc_setup = 
-			if !opt_coop_priority then
-				coop_priority_ua_glc_setup
-			else 
-				ua_glc_setup
-		in
-		let _, get_Sols = Ph_reach.unordered_over_approx env get_Sols
-		in
-		let gB = new glc glc_setup env.ctx env.pl env.concrete get_Sols
-		in
-		gB#build;
-		gB#saturate_ctx;
-		gB
-	in
-	let output_glc (glc : #graph) =
-		let channel_out = if !opt_extract_graph = "-" then stdout else open_out !opt_extract_graph
-		in
-		output_string channel_out glc#to_dot;
-		close_out channel_out
-	in
-	(*gA#debug;*)
-	let glc = 
-		else if !opt_graph = "cutsets" then
-			let gA = bot_trimmed_cwA env (build_glc ())
-			in  
-			let gA = cleanup_gA_for_cutsets gA
-			in
-			top_trimmed_cwA env gA;
-			gA
-		else if !opt_graph = "saturated" then
-			build_saturated_glc ()
-		else if !opt_graph = "first_ua" then
-			let pGLC = ref Ph_reach.NullGLC
-			in
-			ignore
-				(if !opt_coop_priority then
-					Ph_reach.coop_priority_reachability ~saveGLC:pGLC env
-				else
-					Ph_reach.local_reachability ~saveGLC:pGLC env);
-			match !pGLC with
-				GLC glc -> glc
-			| NullGLC -> failwith "No GLC satisfies the under-approximation"
-		else
-			failwith "invalid graph argument"
-	in
-	output_glc glc
-);
-
-*)

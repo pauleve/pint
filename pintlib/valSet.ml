@@ -1,9 +1,8 @@
 
-
 open PintTypes
 
 type uid = int
-type var = string
+type var = int
 
 type t = Top | Bot | N of node
 and node = {uid: uid; var: var; children: t IMap.t}
@@ -46,13 +45,12 @@ let mknode var children =
 		in
 		(if n == n' then incr next_uid);
 		N n')
-	
 
-let match_cond a i v = not (SMap.mem a v) || SMap.find a v = i
+let match_cond a i v = not (IMap.mem a v) || IMap.find a v = i
 
 let rec mdd_of_valset sd vs d =
 	match vs with [] -> Bot
-  	| vs ->  
+  	| vs ->
 		match d with [] -> Top
 		| a::d ->
 			let folder im i =
@@ -60,7 +58,7 @@ let rec mdd_of_valset sd vs d =
 				in
 				IMap.add i (mdd_of_valset sd vs d) im
 			in
-			let is = SMap.find a sd
+			let is = IMap.find a sd
 			in
 			let children = List.fold_left folder IMap.empty is
 			in
@@ -68,7 +66,7 @@ let rec mdd_of_valset sd vs d =
 
 let rec valset_of_mdd = function
 	  Bot -> []
-	| Top -> [SMap.empty]
+	| Top -> [IMap.empty]
 	| N n ->
 		let a = n.var
 		and nontops = IMap.filter (fun _ ni -> uid ni <> uid Top) n.children
@@ -79,39 +77,42 @@ let rec valset_of_mdd = function
 			if IMap.cardinal nontops = 1 && IMap.mem i nontops then
 				vs
 			else
-				List.map (fun v -> SMap.add a i v) vs
+				List.map (fun v -> IMap.add a i v) vs
 		in
 		IMap.fold folder n.children []
 
+let string_of_kv (a,i) =
+    string_of_int a ^ "=" ^ string_of_int i
+
 let string_of_valset vs =
-	"{" ^ (String.concat " ; " (List.map (string_of_map
-		(fun (a,i) -> a^"="^string_of_int i) SMap.fold) vs))^"}"
+	"{" ^ (String.concat " ; "
+        (List.map (string_of_map string_of_kv IMap.fold) vs))^"}"
 
 
 module CCs = struct
-	type t = {reprs: (string, string) Hashtbl.t;
-				ccs: (string, SSet.t) Hashtbl.t}
+	type t = {reprs: (int, int) Hashtbl.t;
+				ccs: (int, ISet.t) Hashtbl.t}
 	
 	let create ?(n=10) ?(m=5) () =
 		{reprs = Hashtbl.create n; ccs = Hashtbl.create m}
 
 	let add t g =
-		let crs = SSet.fold (fun a crs -> 
-				try SSet.add (Hashtbl.find t.reprs a) crs 
-					with Not_found -> crs) g SSet.empty
+		let crs = ISet.fold (fun a crs -> 
+				try ISet.add (Hashtbl.find t.reprs a) crs 
+					with Not_found -> crs) g ISet.empty
 		in
-		let r = SSet.min_elt g
+		let r = ISet.min_elt g
 		in
-		let r = if SSet.is_empty crs then r else min r (SSet.min_elt crs)
+		let r = if ISet.is_empty crs then r else min r (ISet.min_elt crs)
 		in
-		let ug = SSet.fold (fun r ug ->
-					SSet.union ug (Hashtbl.find t.ccs r)) 
+		let ug = ISet.fold (fun r ug ->
+					ISet.union ug (Hashtbl.find t.ccs r)) 
 						crs g
-		and crs = SSet.remove r crs
+		and crs = ISet.remove r crs
 		in
 		Hashtbl.replace t.ccs r ug;
-		SSet.iter (fun a -> Hashtbl.replace t.reprs a r) ug;
-		SSet.iter (Hashtbl.remove t.ccs) crs
+		ISet.iter (fun a -> Hashtbl.replace t.reprs a r) ug;
+		ISet.iter (Hashtbl.remove t.ccs) crs
 	
 	let cardinal t =
 		Hashtbl.length t.ccs
@@ -123,7 +124,7 @@ module CCs = struct
 		Hashtbl.find t.ccs r
 end
 
-let domain v = SMap.fold (fun a _ d -> SSet.add a d) v SSet.empty
+let domain v = IMap.fold (fun a _ d -> ISet.add a d) v ISet.empty
 
 let group_by_domain vs =
 	let ccs = CCs.create ()
@@ -132,23 +133,23 @@ let group_by_domain vs =
 	let groups = Hashtbl.create (CCs.cardinal ccs)
 	in
 	let rs = List.fold_left (fun rs v -> 
-				let a = fst (SMap.choose v)
+				let a = fst (IMap.choose v)
 				in
 				let r = CCs.repr ccs a
 				in
 				Hashtbl.add groups r v;
-				SSet.add r rs) SSet.empty vs;
+				ISet.add r rs) ISet.empty vs;
 	in
-	List.map (fun r -> (CCs.get ccs r, Hashtbl.find_all groups r)) (SSet.elements rs)
+	List.map (fun r -> (CCs.get ccs r, Hashtbl.find_all groups r)) (ISet.elements rs)
 
 
-module ValSetMap = Map.Make(struct type t = int SMap.t let compare = SMap.compare compare end)
+module ValSetMap = Map.Make(struct type t = int IMap.t let compare = IMap.compare compare end)
 
 
 let simplify ?(max_ite=1024) sd vs = match vs with [] | [_] -> vs | _ ->
-	let rec simplify_group (d,vs) = if SSet.is_empty d then vs else
+	let rec simplify_group (d,vs) = if ISet.is_empty d then vs else
 		match vs with [] | [_] -> vs | _ ->
-		let perms = Util.stream_permutations (SSet.elements d)
+		let perms = Util.stream_permutations (ISet.elements d)
 		in
 		let rec simplify_valset ?(c=0) vs = if c = max_ite then vs else
 			try
@@ -171,11 +172,11 @@ let simplify ?(max_ite=1024) sd vs = match vs with [] | [_] -> vs | _ ->
 	let vs = List.flatten (List.map simplify_group gvs)
 	in
 	let eliminate a ais vs =
-		let vsa, vs = List.partition (SMap.mem a) vs
+		let vsa, vs = List.partition (IMap.mem a) vs
 		in
 		let project vm v =
-			let i = SMap.find a v
-			and v = SMap.remove a v
+			let i = IMap.find a v
+			and v = IMap.remove a v
 			in
 			let is = try ValSetMap.find v vm with Not_found -> ISet.empty
 			in
@@ -191,18 +192,19 @@ let simplify ?(max_ite=1024) sd vs = match vs with [] | [_] -> vs | _ ->
 			if ISet.cardinal is = ni then
 				v::vs
 			else
-				ISet.fold (fun i vs -> (SMap.add a i v)::vs) is vs
+				ISet.fold (fun i vs -> (IMap.add a i v)::vs) is vs
 		in
 		ValSetMap.fold expand vm vs
 	in
-	SMap.fold eliminate sd vs
+	IMap.fold eliminate sd vs
 
 let simplify_with_bse sd vs = match vs with [] | [_] -> vs | _ ->
-	let rec simplify_group (d,vs) = if SSet.is_empty d then vs else
+    if List.exists IMap.is_empty vs then [IMap.empty] else
+	let rec simplify_group (d,vs) = if ISet.is_empty d then vs else
 		match vs with [] | [_] -> vs | _ ->
 		(* determine Boolean variables *)
 		let fold_a a vars =
-			let dom = SMap.find a sd
+			let dom = IMap.find a sd
 			in
 			vars @
 			if List.length dom = 2 then (
@@ -211,12 +213,12 @@ let simplify_with_bse sd vs = match vs with [] | [_] -> vs | _ ->
 			else
 				(List.map (fun i -> (a,false,i)) dom)
 		in
-		let vars = SSet.fold fold_a d []
+		let vars = ISet.fold fold_a d []
 		in
 		(* build Bes.dnf_expression *)
 		let bool_of_var cond (a,is_bool,i) =
 			try
-				let j = SMap.find a cond
+				let j = IMap.find a cond
 				in
 				if i = j then `True else `False
 			with Not_found ->
@@ -232,10 +234,10 @@ let simplify_with_bse sd vs = match vs with [] | [_] -> vs | _ ->
 		let dbg () =
 			prerr_endline ("## simplify_with_bse");
 			prerr_endline ("vs = "^(String.concat " OR "
-					(List.map (string_of_map (fun (a,i) -> a^"="^string_of_int i) SMap.fold) vs)));
+					(List.map (string_of_map string_of_kv IMap.fold) vs)));
 			prerr_endline ("vars = "^(String.concat "|"
 					(List.map (fun (a,is_bool,i) ->
-						if is_bool then a else (a^"="^string_of_int i)) vars)));
+						if is_bool then string_of_int a else (string_of_kv (a,i))) vars)));
 			prerr_endline (Bes.string_of_dnf_expression dnf);
 			prerr_endline ("----");
 			prerr_endline (Bes.string_of_dnf_expression dnf');
@@ -245,18 +247,18 @@ let simplify_with_bse sd vs = match vs with [] | [_] -> vs | _ ->
 			let fold_var cond (a,is_bool,i) = function
 				  `Dontcare -> cond
 				| `True ->
-					if SMap.mem a cond then (dbg ();
-						failwith (a^" is already set in cond"))
-					else SMap.add a i cond
+					if IMap.mem a cond then (dbg ();
+						failwith (string_of_int a^" is already set in cond"))
+					else IMap.add a i cond
 				| `False ->
 					if is_bool then
-						SMap.add a 0 cond
+						IMap.add a 0 cond
 					else cond
 					(*
 					else (dbg ();
 						failwith ("discrete variable set to false..."))*)
 			in
-			List.fold_left2 fold_var SMap.empty vars mt
+			List.fold_left2 fold_var IMap.empty vars mt
 		in
 		List.map cond_of_minterm dnf'
 	in

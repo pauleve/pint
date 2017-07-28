@@ -1,32 +1,14 @@
 
-open Debug;;
+open Debug
 
-open PintTypes;;
-open AutomataNetwork;;
-open Ph_types;;
+open PintTypes
+open AutomataNetwork
+open An_localpaths
 
 type node =
-	  NodeProc of process
-	| NodeSol of (objective * LSSet.t * ISet.t)
-	| NodeSyncSol of (objective * StateSet.t * ISet.t)
+	  NodeLS of ls
+	| NodeSol of (id * abstract_local_path)
 	| NodeObj of objective
-
-let string_of_node = function
-	  NodeSol (obj,ps,interm) ->
-	  	"Sol["^string_of_obj obj^"/"^string_of_lsset ps
-						^" via "^string_of_iset interm^"]"
-	| NodeSyncSol (obj,states,interm) ->
-	  	"SyncSol["^string_of_obj obj^"/"
-			^string_of_set string_of_state StateSet.elements states
-					^" via "^string_of_iset interm^"]"
-	| NodeObj obj -> "Obj["^string_of_obj obj^"]"
-	| NodeProc p -> "Proc["^string_of_proc p^"]"
-;;
-
-let obj_from_node = function
-	  NodeObj obj -> obj
-	| _ -> raise (Invalid_argument "obj_from_node")
-;;
 
 module NodeOrd = struct type t = node let compare = compare end
 module NodeSet = Set.Make (NodeOrd)
@@ -34,13 +16,17 @@ module NodeMap = Map.Make (NodeOrd)
 
 module RankedNodeSet = Set.Make(struct type t = int * node let compare = compare end)
 
-let rec nodeset_of_list = function [] -> NodeSet.empty
-							| h::t -> NodeSet.add h (nodeset_of_list t);;
+let string_of_node an = function
+	  NodeSol (idsol, alp) -> "Sol["^string_of_int idsol^":"
+                        ^ string_of_abstract_local_path an alp^"]"
+	| NodeObj obj -> "Obj["^string_of_obj an obj^"]"
+	| NodeLS p -> "LS["^string_of_ls an p^"]"
 
-let string_of_nodeset = string_of_set string_of_node NodeSet.elements;;
+let string_of_nodeset an = string_of_set (string_of_node an) NodeSet.elements;;
+
+let nodeset_of_list = set_of_list NodeSet.empty NodeSet.add
 
 exception Found
-
 
 (**
 	flooder setup
@@ -57,19 +43,18 @@ type ('a, 'b) flooder_setup = {
 
    each node is associated to a couple
 			(ctx, nm) 
-		where nm is the cached value of childs
+		where nm is the cached value of children
  **)
 
 let default_flooder_node_init empty_value = 
 	fun n -> empty_value, NodeMap.empty
-;;
+
 let default_flooder_update_cache n (v,nm) n' (v',_) =
 	(v, NodeMap.add n' v' nm)
-;;
 
 let union_value nm =
 	NodeMap.fold (fun _ -> ctx_union) nm ctx_empty
-;;
+
 let inter_value nm =
 		let r = NodeMap.fold (fun _ c1 -> function
 			  None -> Some c1
@@ -78,16 +63,12 @@ let inter_value nm =
 		match r with
 		  None -> ctx_empty
 		| Some c -> c
-;;
-
-
-
 
 (**
 	generic graph
 *)
 
-class graph =
+class graph an =
 object(self)
 	val edges = Hashtbl.create 1000
 	val rev_edges = Hashtbl.create 1000
@@ -103,9 +84,9 @@ object(self)
 	method procs = procs
 	method all_procs = all_procs
 	method objs = objs
-	method has_proc p = LSSet.mem p procs
+	method has_ls p = LSSet.mem p procs
 	method has_obj obj = ObjSet.mem obj objs
-	method has_child c n = List.mem c (self#childs n)
+	method has_child c n = List.mem c (self#children n)
 	method count_procs = LSSet.cardinal procs
 	method count_objs = ObjSet.cardinal objs
 	method count_nodes = NodeSet.cardinal nodes
@@ -115,25 +96,25 @@ object(self)
 		and eol = "\n"
 		in
 		let register_proc p =
-			let rels = Hashtbl.find_all edges (NodeProc p)
+			let rels = Hashtbl.find_all edges (NodeLS p)
 			in
-			sol^"Req("^string_of_proc p^") = [ "^
-				(String.concat "; " (List.map (function NodeObj obj -> string_of_obj obj
+			sol^"Req("^string_of_ls an p^") = [ "^
+				(String.concat "; " (List.map (function NodeObj obj -> string_of_obj an obj
 						| _ -> failwith "invalid graph (debug/register_proc)") rels))^" ]"^eol
 		and register_obj (sols,conts) obj =
-			let rels = self#childs (NodeObj obj)
+			let rels = self#children (NodeObj obj)
 			in
 			let solrels, contrels = List.partition (function
-							NodeSol _ | NodeSyncSol _ -> true
+							NodeSol _ -> true
 							| NodeObj _ -> false | _ ->
 								failwith "invalid graph (debug/register_obj)") rels
 			in
 			let sols = if solrels == [] then sols else
-				(sol^"Sol("^string_of_obj obj^") = [ "^
-					(String.concat "; " (List.map string_of_node solrels))^" ]"^eol)::sols
+				(sol^"Sol("^string_of_obj an obj^") = [ "^
+					(String.concat "; " (List.map (string_of_node an) solrels))^" ]"^eol)::sols
 			and conts = if contrels == [] then conts else
-				(sol^"Cont("^string_of_obj obj^") = [ "^
-					(String.concat "; " (List.map string_of_node contrels))^" ]"^eol)::conts
+				(sol^"Cont("^string_of_obj an obj^") = [ "^
+					(String.concat "; " (List.map (string_of_node an) contrels))^" ]"^eol)::conts
 			in
 			sols, conts
 		in
@@ -143,8 +124,8 @@ object(self)
 		let sols, conts = List.rev sols, List.rev conts
 		in
 		let buf =
-			 sol^"procs = "^string_of_lsset procs^eol
-			^sol^"objs = "^(string_of_set string_of_obj ObjSet.elements objs)^eol
+			 sol^"local states = "^string_of_lsset an procs^eol
+			^sol^"objs = "^(string_of_set (string_of_obj an) ObjSet.elements objs)^eol
 			^(String.concat "" reqs)
 			^(String.concat "" sols)
 			^(String.concat "" conts)
@@ -155,32 +136,30 @@ object(self)
 
 	method to_dot =
 		let dot_of_obj (a,i,j) =
-			"O_"^a^"_"^string_of_int i ^"_"^string_of_int j
-		and dot_of_proc p = string_of_proc  p
+			"O_"^string_of_int a^"_"^string_of_int i ^"_"^string_of_int j
+		and dot_of_proc = string_of_ls an
 		in
-		let solcounter = ref 0
-		and synccounter = ref 0
+		let synccounter = ref 0
 		in
-		let dot_of_sol () =
-			incr solcounter;
-			let node = "pintsol"^string_of_int !solcounter
+		let dot_of_sol idsol =
+			let node = "pintsol"^string_of_int idsol
 			in
 			let dot = node^"[label=\"\",shape=circle,fixedsize=true,width=0.1,height=0.1];\n"
 			in
 			(node, dot)
 		and dot_of_sync state =
-			if SMap.cardinal state >= 2 then (
+			if IMap.cardinal state >= 2 then (
 				incr synccounter;
 				let node = "pintsync"^string_of_int !synccounter
 				in
 				let dot = node^"[label=\"\",shape=square,fixedsize=true,width=0.1,height=0.1];\n"
 				in
 				let dot = dot ^ String.concat "" (List.map (fun p ->
-						node^" -> "^(dot_of_proc p)^";\n") (SMap.bindings state))
+						node^" -> "^(dot_of_proc p)^";\n") (IMap.bindings state))
 				in
 				node, dot)
 			else
-				let dproc = dot_of_proc (SMap.min_binding state)
+				let dproc = dot_of_proc (IMap.choose state)
 				in
 				dproc, ""
 		in
@@ -192,7 +171,7 @@ object(self)
 				NodeObj obj -> dproc ^ " -> " ^ dot_of_obj obj ^";"
 				| _ -> failwith "invalid graph (to_dot/register_proc)"
 			in
-			let rels = Hashtbl.find_all edges (NodeProc p)
+			let rels = Hashtbl.find_all edges (NodeLS p)
 			in
 			let def = dproc^"[shape=box];\n"
 			and edges = String.concat "\n" (List.map dot_of_rel rels)
@@ -203,18 +182,11 @@ object(self)
 			let dobj = dot_of_obj obj
 			in
 			let dot_of_rel = function
-				NodeSol (_,ps,_) ->
-					let dsol, def = dot_of_sol ()
-					in
-					let edges = dobj ^" -> "^dsol^";\n" 
-						^ (String.concat "\n" (List.map (fun p -> dsol^" -> "^(dot_of_proc p)^";") (LSSet.elements ps)))
-					in
-					def ^ edges
-				| NodeSyncSol (_,states,_) ->
-					let dsol, def = dot_of_sol ()
+				NodeSol (idsol, alp) ->
+					let dsol, def = dot_of_sol idsol
 					in
 					let dsyncs, defs = List.split
-						(List.map dot_of_sync (StateSet.elements states))
+						(List.map dot_of_sync (StateSet.elements alp.conds))
 					in
 					def
 					^ dobj ^" -> "^dsol^";\n"
@@ -224,9 +196,9 @@ object(self)
 				| NodeObj obj' -> dobj ^" -> "^dot_of_obj obj'^";"
 				| _ -> failwith "invalid graph (to_dot/register_obj)"
 			in
-			let rels = self#childs (NodeObj obj)
+			let rels = self#children (NodeObj obj)
 			in
-			let def = dobj^"[label=\""^string_of_obj obj^"\"];\n"
+			let def = dobj^"[label=\""^string_of_obj an obj^"\"];\n"
 			and edges = String.concat "\n" (List.map dot_of_rel rels)
 			in
 			def ^ edges ^ "\n"
@@ -239,7 +211,7 @@ object(self)
 		"digraph { \n" ^ content ^ "}\n"
 
 	method register_node = function
-		  NodeProc p -> (procs <- LSSet.add p procs;
+		  NodeLS p -> (procs <- LSSet.add p procs;
 		  				all_procs <- LSSet.add p all_procs)
 		| NodeObj (a,i,j) -> 
 				(procs <- LSSet.add (a,j) procs;
@@ -247,7 +219,7 @@ object(self)
 				objs <- ObjSet.add (a,i,j) objs)
 		| _ -> ()
 
-	method childs n =
+	method children n =
 		Hashtbl.find_all edges n
 	method parents n = 
 		Hashtbl.find_all rev_edges n
@@ -268,13 +240,13 @@ object(self)
 	method remove_node n =
 		nodes <- NodeSet.remove n nodes;
 		(match n with
-		  NodeProc p -> procs <- LSSet.remove p procs
+		  NodeLS p -> procs <- LSSet.remove p procs
 		| NodeObj (a,i,j) -> 
-			(if not (NodeSet.mem (NodeProc (a,j)) nodes) then
+			(if not (NodeSet.mem (NodeLS (a,j)) nodes) then
 				procs <- LSSet.remove (a,j) procs);
 			objs <- ObjSet.remove (a,i,j) objs
 		| _ -> ());
-		let cs = self#childs n
+		let cs = self#children n
 		and ps = self#parents n
 		in
 		Util.hashtbl_filter_bindings edges n (fun _ -> false);
@@ -297,8 +269,8 @@ object(self)
 			-> (node -> 'a * 'b -> 'a) (* update_value *)
 			-> NodeSet.t -> (node, 'a * 'b) Hashtbl.t
 		= fun ?reversed:(desc=false) equality init update_cache update_value ns ->
-		let parents, childs = if desc then (self#childs, self#parents)
-										else (self#parents, self#childs)
+		let parents, children = if desc then (self#children, self#parents)
+										else (self#parents, self#children)
 		in
 
 		let values = Hashtbl.create self#count_nodes
@@ -341,7 +313,7 @@ object(self)
 				in
 				Hashtbl.replace values n nv;
 
-				(* update cached values of childs *)
+				(* update cached values of children *)
 				let forward (ready, news) n' =
 					let n'v, isnew = try Hashtbl.find values n', false
 										with Not_found -> (init n', true)
@@ -374,29 +346,8 @@ object(self)
 		else dbg "skip";
 		values
 
-	val mutable last_loop = []
-	method last_loop = last_loop
-	method has_loop_from n =
-		let rec forward (visited,path) n =
-			if NodeSet.mem n visited then (
-				let rec pop_until = function [] -> []
-					| m::q -> if n = m then n::q else pop_until q
-				in
-				last_loop <- pop_until (List.rev path);
-				raise Found
-			);
-			let visited = NodeSet.add n visited
-			and path' = n::path
-			in
-			List.iter (forward (visited,path')) (self#childs n)
-		in
-		try
-			forward (NodeSet.empty, []) n;
-			false
-		with Found -> true
-
 	method tarjan_SCCs desc leafs =
-		let get_childs = if desc then self#childs else self#parents
+		let get_children = if desc then self#children else self#parents
 		in
 		let index = Hashtbl.create self#count_nodes
 		and lowlink = Hashtbl.create self#count_nodes
@@ -427,7 +378,7 @@ object(self)
 					sccs
 				)
 			in
-			let sccs = List.fold_left handle_child sccs (get_childs v)
+			let sccs = List.fold_left handle_child sccs (get_children v)
 			in
 
 			let rec unroll () =
@@ -461,69 +412,52 @@ end;;
 	GLC
 *)
 
+(*
 type _concrete_ph = {
 	lasthitters: ?filter:(action list -> bool) -> objective -> LSSet.t;
 	process_cond: process -> state list;
 }
+*)
 
-type glc_setup = {
+type lcg_setup = {
 	conts_flooder: (ctx, ctx NodeMap.t) flooder_setup;
 	conts: ctx -> objective -> ctx -> ISet.t;
 	saturate_procs: ctx -> LSSet.t -> LSSet.t;
-	saturate_procs_by_objs: ObjSet.t -> LSSet.t -> LSSet.t;
+	saturate_lss_by_nodes: NodeSet.t -> LSSet.t -> LSSet.t;
 }
 
-class ['a] glc glc_setup ctx pl (*concrete_ph*)
-(get_Sols:Ph_types.objective -> ('a * PintTypes.ISet.t) list)
-(make_sol:Ph_types.objective -> 'a * ISet.t -> LSSet.t * node)
-= object(self) inherit graph as g
+class lcg lcg_setup an ctx pl solutions
+    = object(self) inherit graph an as g
 
-	method setup = glc_setup
+	method setup = lcg_setup
 
 	val mutable current_ctx = ctx
 	val mutable new_objs = []
 	val mutable trivial_nsols = NodeSet.empty
 	val mutable impossible_nobjs = NodeSet.empty
 	method impossible_nobjs = impossible_nobjs
-	method get_trivial_nsols () = trivial_nsols
+	method trivial_nsols = trivial_nsols
+    method set_trivial_nsols t = trivial_nsols <- t
 	method leafs = NodeSet.union trivial_nsols impossible_nobjs
 	method has_impossible_objs = not (NodeSet.is_empty impossible_nobjs)
 	method ctx = current_ctx
 	method get_impossible_objs = NodeSet.fold (function NodeObj obj -> fun objs -> obj::objs
 													| _ -> fun objs -> objs) impossible_nobjs []
-	method extract_sols =
-		let register_node = function
-			  NodeSol sol -> fun sols -> sol::sols
-			| NodeSyncSol _ -> failwith "glc#register_node not implemented with NodeSyncSol"
-			| _ -> fun sols -> sols
-		in
-		NodeSet.fold register_node nodes []
-
-	method set_trivial_nsols t =
-		trivial_nsols <- t
-
-	method has_loops =
-		if not (NodeSet.is_empty self_loops) then (
-			last_loop <- [NodeSet.choose self_loops];
-			true
-		) else
-		let ns = nodeset_of_list (List.map (fun p -> NodeProc p) pl)
-		in
-		let sccs = self#tarjan_SCCs true ns
-		in
-		List.exists (function 
-			[] | [_] -> false | scc -> (last_loop <- scc; true)) sccs
 
 	val mutable auto_conts = true
 	method set_auto_conts t = auto_conts <- t
 	method auto_conts = auto_conts
 
-	method conts_flooder = self#call_rflood glc_setup.conts_flooder
-	method conts = glc_setup.conts self#ctx
+	method conts_flooder = self#call_rflood lcg_setup.conts_flooder
+	method conts = lcg_setup.conts self#ctx
 
-	method build = 
-		List.iter self#init_proc pl;
+	method build =
+		List.iter self#push_ls pl;
 		self#commit ()
+
+    method build_obj obj =
+        self#push_obj obj (NodeObj obj);
+        self#commit ()
 
 	method commit () =
 		(*self#debug ();*)
@@ -545,7 +479,7 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 					in
 					let nto = NodeObj obj'
 					in
-					(if not (self#has_obj obj') then self#init_obj obj' nto);
+					(if not (self#has_obj obj') then self#push_obj obj' nto);
 					if not (self#has_child nto nobj) then
 						self#add_child nto nobj
 				in
@@ -553,8 +487,8 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 				in
 				let ais = ISet.remove j ais
 				in
-				dbg ("cont("^string_of_obj (a,i,j)^")="
-						^a^"_"^string_of_iset ais);(*^ " ("^string_of_ctx ctx^")");*)
+				dbg ("cont("^string_of_obj an (a,i,j)^")="
+                        ^string_of_cls an a ais);
 				ISet.iter make_cont ais
 			with Not_found -> ()
 		in
@@ -565,44 +499,50 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 		List.iter register_cont my_objs;
 		if new_objs <> [] then self#commit ()))
 
-	method init_obj obj nobj =
-		let aBS = List.map (make_sol obj) (get_Sols obj)
-		in
-		if aBS == [] then impossible_nobjs <- NodeSet.add nobj impossible_nobjs;
-		let register_sol (ps, nsol) =
+	method push_obj obj nobj =
+        let isols, sols = solutions obj
+        in
+		(if isols == [] then
+            impossible_nobjs <- NodeSet.add nobj impossible_nobjs);
+		let register_sol id alp =
+            let nsol = NodeSol (id, alp)
+            and lss = extract_local_states alp
+            in
 			self#add_child nsol nobj;
-			if LSSet.is_empty ps then (trivial_nsols <- NodeSet.add nsol trivial_nsols);
-			let register_proc p =
-				let np = NodeProc p
-				in
-				self#init_proc p;
-				self#add_child np nsol
-			in
-			LSSet.iter register_proc ps
+			if LSSet.is_empty lss then
+                trivial_nsols <- NodeSet.add nsol trivial_nsols
+            else
+                let register_ls ai =
+                    let np = NodeLS ai
+                    in
+                    self#push_ls ai;
+                    self#add_child np nsol
+                in
+                LSSet.iter register_ls lss
 		in
-		List.iter register_sol aBS;
+		List.iter2 register_sol isols sols;
 		new_objs <- obj::new_objs
 
-	method _init_proc (a,i) js =
-		let np = NodeProc (a,i)
+	method _push_ls (a,i) js =
+		let np = NodeLS (a,i)
 		in
 		let register_init j =
 			let obj = (a,j,i)
 			in
 			let nobj = NodeObj obj
 			in
-			(if not (self#has_obj obj) then self#init_obj obj nobj);
+			(if not (self#has_obj obj) then self#push_obj obj nobj);
 			self#add_child nobj np;
 		in
 		ISet.iter register_init js
 
-	method init_proc (a,i) =
-		if not (self#has_proc (a,i)) then (
-			self#_init_proc (a,i) (ctx_get a current_ctx)
+	method push_ls (a,i) =
+		if not (self#has_ls (a,i)) then (
+			self#_push_ls (a,i) (ctx_get a current_ctx)
 		)
 
 	method increase_ctx procs =
-		let is_new_proc p = not (ctx_has_proc p current_ctx)
+		let is_new_proc p = not (ctx_has_ls p current_ctx)
 		in
 		let new_procs = LSSet.filter is_new_proc procs
 		in
@@ -617,7 +557,7 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 					in
 					let is = ISet.remove i is
 					in
-					self#_init_proc (a,i) is
+					self#_push_ls (a,i) is
 				with Not_found -> ()
 			in
 			LSSet.iter reinit_proc self#procs;
@@ -626,243 +566,17 @@ class ['a] glc glc_setup ctx pl (*concrete_ph*)
 		) else false
 
 	method saturate_ctx =
-		let procs = glc_setup.saturate_procs self#ctx procs
+		let procs = lcg_setup.saturate_procs self#ctx procs
 		in
-		let procs = glc_setup.saturate_procs_by_objs self#objs procs
+		let procs = lcg_setup.saturate_lss_by_nodes self#nodes procs
 		in
 		let procs = match pl with [ai] -> LSSet.remove ai procs | _ -> procs
 		in
 		if self#increase_ctx procs then
 			self#saturate_ctx
 
-	method ancestors candidates objs =
-		let sources = ObjSet.fold (fun obj -> NodeSet.add (NodeObj obj)) objs NodeSet.empty
-		in
-		let is_candidate = function NodeObj obj -> ObjSet.mem obj candidates | _ -> false
-		and is_source n = NodeSet.mem n sources
-		in
-		let init n = if is_source n then (true, false) else (false, is_candidate n)
-		and update_cache n (coloured, is_ms) n' (coloured', is_ms') =
-			if (not is_ms') && (not coloured) && coloured' then
-				(true,is_ms)
-			else
-				(coloured,is_ms)
-		and update_value n (coloured, is_ms) = coloured
-		in
-		let flood_values = self#rflood (=) init update_cache update_value sources
-		in
-		let get_responsibles n (coloured, is_ms) r =
-			if coloured && is_ms then ObjSet.add (obj_from_node n) r else r
-		in
-		let r = Hashtbl.fold get_responsibles flood_values ObjSet.empty
-		in
-		dbg ("Ancestors: "^String.concat ", " (List.map string_of_obj (ObjSet.elements r)));
-		r
-	
-
-	method first_objs_may_avoid_nodes ms_objs bad_nodes =
-		(** return objectives in ms_objs that may avoid the given nodes *)
-		(* algorithm:
-			rflood from nodes:
-			- colors parents
-			- TODO: really? failure if exists bounce(P) \in pl coloured and not in ms_objs 
-			- fetch coloured ms_objs
-			TODO: improve by checking there exists a choice actually avoidings the nodes
-		*)
-		dbg ("multisols objs: "^string_of_set string_of_obj ObjSet.elements ms_objs);
-		let is_ms_objs = function NodeObj obj -> ObjSet.mem obj ms_objs | _ -> false
-		in
-		(* the node n with value v receive update from node n' with value v' *)
-		let update_cache n (coloured, is_ms) n' (coloured', is_ms') =
-			if (not is_ms') && (not coloured) && coloured' then
-				(true,is_ms)
-			else
-				(coloured,is_ms)
-		and update_value n (coloured, is_ms) = coloured
-		in
-		let init n = (NodeSet.mem n bad_nodes, is_ms_objs n)
-		in
-		let flood_values = self#rflood (=) init update_cache update_value bad_nodes
-		in
-		let get_responsibles n (coloured, is_ms) r =
-			if coloured && is_ms then ObjSet.add (obj_from_node n) r else r 
-		in
-		Hashtbl.fold get_responsibles flood_values ObjSet.empty
-
-	method objs_may_avoid_nodes ms_objs bad_nodes =
-		let rec push_ancestors ms_objs objs =
-			let ms_objs = ObjSet.diff ms_objs objs
-			in
-			let objs = self#ancestors ms_objs objs
-			in
-			if not (ObjSet.is_empty objs) then ( 
-				objs::push_ancestors ms_objs objs;
-			) else [objs]
-		in
-		let objs = self#first_objs_may_avoid_nodes ms_objs bad_nodes
-		in
-		objs::push_ancestors ms_objs objs
-
-	method avoid_impossible_objs ms_objs =
-		self#objs_may_avoid_nodes ms_objs self#impossible_nobjs
-	
-	method avoid_loop ms_objs loop =
-		let loop = nodeset_of_list loop
-		in
-		let objs0 = NodeSet.fold (fun n objs -> match n with
-									  NodeObj obj -> if ObjSet.mem obj ms_objs 
-														  then ObjSet.add obj objs
-														  else objs
-									| _ -> objs) loop ObjSet.empty
-		in
-		objs0::self#objs_may_avoid_nodes ms_objs loop
-	
-	(* TODO - restore
-	method lastprocs aj =
-		dbg ("/lastprocs "^string_of_proc aj^"/");
-		let visited_nodes = ref NodeSet.empty
-		in
-		let rec admissible_sols n =
-			if NodeSet.mem n !visited_nodes then
-				[]
-			else (
-				visited_nodes := NodeSet.add n !visited_nodes;
-				match n with
-				  NodeSol (_, ps,_) -> [ps]
-				| NodeObj _ ->
-					let nodes = self#childs n
-					in
-					List.flatten (List.map admissible_sols nodes)
-				| _ -> []
-			)
-		in
-		let asols = List.flatten (List.map admissible_sols 
-									(self#childs (NodeProc aj)))
-		and a = fst aj
-		in
-		dbg ("  admissible solutions: "^
-			String.concat " ; " (List.map string_of_procs asols));
-		let fold_hitter ps action =
-			let bj = hitter action
-			in
-			if fst bj <> a then LSSet.add bj ps else ps
-		in
-		let filter_actions actions =
-			let sol = List.fold_left fold_hitter LSSet.empty actions
-			in
-			List.exists (LSSet.equal sol) asols
-		in
-		let fold_objectives n ps = match n with 
-			  NodeObj obj ->
-			  	let lhs = concrete_ph.lasthitters ~filter:filter_actions obj
-				in
-			  	LSSet.union ps lhs
-			| _ -> ps
-		in
-		let lhs = NodeSet.fold fold_objectives !visited_nodes LSSet.empty
-		in
-		let merge_cond ps state =
-			let state = merge_state_with_ps state ps
-			in
-			procs_of_state state
-		in
-		let fold_hitter ai lps =
-			let conds = concrete_ph.process_cond ai
-			in
-			List.map (merge_cond [ai;aj]) conds @ lps
-		in
-		LSSet.fold fold_hitter lhs []
-		*)
-
-end;;
-
-
-let string_of_choices choices =
-	let string_of_choice obj n =
-		string_of_obj obj ^"#"^string_of_int n
-	in
-	let fold_choice obj n acc =
-		(string_of_choice obj n)::acc
-	in
-	let acc = ObjMap.fold fold_choice choices []
-	in
-	"<"^(String.concat "; " acc)^">"
-;;
-
-module ObjMapSet = Set.Make (struct type t = int ObjMap.t let compare = ObjMap.compare compare end)
-
-class ['a] lcg_generator lcg_setup ctx pl (*concrete_ph*)
-(get_Sols:Ph_types.objective -> ('a * PintTypes.ISet.t) list)
-(make_sol:Ph_types.objective -> 'a * ISet.t -> LSSet.t * node)
-=
-	let queue0 =
-		let stack = Stack.create ();
-		in
-		Stack.push ObjMap.empty stack;
-		stack
-	in
-
-	object(self)
-
-	val queue = queue0
-	method has_next = not(Stack.is_empty queue)
-
-	val mutable current_choices = ObjMap.empty
-
-	val mutable multisols_objs = ObjSet.empty
-	method multisols_objs = multisols_objs
-
-	val mutable known_choices = ObjMapSet.add ObjMap.empty ObjMapSet.empty
-
-	method get_Sols choices obj =
-		let aBS = get_Sols obj
-		in
-		match aBS with [] | [_] -> aBS
-		| _ -> (
-			multisols_objs <- ObjSet.add obj multisols_objs;
-			(try
-				let n = ObjMap.find obj choices
-				in
-				List.nth aBS n
-			with Not_found ->
-				List.hd aBS
-			)::[]
-		)
-
-	method push_choices choices =
-		if not (ObjMapSet.mem choices known_choices) then (
-			known_choices <- ObjMapSet.add choices known_choices;
-			dbg ~level:1 ("::: pushing choices "^string_of_choices choices);
-			Stack.push choices queue
-		) else
-			dbg ~level:1 ("skip "^string_of_choices choices)
-
-	method change_objs objs =
-		let change_obj choices obj =
-			try
-				let n = ObjMap.find obj choices
-				in
-				(* TODO: handle overflow *)
-				ObjMap.add obj ((n+1) mod List.length (get_Sols obj)) choices
-			with Not_found ->
-				ObjMap.add obj 1 choices
-		in
-		let next_choices = List.fold_left change_obj current_choices objs
-		in
-		self#push_choices next_choices
-
-	method next =
-		let choices = Stack.pop queue
-		in
-		dbg ~level:1 ("::: playing choices "^string_of_choices choices);
-		current_choices <- choices;
-		let gB = new glc lcg_setup ctx pl (self#get_Sols choices) make_sol
-		in
-		gB#build;
-		gB#saturate_ctx;
-		gB
-
 end
+
 
 (**
 	Simple flooders
@@ -871,8 +585,8 @@ end
 (** gather all connected local states *)
 let allprocs_flooder =
 	let update_value n (ps, nm) = match n with
-		  NodeSol _ | NodeSyncSol _ | NodeObj _ -> union_value nm
-		| NodeProc ai -> ctx_add_proc ai (union_value nm)
+		  NodeSol _ | NodeObj _ -> union_value nm
+		| NodeLS ai -> ctx_add_ls ai (union_value nm)
 	in {
 	equality = ctx_equal;
 	node_init = default_flooder_node_init ctx_empty;
@@ -882,8 +596,8 @@ let allprocs_flooder =
 
 let top_localstates_flooder =
 	let update_value n (ps, nm) = match n with
-		  NodeSol _ | NodeSyncSol _ | NodeObj _ -> union_value nm
-		| NodeProc (a,i) -> SMap.add a (ISet.singleton i) (union_value nm)
+		  NodeSol _ | NodeObj _ -> union_value nm
+		| NodeLS (a,i) -> IMap.add a (ISet.singleton i) (union_value nm)
 	in {
 	equality = ctx_equal;
 	node_init = default_flooder_node_init ctx_empty;
@@ -897,27 +611,24 @@ let top_localstates_flooder =
 	Continuity
 **)
 
-let min_conts_flooder = 
+let min_conts_flooder =
 	let update_cache n v n' v' =
 		match n, n' with
-		  NodeSol _, NodeProc _
-		| NodeSyncSol _, NodeProc _
+		  NodeSol _, NodeLS _
 		| NodeObj _, NodeSol _
-		| NodeObj _, NodeSyncSol _
-		| NodeProc _, NodeObj _ -> default_flooder_update_cache n v n' v'
+		| NodeLS _, NodeObj _ -> default_flooder_update_cache n v n' v'
 		| NodeObj _, NodeObj _ -> v (* ignore Cont rels *)
 		| _ -> failwith "wrong abstract structure graph."
 	and update_value n (ctx, nm) =
 		match n with
 		  NodeSol _ -> union_value nm
-		| NodeSyncSol _ -> union_value nm
 		| NodeObj (a,i,_) ->
 			(** do not allow self-loops *)
-			ctx_rm_proc (a,i) (inter_value nm)
-		| NodeProc (a,i) ->
+			ctx_rm_ls (a,i) (inter_value nm)
+		| NodeLS (a,i) ->
 			let ctx' = inter_value nm
 			in
-			SMap.add a (ISet.singleton i) ctx'
+			IMap.add a (ISet.singleton i) ctx'
 	in {
 	equality = ctx_equal;
 	node_init = default_flooder_node_init ctx_empty;
@@ -931,8 +642,8 @@ let max_conts_flooder boolean_automata =
 		in
 		match n with
 		  NodeObj (a,i,_) ->
-		  	if SSet.mem a boolean_automata then
-				ctx_rm_proc (a,i) ctx
+		  	if ISet.mem a boolean_automata then
+				ctx_rm_ls (a,i) ctx
 			else ctx
 		| _ -> ctx
 	in {
@@ -947,36 +658,32 @@ let max_conts_flooder boolean_automata =
 	GLC setups
 **)
 
-let oa_glc_setup = {
+let default_lcg_setup = {
 	conts_flooder = min_conts_flooder;
 	conts = (fun _ (a,_,_) ctx -> try ctx_get a ctx with Not_found -> ISet.empty);
 	saturate_procs = (fun _ a -> a);
-	saturate_procs_by_objs = (fun _ a -> a);
-};;
-
-let make_unord_unsync_sol obj (tr,interm) =
-	tr,
-	NodeSol (obj, tr, interm)
-
-let make_unord_sol obj (tr,interm) =
-	An_localpaths.UnordTrace.abstr tr,
-	NodeSyncSol (obj, tr, interm)
-
+	saturate_lss_by_nodes = (fun _ a -> a);
+}
 
 
 (**
     predefined LCGs
 **)
-let full_lcg an =
-	let cache = An_localpaths.create_cache ()
-	in
-	let sols = An_localpaths.MinUnordSol.solutions cache an
+let full_lcg ac an =
+	let sols = abstract_local_paths ac an
 	and ctx = full_ctx an
 	in
-	let goal = PSet.elements (procs_of_ctx ctx)
+	let goal = LSSet.elements (lsset_of_ctx ctx)
 	in
-	let lcg = new glc oa_glc_setup ctx goal sols make_unord_sol
+	let lcg = new lcg default_lcg_setup an ctx goal sols
 	in
 	lcg#set_auto_conts false;
 	lcg#build;
 	lcg
+
+let build_oa_lcg an ctx goal sols =
+	let lcg = new lcg default_lcg_setup an ctx goal sols
+	in
+    lcg#build;
+    lcg
+

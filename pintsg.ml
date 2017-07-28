@@ -3,8 +3,6 @@ open Big_int
 
 open PintTypes
 
-open Ph_types
-
 open LocalCausalityGraph
 open AutomataNetwork
 
@@ -34,7 +32,7 @@ let _ = if args <> [] then abort ()
 let an, ctx = An_cli.process_input ()
 
 let count () =
-	let state = Ph_types.state_of_ctx ctx
+	let state = state_of_ctx ctx
 	in
 	let nb_states, _, _ = An_stategraph.reachable_states an state
 	in
@@ -44,7 +42,7 @@ let count () =
 		print_endline (string_of_big_int nb_states ^ " reachable states.")
 
 let reachable_states () =
-	let state = Ph_types.state_of_ctx ctx
+	let state = state_of_ctx ctx
 	in
     let _, states, state_of_sid = An_stategraph.reachable_states an state
     in
@@ -53,7 +51,7 @@ let reachable_states () =
         in
         let output_state sid _ =
             (if !first then first := false else print_string ", ");
-            print_endline (json_of_state (state_of_sid sid))
+            print_endline (json_of_state an (state_of_sid sid))
         in
         print_string "[ ";
         An_stategraph.BigHashtbl.iter output_state states;
@@ -65,7 +63,7 @@ let reachable_states () =
         An_stategraph.BigHashtbl.iter output_state states
 
 let stategraph output =
-	let state = Ph_types.state_of_ctx ctx
+	let state = state_of_ctx ctx
 	in
 	let sg, sid0, state_of_sid = An_stategraph.reachable_stategraph an state
 	in
@@ -73,7 +71,7 @@ let stategraph output =
 	in
 	let node_label s =
 		String.concat "," (List.map
-			(string_of_localstate ~protect:false an) (SMap.bindings s))
+			(string_of_ls ~protect:false an) (IMap.bindings s))
 	in
 	let output_tr sid nexts =
 		let sfrom = string_of_big_int sid
@@ -92,7 +90,7 @@ let stategraph output =
 	close_out cout
 
 let attractors () =
-	let state = Ph_types.state_of_ctx ctx
+	let state = state_of_ctx ctx
 	in
 	let bsccs, state_of_sid = An_stategraph.attractors an state
 	in
@@ -101,10 +99,10 @@ let attractors () =
 			let desc =
 				("type", json_of_str (if size = 1 then "fixpoint" else "cyclic"))
 				::("size", json_of_int size)
-				::("sample", json_of_state (state_of_sid sid))
+				::("sample", json_of_state an (state_of_sid sid))
 				::[]
 			in
-			json_of_bindings json_of_str id desc
+			json_of_bindings (fun k v -> json_of_str k, v) desc
 		in
 		print_endline (json_of_list json_of_attractor bsccs)
 	) else (
@@ -120,11 +118,10 @@ let attractors () =
 
 let description () =
 	let nb_automata = count_automata an
-	and nb_ls = count_local_states an
+	and nb_ls = Hashtbl.fold (fun _ -> (+)) an.ls 0
 	and nb_tr = count_transitions an
-	and nb_states = count_states an
-	and largest = Hashtbl.fold (fun _ def n ->
-		max n (List.length def)) an.automata 0
+	and nb_states = Hashtbl.fold (fun _ -> mult_int_big_int) an.ls unit_big_int
+	and largest = Hashtbl.fold (fun _ -> max) an.ls 0
 	in
 	if !An_cli.opt_json_stdout then (
 		let desc =
@@ -135,7 +132,7 @@ let description () =
 			::("nb_states", string_of_big_int nb_states)
 			::[]
 		in
-		print_endline (json_of_bindings json_of_str id desc)
+		print_endline (json_of_bindings (fun k v -> json_of_str k,v) desc)
 	) else (
 	print_endline (string_of_int nb_automata^" automata");
 	print_endline (string_of_int nb_ls^" local states");

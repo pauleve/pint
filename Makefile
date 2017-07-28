@@ -11,7 +11,7 @@ TARGETS=\
 	pint-reach\
 	pint-sg\
 	pint-stable\
-	phc\
+	#phc\
 	ph-exec\
 	ph2thomas\
 
@@ -25,16 +25,13 @@ OSX_TARGETS=\
 	pint-reach\
 	pint-sg\
 	pint-stable\
-	phc\
+	#phc\
 	ph-exec\
 	ph2thomas\
 
 
 MISC_TOOLS = \
-	bin/pint_install_deps\
-	converters/pint_converter.py\
-	converters/CNA2an\
-
+	bin/pint_install_deps
 
 .PHONY: $(TARGETS) aspfiles 3rdparty
 
@@ -106,8 +103,6 @@ dist-osx: 3rdparty
 	-rm -rf $(OSX_W)
 	make $(OSX_TARGETS)
 	make DESTDIR="$(OSX_W)" PREFIX="$(OSX_PREFIX)" PINT_SHARE_PATH="$(OSX_SHARE)" $(addsuffix _install,$(OSX_TARGETS)) misc_install aspfiles_install
-	#install -d $(OSX_W_BIN)
-	#install -m 755 $(OSX_BINS:%=bin/%) $(MISC_TOOLS) $(OSX_W_BIN)
 	install -m 644 dist/osx/*.dylib $(OSX_BIN)
 	for i in $(OSX_TARGETS); do \
 		install -m 755 -b -B .mac dist/osx/wrapper.sh $(OSX_BIN)/$$i; \

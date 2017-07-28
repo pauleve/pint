@@ -27,6 +27,22 @@ val string_of_iset : ISet.t -> string
 (** String representation of a string Set. *)
 val string_of_sset : SSet.t -> string
 
+val map_of_bindings : ('a -> 'b -> 'c -> 'c) -> 'c -> ('a * 'b) list -> 'c
+
+type id = int
+
+(** Returns a unique identifier (not thread-safe) *)
+val new_id : unit -> int
+
+type 'a reg_t = {
+    elt2id: ('a, id) Hashtbl.t;
+    id2elt: (id, 'a) Hashtbl.t;
+}
+
+val new_reg : int -> 'a reg_t
+
+val register_elt : 'a reg_t -> 'a -> id
+
 type ternary = True | False | Inconc
 
 (** String representation of ternary. *)
@@ -45,10 +61,11 @@ val json_of_int : int -> string
 val json_of_list : ('a -> string) -> 'a list -> string
 
 (** Json representation of bindings *)
-val json_of_bindings : ('a -> string) -> ('b -> string) ->
+val json_of_bindings : ('a -> 'b -> string * string) ->
 		('a*'b) list -> string
 
 type stochatime = 
 	  Instantaneous
 	| RateSA of (float * int)
 	| FiringInterval of (float*float*float) 
+

@@ -1,17 +1,18 @@
 
-open Ph_types
+open PintTypes
 open AutomataNetwork
 
 let parse_local_state an data =
-	let (a,sig_i) = An_input.parse_string An_parser.local_state data
+	let sig_ls = An_input.parse_string An_parser.local_state data
 	in
-	(a, get_automaton_state_id an a sig_i)
+    resolve_sig_ls an sig_ls
 
 let parse_sls_list = An_input.parse_string An_parser.local_state_list
 
 let parse_local_state_list an data =
-	let sls = parse_sls_list data in
-	List.map (fun (a,sig_i) -> a, get_automaton_state_id an a sig_i) sls
+	let sls = parse_sls_list data
+    in
+	List.map (resolve_sig_ls an) sls
 
 let arg_string_set f ref =
 	Arg.String (fun s -> ref := f s)
@@ -79,7 +80,15 @@ let prepare_goal (an, ctx) args =
     in
     let sig_goal = An_input.parse_string An_parser.goals goal_spec
 	in
+    let default_injection () =
+        An_reach.inject_goal_automaton (an, ctx) sig_goal
+    in
 	match sig_goal with [] | [[]] -> failwith "No goal specified."
-	| [[[(a,sig_i)]]] -> (an, ctx), (a, get_automaton_state_id an a sig_i)
-	| _ -> An_reach.inject_goal_automaton (an, ctx) sig_goal
+	| [[sig_state]] ->
+        if SMap.cardinal sig_state = 1 then
+            let sig_ls = SMap.choose sig_state
+            in
+            (an, ctx), resolve_sig_ls an sig_ls, []
+        else default_injection ()
+	| _ -> default_injection ()
 

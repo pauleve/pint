@@ -31,11 +31,11 @@ let _ = if !opt_tool <> "ctl" && !opt_iscutset <> "" then abort ()
 
 let an, ctx = An_cli.process_input ()
 
-let (an, ctx), goal =
+let (an,ctx), goal, _ =
     if !opt_tool = "count" then
-        (an,ctx), ("", 0)
+        (an,ctx), (0, 0), []
     else
-        An_cli.prepare_goal (an, ctx) args
+        An_cli.prepare_goal (an,ctx) args
 
 let map = Hashtbl.create 50
 
@@ -46,7 +46,7 @@ let _ = output_string itsfile_out data;
 		close_out itsfile_out
 
 let place_of_ls ls =
-	let (label, idx) = Hashtbl.find map ls
+	let (label, idx) = Hashtbl.find map (resolve_ls an ls)
 	in
 	"P_"^(string_of_int idx)^label
 

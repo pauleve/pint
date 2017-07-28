@@ -51,8 +51,7 @@ class InitialState(dict):
         super(InitialState, self).__init__(self.defaults)
         self.domain = {}
         for a in self.info["automata"]:
-            self.domain[a] = set(self.info["local_states"][a] +
-                                self.info["named_local_states"][a])
+            self.domain[a] = set(self.info["local_states"][a])
             if type(self.defaults[a]) is list:
                 self.defaults[a] = tuple(self.defaults[a])
         self.__override = {}
@@ -171,8 +170,7 @@ def InfoFields(*fields):
     return plug
 
 @EquipTools
-@InfoFields("automata", "local_states", "named_local_states", "features",
-    "local_transitions")
+@InfoFields("automata", "local_states", "features", "local_transitions")
 class Model(object):
     """
     Abstract class for manipulating and analyzing an AN (Automata Network) model.
@@ -187,12 +185,7 @@ class Model(object):
     .. py:attribute:: local_states
 
         Dictionnary associating to each automaton its list of local states
-        (`int` list).
-
-    .. py:attribute:: named_local_states
-
-        Dictionnary associating to each automaton its list of local states,
-        using their names if any (`str` or `int` list).
+        (`str` or `int` list).
 
     .. py:attribute:: local_transitions
 

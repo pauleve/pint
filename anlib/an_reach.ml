@@ -1,27 +1,32 @@
 
 open Debug
 
-open Ph_types
-
 open PintTypes
 
 open AutomataNetwork
+open An_localpaths
 open LocalCausalityGraph
 
 type env = {
 	an : AutomataNetwork.t;
 	ctx : ctx;
-	goal : process list;
-	sol_cache : An_localpaths.cache;
+	goal : ls list;
+    ac : An_localpaths.abstract_collection;
 }
 
 let init_env an ctx goal =
-	let cache = An_localpaths.create_cache ()
-	in {
+    let na = count_automata an
+    in
+    let nbobj = na
+    and nblp = 2*na
+    in
+    let lpc = An_localpaths.new_lp_collection nblp nbobj
+    in
+    {
 		an = an;
 		ctx = ctx;
 		goal = goal;
-		sol_cache = cache;
+		ac = An_localpaths.new_abstract_collection lpc nblp nbobj;
 	}
 
 
@@ -30,10 +35,10 @@ let inject_goal_automaton (an, ctx) sig_goals =
     in
     let ig = List.fold_left (+) 1 ng - List.length sig_goals
     in
-	let a = "_pint_goal"
+	let aname = "_pint_goal"
 	and sigstates = List.map (fun i -> StateId i) (Util.range 0 ig)
 	in
-    declare_automaton an a sigstates;
+    declare_automaton an aname sigstates;
     let fold_goals i0 sig_goal =
         let n = List.length sig_goal
         in
@@ -41,51 +46,47 @@ let inject_goal_automaton (an, ctx) sig_goals =
             let iorig = if i == 0 then 0 else i0+i
             and idest = if i == n-1 then ig else i0+i+1
             in
-            declare_transition an a (StateId iorig) (StateId (idest)) sig_cond
+            declare_transition an [aname, StateId iorig, StateId idest] sig_cond
         in
         List.iteri register_step sig_goal;
         n-1
     in
     ignore (List.fold_left fold_goals 0 sig_goals);
-	let ia0 = get_automaton_state_id an a (StateId 0)
-	and itop = get_automaton_state_id an a (StateId ig)
+    let a, itop = Hashtbl.find an.sig2ls (aname, StateId ig)
+    and _, ia0 = Hashtbl.find an.sig2ls (aname, StateId 0)
 	in
-	(an, SMap.add a (ISet.singleton ia0) ctx), (a, itop)
+	(an, IMap.add a (ISet.singleton ia0) ctx), (a, itop), [a]
 
 
-
-let color_nodes_connected_to_trivial_sols (gA:LSSet.t #glc) =
+let color_nodes_connected_to_trivial_sols (gA:#lcg) =
 	(** each node is associated to a couple
-			(green, nm) 
-		where nm is the cached value of childs *)
+			(green, nm)
+		where nm is the cached value of children *)
 
 	let is_green nm n = try NodeMap.find n nm with Not_found -> false
 	in
-	let ls_is_green nm ls = is_green nm (NodeProc ls)
+	let ls_is_green nm ls = is_green nm (NodeLS ls)
 	in
 
 	let init = function
-		  NodeSol (obj, ps, _) -> (LSSet.is_empty ps, NodeMap.empty)
-		| NodeSyncSol (obj, states, _) -> (StateSet.is_empty states, NodeMap.empty)
+		  NodeSol (_, alp) -> (StateSet.is_empty alp.conds, NodeMap.empty)
 		| _ -> (false, NodeMap.empty)
 
 	(* the node n with value v receives update from node n' with value v' *)
-	and push n (v,nm) = 
+	and push n (v,nm) =
 		let new_v = match n with
-		  NodeProc _ -> (* at least one child is green *)
+		  NodeLS _ -> (* at least one child is green *)
 		  	let exists_green n' g r = r || g
 			in
 			NodeMap.fold exists_green nm false
-		| NodeSol (obj, ps, _) -> (* all childs are green *)
-			LSSet.for_all (ls_is_green nm) ps
-		| NodeSyncSol (obj, states, _) -> (* all children are green *)
+		| NodeSol (_, alp) -> (* all children are green *)
 			let state_is_green s =
-				SMap.for_all (fun a i -> ls_is_green nm (a,i)) s
+				IMap.for_all (fun a i -> ls_is_green nm (a,i)) s
 			in
-			StateSet.for_all state_is_green states
-		| NodeObj _ -> (* all NodeObj childs are green; at least one NodeSol is green *)
+			StateSet.for_all state_is_green alp.conds
+		| NodeObj _ -> (* all NodeObj children are green; at least one NodeSol is green *)
 			let exists_sol_green = function
-				  NodeSol _ | NodeSyncSol _ -> fun g r -> r || g
+				  NodeSol _ -> fun g r -> r || g
 				| _ -> fun _ r -> r
 			and all_obj_green = function
 				| NodeObj _ -> fun g r -> g && r
@@ -109,72 +110,84 @@ let color_nodes_connected_to_trivial_sols (gA:LSSet.t #glc) =
 	in
 	Hashtbl.fold folder values NodeSet.empty
 
-let restricted_sols_factory all_sols nodes =
-	let register_node n rsols = match n with
-		  NodeSol (obj, ps, interm) -> 
-		  	ObjMap.add obj ((ps,interm)::try ObjMap.find obj rsols 
-									with Not_found -> []) rsols
-		| NodeSyncSol _ ->
-			failwith "restricted_sols_factory with NodeSyncSol	not implemented."
-		| _ -> rsols
-	in
-	let rsols = NodeSet.fold register_node nodes ObjMap.empty
-	in
-	fun obj -> try ObjMap.find obj rsols with Not_found -> all_sols obj
+let restrict_sols ?(update=true) overlay lcg valid =
+    let apply_obj obj = if update || not (Hashtbl.mem overlay obj) then (
+        let nobj = NodeObj obj
+        in
+        if NodeSet.mem nobj valid then
+            let sols = List.filter (fun node ->
+                match node with NodeSol (id, _) -> NodeSet.mem node valid
+                  | _ -> false) (lcg#children nobj)
+            in
+            let ialps = List.map (function NodeSol (id, _) -> id
+                                    | _ -> failwith "invalid argument") sols
+            in
+            Hashtbl.replace overlay obj ialps
+        else
+            Hashtbl.replace overlay obj [])
+    in
+    ObjSet.iter apply_obj lcg#objs
 
 let unordered_oa env sols =
-	let gA = new glc oa_glc_setup env.ctx env.goal sols make_unord_unsync_sol
-	in
-	gA#build;
-	gA#debug ();
-	let nodes = color_nodes_connected_to_trivial_sols gA
-	in
-	List.for_all (fun ai -> NodeSet.mem (NodeProc ai) nodes) env.goal, 
-	restricted_sols_factory sols nodes
-
-let unordered_oa' env sols =
 	dbg ~level:1 ". unordered over-approximation";
-	let make_domain nodes =
-		let register_node n rsols = match n with
-			  NodeSol (obj, ps, _) ->
-				ObjMap.add obj (ps::try ObjMap.find obj rsols with Not_found -> []) rsols
-			| NodeSyncSol _ ->
-				failwith "make_domain with NodeSyncSol	not implemented."
-			| _ -> rsols
+    let oa_lcg = build_oa_lcg env.an env.ctx env.goal sols
+	in
+	let valid = color_nodes_connected_to_trivial_sols oa_lcg
+	in
+	List.for_all (fun ai -> NodeSet.mem (NodeLS ai) valid) env.goal,
+    (oa_lcg, valid)
+
+
+(**** Local reachability ****)
+
+let local_reachability env =
+	let sols = An_localpaths.abstract_local_paths env.ac env.an
+	in
+	let uoa, (oa_lcg, valid) = unordered_oa env sols
+	in
+	if not uoa then
+		False
+	else (
+        assert_async_an env.an;
+        let overlay = Hashtbl.create (NodeSet.cardinal valid)
+        in
+        restrict_sols overlay oa_lcg valid;
+        let sols = An_localpaths.restricted_abstract_local_paths env.ac env.an overlay
 		in
-		NodeSet.fold register_node nodes ObjMap.empty
-	in
-	let gA = new glc oa_glc_setup env.ctx env.goal sols make_unord_unsync_sol
-	in
-	gA#build;
-	gA#debug ();
-	let nodes = color_nodes_connected_to_trivial_sols gA
-	in
-	List.for_all (fun ai -> NodeSet.mem (NodeProc ai) nodes) env.goal, 
-	make_domain nodes
+		if An_reach_asp.unordered_ua env.an env.ctx env.goal sols then
+			True
+		else
+			Inconc
+    )
 
-let bot_trimmed_lcg env sols gA =
-	let nodes = color_nodes_connected_to_trivial_sols gA
-	in
-	let gA' = new glc gA#setup env.ctx env.goal sols make_unord_unsync_sol
-	in
-	gA#iter (fun node child ->
-				if NodeSet.mem node nodes && NodeSet.mem child nodes then
-					gA'#add_child node child);
-	gA'#set_trivial_nsols (NodeSet.inter (gA#get_trivial_nsols ()) nodes);
-	gA'#set_auto_conts (gA#auto_conts);
-	gA'#commit ();
-	gA'
 
+
+
+
+(**************************************************
+		CUTSETS / REQUIREMENTS
+***************************************************)
+
+let bot_trimmed_lcg env sols lcg =
+	let valid = color_nodes_connected_to_trivial_sols lcg
+	in
+	let lcg' = new lcg lcg#setup env.an env.ctx env.goal sols
+	in
+	lcg#iter (fun node child ->
+				if NodeSet.mem node valid && NodeSet.mem child valid then
+					lcg'#add_child node child);
+	lcg'#set_trivial_nsols (NodeSet.inter lcg#trivial_nsols valid);
+	lcg'#set_auto_conts lcg#auto_conts;
+	lcg'#commit ();
+	lcg'
 
 let nodes_connected_to_procs (gA: #graph) pl =
 	let update_value _ _ = true
     and init n = true, NodeMap.empty
 	and update_cache _ nm _ _ = nm
-	and leafs = List.fold_left (fun ns ai -> NodeSet.add (NodeProc ai) ns) NodeSet.empty pl
+	and leafs = List.fold_left (fun ns ai -> NodeSet.add (NodeLS ai) ns) NodeSet.empty pl
     in
 	gA#rflood ~reversed:true (=) init update_cache update_value leafs
-
 
 let top_trimmed_lcg env gA =
 	let values = nodes_connected_to_procs gA env.goal
@@ -184,149 +197,6 @@ let top_trimmed_lcg env gA =
 	NodeSet.iter check_node gA#nodes
 
 
-(**
- ** UNDER-APPROXIMATIONS (Sufficient conditions)
- **)
-
-
-let ua_lcg_setup an = {oa_glc_setup with
-	conts_flooder = max_conts_flooder (boolean_automata an)
-}
-
-(** Unordered Under-Approximation *)
-let unordered_ua ?saveLCG:(saveLCG = ref None) env sols =
-	let validate (glc:StateSet.t #glc) =
-		(* associate to each nodes the children processes *)
-		let child_procs = glc#call_rflood top_localstates_flooder glc#leafs
-		in
-		(* iter over cooperative objectives and check their solutions *)
-		let validate_obj obj =
-			let validate_sync state =
-				if SMap.cardinal state <= 1 then true else
-				let validate_ls a i =
-					let conn = fst (Hashtbl.find child_procs (NodeProc (a,i)))
-					in
-					dbg (". top("^string_of_ls (a,i)^") = "^string_of_ctx conn);
-					SMap.for_all (fun b j -> b = a ||
-						try
-							let js = ctx_get b conn
-							in
-							ISet.cardinal js <= 1 && ISet.choose js = j
-						with Not_found -> true) state
-				in
-				SMap.for_all validate_ls state
-			in
-			let validate_syncsol nsol =
-				dbg ("checking "^string_of_node nsol);
-				let (obj, states, _) = match nsol with NodeSyncSol x -> x | _ -> assert false
-				in
-				StateSet.for_all validate_sync states
-			in
-			let syncsols = List.filter (function NodeSyncSol _ -> true | _ -> false)
-						(glc#childs (NodeObj obj))
-			in
-			List.for_all validate_syncsol syncsols
-		in
-		ObjSet.for_all validate_obj glc#objs
-	in
-	let gB_iterator = new lcg_generator (ua_lcg_setup env.an) env.ctx env.goal sols make_unord_sol
-	in
-	(*let i = ref 0 in*)
-	let rec __check gB =
-		if gB#has_impossible_objs then (
-			dbg ~level:1 ("has_impossible_objs! "^
-				(String.concat ";" (List.map string_of_obj gB#get_impossible_objs)));
-			(*
-			let cout = open_out ("/tmp/glc"^string_of_int !i^".dot")
-			in
-			i := !i + 1;
-			output_string cout gB#to_dot;
-			close_out cout;*)
-			let ms_objs =  gB_iterator#multisols_objs
-			in
-			let seq_objs = gB#avoid_impossible_objs ms_objs
-			in
-			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
-						(List.rev seq_objs);
-			false
-		) else if gB#has_loops then (
-			dbg ~level:1 "has_loops!";
-			let seq_objs = gB#avoid_loop gB_iterator#multisols_objs gB#last_loop
-			in
-			List.iter (fun objs -> gB_iterator#change_objs (ObjSet.elements objs))
-						seq_objs;
-			false
-		) else (
-			if not gB#auto_conts then (
-				gB#set_auto_conts true;
-				gB#commit ();
-				gB#saturate_ctx;
-				__check gB
-			) else
-				validate gB
-		)
-	in
-	let rec iter_gBs () =
-		if gB_iterator#has_next then (
-			let gB = gB_iterator#next
-			in
-			dbg "!! unordered underapprox";
-			gB#debug ();
-			if __check gB then (
-				saveLCG := Some gB;
-				raise Found
-			) else iter_gBs ()
-		)
-	in
-	try iter_gBs (); false with Found -> true
-
-
-
-(**** Local reachability ****)
-
-let local_reachability env =
-	assert_async_an env.an;
-	let cache = env.sol_cache
-	in
-	let sols = An_localpaths.MinUnordUnsyncSol.solutions cache env.an
-	in
-	let uoa, oadom = unordered_oa' env sols
-	in
-	if not uoa then
-		False
-	else
-		let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
-		in
-		if An_reach_asp.unordered_ua env.an env.ctx env.goal sols then
-			True
-		else
-			Inconc
-
-
-let legacy_local_reachability ?saveLCG:(saveLCG = ref None) env =
-	assert_async_an env.an;
-	let cache = env.sol_cache
-	in
-	let sols = An_localpaths.MinUnordUnsyncSol.solutions cache env.an
-	in
-	let uoa, oadom = unordered_oa' env sols
-	in
-	if not uoa then
-		False
-	else
-		let sols = An_localpaths.MinUnordSol.filtered_solutions cache oadom env.an
-		in
-		if unordered_ua ~saveLCG env sols then
-			True
-		else
-			Inconc
-
-
-
-
-(**************************************************
-		CUTSETS / REQUIREMENTS
-***************************************************)
 
 (**
  * Cutsets
@@ -334,7 +204,7 @@ let legacy_local_reachability ?saveLCG:(saveLCG = ref None) env =
 
 module PSSet = KSets.Make(struct type t = int let compare = compare end);;
 
-let scc_dead_rel childs scc =
+let scc_dead_rel children scc =
 	let c = List.length scc
 	in
 	if c > 2 then (
@@ -343,20 +213,20 @@ let scc_dead_rel childs scc =
 		in
 		let entry_objectives n =
 			match n with
-			  NodeObj _ | NodeProc _ ->
-			  	[] <> List.filter (fun n -> not (NodeSet.mem n scc_idx)) (childs n)
+			  NodeObj _ | NodeLS _ ->
+			  	[] <> List.filter (fun n -> not (NodeSet.mem n scc_idx)) (children n)
 			| _ -> false
-		and dead_childs n =
+		and dead_children n =
 			let dead_node n' =
-				match n' with NodeSol _ | NodeSyncSol _ -> NodeSet.mem n' scc_idx | _ -> false
+				match n' with NodeSol _ -> NodeSet.mem n' scc_idx | _ -> false
 			in
-			List.filter dead_node (childs n)
+			List.filter dead_node (children n)
 		in
 		let objs = List.filter entry_objectives scc
 		in
-		match objs with 
+		match objs with
 		  [n] -> (
-				let cs = dead_childs n in
+				let cs = dead_children n in
 				match cs with [] -> None | _ -> Some (n, cs)
 			)
 		| _ -> None
@@ -368,14 +238,14 @@ let rec cleanup_gA_for_cutsets gA =
 	let sccs = gA#tarjan_SCCs false gA#leafs
 	in
 	let handle_scc todel scc =
-		match scc_dead_rel gA#childs scc with
+		match scc_dead_rel gA#children scc with
 		  Some x -> x::todel
 		| None -> todel
 	in
 	let todel = List.fold_left handle_scc [] sccs
 	in
-	let apply (n, dead_childs) =
-		List.iter (fun c -> gA#remove_child c n) dead_childs
+	let apply (n, dead_children) =
+		List.iter (fun c -> gA#remove_child c n) dead_children
 	in
 	match todel with [] -> gA
 	| _ -> (List.iter apply todel; cleanup_gA_for_cutsets gA)
@@ -435,9 +305,9 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 	let update_value n (_,nm) =
 		total_count := !total_count + 1;
 		match n with
-		  NodeSol _ | NodeSyncSol _ -> PSSet.simplify max_nkp (nm_union nm)
+		  NodeSol _ -> PSSet.simplify max_nkp (nm_union nm)
 
-		| NodeProc ai -> 
+		| NodeLS ai ->
 			if ignore_proc ai then
 				nm_cross nm
 			else
@@ -450,7 +320,7 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 				PSSet.union pss aisingle
 
 		| NodeObj (a,j,i) -> (
-			let r1 = NodeMap.fold (function NodeSol _ | NodeSyncSol _ -> psset_product
+			let r1 = NodeMap.fold (function NodeSol _ -> psset_product
 										| _ -> (fun _ c -> c)) nm PSSet.full
 			in
 			r1
@@ -472,10 +342,10 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 		let register_child nm n' =
 			NodeMap.add n' PSSet.empty nm
 		in
-		let nm0 = List.fold_left register_child NodeMap.empty (gA#childs n)
+		let nm0 = List.fold_left register_child NodeMap.empty (gA#children n)
 		in
 		PSSet.empty, nm0
-    in  
+    in
 	let t0 = Sys.time ()
 	in
     let flood_values = gA#rflood PSSet.equal init default_flooder_update_cache update_value leafs
@@ -485,23 +355,21 @@ let cutsets (gA:#graph) max_nkp ignore_proc leafs =
 	(flood_values, index_proc)
 
 let lcg_for_cutsets env =
-	assert_async_an env.an;
-	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
+	let sols = An_localpaths.abstract_local_paths env.ac env.an
 	in
-	let gA = new glc oa_glc_setup env.ctx env.goal sols make_unord_unsync_sol
+	let lcg = new lcg default_lcg_setup env.an env.ctx env.goal sols
 	in
-    gA#set_auto_conts false;
-    gA#build;
-    let gA = bot_trimmed_lcg env sols gA
+    lcg#set_auto_conts false;
+    lcg#build;
+    let lcg = bot_trimmed_lcg env sols lcg
     in
-	let gA = cleanup_gA_for_cutsets gA
+	let lcg = cleanup_gA_for_cutsets lcg
 	in
-	top_trimmed_lcg env gA;
-	gA
-
+	top_trimmed_lcg env lcg;
+	lcg
 
 let requirements (gA:#graph) automata leafs universal =
-	let max_card = SSet.cardinal automata
+	let max_card = ISet.cardinal automata
 	and get_proc_index, index_proc = indexer (gA#count_procs)
 	in
 	let psset_product a b =
@@ -530,11 +398,11 @@ let requirements (gA:#graph) automata leafs universal =
 	let update_value n (_,nm) =
 		total_count := !total_count + 1;
 		match n with
-		  NodeSol _ | NodeSyncSol _ ->
+		  NodeSol _ ->
 		  	NodeMap.fold (fun _ -> psset_product) nm PSSet.full
 
-		| NodeProc ai ->
-			if SSet.mem (fst ai) automata then
+		| NodeLS ai ->
+			if ISet.mem (fst ai) automata then
 				let aisingle = PSSet.singleton (get_proc_index ai)
 				in
 				(*let nm = NodeMap.map (PSSet.rm_sursets max_card aisingle) nm
@@ -548,13 +416,13 @@ let requirements (gA:#graph) automata leafs universal =
 				(if universal then nm_cross else nm_union) nm
 
 		| NodeObj (a,j,i) ->
-			NodeMap.fold (function NodeSol _ | NodeSyncSol _ -> PSSet.union | _ -> (fun _ c -> c)) nm PSSet.empty
+			NodeMap.fold (function NodeSol _ -> PSSet.union | _ -> (fun _ c -> c)) nm PSSet.empty
 	in
     let init n =
 		let register_child nm n' =
 			NodeMap.add n' PSSet.full nm
 		in
-		let nm0 = List.fold_left register_child NodeMap.empty (gA#childs n)
+		let nm0 = List.fold_left register_child NodeMap.empty (gA#children n)
 		in
 		PSSet.full, nm0
     in
@@ -567,117 +435,71 @@ let requirements (gA:#graph) automata leafs universal =
 	(flood_values, index_proc)
 
 let lcg_for_requirements env =
-	assert_async_an env.an;
-	let sols = An_localpaths.MinUnordUnsyncSol.solutions env.sol_cache env.an
+	let sols = An_localpaths.abstract_local_paths env.ac env.an
 	in
-	let gA = new glc oa_glc_setup env.ctx env.goal sols make_unord_unsync_sol
+	let lcg = new lcg default_lcg_setup env.an env.ctx env.goal sols
 	in
-    gA#set_auto_conts false;
-    gA#build;
-	top_trimmed_lcg env gA;
-	gA
+    lcg#set_auto_conts false;
+    lcg#build;
+	top_trimmed_lcg env lcg;
+	lcg
 
 
 
-let worth_lcg ?(skip_oa=false) env =
-	assert_async_an env.an;
-	let bool_automata = boolean_automata env.an
-	in
-	let saturate_procs_by_objs =
-		let fold_obj obj ps =
-			if SSet.mem (obj_sort obj) bool_automata then ps else
-			LSSet.union ps (An_localpaths.intermediates env.sol_cache env.an obj)
-		in
-		ObjSet.fold fold_obj
-	in
-	let glc_setup = {oa_glc_setup with
-		saturate_procs_by_objs = saturate_procs_by_objs}
-	and sols = An_localpaths.complete_abstract_solutions env.sol_cache env.an
-	in
-	let uoa, sols = if skip_oa then true, sols else unordered_oa env sols
-	in
-	let gB = new glc glc_setup env.ctx env.goal sols make_unord_unsync_sol
-	in
-	if uoa then (
-		gB#set_auto_conts false;
-		gB#build;
-		gB#saturate_ctx;
-		if skip_oa then gB else
-		let gB = bot_trimmed_lcg env sols gB
-		in
-		(top_trimmed_lcg env gB; gB)
-	) else gB
+let gored_lcg ?(skip_oa=false) env =
+	assert_async_an env.an; (* TODO *)
 
-let is_localstate_worth gB ls = LSSet.mem ls gB#all_procs
+    let valid_solutions = if skip_oa then An_localpaths.abstract_local_paths env.ac env.an else
+        let sols = An_localpaths.abstract_local_paths env.ac env.an
+        in
+        let overlay = Hashtbl.create 42
+        and oa_lcg = build_oa_lcg env.an env.ctx env.goal sols
+        in
+        fun obj -> (
+            (if not (Hashtbl.mem overlay obj) then
+                let _ = oa_lcg#build_obj obj
+                in
+                let valid = color_nodes_connected_to_trivial_sols oa_lcg
+                in
+                restrict_sols ~update:false overlay oa_lcg valid);
+            An_localpaths.restricted_abstract_local_paths env.ac env.an overlay obj
+        )
+    in
+	let saturate_lss_by_nodes nodes lss =
+        let fold node lss = match node with
+          NodeSol (_, alp) ->
+                let a = obj_a alp.obj
+                in
+                ISet.fold (fun i -> LSSet.add (a,i)) alp.interm lss
+        | _ -> lss
+        in
+        NodeSet.fold fold nodes lss
+    in
+	let lcg_setup = {default_lcg_setup with
+		saturate_lss_by_nodes = saturate_lss_by_nodes}
+    in
+    let rlcg = new lcg lcg_setup env.an env.ctx env.goal valid_solutions
+    in
+    rlcg#set_auto_conts false;
+    rlcg#build;
+    rlcg#saturate_ctx;
+    rlcg
+
+let gored_trs ?(skip_oa=false) env =
+    let rlcg = gored_lcg ~skip_oa env
+    in
+    let pull_trs node trs = match node with
+          NodeSol (id, _) -> extract_transitions_from_ialp ~trs env.ac id
+        | _ -> trs
+    in
+    NodeSet.fold pull_trs rlcg#nodes ISet.empty
 
 let reduced_an ?(skip_oa=false) env =
-	let csols = An_localpaths.concrete_solutions env.sol_cache env.an
-	in
-	let fold_fpath =
-		List.fold_left (fun trs tr -> TRSet.add tr trs)
-	in
-	let fold_asol trs (obj, conds, interm) =
-		let fpaths = csols obj (conds, interm)
-		in
-		List.fold_left fold_fpath trs fpaths
-	in
-	let lcg = worth_lcg ~skip_oa env
-	in
-	let trs = List.fold_left fold_asol TRSet.empty lcg#extract_sols
-	in
-	let nb_tr = Hashtbl.length env.an.transitions / 2
-	and nb_conds = TRSet.cardinal trs
-	in
-	let an' = { automata = Hashtbl.copy env.an.automata;
-				transitions = Hashtbl.create nb_tr;
-				conditions = Hashtbl.create nb_conds;
-				sync_transitions = []}
-	in
-	let register_ftr ((a,i,j), cond) =
-		let trs = try Hashtbl.find an'.transitions (a,i)
-					with Not_found -> ISet.empty
-		in
-		Hashtbl.add an'.transitions (a,i) (ISet.add j trs);
-		Hashtbl.add an'.conditions (a,i,j) cond
-	in
-	TRSet.iter register_ftr trs;
-	an'
+    let trs = gored_trs ~skip_oa env
+    in
+    let nb_trs = ISet.cardinal trs
+    and filter trid _ = ISet.mem trid trs
+    in
+    An_transformers.an_with_filtered_transitions ~nb_trs env.an filter
 
 
-(*
-
-let ordered_ua
-		?saveGLC:(saveGLC = ref NullGLC)
-		?validate:(validate = fun _ -> true)
-		env get_Sols glc_setup =
-	let build_next_ctx glc ps =
-		let ctx = procs_to_ctx (glc#all_procs)
-		in
-		let ctx = ctx_override ctx ps
-		in
-		ctx_override_by_ctx glc#ctx ctx
-	in
-	let rec _ordered_ua ctx = function [] -> true
-	| aj::pl ->
-		let validate_oua glc =
-			if validate glc then
-				match pl with [] -> true
-				| _ ->
-					let lps = glc#lastprocs aj
-					in
-					dbg ("lastprocs("^string_of_proc aj^") = {"^
-								(String.concat "}, {" 
-									(List.map string_of_procs lps))^" }");
-					assert (lps <> []);
-					let next_ctxs = List.map (build_next_ctx glc) lps
-					in
-					List.for_all (fun ctx -> _ordered_ua ctx pl) next_ctxs
-			else false
-		in
-		dbg ("// underapprox for "^string_of_proc aj^" from "^string_of_ctx ctx);
-		unordered_ua ~validate:validate_oua ~saveGLC:saveGLC 
-				{env with ctx = ctx; pl = [aj]} get_Sols glc_setup
-	in
-	_ordered_ua env.ctx env.pl
-
-*)
