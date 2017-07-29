@@ -74,17 +74,16 @@ let asp_lcg asp lcg =
 		in
 		match n with
 		  NodeSol (_, alp) ->
-			let asp_indep state asp =
-				if IMap.cardinal state > 1 then
-				let asp_indep_ls a i asp =
-					IMap.fold (fun b j asp ->
+			let asp_indep asp = function [] | [_] -> asp | state ->
+				let asp_indep_ls asp (a,i) =
+					List.fold_left (fun asp (b,j) ->
 						if b <> a then
 							decl asp (indep_asp orig a i (b,j)^" :- "^edge_asp "_" orig)
-						else asp) state asp
+						else asp) asp state
 				in
-				IMap.fold asp_indep_ls state asp else asp
+				List.fold_left asp_indep_ls asp state
 			in
-			StateSet.fold asp_indep alp.An_localpaths.conds asp
+			List.fold_left asp_indep asp alp.An_localpaths.conds
 		| _ -> asp
 	in
 	let nodeobj_asp n asp = match n with
@@ -98,7 +97,7 @@ let asp_lcg asp lcg =
 			let isols = List.mapi (fun i s -> (i,s)) sols
 			in
 			let only_quick = List.for_all (function
-				NodeSol (_, alp) -> ISet.is_empty (alp.An_localpaths.interm)
+				NodeSol (_, alp) -> [] = alp.An_localpaths.interm
 				| _ -> true) sols
 			in
 			let asp = if only_quick then

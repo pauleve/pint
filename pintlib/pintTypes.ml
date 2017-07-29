@@ -45,13 +45,18 @@ let set_of_list set0 set_add =
 
 let rec iset_of_list = function [] -> ISet.empty | h::t -> ISet.add h (iset_of_list t)
 
-let string_of_set
-		?lbracket:(lb="{ ") ?rbracket:(rb=" }") ?delim:(dl=", ")
-		string_of_element elements_getter set =
-	let content = String.concat dl
-		(List.map string_of_element (elements_getter set))
+let string_of_list
+		?(lbracket="[") ?(rbracket="]") ?(delim=", ")
+		string_of_element l =
+	let content = String.concat delim (List.map string_of_element l)
 	in
-	lb^content^rb
+	lbracket^content^rbracket
+
+let string_of_set
+		?(lbracket="{ ") ?(rbracket=" }") ?(delim=", ")
+		string_of_element elements_getter set =
+    string_of_list ~lbracket ~rbracket ~delim string_of_element
+        (elements_getter set)
 
 let string_of_map
 	?lbracket:(lb="<") ?rbracket:(rb=">") ?delim:(dl=",")

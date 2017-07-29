@@ -78,8 +78,8 @@ let persistent_local_paths lpc an =
 
 type abstract_local_path = {
     obj: objective;
-    conds: StateSet.t;
-    interm: ISet.t;
+    conds: ls list list;
+    interm: int list;
 }
 
 let abstract_local_path an obj trs =
@@ -88,29 +88,28 @@ let abstract_local_path an obj trs =
     let interm = match trs with [] -> [] | _ ->
         List.map (fun trid ->
             IMap.find a (Hashtbl.find an.trs trid).orig) (List.tl trs)
-    in
-    let interm = iset_of_list interm
     and fold view trid =
         let tr = Hashtbl.find an.trs trid
         in
         let trview = IMap.remove a tr.pre
         in
+        if IMap.is_empty trview then view else
         StateSet.add trview view
     in
     let view = List.fold_left fold StateSet.empty trs
+    in
+    let view = List.map IMap.bindings (StateSet.elements view)
     in
     { obj = obj; conds = view; interm = interm }
 
 let string_of_abstract_local_path an alp =
     let string_of_view =
-        string_of_set ~lbracket:"" ~rbracket:"" ~delim:","
-        (fun state ->
-            if IMap.cardinal state = 1 then
-                string_of_ls an (IMap.choose state)
-            else
-                string_of_state an state) StateSet.elements
+        string_of_list ~lbracket:"" ~rbracket:"" ~delim:","
+            (function [ls] -> string_of_ls an ls
+                | state -> string_of_list ~lbracket:"<" ~rbracket:">"
+                            (string_of_ls an) state)
     in
-    "<"^string_of_view alp.conds^"/"^string_of_iset alp.interm^">"
+    "<"^string_of_view alp.conds^"/"^string_of_list string_of_int alp.interm^">"
 
 (*
 let alp_leq (v1,i1) (v2,i2) =
@@ -190,7 +189,7 @@ let restricted_abstract_local_paths ac an overlay obj =
     | None -> abstract_local_paths ac an obj
 
 let extract_local_states alp =
-    flatten_stateset alp.conds
+    List.flatten alp.conds
 
 let extract_transitions_from_ialp ?(trs=ISet.empty) ac ialp =
     let pull_trs trs ilp =

@@ -12,6 +12,10 @@ val set_of_list : 'a -> ('b -> 'a -> 'a) -> 'b list -> 'a
 (** ISet from int list. *)
 val iset_of_list : int list -> ISet.t
 
+val string_of_list :
+	?lbracket:string -> ?rbracket:string -> ?delim:string ->
+		('a -> string) -> 'a list -> string
+
 val string_of_set :
 	?lbracket:string -> ?rbracket:string -> ?delim:string ->
 		('a -> string) -> ('b -> 'a list) -> 'b -> string
