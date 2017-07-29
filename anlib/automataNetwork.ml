@@ -87,6 +87,11 @@ let automaton_sigls an a =
 
 let has_automaton an name = Hashtbl.mem an.sig2a name
 
+let automata_ids an =
+    Hashtbl.fold (fun a _ -> ISet.add a) an.ls ISet.empty
+let transition_ids an =
+    Hashtbl.fold (fun trid _ -> ISet.add trid) an.trs ISet.empty
+
 
 (** Returns the set of automata having 2 local states *)
 let boolean_automata an =
