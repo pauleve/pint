@@ -131,18 +131,35 @@ let alp_compare (v1,i1) (v2,i2) =
 
 type abstract_collection = {
     lpc: local_path lp_collection;
+    lp_filter: (trid list -> bool) option;
     alpc: abstract_local_path lp_collection;
     concrete: (id, id) Hashtbl.t;
 }
 
 let new_abstract_collection lpc nblp nbobj = {
     lpc = lpc;
+    lp_filter = None;
     alpc = new_lp_collection nblp nbobj;
     concrete = Hashtbl.create nblp
 }
 
+let reset_abstract_collection ac =
+    let nblp = Hashtbl.length ac.concrete
+    and nbobj = Hashtbl.length ac.alpc.byobj
+    in
+    {ac with
+        alpc = new_lp_collection nblp nbobj;
+        concrete = Hashtbl.create nblp; }
+
 let abstract_local_paths ac an obj =
     let ilps, lps = persistent_local_paths ac.lpc an obj
+    in
+    let ilps, lps = match ac.lp_filter with None -> ilps, lps
+        | Some filter ->
+            let filter2 (ilps, lps) ilp lp =
+                if filter lp then (ilp::ilps, lp::lps) else (ilps, lps)
+            in
+            List.fold_left2 filter2 ([],[]) ilps lps
     in
     let alps = List.map (abstract_local_path an obj) lps
     in
