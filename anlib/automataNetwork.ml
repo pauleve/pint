@@ -134,6 +134,10 @@ let lsset_of_state s =
 
 let lsset_of_list = set_of_list LSSet.empty LSSet.add
 
+let state_override state overlay =
+    IMap.fold IMap.add overlay state
+
+
 (** Context *)
 type ctx = ISet.t IMap.t
 
@@ -164,6 +168,9 @@ let ctx_rm_ls (a,i) ctx =
 		in
 		IMap.add a is ctx
 	with Not_found -> ctx
+
+let ctx_of_state state =
+	IMap.map ISet.singleton state
 
 let ctx_of_lslist =
 	let group ctx ls =
@@ -279,9 +286,6 @@ let ctx_diff ctx1 ctx2 =
 		SMap.add a is ctx
 	in
 	SMap.fold diff ctx1 SMap.empty
-
-let ctx_of_state state =
-	SMap.map ISet.singleton state
 ;;
 *)
 
