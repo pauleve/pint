@@ -69,7 +69,7 @@ let color_nodes_connected_to_trivial_sols (gA:#lcg) =
 	in
 
 	let init = function
-		  NodeSol (_, alp) -> (StateSet.is_empty alp.conds, NodeMap.empty)
+		  NodeSol (_, alp) -> ([] = alp.conds, NodeMap.empty)
 		| _ -> (false, NodeMap.empty)
 
 	(* the node n with value v receives update from node n' with value v' *)
@@ -80,10 +80,9 @@ let color_nodes_connected_to_trivial_sols (gA:#lcg) =
 			in
 			NodeMap.fold exists_green nm false
 		| NodeSol (_, alp) -> (* all children are green *)
-			let state_is_green s =
-				IMap.for_all (fun a i -> ls_is_green nm (a,i)) s
+			let state_is_green = List.for_all (ls_is_green nm)
 			in
-			StateSet.for_all state_is_green alp.conds
+			List.for_all state_is_green alp.conds
 		| NodeObj _ -> (* all NodeObj children are green; at least one NodeSol is green *)
 			let exists_sol_green = function
 				  NodeSol _ -> fun g r -> r || g
@@ -470,7 +469,7 @@ let gored_lcg ?(skip_oa=false) env =
           NodeSol (_, alp) ->
                 let a = obj_a alp.obj
                 in
-                ISet.fold (fun i -> LSSet.add (a,i)) alp.interm lss
+                List.fold_left (fun lss i -> LSSet.add (a,i) lss) lss alp.interm
         | _ -> lss
         in
         NodeSet.fold fold nodes lss

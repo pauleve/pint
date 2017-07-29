@@ -143,21 +143,23 @@ object(self)
 			let dot = node^"[label=\"\",shape=circle,fixedsize=true,width=0.1,height=0.1];\n"
 			in
 			(node, dot)
-		and dot_of_sync state =
-			if IMap.cardinal state >= 2 then (
-				incr synccounter;
+		and dot_of_sync = function
+              [] -> failwith "oops (empty sync condition)"
+            | [ls] ->
+				let dproc = dot_of_proc ls
+				in
+				dproc, ""
+            | state ->
+				let _ = incr synccounter
+                in
 				let node = "pintsync"^string_of_int !synccounter
 				in
 				let dot = node^"[label=\"\",shape=square,fixedsize=true,width=0.1,height=0.1];\n"
 				in
 				let dot = dot ^ String.concat "" (List.map (fun p ->
-						node^" -> "^(dot_of_proc p)^";\n") (IMap.bindings state))
+						node^" -> "^(dot_of_proc p)^";\n") state)
 				in
-				node, dot)
-			else
-				let dproc = dot_of_proc (IMap.choose state)
-				in
-				dproc, ""
+				node, dot
 		in
 
 		let register_proc p =
@@ -182,7 +184,7 @@ object(self)
 					let dsol, def = dot_of_sol idsol
 					in
 					let dsyncs, defs = List.split
-						(List.map dot_of_sync (StateSet.elements alp.conds))
+						(List.map dot_of_sync alp.conds)
 					in
 					def
 					^ dobj ^" -> "^dsol^";\n"
@@ -505,7 +507,7 @@ class lcg lcg_setup an ctx pl solutions
             and lss = extract_local_states alp
             in
 			self#add_child nsol nobj;
-			if LSSet.is_empty lss then
+			if lss = [] then
                 trivial_nsols <- NodeSet.add nsol trivial_nsols
             else
                 let register_ls ai =
@@ -514,7 +516,7 @@ class lcg lcg_setup an ctx pl solutions
                     self#push_ls ai;
                     self#add_child np nsol
                 in
-                LSSet.iter register_ls lss
+                List.iter register_ls lss
 		in
 		List.iter2 register_sol isols sols;
 		new_objs <- obj::new_objs
