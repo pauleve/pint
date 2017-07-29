@@ -80,6 +80,7 @@ type abstract_local_path = {
     obj: objective;
     conds: ls list list;
     interm: int list;
+    ext_post: ls list;
 }
 
 let abstract_local_path an obj trs =
@@ -88,19 +89,23 @@ let abstract_local_path an obj trs =
     let interm = match trs with [] -> [] | _ ->
         List.map (fun trid ->
             IMap.find a (Hashtbl.find an.trs trid).orig) (List.tl trs)
-    and fold view trid =
+    and fold (conds, ext_post) trid =
         let tr = Hashtbl.find an.trs trid
         in
-        let trview = IMap.remove a tr.pre
+        let trconds = IMap.remove a tr.pre
+        and trpost = IMap.remove a tr.dest
         in
-        if IMap.is_empty trview then view else
-        StateSet.add trview view
+        (if IMap.is_empty trconds then conds else
+        StateSet.add trconds conds),
+        (if IMap.is_empty trpost then ext_post else
+        IMap.fold (fun a i -> LSSet.add (a,i)) trpost ext_post)
     in
-    let view = List.fold_left fold StateSet.empty trs
+    let conds, ext_post = List.fold_left fold (StateSet.empty, LSSet.empty) trs
     in
-    let view = List.map IMap.bindings (StateSet.elements view)
+    let conds = List.map IMap.bindings (StateSet.elements conds)
+    and ext_post = LSSet.elements ext_post
     in
-    { obj = obj; conds = view; interm = interm }
+    { obj = obj; conds = conds; interm = interm; ext_post = ext_post }
 
 let string_of_abstract_local_path an alp =
     let string_of_view =
@@ -109,7 +114,10 @@ let string_of_abstract_local_path an alp =
                 | state -> string_of_list ~lbracket:"<" ~rbracket:">"
                             (string_of_ls an) state)
     in
-    "<"^string_of_view alp.conds^"/"^string_of_list string_of_int alp.interm^">"
+    "<"^string_of_view alp.conds
+        ^"/"^string_of_list string_of_int alp.interm
+        ^"/"^string_of_list (string_of_ls an) alp.ext_post
+        ^">"
 
 (*
 let alp_leq (v1,i1) (v2,i2) =
