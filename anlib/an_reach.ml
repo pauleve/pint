@@ -147,7 +147,6 @@ let local_reachability env =
 	if not uoa then
 		False
 	else (
-        assert_async_an env.an;
         let overlay = Hashtbl.create (NodeSet.cardinal valid)
         in
         restrict_sols overlay oa_lcg valid;
