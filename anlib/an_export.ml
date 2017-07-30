@@ -17,13 +17,15 @@ let dump_of_an an ctx =
 			(List.map string_of_sigls def_states))^"]\n")::buf
 	and fold_tr trid tr buf =
 		(trid, (string_of_transition an tr)^"\n")::buf
+    and default_ctx = ISet.singleton 0
 	in
 	let defs = Hashtbl.fold fold_defs an.ls []
 	and trs = Hashtbl.fold fold_tr an.trs []
-	and lss = LSSet.elements (lsset_of_ctx ctx)
+    and ctx = IMap.filter (fun _ is -> not (ISet.equal is default_ctx)) ctx
 	in
 	let defs = List.map snd (List.sort compare defs)
 	and trs = List.map snd (List.sort compare trs)
+	and lss = LSSet.elements (lsset_of_ctx ctx)
 	in
 	(String.concat "" defs)
 	^ "\n"
