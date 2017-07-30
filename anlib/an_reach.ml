@@ -446,8 +446,6 @@ let lcg_for_requirements env =
 
 
 let gored_lcg ?(skip_oa=false) env =
-	assert_async_an env.an; (* TODO *)
-
     let valid_solutions = if skip_oa then An_localpaths.abstract_local_paths env.ac env.an else
         let sols = An_localpaths.abstract_local_paths env.ac env.an
         in
@@ -467,7 +465,9 @@ let gored_lcg ?(skip_oa=false) env =
 	let saturate_lss_by_nodes nodes lss =
         let fold node lss = match node with
           NodeSol (_, alp) ->
-                let a = obj_a alp.obj
+                let lss = List.fold_left (fun lss ai -> LSSet.add ai lss) lss
+                            alp.ext_post
+                and a = obj_a alp.obj
                 in
                 List.fold_left (fun lss i -> LSSet.add (a,i) lss) lss alp.interm
         | _ -> lss
