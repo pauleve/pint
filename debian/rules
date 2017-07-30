@@ -11,7 +11,7 @@ build-stamp:
 	dh_testdir
 	touch build-stamp
 	python setup.py --share-path /usr/share/pint
-	LDFLAGS=-L$(HOME)/tmp/r-mathlib/usr/lib CFLAGS=-I$(HOME)/tmp/r-mathlib/usr/include make
+	make
 
 clean:
 	python setup.py --share-path /usr/share/pint
@@ -19,7 +19,7 @@ clean:
 	dh_testroot
 	rm -f build-stamp
 	rm -rf build
-	dh_clean 
+	dh_clean
 	make clean
 
 install: build
@@ -33,14 +33,13 @@ install: build
 binary-indep: build install
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs 
+	dh_installchangelogs
 	dh_installdocs
 	dh_installmenu
 	dh_installman
 	dh_link
 	dh_compress -X.py
 	dh_fixperms
-	dh_python2
 	dh_installdeb
 	dh_gencontrol
 	dh_md5sums

@@ -118,17 +118,18 @@ dist-osx: 3rdparty
 	hdiutil create -srcfolder $(OSX_W) -volname pint-$(RELNAME) -fs HFS+ $(OSX_DMG)
 	-rm -rf $(OSX_W)
 
-run-dist-deb-via-docker:
-	docker run --rm --volume $$PWD:/wd --workdir /wd pauleve/pint make dist-deb-via-docker RELNAME=$(RELNAME)
+DOCKER_BUILDER=pint-dist-builder
+
+docker-dist-builder:
+	docker build -t $(DOCKER_BUILDER) dist
+
+run-dist-deb-via-docker: docker-dist-builder
+	docker run --rm --volume $$PWD:/home/opam/pint-$(RELNAME) \
+		--workdir /home/opam/pint-$(RELNAME) \
+		$(DOCKER_BUILDER) \
+		make dist-deb-via-docker RELNAME=$(RELNAME)
 
 dist-deb-via-docker:
-	apt-get update && \
-		apt-get install -y devscripts debhelper \
-			ocaml ocaml-findlib \
-			camlidl \
-			libextlib-ocaml-dev \
-			libfacile-ocaml-dev \
-			r-mathlib
 	make dist-pre-deb
 	make dist-deb
 	mv -v ../pint_$(RELNAME)_*.deb dist/
