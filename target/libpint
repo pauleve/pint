@@ -3,7 +3,6 @@ all: ncl
 include Makefile.common
 SOURCES = \
 	$(DIST_SOURCES) \
-	$(BINDINGS_SOURCES)\
 	$(PINTLIB_SOURCES)\
 	$(ANLIB_SOURCES)
 
@@ -11,7 +10,7 @@ LIBS = $(PINTLIB_LIBS) $(ANLIB_LIBS)
 
 RESULT = pint
 
-install: rawinstall
+install:
 
 include OCamlMakefile
 # vi:set syntax=make:
