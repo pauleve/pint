@@ -4,12 +4,11 @@ include Makefile.common
 
 SOURCES = \
 	$(DIST_SOURCES) \
-	$(BINDINGS_SOURCES) \
 	$(PINTLIB_SOURCES) \
 	$(ANLIB_SOURCES) \
 	pintsg.ml
 
-LIBS = $(COMMON_LIBS) $(PINTLIB_LIBS) $(ANLIB_LIBS)
+LIBS = $(PINTLIB_LIBS) $(ANLIB_LIBS)
 
 RESULT = bin/pint-sg
 

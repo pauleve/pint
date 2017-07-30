@@ -19,6 +19,5 @@ include pintlib/Makefile.inc
 include phlib/Makefile.inc
 include anlib/Makefile.inc
 include contrib/Makefile.inc
-include Makefile.inc
 
 # vi:set syntax=make:

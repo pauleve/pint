@@ -5,8 +5,6 @@ SOURCES := \
 	pintTypes.ml\
 	debug.mli\
 	debug.ml\
-	param.mli\
-	param.ml\
 	kSets.ml\
 	util.mli\
 	util.ml\
@@ -17,6 +15,8 @@ SOURCES := \
 	aSP_lexer.mll\
 	aSP_solver.ml\
 	pn_mci.ml\
+	#param.mli\
+	param.ml\
 
 
 LIBS := bigarray unix nums str bes
