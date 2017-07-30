@@ -44,3 +44,4 @@ __pycache__
 *.pyc
 .ipynb*
 3rdparty/colomoto
+issues
