@@ -74,6 +74,12 @@ let asp_lcg asp lcg =
 		in
 		match n with
 		  NodeSol (_, alp) ->
+            (* context saturations to account for synchronized transitions *)
+            let asp_sideeffects asp (b,j) =
+                decl asp (init_asp b j^" :- "^edge_asp "_" orig)
+            in
+            let asp = List.fold_left asp_sideeffects asp alp.An_localpaths.ext_post
+            in
 			let asp_indep asp = function [] | [_] -> asp | state ->
 				let asp_indep_ls asp (a,i) =
 					List.fold_left (fun asp (b,j) ->
