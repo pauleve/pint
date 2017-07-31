@@ -1,0 +1,25 @@
+
+INSTALLATION INSTRUCTIONS
+
+Using terminal, execute:
+
+    sudo ./install.sh
+
+to install pint in /usr/local tree directory.
+
+
+== Options
+
+The destination can be specified as first argument:
+
+    ./install.sh PREFIX
+
+You should ensure that PREFIX/bin is in your PATH environment variable.
+
+Example:
+
+    ./install.sh $HOME/.local
+
+will install binaries in $HOME/.local/bin, without requiring root privileges.
+
+

@@ -66,6 +66,9 @@ test_clean:
 
 clean: $(addsuffix _clean,$(TARGETS)) test_clean 3rdparty_clean
 
+dist-clean: clean
+	rm -rf build
+
 RELNAME=$(shell date -I)
 RELBRANCH=master
 
@@ -123,16 +126,13 @@ DOCKER_BUILDER=pint-dist-builder
 docker-dist-builder:
 	docker build -t $(DOCKER_BUILDER) dist
 
-run-dist-deb-via-docker: docker-dist-builder
+DOCKER_BUILDER_TARGETS=dist-pre-deb dist-deb dist-static
+
+make-dist-via-docker: docker-dist-builder
 	docker run --rm --volume $$PWD:/home/opam/pint-$(RELNAME) \
 		--workdir /home/opam/pint-$(RELNAME) \
 		$(DOCKER_BUILDER) \
-		make dist-deb-via-docker RELNAME=$(RELNAME)
-
-dist-deb-via-docker:
-	make dist-pre-deb
-	make dist-deb
-	mv -v ../pint_$(RELNAME)_*.deb dist/
+		make RELNAME=$(RELNAME) $(DOCKER_BUILDER_TARGETS) dist-clean
 
 dist-pre-deb:
 	DEBEMAIL="Loic Pauleve <loic.pauleve@ens-cachan.org>" debchange -v $(RELNAME) Release $(RELNAME)
@@ -140,6 +140,22 @@ dist-pre-deb:
 
 dist-deb:
 	dpkg-buildpackage -tc
+	mv -v ../pint_$(RELNAME)_*.deb dist/
+
+STATIC_BASENAME=pint_$(RELNAME)_linux-$(shell arch)
+STATIC_DESTDIR=dist/$(STATIC_BASENAME)
+
+dist-static: dist-clean
+	python setup.py --disable-R --pint-env --share-path "/usr/local/share/pint"
+	make OCAMLNLDFLAGS="-ccopt -static"
+	make DESTDIR="$(STATIC_DESTDIR)" PREFIX="/" \
+		PINT_SHARE_PATH="/share" \
+		install
+	install -m 755 dist/static/bin/pint-env $(STATIC_DESTDIR)/bin
+	install -m 644 dist/static/README $(STATIC_DESTDIR)
+	install -m 755 dist/static/install.sh $(STATIC_DESTDIR)
+	tar cvzf $(STATIC_DESTDIR).tgz -C dist $(STATIC_BASENAME)
+
 
 dist-docker:
 	docker build -t pauleve/pint:latest -t pauleve/pint:$(RELNAME) --build-arg PINT_VERSION=$(RELNAME) .
@@ -148,7 +164,7 @@ dist-docker-publish:
 	docker push pauleve/pint
 
 dist: pre-release
-	make run-dist-deb-via-docker
+	make make-dist-via-docker
 	make dist-docker
 
 dist-publish: dist-docker-publish

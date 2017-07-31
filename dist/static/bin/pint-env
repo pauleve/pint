@@ -1,0 +1,3 @@
+#!/bin/bash
+cd "`dirname $0`"
+cd ../share 2>/dev/null && echo "PINT_SHARE_PATH=`pwd`" || true
