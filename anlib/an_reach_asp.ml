@@ -139,7 +139,7 @@ let unordered_ua an ctx goal sols =
 				(boolean_automata an) asp
 	and instance = "uua"
 	in
-	let ua = new lcg default_lcg_setup an ctx goal sols
+	let ua = new lcg ua_lcg_setup an ctx goal sols
 	in
 	ua#set_auto_conts false;
 	ua#build;

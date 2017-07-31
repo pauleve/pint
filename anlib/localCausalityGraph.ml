@@ -133,7 +133,7 @@ object(self)
 	method to_dot =
 		let dot_of_obj (a,i,j) =
 			"O_"^string_of_int a^"_"^string_of_int i ^"_"^string_of_int j
-		and dot_of_proc = string_of_ls an
+		and dot_of_proc (a,i) = "ls_"^string_of_int a^"_"^string_of_int i
 		in
 		let synccounter = ref 0
 		in
@@ -171,7 +171,7 @@ object(self)
 			in
 			let rels = Hashtbl.find_all edges (NodeLS p)
 			in
-			let def = dproc^"[shape=box];\n"
+			let def = dproc^"[label=\""^(string_of_ls an p)^"\",shape=box];\n"
 			and edges = String.concat "\n" (List.map dot_of_rel rels)
 			in
 			def ^ edges ^ "\n"
@@ -663,6 +663,16 @@ let default_lcg_setup = {
 	saturate_lss_by_nodes = (fun _ a -> a);
 }
 
+let ua_lcg_setup = {default_lcg_setup with
+    saturate_lss_by_nodes = fun nodes lss ->
+        let fold node lss = match node with
+          NodeSol (_, alp) ->
+                List.fold_left (fun lss ai -> LSSet.add ai lss) lss
+                            alp.ext_post
+        | _ -> lss
+        in
+        NodeSet.fold fold nodes lss
+}
 
 (**
     predefined LCGs
