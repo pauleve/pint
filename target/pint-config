@@ -7,7 +7,7 @@ SOURCES = \
     pintlib/pintmeta.ml \
 	pintconfig.ml
 
-LIBS =
+LIBS = unix
 
 RESULT = bin/pint-config
 
