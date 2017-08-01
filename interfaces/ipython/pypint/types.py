@@ -241,7 +241,7 @@ class Goal:
         for gs in self.__goals:
             if args:
                 args.append("or")
-            args += [",".join(["%s=%s" % ai for ai in g.items()]) \
+            args += [",".join([pint_of_localstates([ai]) for ai in g.items()]) \
                         for g in gs]
         return " ".join(args)
 
