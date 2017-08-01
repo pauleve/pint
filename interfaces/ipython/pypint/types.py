@@ -200,6 +200,8 @@ class Goal:
             return self(arg)
         elif isinstance(arg, list):
             return self(*arg)
+        elif isinstance(arg, tuple) and len(arg) == 2:
+            return self({arg[0]: arg[1]})
         elif arg is None:
             return self(**kwargs)
         else:
