@@ -309,7 +309,7 @@ are all valid, but they may be non-minimal, and some cut-sets may be missed.")
     if exclude_goal_automata:
         exclude.update(goal.automata)
     if exclude:
-        args += ["--ignore-automata", ",".join(exclude)]
+        args += ["--ignore-automata", ",".join(['"%s"' % a for a in exclude])]
 
     cp = _run_tool("pint-reach", "--cutsets", str(maxsize), goal, *args,
                 input_model=self, timeout=timeout)
@@ -355,7 +355,7 @@ are all valid, but they may be non-minimal, and some solutions may be missed.")
     if exclude_goal_automata:
         exclude.update(goal.automata)
     if exclude:
-        args += ["--ignore-automata", ",".join(exclude)]
+        args += ["--ignore-automata", ",".join(['"%s"' % a for a in exclude])]
 
     cp = _run_tool("pint-reach", goal, *args, input_model=self, timeout=timeout)
     output = cp.stdout.decode()
