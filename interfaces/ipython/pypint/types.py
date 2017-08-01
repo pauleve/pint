@@ -196,7 +196,7 @@ class Goal:
         """
         if isinstance(arg, self):
             return arg
-        elif isinstance(arg, str):
+        elif isinstance(arg, str) or isinstance(arg, dict):
             return self(arg)
         elif isinstance(arg, list):
             return self(*arg)
