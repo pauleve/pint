@@ -42,6 +42,8 @@ GitHub.
 Related Papers
 ==============
 
+- `Goal-Driven Unfolding of Petri Nets <https://hal.archives-ouvertes.fr/hal-01392203/file/godunf.pdf>`_
+  (T. Chatain, and L. Paulevé at *CONCUR 2017*)
 - `Identification of bifurcation transitions in biological regulatory networks using Answer-Set Programming <http://dx.doi.org/10.1186/s13015-017-0110-3>`_
   (L. F. Fitime,  O. Roux, C. Guziolowski, and L. Paulevé in *Algorithms for Molecular Biology*, 2017)
 - `Goal-Oriented Reduction of Automata Networks <https://hal.archives-ouvertes.fr/hal-01149118/file/gored.pdf>`_ (L. Paulevé at *CMSB 2016*)
