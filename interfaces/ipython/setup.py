@@ -36,6 +36,7 @@ setup(name = NAME,
     keywords='',
     description = "Python interface to Pint",
     long_description=open('README.rst').read(),
+    python_requires=">=3.4",
     install_requires = [
         "networkx",
         "pydotplus",
