@@ -42,6 +42,9 @@ setup(name = NAME,
         "pydotplus",
         "pygraphviz",
     ],
+    extras_require = {
+        "cadbiom": ["boolean.py"],
+    },
     entry_points = {
         "console_scripts": [
             "pint-import=pypint.console:import_model",
