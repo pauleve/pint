@@ -1,5 +1,8 @@
 
 import json
+import re
+
+re_int = re.compile(r"\d+")
 
 class Inconc:
     """
@@ -160,8 +163,12 @@ class Goal:
 
         def parse_ls(s):
             a,i = s.split("=")
-            a = a.strip('"')
-            i = i.strip('"')
+            a = a.strip().strip('"')
+            i = i.strip()
+            if re_int.fullmatch(i):
+                i = int(i)
+            else:
+                i = i.strip('"')
             return a,i
 
         def goal_of_arg(a):
