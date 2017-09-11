@@ -22,7 +22,7 @@ from .converters import CONVERTERS
 
 if IN_IPYTHON:
     from IPython.display import display, FileLink, HTML
-    from .ipython_helpers import disp_jupyter_js
+    from colomoto_jupyter.upload import jupyter_upload
 
 class InitialState(dict):
     """
@@ -396,15 +396,6 @@ LOAD_SUPPORTED_FORMATS = list(sorted(set(ext2format.values())))
 Formats supported by :py:func:`.load` method
 """
 
-if IN_IPYTHON:
-    def _js_load_callback(data):
-        filename = new_output_file(suffix=data["name"])
-        content = base64.b64decode(data["content"].split(",")[1])
-        content = content.decode("utf-8")
-        with open(filename, 'w') as f:
-            f.write(content)
-        print(filename,end='')
-        return filename
 
 def load(filename=None, format=None, simplify=True):
     """
@@ -456,10 +447,7 @@ def load(filename=None, format=None, simplify=True):
 
     if filename is None:
         if IN_IPYTHON:
-            ssid = "pint-loading-%d" % random.randint(1, 10**7)
-            display(HTML("""<input type="file" id="%s"
-                   onchange="load_with_upload(Jupyter, '%s', this)">""" % (ssid,ssid)))
-            return
+            return jupyter_upload("pypint.load", "pypint.load")
         else:
             raise TypeError("missing filename argument")
 
@@ -514,6 +502,4 @@ __all__ = [
     "load",
     "Model", "FileModel", "InMemoryModel",
     "InitialState"]
-if IN_IPYTHON:
-    __all__.append("_js_load_callback")
 

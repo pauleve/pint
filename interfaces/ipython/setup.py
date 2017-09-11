@@ -38,9 +38,8 @@ setup(name = NAME,
     long_description=open('README.rst').read(),
     python_requires=">=3.4",
     install_requires = [
+        "colomoto_jupyter[networkx] >=0.2 <0.3",
         "networkx",
-        "pydotplus",
-        "pygraphviz",
     ],
     extras_require = {
         "cadbiom": ["boolean.py"],
