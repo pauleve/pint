@@ -158,15 +158,15 @@ if IN_IPYTHON:
     js_api = {
     "action_upload_model": """function() {
         var cell = Jupyter.notebook.get_selected_cell();
-        cell.set_text('model = pypint.load()');
+        cell.set_text('model = '+pypint_jsapi.module_alias+'.load()');
         cell.focus_editor();
     }""",
     "action_enable_debug": """function() {
-        IPython.notebook.kernel.execute("pypint.enable_dbg()");
+        IPython.notebook.kernel.execute(pypint_jsapi.module_alias+".enable_dbg()");
         pint_jsapi.debug_enabled(true);
     }""",
     "action_disable_debug": """function() {
-        IPython.notebook.kernel.execute("pypint.disable_dbg()");
+        IPython.notebook.kernel.execute(pypint_jsapi.module_alias+".disable_dbg()");
         pint_jsapi.debug_enabled(false);
     }""",
     "btn_enable_debug": "null",
@@ -181,15 +181,15 @@ if IN_IPYTHON:
         }
     }""",
     "post_install_callback": """function() {
-        this.btn_enable_debug = $("#pint-toolbar > button[data-jupyter-action='pint:enable-debug']");
-        this.btn_disable_debug = $("#pint-toolbar > button[data-jupyter-action='pint:disable-debug']");
+        this.btn_enable_debug = $("#pypint-toolbar > button[data-jupyter-action='pypint:enable-debug']");
+        this.btn_disable_debug = $("#pypint-toolbar > button[data-jupyter-action='pypint:disable-debug']");
         this.btn_enable_debug[0].innerHTML = "enable debug";
         this.btn_disable_debug[0].innerHTML = "disable debug";
         this.debug_enabled(%s);
     }""" % (1 if CFG["dbg"] else 0)
     }
 
-    jupyter_setup("pint", label="Pint",
+    jupyter_setup(__name__, label="Pint",
         color="red",
         menu=menu,
         toolbar=toolbar,
