@@ -51,11 +51,3 @@ User interface functions
     :members:
     :show-inheritance:
 
-IPython interface functions
----------------------------
-
-.. automodule:: pypint.ipython_helpers
-    :members:
-    :show-inheritance:
-
-
