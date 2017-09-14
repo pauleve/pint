@@ -263,7 +263,7 @@ def disable(self, local_states=[], **kwstate):
 #
 
 @modeltool
-def cutsets(self, goal=None, maxsize=5, exclude=[], exclude_initial_state=True,
+def cutsets(self, goal=None, maxsize=5, exclude=[], exclude_initial_state=False,
                 exclude_goal_automata=True, timeout=None, **kwgoal):
     """
     Computes sets of local states which are used in all the paths from the
@@ -282,8 +282,7 @@ def cutsets(self, goal=None, maxsize=5, exclude=[], exclude_initial_state=True,
     :keyword set(str) exclude:
         set/list of automata to exclude from the solutions
     :keyword bool exclude_initial_state:
-        if ``True`` (default), cut-sets can not be composed of initial local
-        states.
+        if ``True``, cut-sets can not be composed of initial local states.
     :keyword bool exclude_goal_automata:
         exclude automata involved in the goal specification
     :param int timeout: command timeout in seconds
