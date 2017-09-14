@@ -42,6 +42,8 @@ GitHub.
 Related Papers
 ==============
 
+- `Reduction of Qualitative Models of Biological Networks for Transient Dynamics Analysis <https://hal.archives-ouvertes.fr/hal-01580765/file/preprint.pdf>`_
+  (L. Paulevé in *IEEE/ACM Transactions on Computational Biology and Bioinformatics (TCBB)*, 2017)
 - `Goal-Driven Unfolding of Petri Nets <https://hal.archives-ouvertes.fr/hal-01392203/file/godunf.pdf>`_
   (T. Chatain, and L. Paulevé at *CONCUR 2017*)
 - `Identification of bifurcation transitions in biological regulatory networks using Answer-Set Programming <http://dx.doi.org/10.1186/s13015-017-0110-3>`_
