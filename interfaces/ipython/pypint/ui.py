@@ -1,5 +1,6 @@
 
 import os
+import sys
 
 from .cfg import *
 
@@ -30,7 +31,10 @@ def dbg(msg):
     If debug is enabled, print `msg` (prefixed with '#')
     """
     if CFG["dbg"]:
-        print("# %s" % msg)
+        if IN_IPYTHON:
+            print("# %s" % msg)
+        else:
+            print("# %s" % msg, file=sys.stderr)
 
 if IN_IPYTHON:
     def info(msg):
@@ -44,7 +48,7 @@ else:
         Print `msg` (note: in IPython, `msg` is interpreted in Markdown
         format)
         """
-        print(msg)
+        print(msg, file=sys.stderr)
 
 __all__ = [
     "dbg",
