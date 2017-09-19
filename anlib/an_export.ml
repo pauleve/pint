@@ -464,7 +464,7 @@ let nusmv_of_an ?(map=None) universal an ctx =
 			tbd_state::sis else sis
 		in
 		varname a^": {"^(String.concat "," sis)^"};"
-        ^ " // automaton "^(label_of_a an a)^" with local states "
+        ^ " -- automaton "^(label_of_a an a)^" with local states "
             ^String.concat ", "
                 (List.mapi (fun i isig ->
                         string_of_int i^"="^string_of_sigls ~protect:false isig)
