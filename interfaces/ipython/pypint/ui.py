@@ -4,6 +4,7 @@ import os
 from .cfg import *
 
 if IN_IPYTHON:
+    from colomoto_jupyter import disp_jupyter_js
     from IPython.display import display, Markdown, HTML
 
 def enable_dbg():
@@ -13,8 +14,7 @@ def enable_dbg():
     CFG["dbg"] = True
     os.environ["OCAMLRUNPARAM"] = "b"
     if IN_IPYTHON:
-        from .ipython_helpers import disp_jupyter_js
-        disp_jupyter_js("pint_ui_debug_enabled(true);")
+        disp_jupyter_js("pypint_jsapi.debug_enabled(true);")
 
 def disable_dbg():
     """
@@ -23,8 +23,7 @@ def disable_dbg():
     CFG["dbg"] = False
     del os.environ["OCAMLRUNPARAM"]
     if IN_IPYTHON:
-        from .ipython_helpers import disp_jupyter_js
-        disp_jupyter_js("pint_ui_debug_enabled(false);")
+        disp_jupyter_js("pypint_jsapi.debug_enabled(false);")
 
 def dbg(msg):
     """
