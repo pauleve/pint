@@ -42,6 +42,29 @@ GitHub.
 Related Papers
 ==============
 
+Please cite **Pint** as follows:
+
+    Paulevé L. (2017) *Pint: A Static Analyzer for Transient Dynamics of Qualitative Networks with IPython Interface*. In: Feret J., Koeppl H. (eds) Computational Methods in Systems Biology. CMSB 2017. Lecture Notes in Computer Science, vol 10545. Springer, Cham
+
+.. code:: bibtex
+
+    @inproceedings{Pint,
+      TITLE = {{Pint: A Static Analyzer for Transient Dynamics of Qualitative Networks with IPython Interface}},
+      AUTHOR = {Paulev{\'e}, Lo{\"i}c},
+      BOOKTITLE = {{CMSB 2017 - 15th conference on Computational Methods for Systems Biology}},
+      PUBLISHER = {Springer},
+      SERIES = {Lecture Notes in Computer Science},
+      VOLUME = {10545},
+      PAGES = {370 - 316},
+      YEAR = {2017},
+      DOI = {10.1007/978-3-319-67471-1\_20},
+    }
+
+
+Other related papers:
+
+- `Pint: A Static Analyzer for Transient Dynamics of Qualitative Networks with IPython Interface <https://hal.archives-ouvertes.fr/hal-01589248/file/pint.pdf>`_
+  (L. Paulevé at *CMSB 2017*)
 - `Reduction of Qualitative Models of Biological Networks for Transient Dynamics Analysis <https://hal.archives-ouvertes.fr/hal-01580765/file/preprint.pdf>`_
   (L. Paulevé in *IEEE/ACM Transactions on Computational Biology and Bioinformatics (TCBB)*, 2017)
 - `Goal-Driven Unfolding of Petri Nets <https://hal.archives-ouvertes.fr/hal-01392203/file/godunf.pdf>`_
