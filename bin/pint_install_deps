@@ -18,9 +18,15 @@ def chmod_x(filename):
     st = os.stat(filename)
     os.chmod(filename, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
+def prepare_dest(dest):
+    destdir = os.path.dirname(dest)
+    if not os.path.exists(destdir):
+        os.makedirs(destdir)
+
 def install_bin_from_tar(tar, member, dest):
     fd = tar.extractfile(member)
     print("installing %s" % dest)
+    prepare_dest(dest)
     with open(dest, "wb") as o:
         o.write(fd.read())
     fd.close()
@@ -144,14 +150,13 @@ class GINsim(Tool):
 
     @classmethod
     def install(self, system, args):
-        destdir = os.path.join(args.pintsharedir, "3rdparty", "colomoto")
-        if not os.path.exists(destdir):
-            os.makedirs(destdir)
-        destjar = os.path.join(destdir, "GINsim.jar")
+        destjar = os.path.join(args.pintsharedir, "3rdparty", "GINsim.jar")
         print("installing %s" % destjar)
+        prepare_dest(destjar)
         urlretrieve(self.binfile, destjar)
         destbin = os.path.join(args.prefix, "bin", "GINsim")
         print("installing %s" % destbin)
+        prepare_dest(destbin)
         with open(destbin, "w") as fd:
             fd.write("""#!/usr/bin/env bash\njava -jar "%s" "${@}"\n""" % destjar)
         chmod_x(destbin)
