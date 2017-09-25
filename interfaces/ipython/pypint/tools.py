@@ -5,7 +5,6 @@ import subprocess
 import tempfile
 
 import networkx as nx
-import pydotplus
 
 from .cfg import *
 from .types import *
@@ -489,8 +488,8 @@ def local_causality_graph(self, kind="full", goal=None, **kwgoal):
     if goal:
         args.append(goal)
     cp = _run_tool("pint-lcg", *args, input_model=self)
-    g = pydotplus.graph_from_dot_data(cp.stdout.decode())
-    return nx.nx_pydot.from_pydot(g)
+    dot = StringIO(cp.stdout.decode())
+    return nx.DiGraph(nx.nx_pydot.read_dot(dot))
 
 @modeltool
 def full_lcg(self):
