@@ -1,2 +1,7 @@
 #!/bin/sh
-pint_install_deps || true
+if command -V python3 >/dev/null 2>&1; then
+    pyexe=python3
+else
+    pyexe=python
+fi
+$pyexe `command -v pint_install_deps` || true

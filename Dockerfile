@@ -8,6 +8,8 @@ EXPOSE 8888
 ENV TINI_VERSION 0.13.1
 RUN apt-get update \
     && apt-get install -y \
+        curl \
+        python3 \
         gringo \
         libgmpxx4ldbl \
         openjdk-8-jre-headless \
