@@ -1,5 +1,7 @@
 ## Pint - Static analyzer for dynamics of Automata Networks
 
+[![PyPI version](https://badge.fury.io/py/pypint.svg)](https://badge.fury.io/py/pypint)
+
 Distributed under [CeCCIL licence](http://cecill.info/licences/Licence_CeCILL_V2-en.html).
 
 See https://loicpauleve.name/pint/doc/index.html#Installation for installation
