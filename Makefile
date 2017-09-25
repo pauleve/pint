@@ -126,6 +126,7 @@ dist-osx:
 DOCKER_BUILDER=pint-dist-builder
 
 docker-dist-builder:
+	docker pull $(shell grep FROM dist/Dockerfile|sed 's:FROM::')
 	docker build -t $(DOCKER_BUILDER) dist
 
 DOCKER_BUILDER_TARGETS=dist-pre-deb dist-deb dist-static
@@ -160,6 +161,7 @@ dist-static: dist-clean
 
 
 dist-docker:
+	docker pull $(shell grep FROM Dockerfile|sed 's:FROM::')
 	docker build -t pauleve/pint:latest -t pauleve/pint:$(RELNAME) --build-arg PINT_VERSION=$(RELNAME) .
 
 dist-docker-publish:
