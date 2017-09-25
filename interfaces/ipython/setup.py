@@ -38,7 +38,7 @@ setup(name = NAME,
     long_description=open('README.rst').read(),
     python_requires=">=3.4",
     install_requires = [
-        "colomoto_jupyter[networkx] >=0.3.1 <0.4",
+        "colomoto_jupyter[networkx] >=0.3.1, <0.4",
         "networkx",
     ],
     extras_require = {
