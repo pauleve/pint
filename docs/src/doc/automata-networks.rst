@@ -17,8 +17,7 @@ See :py:func:`pypint.model.load` and :doc:`model` tutorial.
 The structure of a ``.an`` file is the following.
 You can refer to the `model repository <https://github.com/pauleve/pint/tree/master/examples>`_ for some examples.
 
-Automata declaration
-====================
+* Automata declaration
 
 An automaton is defined by a name and a list of local states.
 If the name of the automaton contain special characters, it should be enclosed with `"`.
@@ -33,8 +32,7 @@ Examples:
     "Fyn-1" ["inactive", "active"]
 
 
-Transitions
-===========
+* Transitions
 
 A transition specifies a local state change within one automaton, and can be conditionned by the conjunction of states of other automata.
 
@@ -56,8 +54,7 @@ Transitions can also be coupled, i.e., their application is done simultaneously:
 The above synchronized transition can be perfomed only when `a=1`, `b=0`, and `Fyn-1=active`.
 
 
-Initial state
-=============
+* Initial state
 
 By default, each automaton starts in the local state `0`. The initial state of the automata network can be overrided with the following
 directive:
