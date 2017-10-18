@@ -81,7 +81,10 @@ let {0} = try Sys.getenv "{1}"
     with Not_found -> "{2}"
 """.format(var, var.upper(), value))
     else:
-        fd.write("let %s = \"%s\"\n" % (var, value))
+        fd.write("""
+let {0} = try Sys.getenv "{1}"
+    with Not_found -> "{2}"
+""".format(var, var.upper(), value))
 fd.close()
 
 fd = open('build/Makefile.inc', 'w')
