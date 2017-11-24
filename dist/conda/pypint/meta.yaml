@@ -27,6 +27,7 @@ requirements:
   run:
     - python
     - colomoto_jupyter >=0.3.3,<0.4
+    - ginsim >=2.9.6
     - networkx >=2.0
     - pint >=2017.07.28
 
