@@ -1,21 +1,20 @@
+{% set version = "2017-09-25" %}
 package:
   name: pint
-  version: "2017.09.25"
-
+  version: {{ version|replace('-','.') }}
 
 source:
-  url: https://github.com/pauleve/pint/releases/download/2017-09-25/pint_2017-09-25_linux-x86_64.tgz
+  url: https://github.com/pauleve/pint/releases/download/{{ version }}/pint_{{ version }}_linux-x86_64.tgz
 
 requirements:
   run:
-    - python
     - clingo
     - nusmv
     - its
     - mole
 
-
 about:
   home: https://loicpauleve.name/pint/
   license: CeCILL
+  summary: Static analyzer for dynamics of Automata Networks
 
