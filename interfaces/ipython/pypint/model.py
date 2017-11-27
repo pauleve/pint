@@ -387,6 +387,8 @@ ext2format = {
     "boolfunctions": "boolfunctions",
     "boolsim": "boolsim",
     "ginml": "ginml",
+    "sbgn": "sbgnpd",
+    "sbgnml": "sbgnpd",
     "sbml": "sbml",
     "zginml": "zginml",
 }
@@ -397,7 +399,7 @@ Formats supported by :py:func:`.load` method
 """
 
 
-def load(filename=None, format=None, simplify=True):
+def load(filename=None, format=None, simplify=True, **opts):
     """
     Load a Pint model from given filename.
     The format is guessed from the filename extension, but can be enforced with
@@ -477,7 +479,7 @@ def load(filename=None, format=None, simplify=True):
 
     if format == "an":
         info("Source file is in Automata Network (an) format")
-        return FileModel(filename)
+        return FileModel(filename, **opts)
 
     elif format in ["boolfunctions", "boolsim", "booleannet", "sbml",
                     "ginml", "zginml"]:
@@ -485,13 +487,13 @@ def load(filename=None, format=None, simplify=True):
                     % format)
         anfile = make_anfile()
         return import_with_ginsim(format, filename, anfile,
-                    simplify=simplify)
+                    simplify=simplify, **opts)
 
     elif format in CONVERTERS:
         info("Source file is in %s format" % format)
         anfile = make_anfile()
         with open(anfile, "w") as outfd:
-            CONVERTERS[format](filename, outfd)
+            CONVERTERS[format](filename, outfd, **opts)
         return FileModel(anfile)
     else:
         raise ValueError("Format '%s' is not supported." % format)

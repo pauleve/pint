@@ -20,6 +20,7 @@ def import_cadbiom(localfile, outfd, full_context=True, relax_threshold=6):
     except ImportError:
         print("ERROR: Please install boolean.py package (pip3 install boolean.py)")
         raise
+    from .lib.boolean_utils import BoolToAN
 
     ba = boolean.BooleanAlgebra()
 
@@ -49,29 +50,11 @@ def import_cadbiom(localfile, outfd, full_context=True, relax_threshold=6):
     for a in SimpleNodes + PermNodes:
         declare_automaton(a, 0, 1)
 
-    def make_transitions(a, i, j, dnf):
-        if isinstance(dnf, ba.AND):
-            clauses = [dnf]
-        else:
-            clauses = dnf.args
-        for clause in clauses:
-            cond = ""
-            if isinstance(clause, ba.AND):
-                lits = clause.args
-            else:
-                lits = [clause]
-            if lits:
-                def lit_to_ls(lit):
-                    if isinstance(lit, ba.NOT):
-                        b = lit.args[0].obj
-                        k = 0
-                    else:
-                        b = lit.obj
-                        k = 1
-                    return "%s=%d" % (b,k)
-                cond = " when %s" % " and ".join([lit_to_ls(l) for l in lits])
-            print("%s %d -> %d%s" % (a,i,j,cond), file=outfd)
-
+    def cond_of_lit(b, pos):
+        return "{}={}".format(b, 1 if pos else 0)
+    def out(data):
+        print(data, file=outfd)
+    b2a = BoolToAN(ba, cond_of_lit, out)
 
     def relabel_condition(condition):
         def relabel(m) :
@@ -133,7 +116,7 @@ def import_cadbiom(localfile, outfd, full_context=True, relax_threshold=6):
         else:
             done[target] = [expr_up]
 
-        make_transitions(target, 0, 1, expr_up)
+        b2a.make_transitions([(target, 0, 1)], expr_up)
 
         if condition != ba.TRUE:
             condition = condition.subs({ltarget: ba.TRUE}).simplify()
@@ -146,15 +129,14 @@ def import_cadbiom(localfile, outfd, full_context=True, relax_threshold=6):
                     ncoop += 1
                     a = acoop % ncoop
                     declare_automaton(a, 0, 1)
-                    make_transitions(a, 0, 1, clause)
-                    make_transitions(a, 1, 0, ba.dnf(~clause))
+                    b2a.make_transitions([(a, 0, 1)], clause)
+                    b2a.make_transitions([(a, 1, 0)], ~clause)
                     (la,) = ba.symbols(a)
                     condition = condition.subs({clause:la})
 
             expr_down = ~condition | ~lorig
-            expr_down = ba.dnf(expr_down)
 
-        make_transitions(target, 1, 0, expr_down)
+        b2a.make_transitions([(target, 1, 0)], expr_down)
 
         if bar:
             bar.next()

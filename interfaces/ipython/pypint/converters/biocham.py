@@ -103,7 +103,7 @@ class model:
         init = ", ".join(["%s=1" % n(a) for a in self.present])
         print("initial_state %s" % init, file=fd)
 
-def import_biocham(localfile, outfd, **args):
+def import_biocham(localfile, outfd):
     m = model.from_file(localfile)
     m.to_an(outfd)
 
