@@ -250,6 +250,8 @@ def disable(self, local_states=[], **kwstate):
     """
     if hasattr(local_states, "items"):
         local_states = list(local_states.items())
+    else:
+        local_states = list(local_states)
     local_states += list(kwstate.items())
 
     args = ["--disable", pint_of_localstates(local_states)]
