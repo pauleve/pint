@@ -34,6 +34,8 @@ class BoolToAN:
             cond = ""
             if isinstance(clause, self.ba.AND):
                 lits = clause.args
+            elif clause == self.ba.TRUE:
+                lits = None
             else:
                 lits = [clause]
             if lits:

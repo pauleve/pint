@@ -76,6 +76,13 @@ def get_type_abbrv(t):
     abbrv = type2abbrv[t]
     return abbrv
 
+molecule2abbrv = {
+    "macromolecule multimer": "m_",
+}
+def get_molecule_abbrv(t):
+    abbrv = molecule2abbrv.get(t, "")
+    return abbrv
+
 class SbgnGlyph:
     compartmentRef = None
     compartment = None
@@ -165,12 +172,11 @@ class SbgnMolecule(SbgnEntity):
                 self.label = n.getAttribute("text")
             elif n.nodeName == "glyph":
                 attr = attr_of_glyph(n)
-                if attr:
-                    self.attrs.append(attr)
+                self.attrs.append(attr)
 
     @property
     def name(self):
-        name = self.label
+        name = "%s%s" % (get_molecule_abbrv(self.type), self.label)
         if self.attrs:
             name += "-"+"-".join(self.attrs)
         if self.compartment:

@@ -59,6 +59,14 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=()):
     # declare automata for entities
     # TODO? clones
     entities = set([e for e in model.entities.values() if not e.is_void()])
+
+    name_clash = {}
+    for e in entities:
+        name = an_name(e)
+        assert name not in name_clash, \
+            "Name clash [%s] between %s and %s" % (name, e, name_clash[name])
+        name_clash[name] = e
+
     for e in entities:
         if e not in e2stories:
             out("{} [0, 1]".format(an_name(e)))
@@ -178,11 +186,19 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=()):
                 for sid in sids:
                     fill_group(group, sid)
 
+            consumptions = p.consumptions
+            productions = p.productions
+
+            inv = set(p.productions).intersection(p.consumptions)
+            if inv:
+                consumptions = set(consumptions) - inv
+                productions = set(productions) - inv
+
             cons_indiv_e = []
             cons_s2e = {}
             prod_s2e = {}
             prod_done = ba.TRUE
-            for e in p.consumptions:
+            for e in consumptions:
                 sids = e2stories.get(e)
                 if not sids:
                     cons_indiv_e.append(e)
@@ -190,7 +206,7 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=()):
                     push_sids(sids)
                     for sid in sids:
                         cons_s2e[sid] = e
-            for e in p.productions:
+            for e in productions:
                 sids = e2stories.get(e)
                 if not sids:
                     b2a.make_transitions([(an_name(e),0,1)], conds)
