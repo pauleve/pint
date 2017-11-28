@@ -105,7 +105,6 @@ class SbgnGlyph:
 
     def __lt__(g1, g2):
         return repr(g1) < repr(g2)
-    
 
 def attr_of_glyph(n):
     cls = n.getAttribute("class")
@@ -117,11 +116,10 @@ def attr_of_glyph(n):
     n = n.getElementsByTagName(e)
     if n:
         n = n[0]
-        label = n.getAttribute(a) or ""
+        label = n.getAttribute(a) or "_"
         if cls == "state variable" and n.hasAttribute("variable"):
             label += "@%s" % n.getAttribute("variable")
         return label
-            
 
 class SbgnCompartment(SbgnGlyph):
     def __init__(self, *args):
@@ -172,13 +170,14 @@ class SbgnMolecule(SbgnEntity):
                 self.label = n.getAttribute("text")
             elif n.nodeName == "glyph":
                 attr = attr_of_glyph(n)
-                self.attrs.append(attr)
+                if attr:
+                    self.attrs.append(attr)
 
     @property
     def name(self):
         name = "%s%s" % (get_molecule_abbrv(self.type), self.label)
         if self.attrs:
-            name += "-"+"-".join(self.attrs)
+            name += "-"+"".join(self.attrs)
         if self.compartment:
             name += "/%s" % self.compartment.label
         return name
@@ -211,7 +210,7 @@ class SbgnComplex(SbgnEntity):
             assert self.label, "Unsupported complex glyph (%s)"%self.dom.toxml()
             name = self.label
         if self.attrs:
-            name += "-"+"-".join(self.attrs)
+            name += "-"+"".join(self.attrs)
         if self.compartment:
             name += "/%s" % self.compartment.label
         return name
