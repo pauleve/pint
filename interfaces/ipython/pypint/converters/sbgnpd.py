@@ -79,6 +79,16 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
         out("{} [{}]".format(story["name"],
                         ", ".join(["0"] + [an_name(e) for e in story["entities"]])))
 
+
+    class StoryState:
+        def __init__(self, sid, i):
+            self.sid = sid
+            self.i = i
+        def __repr__(self):
+            return "%s(%s,%s)" % (self.__class__.__name__,self.sid, self.i)
+        def __lt__(g1, g2):
+            return repr(g1) < repr(g2)
+
     def Lit(e):
         return ba.symbols(e)[0]
 
@@ -130,8 +140,8 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
             return [(an_name(e), 1 if present else 0)]
 
     def cond_of_lit(b, pos):
-        if isinstance(b, tuple): # story,0
-            return "%s=%s" % b
+        if isinstance(b, StoryState): # story,0
+            return "%s=%s" % (story_name(b.sid), b.i)
         else:
             return " and ".join(["{}={}".format(a,i) \
                         for (a,i) in local_states_of_entity(b, pos)])
@@ -241,7 +251,7 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
                     j = an_name(j) if j is not None else 0
                     changes.append((a,i,j))
                     if not j:
-                        production_done &= Lit((sid,0))
+                        prod_done &= Lit(StoryState(sid,0))
                 b2a.make_transitions(changes, conds)
 
             # process de-activation
