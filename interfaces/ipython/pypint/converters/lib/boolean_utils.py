@@ -6,10 +6,11 @@ except ImportError:
     raise
 
 class BoolToAN:
-    def __init__(self, ba, cond_of_lit, out):
+    def __init__(self, ba, cond_of_lit, out, subs=None):
         self.ba = ba
         self.cond_of_lit = cond_of_lit
         self.out = out
+        self.subs = subs
 
     @staticmethod
     def BooleanAlgebra():
@@ -17,6 +18,12 @@ class BoolToAN:
 
     def make_transitions(self, changes, expr):
         dnf = self.ba.dnf(expr)
+
+        if self.subs:
+            # substitution can break the DNF form
+            expr = dnf.subs(self.subs)
+            dnf = self.ba.dnf(expr)
+
         if isinstance(dnf, self.ba.OR):
             clauses = dnf.args
         elif isinstance(dnf, self.ba.AND):

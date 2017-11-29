@@ -1,4 +1,6 @@
 
+from functools import reduce
+
 from .lib.sbgnpd import *
 
 def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
@@ -22,7 +24,7 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
     for i, story in enumerate(stories):
         if isinstance(story, tuple) and len(story) == 2 \
                 and isinstance(story[0], str) \
-                and isinstance(story[1], (tuple, list, set)):
+                and isinstance(story[1], (tuple, list, set, frozenset)):
             spec = {"name": _p(story[0]), "ids": tuple(story[1])}
         else:
             spec = {"name": _p("story{}".format(i)), "ids": story}
@@ -89,8 +91,57 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
         def __lt__(g1, g2):
             return repr(g1) < repr(g2)
 
+    def story_name(sid):
+        return stories[sid]["name"]
+
+    def local_states_of_entity(e, present=True):
+        sids = e2stories.get(e)
+        if sids:
+            ret = []
+            for sid in sids:
+                a = story_name(sid)
+                if present:
+                    ret.append((a,an_name(e)))
+                else:
+                    ret += [(a,an_name(f)) for f in stories[sid]["entities"] if f.id != e.id] \
+                        + [(a, 0)]
+            return ret
+        else:
+            return [(an_name(e), 1 if present else 0)]
+
+    class LS:
+        def __init__(self, a, i):
+            self.a = a
+            self.i = i
+            self.si = str(i)
+        def __lt__(ai, bj):
+            return (ai.a,ai.si) < (bj.a,bj.si)
+        def to_pint(self):
+            return "{}={}".format(self.a, self.i)
+
+    def expand_lit(b, pos):
+        if isinstance(b, StoryState): # story,0
+            assert pos
+            return ba.symbols(LS(story_name(b.sid), b.i))[0]
+        else:
+            local_states = [LS(a,i) for a,i in local_states_of_entity(b, pos)]
+            symbols = ba.symbols(*local_states)
+            return reduce(lambda x,y: x|y, symbols)
+
+    def cond_of_lit(ai, pos):
+        assert pos
+        return ai.to_pint()
+
+
+    subs = {}
+
     def Lit(e):
-        return ba.symbols(e)[0]
+        x = ba.symbols(e)[0]
+        if x not in subs:
+            subs[x] = expand_lit(e, True)
+            if not isinstance(e, StoryState):
+                subs[~x] = expand_lit(e, False)
+        return x
 
     def logic_from_entity(n):
         if n.type in ENTITY_CLASSES:
@@ -121,35 +172,10 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
             expr = ba.TRUE
         return necessary & expr
 
-    def story_name(sid):
-        return stories[sid]["name"]
-
-    def local_states_of_entity(e, present=True):
-        sids = e2stories.get(e)
-        if sids:
-            ret = []
-            for sid in sids:
-                a = story_name(sid)
-                if present:
-                    ret.append((a,an_name(e)))
-                else:
-                    ret += [(a,an_name(f)) for f in stories[sid] if f.id != e.id] \
-                        + [(a, 0)]
-            return ret
-        else:
-            return [(an_name(e), 1 if present else 0)]
-
-    def cond_of_lit(b, pos):
-        if isinstance(b, StoryState): # story,0
-            return "%s=%s" % (story_name(b.sid), b.i)
-        else:
-            return " and ".join(["{}={}".format(a,i) \
-                        for (a,i) in local_states_of_entity(b, pos)])
-        return b, 1 if pos else 0
 
     out_trs = []
 
-    b2a = BoolToAN(ba, cond_of_lit, out_trs.append)
+    b2a = BoolToAN(ba, cond_of_lit, out_trs.append, subs)
 
     #
     # transitions + automata for explicit processes
@@ -190,7 +216,7 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
             def push_sids(sids):
                 for sid1 in sids:
                     for sid2 in sids:
-                        if sid2 not in gstories:
+                        if sid1 not in gstories:
                             gstories[sid1] = set()
                         gstories[sid1].add(sid2)
             def fill_group(group, sid):
