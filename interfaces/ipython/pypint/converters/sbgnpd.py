@@ -4,7 +4,7 @@ from functools import reduce
 from .lib.sbgnpd import *
 
 def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
-                    names_are_ids=False, iface=None):
+                    iface=None, fancy_names=False):
     from .lib.boolean_utils import BoolToAN
 
     ba = BoolToAN.BooleanAlgebra()
@@ -38,12 +38,12 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
             else:
                 e2stories[e].append(i)
 
-    if names_are_ids:
-        def an_name(e):
-            return e.id
-    else:
+    if fancy_names:
         def an_name(e):
             return e.name
+    else:
+        def an_name(e):
+            return e.id
 
     # declare conflicts
     conflicts = {}
