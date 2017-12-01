@@ -76,6 +76,40 @@ let nbjson_of_an ?(output_transitions=true) an ctx =
 	^"\"features\": "^json_of_slist features^"\n"
 	^"}\n"
 
+let asp_of_an an ctx =
+    let asp_of_trstate pred trid state =
+        String.concat " " (List.map (fun (a,i) ->
+            pred^"("^string_of_int trid^","
+                ^string_of_int a^","^string_of_int i^").")
+                (IMap.bindings state))
+    and asp_of_ctx pred ctx = (String.concat " " (List.flatten
+        (List.map (fun (a, is) -> List.map (fun i ->
+                pred^"("^string_of_int a^","^string_of_int i^").") (ISet.elements is)
+            ) (IMap.bindings ctx))))^"\n"
+    in
+    let fold_defs a n buf =
+        let aname = Hashtbl.find an.a2sig a
+        in
+        (a, "automaton("^string_of_int a^"). "
+            ^"label("^string_of_int a^",\""^aname^"\"). "
+            ^(String.concat " " (List.map (fun i ->
+                    "ls("^string_of_int a^","^string_of_int i^").")
+                (Util.range 0 (n-1))))^"\n")::buf
+    and fold_tr trid tr buf =
+        (trid, "tr("^string_of_int trid^"). "
+            ^(asp_of_trstate "pre" trid tr.pre)^" "
+            ^(asp_of_trstate "dest" trid tr.dest)^"\n")::buf
+    in
+    let defs = Hashtbl.fold fold_defs an.ls []
+    and trs = Hashtbl.fold fold_tr an.trs []
+    in
+	let defs = List.map snd (List.sort compare defs)
+	and trs = List.map snd (List.sort compare trs)
+    in
+    (String.concat "" defs)
+    ^ (String.concat "" trs)
+    ^ asp_of_ctx "init" ctx
+
 
 module PetriNet =
 struct
