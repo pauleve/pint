@@ -84,12 +84,14 @@ format_alias = {
 }
 
 format2ext = {
+    "asp": "asp",
     "dump": "an",
     "nusmv": "smv",
     "pep": "ll",
     "romeo": "xml",
 }
 ext2format = dict([(j,i) for (i,j) in format2ext.items()])
+ext2format["lp"] = "asp"
 
 EXPORT_SUPPORTED_FORMATS = list(sorted(format2ext.keys()))
 """
