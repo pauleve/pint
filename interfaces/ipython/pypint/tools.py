@@ -486,7 +486,7 @@ def local_causality_graph(self, kind="full", goal=None, **kwgoal):
 
     .. seealso: methods :py:meth:`.full_lcg`, :py:meth:`.simple_lcg`, :py:meth:`.worth_lcg`, :py:meth:`.saturated_lcg`
     """
-    assert kind in ["verbose,","trimmed","saturated","worth","full"]
+    assert kind in ["verbose","trimmed","saturated","worth","full"]
     goal = Goal.from_arg(goal, **kwgoal) if kind != "full" else None
     args = ["-t", kind, "-o", "-"]
     if goal:
@@ -653,6 +653,28 @@ def dependency_graph(self):
             for b in tr.conds.keys():
                 g.add_edge(b, a)
     return g
+
+
+@modeltool
+def automaton_graph(self, a):
+    """
+    Returns the directed graph of local transitions between the local states of
+    automaton `a`. Edges are labeled with the index of the transitions in
+    :py:attr:`.local_transitions`.
+
+    :rtype: NetworkX digraph (`nx.DiGraph <http://networkx.readthedocs.io/en/stable/reference/classes.digraph.html>`_)
+    """
+    g = nx.DiGraph()
+    g.add_nodes_from(self.local_states[a])
+    for (idx, tr) in enumerate(self.local_transitions):
+        if a in tr.modified_automata:
+            if isinstance(tr, LocalTransition):
+                i, j = tr.i, tr.j
+            else:
+               ((i, j),) = [(i,j) for (b,i,j) in tr.local_transitions if b == a]
+            g.add_edge(i, j, label=str(idx))
+    return g
+
 
 __all__ = [t[0] for t in __MODEL_TOOLS] + [
     "EXPORT_SUPPORTED_FORMATS",
