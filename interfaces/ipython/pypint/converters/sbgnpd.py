@@ -4,7 +4,7 @@ from functools import reduce
 from .lib.sbgnpd import *
 
 def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
-                    names_are_ids=False):
+                    names_are_ids=False, iface=None):
     from .lib.boolean_utils import BoolToAN
 
     ba = BoolToAN.BooleanAlgebra()
@@ -13,24 +13,22 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
     def resolve_ids(ids):
         return [model.resolve_clone(model.entities[eid]) for eid in ids]
 
-    def _p(name):
-        return '"{}"'.format(name)
-
-    def out(data):
-        print(data, file=outfd)
-
     # format stories specification
     stories_spec = []
     for i, story in enumerate(stories):
         if isinstance(story, tuple) and len(story) == 2 \
                 and isinstance(story[0], str) \
                 and isinstance(story[1], (tuple, list, set, frozenset)):
-            spec = {"name": _p(story[0]), "ids": tuple(story[1])}
+            spec = {"name": story[0], "ids": tuple(story[1])}
         else:
-            spec = {"name": _p("story{}".format(i)), "ids": story}
+            spec = {"name": "story{}".format(i), "ids": story}
         spec["entities"] = resolve_ids(spec["ids"])
+        spec["sid"] = i
         stories_spec.append(spec)
     stories = stories_spec
+
+    def story_name(sid):
+        return stories[sid]["name"]
 
     e2stories = {}
     for i, story in enumerate(stories):
@@ -45,7 +43,7 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
             return e.id
     else:
         def an_name(e):
-            return _p(e.name)
+            return e.name
 
     # declare conflicts
     conflicts = {}
@@ -74,26 +72,6 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
             "Name clash [%s] between %s and %s" % (name, e, name_clash[name])
         name_clash[name] = e
 
-    for e in entities:
-        if e not in e2stories:
-            out("{} [0, 1]".format(an_name(e)))
-    for story in stories:
-        out("{} [{}]".format(story["name"],
-                        ", ".join(["0"] + [an_name(e) for e in story["entities"]])))
-
-
-    class StoryState:
-        def __init__(self, sid, i):
-            self.sid = sid
-            self.i = i
-        def __repr__(self):
-            return "%s(%s,%s)" % (self.__class__.__name__,self.sid, self.i)
-        def __lt__(g1, g2):
-            return repr(g1) < repr(g2)
-
-    def story_name(sid):
-        return stories[sid]["name"]
-
     def local_states_of_entity(e, present=True):
         sids = e2stories.get(e)
         if sids:
@@ -109,6 +87,37 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
         else:
             return [(an_name(e), 1 if present else 0)]
 
+    if iface is not None:
+        iface["resolve_ids"] = resolve_ids
+        iface["e2stories"] = e2stories
+        iface["local_states_of_entity"] = local_states_of_entity
+        iface["automaton_to_entity"] = {}
+
+    def _p(name):
+        return '"{}"'.format(name)
+    def out(data):
+        print(data, file=outfd)
+
+    for e in entities:
+        if e not in e2stories:
+            out("{} [0, 1]".format(_p(an_name(e))))
+            if iface is not None:
+                iface["automaton_to_entity"][an_name(e)] = e
+    for story in stories:
+        out("{} [{}]".format(_p(story["name"]),
+                        ", ".join(["0"] + [_p(an_name(e)) for e in story["entities"]])))
+        if iface is not None:
+            iface["automaton_to_entity"][story["name"]] = story["sid"]
+
+    class StoryState:
+        def __init__(self, sid, i):
+            self.sid = sid
+            self.i = i
+        def __repr__(self):
+            return "%s(%s,%s)" % (self.__class__.__name__,self.sid, self.i)
+        def __lt__(g1, g2):
+            return repr(g1) < repr(g2)
+
     class LS:
         def __init__(self, a, i):
             self.a = a
@@ -117,7 +126,7 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
         def __lt__(ai, bj):
             return (ai.a,ai.si) < (bj.a,bj.si)
         def to_pint(self):
-            return "{}={}".format(self.a, self.i)
+            return (self.a, self.i)
 
     def expand_lit(b, pos):
         if isinstance(b, StoryState): # story,0
@@ -128,10 +137,9 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
             symbols = ba.symbols(*local_states)
             return reduce(lambda x,y: x|y, symbols)
 
-    def cond_of_lit(ai, pos):
-        assert pos
-        return ai.to_pint()
-
+    def ls_of_lit(lit):
+        assert not isinstance(lit, ba.NOT)
+        return lit.obj.to_pint()
 
     subs = {}
 
@@ -175,7 +183,7 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
 
     out_trs = []
 
-    b2a = BoolToAN(ba, cond_of_lit, out_trs.append, subs)
+    b2a = BoolToAN(ba, ls_of_lit, out_trs.append, subs)
 
     #
     # transitions + automata for explicit processes

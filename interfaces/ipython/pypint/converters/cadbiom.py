@@ -50,11 +50,14 @@ def import_cadbiom(localfile, outfd, full_context=True, relax_threshold=6):
     for a in SimpleNodes + PermNodes:
         declare_automaton(a, 0, 1)
 
-    def cond_of_lit(b, pos):
-        return "{}={}".format(b, 1 if pos else 0)
+    def ls_of_lit(lit):
+        if isinstance(lit, ba.NOT):
+            return (lit.args[0].obj, 0)
+        else:
+            return (lit.obj, 1)
     def out(data):
         print(data, file=outfd)
-    b2a = BoolToAN(ba, cond_of_lit, out)
+    b2a = BoolToAN(ba, ls_of_lit, out)
 
     def relabel_condition(condition):
         def relabel(m) :
