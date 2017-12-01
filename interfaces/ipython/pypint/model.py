@@ -215,7 +215,15 @@ class Model(object):
         kwargs = {}
         self.__initial_state = None
         self.populate_popen_args(args, kwargs)
-        self.info = json.loads(subprocess.check_output(args, **kwargs).decode())
+        kwargs["stderr"]= subprocess.PIPE
+        try:
+            self.info = json.loads(subprocess.check_output(args, **kwargs).decode())
+        except subprocess.CalledProcessError as e:
+            # backward compatible 'raise e from None'
+            e = PintProcessError(e.returncode, e.cmd, e.output, e.stderr)
+            e.__cause__ = None
+            raise e
+
         key = "local_transitions"
         if key in self.info:
             self.info[key] = [local_transition_from_json(d) \

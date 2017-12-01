@@ -30,7 +30,7 @@ class PintProcessError(subprocess.CalledProcessError):
     Exception raised when a Pint command fails.
     """
     def __str__(self):
-        stderr = "\n%s" % self.stderr.decode() if self.stderr else None
+        stderr = "\n%s" % self.stderr.decode() if self.stderr else self.output.decode()
         return "Command '%s' returned non-zero exit status %d%s" \
             % (" ".join(self.cmd), self.returncode, stderr)
 
