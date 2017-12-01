@@ -63,7 +63,7 @@ let make_lock lctx (an, ctx) =
     in
     an_with_filtered_transitions an filter, ctx
 
-let languages = ["dump";"nusmv";"pep";"ph";"prism";"romeo";"nbjson"]
+let languages = ["dump";"nusmv";"pep";"ph";"prism";"romeo";"nbjson";"asp"]
 and opt_language = ref "dump"
 and opt_output = ref ""
 and opt_ptnet_context = ref false
@@ -124,6 +124,7 @@ let opts = {
 	contextual_ptnet = !opt_ptnet_context;
 }
 let languages = [
+    ("asp", asp_of_an);
 	("dump", dump_of_an);
 	("pep", pep_of_an opts ~mapfile:!opt_mapfile);
 	("nusmv", nusmv_of_an ~map:None !opt_ctx_universal);
