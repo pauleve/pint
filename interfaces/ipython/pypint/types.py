@@ -87,6 +87,10 @@ class LocalTransition(object):
         """
         return set([self.a])
 
+    @property
+    def origins(self):
+        return frozenset([(self.a, self.i)])
+
 class SynchronizedLocalTransitions(object):
     """
     Synchronized local transitions.
@@ -121,6 +125,10 @@ class SynchronizedLocalTransitions(object):
         Set of automata in which the local transitions take place.
         """
         return set(self.__automata)
+
+    @property
+    def origins(self):
+        return frozenset([(a,i) for (a,i,_) in self.local_transitions])
 
 
 def local_transition_from_json(tup):
