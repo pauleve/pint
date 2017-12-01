@@ -92,6 +92,7 @@ class SynchronizedLocalTransitions(object):
         """
         `aijs` is a list of `(a,i,j)` tuples and `conds` a `dict`-like object.
         """
+        assert len(aijs) > 1
         self.local_transitions = [tuple(aij) for aij in aijs]
         self.__automata = frozenset([a for (a,_,_) in aijs])
         self.conds = Conditions(conds)
