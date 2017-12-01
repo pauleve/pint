@@ -205,7 +205,7 @@ class SbgnComplex(SbgnEntity):
     @property
     def name(self):
         if self.components:
-            name = "c("+":".join([c.name for c in self.components])+")"
+            name = "c("+":".join(sorted([c.name for c in self.components]))+")"
         else:
             assert self.label, "Unsupported complex glyph (%s)"%self.dom.toxml()
             name = self.label
