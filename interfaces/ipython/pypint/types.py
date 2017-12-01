@@ -27,6 +27,15 @@ def ternary(b):
     else:
         raise TypeError("'%s' is not a valid ternary" % repr(b))
 
+def pint_value(value):
+    """
+    Returns string representation of a value for Pint
+    """
+    if isinstance(value, int):
+        return str(value)
+    else:
+        return "\"{}\"".format(value)
+
 class Conditions(dict):
     """
     Used to represent conditions of transitions.
@@ -39,7 +48,7 @@ class Conditions(dict):
         """
         Pint text representation of a condition.
         """
-        return " and ".join(["\"%s\"=%s" % it for it in self.items()])
+        return " and ".join(["{}={}".format(*map(pint_value, it)) for it in self.items()])
 
 class LocalTransition(object):
     """
@@ -67,8 +76,8 @@ class LocalTransition(object):
         Pint text representation of a local transition
         """
         r_conds = " when %s" % self.conds if self.conds else ""
-        return "\"%s\" %d -> %d%s" % \
-                (self.a, self.i, self.j, r_conds)
+        return "{} {} -> {}{}".format(*map(pint_value,
+                (self.a, self.i, self.j, r_conds)))
 
     @property
     def modified_automata(self):
@@ -103,7 +112,7 @@ class SynchronizedLocalTransitions(object):
         """
         r_conds = " when %s" % self.conds if self.conds else ""
         return "{ %s }%s" % \
-            (" ; ".join(["\"%s\" %d -> %d" % aij \
+            (" ; ".join(["{} {} -> {}".format(*map(pint_value, aij)) \
                 for aij in self.local_transitions]), r_conds)
 
     @property
