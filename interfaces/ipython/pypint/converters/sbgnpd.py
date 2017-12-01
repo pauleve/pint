@@ -2,6 +2,7 @@
 from functools import reduce
 
 from .lib.sbgnpd import *
+from .lib.export_utils import pint_of_ls
 
 def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
                     iface=None, fancy_names=False):
@@ -89,9 +90,12 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
 
     if iface is not None:
         iface["resolve_ids"] = resolve_ids
-        iface["e2stories"] = e2stories
-        iface["local_states_of_entity"] = local_states_of_entity
+        iface["id2stories"] = {}
+        iface["id2ls"] = {}
         iface["automaton_to_entity"] = {}
+        for e in entities:
+            iface["id2stories"][e.id] = e2stories.get(e, ())
+            iface["id2ls"][e.id] = local_states_of_entity(e)
 
     def _p(name):
         return '"{}"'.format(name)
@@ -106,8 +110,6 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
     for story in stories:
         out("{} [{}]".format(_p(story["name"]),
                         ", ".join(["0"] + [_p(an_name(e)) for e in story["entities"]])))
-        if iface is not None:
-            iface["automaton_to_entity"][story["name"]] = story["sid"]
 
     class StoryState:
         def __init__(self, sid, i):
@@ -306,5 +308,5 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
         initial_state = resolve_ids(initial_state)
         for e in initial_state:
             init += local_states_of_entity(e)
-        out("initial_state {}".format(", ".join(["{}={}".format(a,i) for a,i in init])))
+        out("initial_state {}".format(", ".join(map(pint_of_ls, init))))
 

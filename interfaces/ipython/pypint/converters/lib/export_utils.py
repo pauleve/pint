@@ -5,6 +5,9 @@ def pint_protect(data):
     else:
         return str(data)
 
+def pint_of_ls(ai):
+    return "{}={}".format(*map(pint_protect, ai))
+
 def pint_of_localtransition(changes, conds):
     changes = ["{} {} -> {}".format(*map(pint_protect, c)) for c in changes]
     if len(changes) > 1:
@@ -12,7 +15,6 @@ def pint_of_localtransition(changes, conds):
     else:
         changes = changes[0]
     conds = dict(conds)
-    conds = ["{}={}".format(*map(pint_protect, it)) for it in conds.items()]
-    conds = " when %s" % " and ".join(conds) if conds else ""
+    conds = " when %s" % " and ".join(map(pint_of_ls, conds.items())) if conds else ""
     return changes + conds
 
