@@ -151,7 +151,7 @@ class InitialState(dict):
         :returns: A `dict` object associating automata to their initial local
             states when it is different from ``0``.
         """
-        return dict([(a,i) for (a,i) in self.items() if i > 0])
+        return dict([(a,i) for (a,i) in self.items() if isinstance(i, str) or i > 0])
 
     def to_pint(self, full=False):
         """

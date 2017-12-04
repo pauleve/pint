@@ -8,10 +8,10 @@ ENTITY_CLASSES = [
         "simple chemical",
         "macromolecule",
         "macromolecule multimer",
-        "complex",
         "nucleic acid feature",
         "perturbing agent",
         "unspecified entity",
+        "complex",
     ]
 PROCESS_CLASSES = [
         "process",
@@ -146,6 +146,17 @@ class SbgnEntity(SbgnGlyph):
     def __hash__(self):
         return hash(self.name)
 
+    def __lt__(e1, e2):
+        if e1.type in ENTITY_CLASSES \
+            and e2.type in ENTITY_CLASSES:
+            t_e1 = ENTITY_CLASSES.index(e1.type)
+            t_e2 = ENTITY_CLASSES.index(e2.type)
+            if t_e1 != t_e2:
+                return t_e1 < t_e2
+            if hasattr(e1, "__lt_sametype__"):
+                return e1.__lt_sametype__(e2)
+        return SbgnGlyph.__lt__(e1,e2)
+
     @property
     def name(self):
         return "%s_%s" % (get_type_abbrv(self.type), self.id)
@@ -172,6 +183,15 @@ class SbgnMolecule(SbgnEntity):
                 attr = attr_of_glyph(n)
                 if attr:
                     self.attrs.append(attr)
+
+    def __lt_sametype__(m1, m2):
+        if m1.label != m2.label:
+            return m1.label < m2.label
+        def r(l):
+            if l[0] == '_':
+                return " %s" % l[1:]
+            return l
+        return tuple(map(r, m1.attrs)) < tuple(map(r, m2.attrs))
 
     @property
     def name(self):
