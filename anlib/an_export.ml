@@ -341,9 +341,10 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 	in
     let rank_of_ls ai =
         snd (Hashtbl.find an.sig2ls ai)
-	and repr_i _ = string_of_sigls ~protect:false
-	in
-	let repr_ls (a,i) = a^"_"^repr_i a i
+	and repr_ls sig_ai =
+        let a,i = resolve_sig_ls an sig_ai
+        in
+        string_of_int a^"_"^string_of_int i
 	in
 	let name_of_state state =
         String.concat "_" (List.map repr_ls (SMap.bindings state))
@@ -356,7 +357,7 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 			  PetriNet.LS ai -> repr_ls ai
 			| PetriNet.Custom name -> name
 		and x,y = match p with
-			  PetriNet.LS (a,i) -> 
+			  PetriNet.LS (a,i) ->
                 SMap.find a a_x, (rank_of_ls (a,i))*space
 			| PetriNet.Custom _ -> 0,0
 		in
