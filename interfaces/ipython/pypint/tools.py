@@ -164,6 +164,27 @@ def save_as(self, filename):
     assert ext in ext2format, "File extension is not supported"
     return export(self, ext2format[ext], output=filename)
 
+@modeltool
+def to_nusmv(self):
+    """
+    TODO
+    """
+    format = "nusmv"
+    smvfile = new_output_file(ext=format2ext[format])
+    mapfile = new_output_file(ext="json")
+    try:
+        export(self, format, output=smvfile,
+            raw_args=["--mapfile", mapfile])
+        with open(mapfile) as mf:
+            bindings = json.load(mf)
+    finally:
+        os.unlink(mapfile)
+
+    bindings = dict([(tuple(k),v) for k,v in bindings])
+    from nusmv import ColomotoNuSMV
+    return ColomotoNuSMV(smvfile, bindings.get)
+
+
 def _model_modification(self, args):
     output = new_output_file(ext="an")
     args += ["-o", output]
