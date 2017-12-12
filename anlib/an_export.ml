@@ -467,7 +467,7 @@ let prism_of_an an ctx =
 	^ Hashtbl.fold prism_of_automaton an.ls ""
 
 
-let nusmv_of_an ?(map=None) universal an ctx =
+let nusmv_of_an ?(map=None) ?(mapfile="") universal an ctx =
 	assert_async_an an;
 	let varname a = "a"^string_of_int a
 	and updname a = "u"^string_of_int a
@@ -559,10 +559,25 @@ let nusmv_of_an ?(map=None) universal an ctx =
 					varname a^"="^string_of_int i) is))^")"
 			else (varname a^"="^tbd_state)
 	in
+    let vars = String.concat "\n\t" (List.map def_automaton automata_spec)
+    in
+    (if mapfile <> "" then
+		match map with None -> () | Some map ->
+        let bindings = Hashtbl.fold (fun (a,i) (na,ni) b ->
+            let siga, sigi = resolve_ls an (a,i)
+            in
+            ([json_of_str siga;json_of_sigls sigi],na^"="^ni)::b) map []
+        in
+        let json_of_binding (k,v) =
+            json_of_list id (json_of_list id k::json_of_str v::[])
+        in
+        let buf = json_of_list json_of_binding  bindings
+        in
+        Util.dump_to_file mapfile buf
+    );
 	"MODULE main\n\n"
 	^"IVAR\n\tu: {"^(String.concat ", " (List.map (fun (a,_) -> updname a) automata_spec))^"};\n"
-	^"\nVAR\n\t"
-	^(String.concat "\n\t" (List.map def_automaton automata_spec))^"\n"
+	^"\nVAR\n\t"^vars^"\n"
 	^"\nASSIGN\n"
 	^(String.concat "\n" (List.map nusmv_of_transitions automata_spec))^"\n"
 	^"\nTRANS\n\t"

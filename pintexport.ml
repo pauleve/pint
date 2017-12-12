@@ -82,7 +82,7 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 		("--contextual-ptnet", Arg.Set opt_ptnet_context,
 			"\tContextual petri net (used by: pep)");
 		("--mapfile", Arg.Set_string opt_mapfile,
-			"\tOutput mapping of identifiers (used by: pep, romeo)");
+			"\tOutput mapping of identifiers (used by: nusmv, pep, romeo)");
         ("--skip-transitions", Arg.Clear opt_output_transitions,
             "\tDo not output transitions (used by: nbjson)");
 		("--partial", Arg.String
@@ -120,6 +120,8 @@ let args, abort = An_cli.parse cmdopts usage_msg
 
 let _ = if args <> [] || !opt_language = "" then (abort ())
 
+let trmap = Hashtbl.create 42
+
 let opts = {
 	contextual_ptnet = !opt_ptnet_context;
 }
@@ -127,7 +129,7 @@ let languages = [
     ("asp", asp_of_an);
 	("dump", dump_of_an);
 	("pep", pep_of_an opts ~mapfile:!opt_mapfile);
-	("nusmv", nusmv_of_an ~map:None !opt_ctx_universal);
+	("nusmv", nusmv_of_an ~map:(Some trmap) ~mapfile:!opt_mapfile !opt_ctx_universal);
 	("prism", prism_of_an);
 	("romeo", romeo_of_an ~map:None ~mapfile:!opt_mapfile);
 	("nbjson", nbjson_of_an ~output_transitions:!opt_output_transitions);
