@@ -181,7 +181,7 @@ def to_nusmv(self):
         os.unlink(mapfile)
 
     bindings = dict([(tuple(k),v) for k,v in bindings])
-    from nusmv import ColomotoNuSMV
+    from colomoto.modelchecking import ColomotoNuSMV
     return ColomotoNuSMV(smvfile, bindings.get)
 
 
