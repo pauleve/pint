@@ -8,6 +8,8 @@ if IN_IPYTHON:
     from colomoto_jupyter import disp_jupyter_js
     from IPython.display import display, Markdown, HTML
 
+from colomoto_jupyter.ui import *
+
 def enable_dbg():
     """
     Enable debug output (executed command lines, etc.)

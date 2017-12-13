@@ -13,6 +13,8 @@ from urllib.request import urlretrieve
 from xml.dom.minidom import parse as xml_parse_dom
 from zipfile import ZipFile
 
+from colomoto_jupyter.io import download, ensure_localfile
+
 from .cfg import *
 from .tools import *
 from .types import *
@@ -374,13 +376,6 @@ def import_with_ginsim(fmt, inputfile, anfile, simplify=True):
     return model
 
 
-def download(url, suffix=None):
-    filename = new_output_file(suffix=suffix)
-    info("Downloading '%s' to '%s'" % (url, filename))
-    filename, _ = urlretrieve(url, filename=filename)
-    return filename
-
-
 def sbml_from_cellcollective(modelid):
     url = "http://api.cellcollective.org/model/export/%s?type=SBML" % modelid
     sbmlfile = download(url, suffix="%s.sbml" % modelid)
@@ -476,11 +471,7 @@ def load(filename=None, format=None, simplify=True, **opts):
             assert ext in ext2format, "Unknown extension '%s'" % ext
             format = ext2format[ext]
 
-    uri = urlparse(filename)
-    if uri.netloc:
-        filename = download(uri.geturl(), suffix=bname)
-    else:
-        assert os.path.exists(filename)
+    filename = ensure_localfile(filename)
 
     def make_anfile():
         return new_output_file(suffix="%s.an"%name)
