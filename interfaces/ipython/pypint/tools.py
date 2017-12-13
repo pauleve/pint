@@ -165,7 +165,7 @@ def save_as(self, filename):
     return export(self, ext2format[ext], output=filename)
 
 @modeltool
-def to_nusmv(self, skip_init=False):
+def to_nusmv(self, skip_init=True):
     """
     TODO
 
