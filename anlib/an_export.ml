@@ -468,7 +468,7 @@ let prism_of_an an ctx =
 	^ Hashtbl.fold prism_of_automaton an.ls ""
 
 
-let nusmv_of_an ?(map=None) ?(mapfile="") universal an ctx =
+let nusmv_of_an ?(map=None) ?(mapfile="") ?(noinit=false) universal an ctx =
 	assert_async_an an;
 	let varname a = "a"^string_of_int a
 	and updname a = "u"^string_of_int a
@@ -561,6 +561,7 @@ let nusmv_of_an ?(map=None) ?(mapfile="") universal an ctx =
 			else (varname a^"="^tbd_state)
 	in
     let vars = String.concat "\n\t" (List.map def_automaton automata_spec)
+	and init = String.concat " & " (List.map nusmv_of_init (IMap.bindings ctx))^";"
     in
     (if mapfile <> "" then
 		match map with None -> () | Some map ->
@@ -585,7 +586,6 @@ let nusmv_of_an ?(map=None) ?(mapfile="") universal an ctx =
 	^(String.concat " |\n\t" (List.map (fun (a,_) ->
 		"next("^varname a^") != "^varname a) automata_spec))
 	^ " |\n\t("^nusmv_fp_cond^");\n"
-	^"\nINIT\n"
-	^"\t"^(String.concat " & " (List.map nusmv_of_init (IMap.bindings ctx)))^";\n"
+	^(if not noinit then ("\nINIT\n"^init^"\n") else "")
 	^"\n"
 
