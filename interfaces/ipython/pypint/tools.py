@@ -165,16 +165,21 @@ def save_as(self, filename):
     return export(self, ext2format[ext], output=filename)
 
 @modeltool
-def to_nusmv(self):
+def to_nusmv(self, skip_init=False):
     """
     TODO
+
+    :keyword bool skip_init: do not generate an INIT statement.
     """
     format = "nusmv"
     smvfile = new_output_file(ext=format2ext[format])
     mapfile = new_output_file(ext="json")
+
+    raw_args = ["--mapfile", mapfile]
+    if skip_init:
+        raw_args += ["--no-init"]
     try:
-        export(self, format, output=smvfile,
-            raw_args=["--mapfile", mapfile])
+        export(self, format, output=smvfile, raw_args=raw_args)
         with open(mapfile) as mf:
             bindings = json.load(mf)
     finally:
