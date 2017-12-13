@@ -70,6 +70,7 @@ and opt_ptnet_context = ref false
 and opt_mapfile = ref ""
 and opt_transforms = Queue.create ()
 and opt_ctx_universal = ref false
+and opt_noinit = ref false
 and opt_output_transitions = ref true
 
 let push_transform func =
@@ -113,6 +114,8 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
 			"Make context existential (default, used by: nusmv)");
 		("--universal-ctx", Arg.Set opt_ctx_universal,
 			"Make context universal instead of existential (used by: nusmv)");
+        ("--no-init", Arg.Set opt_noinit,
+            "Do not export initial state (used by: nusmv)");
 	]
 and usage_msg = "pint-export"
 
@@ -129,7 +132,8 @@ let languages = [
     ("asp", asp_of_an);
 	("dump", dump_of_an);
 	("pep", pep_of_an opts ~mapfile:!opt_mapfile);
-	("nusmv", nusmv_of_an ~map:(Some trmap) ~mapfile:!opt_mapfile !opt_ctx_universal);
+	("nusmv", nusmv_of_an ~map:(Some trmap) ~mapfile:!opt_mapfile
+                ~noinit:!opt_noinit !opt_ctx_universal);
 	("prism", prism_of_an);
 	("romeo", romeo_of_an ~map:None ~mapfile:!opt_mapfile);
 	("nbjson", nbjson_of_an ~output_transitions:!opt_output_transitions);
