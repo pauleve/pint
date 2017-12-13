@@ -197,6 +197,17 @@ def _model_modification(self, args):
     from .model import FileModel
     return FileModel(output)
 
+
+@modeltool
+def simplify(self):
+    """
+    Simplify the local transitions by computing their prime implicants.
+
+    :returns: a new :py:class:`.FileModel` instance for the reduced automata
+        network.
+    """
+    return _model_modification(self, ["--simplify"])
+
 @modeltool
 def reduce_for_goal(self, goal=None, squeeze=True, squeeze_preserve=None, **kwgoal):
     """
