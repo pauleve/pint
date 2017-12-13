@@ -132,7 +132,10 @@ class Mole(Tool):
 
 class GINsim(Tool):
     exe = "GINsim"
-    binfile = "http://ginsim.org/sites/default/files/ginsim-dev/GINsim-2.9.6-SNAPSHOT-jar-with-dependencies.jar"
+    jars = {
+    "GINsim.jar": "http://ginsim.org/sites/default/files/ginsim-dev/GINsim-2.9.6-SNAPSHOT-jar-with-dependencies.jar",
+    "jython.jar": "http://www.ginsim.org/sites/default/files/ginsim-dev/lib/jython-standalone-2.5.3.jar",
+    }
 
     @classmethod
     def is_installed(self, args):
@@ -150,15 +153,22 @@ class GINsim(Tool):
 
     @classmethod
     def install(self, system, args):
-        destjar = os.path.join(args.pintsharedir, "3rdparty", "GINsim.jar")
-        print("installing %s" % destjar)
-        prepare_dest(destjar)
-        urlretrieve(self.binfile, destjar)
+        destjar_dir = os.path.join(args.pintsharedir, "3rdparty")
+        for jarname, src in self.jars.items():
+            destjar = os.path.join(destjar_dir, jarname)
+            print("installing %s" % destjar)
+            prepare_dest(destjar)
+            urlretrieve(src, destjar)
+
         destbin = os.path.join(args.prefix, "bin", "GINsim")
         print("installing %s" % destbin)
         prepare_dest(destbin)
+        classpath = "{d}/{ginsim}:$CLASSPATH:{d}/{jython}".format(\
+                        d = destjar_dir,
+                        ginsim = "GINsim.jar",
+                        jython = "jython.jar")
         with open(destbin, "w") as fd:
-            fd.write("""#!/usr/bin/env bash\njava -jar "%s" "${@}"\n""" % destjar)
+            fd.write("""#!/usr/bin/env bash\njava -cp "%s" org.ginsim.Launcher "${@}"\n""" % classpath)
         chmod_x(destbin)
 
 tools = [Clingo, NuSMV, ITS, Mole, GINsim]
