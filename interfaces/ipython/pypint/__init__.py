@@ -76,16 +76,21 @@ if IN_IPYTHON:
             {"name": "Model summary",
                 "snippet":['model.summary()']}
             ]},
-        {"name":"Model export",
+        {"name":"Model export to file",
             "sub-menu": [
             {"name": "Pint native format (.an)",
                 "snippet":['model.export("an")']},
-            {"name": "NuSMV model (.smv)",
+            {"name": "NuSMV file (.smv)",
                 "snippet":['model.export("nusmv")']},
             {"name": "Safe Petri net in PEP format (.ll)",
                 "snippet":['model.export("pep")']},
             {"name": "Safe Petri net in ROMEO format (.xml)",
                 "snippet":['model.export("romeo")']},
+            ]},
+        {"name":"Convert to tool",
+            "sub-menu": [
+            {"name": "NuSMV model",
+                "snippet":['smv = model.to_nusmv()']},
             ]},
         "---",
         {"name":"Model transformation",
