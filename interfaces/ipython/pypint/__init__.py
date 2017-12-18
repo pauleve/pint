@@ -89,7 +89,7 @@ if IN_IPYTHON:
             ]},
         {"name":"Convert to tool",
             "sub-menu": [
-            {"name": "NuSMV model",
+            {"name": "NuSMV",
                 "snippet":['smv = an.to_nusmv()']},
             ]},
         "---",
