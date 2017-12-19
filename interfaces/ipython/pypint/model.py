@@ -376,11 +376,6 @@ def import_with_ginsim(fmt, inputfile, anfile, simplify=True):
     return model
 
 
-def sbml_from_cellcollective(modelid):
-    url = "http://api.cellcollective.org/model/export/%s?type=SBML" % modelid
-    sbmlfile = download(url, suffix="%s.sbml" % modelid)
-    return sbmlfile
-
 ext2format = {
     "an": "an",
     "bc": "biocham",
@@ -456,22 +451,14 @@ def load(filename=None, format=None, simplify=True, **opts):
         else:
             raise TypeError("missing filename argument")
 
-    match_cellcollective = re.search("https?://[^/]*\\bcellcollective\.org/#(\\d+)\\b", filename)
-    if match_cellcollective:
-        modelid = match_cellcollective.group(1)
-        filename = sbml_from_cellcollective(modelid)
-        name = modelid
-        format = "sbml"
-
-    else:
-        bname = os.path.basename(filename)
-        ext = file_ext(filename)
-        name = bname[:-len(ext)-1]
-        if format is None:
-            assert ext in ext2format, "Unknown extension '%s'" % ext
-            format = ext2format[ext]
-
     filename = ensure_localfile(filename)
+
+    bname = os.path.basename(filename)
+    ext = file_ext(filename)
+    name = bname[:-len(ext)-1][-15:]
+    if format is None:
+        assert ext in ext2format, "Unknown extension '%s'" % ext
+        format = ext2format[ext]
 
     def make_anfile():
         return new_output_file(suffix="%s.an"%name)
