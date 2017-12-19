@@ -85,8 +85,13 @@ misc_install:
 
 install: $(addsuffix _install,$(TARGETS)) misc_install aspfiles_install
 
+website:
+	make -C docs html
+
 pre-release:
 	sed -i 's/=.*(\*VERSION\*)/= "$(RELNAME)" (\*VERSION\*)/' pintlib/pintmeta.ml
+	sed -i 's/set version = [^ ]*/set version = "$(RELNAME)"/' dist/conda/pint/meta.yaml
+	sed -i 's/^release = [^ ]*/release = "$(RELNAME)"/' docs/src/conf.py
 
 release:
 	git commit -a -m "release $(RELNAME)"
