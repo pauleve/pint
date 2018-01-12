@@ -53,7 +53,6 @@ def setup_environ():
 
 def hello_ipython():
     info("You are using Pint version %s and pypint %s" % (__PINT_VERSION__,__version__))
-    info("API is documented at https://loicpauleve.name/pint/doc/api.html")
 
 
 if not __SETUP_DONE:
@@ -144,7 +143,10 @@ if IN_IPYTHON:
             {"name": "Sequence of simple goals", "snippet":['"a=1","b=1"']},
             {"name": "Sequence of sub-state goals", "snippet":['"a=1,c=1","b=1,d=0"']},
             {"name": "Alternative goals", "snippet":['pypint.Goal("a=1")|pypint.Goal("b=1")']}
-            ]}
+            ]},
+        "---",
+        {"name": "Documentation",
+            "external-link": "https://loicpauleve.name/pint/doc/api.html"}
     ]
     toolbar = [
         {"name": "upload", "setup": {
