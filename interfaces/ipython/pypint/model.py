@@ -346,12 +346,7 @@ def import_with_ginsim(fmt, inputfile, anfile, simplify=True):
                         name = state.getAttribute("name")
                         states[name] = parse_state(state.getAttribute("value"))
 
-    if fmt in ["zginml", "ginml"]:
-        fmt = "ginsim"
-
-    args = ["GINsim", "-s", data_file("ginsim_export_an.py"),
-                fmt, inputfile, anfile]
-
+    args = ["GINsim", "-lqm", "-if", fmt, inputfile, "-of", "an", anfile]
     subprocess.check_call(args)
 
     if simplify:
