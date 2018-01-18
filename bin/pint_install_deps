@@ -134,7 +134,6 @@ class GINsim(Tool):
     exe = "GINsim"
     jars = {
     "GINsim.jar": "http://ginsim.org/sites/default/files/ginsim-dev/GINsim-2.9.6-SNAPSHOT-jar-with-dependencies.jar",
-    "jython.jar": "http://www.ginsim.org/sites/default/files/ginsim-dev/lib/jython-standalone-2.5.3.jar",
     }
 
     @classmethod
@@ -163,10 +162,9 @@ class GINsim(Tool):
         destbin = os.path.join(args.prefix, "bin", "GINsim")
         print("installing %s" % destbin)
         prepare_dest(destbin)
-        classpath = "{d}/{ginsim}:$CLASSPATH:{d}/{jython}".format(\
+        classpath = "{d}/{ginsim}:$CLASSPATH".format(\
                         d = destjar_dir,
-                        ginsim = "GINsim.jar",
-                        jython = "jython.jar")
+                        ginsim = "GINsim.jar")
         with open(destbin, "w") as fd:
             fd.write("""#!/usr/bin/env bash\njava -cp "%s" org.ginsim.Launcher "${@}"\n""" % classpath)
         chmod_x(destbin)
