@@ -312,7 +312,7 @@ class InMemoryModel(Model):
 
     def populate_popen_args(self, args, kwargs):
         kwargs["input"] = self.data
-        super(FileModel, self).populate_popen_args(args, kwargs)
+        super(InMemoryModel, self).populate_popen_args(args, kwargs)
 
     def source(self):
         """
