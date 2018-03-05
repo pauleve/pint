@@ -40,7 +40,8 @@ open AutomataNetwork
 %%
 
 main :
-  content Eof				{ ($1,ctx_of_siglocalstates ~complete:true $1 []) }
+  Eof { let an = new_an () in (an, ctx_of_siglocalstates ~complete:true an []) }
+| content Eof				{ ($1,ctx_of_siglocalstates ~complete:true $1 []) }
 | content initial_ctx Eof	{ ($1,ctx_of_siglocalstates ~complete:true $1 $2) }
 ;
 
