@@ -307,7 +307,7 @@ class InMemoryModel(Model):
     """
     def __init__(self, data):
         super(InMemoryModel, self).__init__()
-        self.data = data
+        self.data = data if type(data) is bytes else data.encode("utf-8")
         self.load()
 
     def populate_popen_args(self, args, kwargs):
