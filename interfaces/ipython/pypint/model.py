@@ -459,19 +459,19 @@ def load(filename=None, format=None, simplify=True, **opts):
         return new_output_file(suffix="%s.an"%name)
 
     if format == "an":
-        info("Source file is in Automata Network (an) format")
+        dbg("Source file is in Automata Network (an) format")
         return FileModel(filename, **opts)
 
     elif format in ["boolfunctions", "boolsim", "booleannet", "sbml",
                     "ginml", "zginml"]:
-        info("Source file is in %s format, importing with GINsim" \
+        dbg("Source file is in %s format, importing with GINsim" \
                     % format)
         anfile = make_anfile()
         return import_with_ginsim(format, filename, anfile,
                     simplify=simplify, **opts)
 
     elif format in CONVERTERS:
-        info("Source file is in %s format" % format)
+        dbg("Source file is in %s format" % format)
         anfile = make_anfile()
         with open(anfile, "w") as outfd:
             CONVERTERS[format](filename, outfd, **opts)
