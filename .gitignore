@@ -30,6 +30,8 @@ docs/api
 bin/ph*
 bin/pint-*
 bin/GINsim
+bin/mci2dot
+bin/mole
 build
 build-stamp
 debian/*.log
