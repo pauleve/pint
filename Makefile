@@ -164,17 +164,8 @@ dist-static: dist-clean
 	install -m 755 dist/static/install.sh $(STATIC_DESTDIR)
 	tar cvzf $(STATIC_DESTDIR).tgz -C dist $(STATIC_BASENAME)
 
-
-dist-docker:
-	docker pull $(shell grep FROM Dockerfile|sed 's:FROM::')
-	docker build -t pauleve/pint:latest -t pauleve/pint:$(RELNAME) --build-arg PINT_VERSION=$(RELNAME) .
-
-dist-docker-publish:
-	docker push pauleve/pint
-
 dist: pre-release
 	make make-dist-via-docker
-	make dist-docker
 
-dist-publish: dist-docker-publish
+dist-publish:
 
