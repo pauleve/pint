@@ -1,4 +1,4 @@
-{% set version = "2017-12-19" %}
+{% set version = "2018-03-22" %}
 package:
   name: pint
   version: {{ version|replace('-','.') }}
