@@ -12,7 +12,7 @@ from .ui import *
 from .utils import *
 
 if IN_IPYTHON:
-    from IPython.display import display, FileLink
+    from IPython.display import FileLink
 
 VALID_EXE = [
     "pint-export",
@@ -247,8 +247,6 @@ def reduce_for_goal(self, goal=None, squeeze=True, squeeze_preserve=None, **kwgo
             for a in squeeze_preserve:
                 args += ["--squeeze-preserve", a]
     fm = _model_modification(self, args)
-    if IN_IPYTHON:
-        display(FileLink(fm.filename))
     return fm
 
 @modeltool

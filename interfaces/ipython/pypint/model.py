@@ -23,7 +23,6 @@ from .utils import *
 from .converters import CONVERTERS
 
 if IN_IPYTHON:
-    from IPython.display import display, FileLink, HTML
     from colomoto_jupyter.upload import jupyter_upload
 
 class InitialState(dict):
@@ -353,9 +352,6 @@ def import_with_ginsim(fmt, inputfile, anfile, simplify=True):
         info("Simplifying model...")
         subprocess.check_call(["pint-export", "--simplify", "-i", anfile,
                                 "-o", anfile])
-
-    if IN_IPYTHON:
-        display(FileLink(anfile))
 
     model = FileModel(anfile)
 
