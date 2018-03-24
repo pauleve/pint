@@ -32,12 +32,6 @@ Documentation
 
    doc/index
 
-Model repository
-================
-
-`Model repository <https://github.com/pauleve/pint/tree/master/examples>`_ on
-GitHub.
-
 
 Related Papers
 ==============
