@@ -63,7 +63,7 @@ let make_lock lctx (an, ctx) =
     in
     an_with_filtered_transitions an filter, ctx
 
-let languages = ["dump";"nusmv";"pep";"ph";"prism";"romeo";"nbjson";"asp"]
+let languages = ["dump";"nusmv";"pep";"ph";"pnml";"prism";"romeo";"nbjson";"asp"]
 and opt_language = ref "dump"
 and opt_output = ref ""
 and opt_ptnet_context = ref false
@@ -136,6 +136,7 @@ let languages = [
                 ~noinit:!opt_noinit !opt_ctx_universal);
 	("prism", prism_of_an);
 	("romeo", romeo_of_an ~map:None ~mapfile:!opt_mapfile);
+	("pnml", pnml_of_an ~map:None);
 	("nbjson", nbjson_of_an ~output_transitions:!opt_output_transitions);
 ]
 let translator = List.assoc !opt_language languages

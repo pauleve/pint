@@ -322,6 +322,70 @@ let pep_of_an ?(goal=None) ?(mapfile="") opts an ctx =
 		(List.filter (function (_,_,PetriNet.RA) -> true | _ -> false) arcs)))
 		else "")
 
+let pnml_of_an ?(map=None) an ctx =
+    let pn = pn_of_an false an ctx
+    in
+    let string_of_resolved_ls (a,isig) =
+        a^"="^string_of_sigls ~protect isig
+    in
+    let name_of_set smap =
+        string_of_map
+            ~lbracket:(if SMap.cardinal smap > 1 then "{" else "")
+            ~rbracket:(if SMap.cardinal smap > 1 then "}" else "")
+            string_of_resolved_ls
+            SMap.fold smap
+    in
+    let name_of_trs orig dest =
+        name_of_set orig ^ " to " ^name_of_set dest
+    in
+    let pnml_of_place (pid, p) =
+        "<place id=\"p"^string_of_int pid^"\">"
+        ^"<name><text>"
+        ^ (match p with
+              PetriNet.LS ai -> string_of_resolved_ls ai
+            | PetriNet.Custom name -> name)^"</text></name>"
+        ^(if PetriNet.marked pn pid then
+            "<initialMarking><text>1</text></initialMarking>" else "")
+        ^"</place>\n"
+    and pnml_of_transition (tid, t) =
+        let name = match t with
+              PetriNet.LT (orig,dest,conds) ->
+                (name_of_trs orig dest)
+                ^ (if SMap.is_empty conds then "" else
+                    " when "^string_of_map ~lbracket:"" ~rbracket:""
+                                ~delim:" and "
+                                string_of_resolved_ls SMap.fold conds)
+            | PetriNet.TCustom name -> name
+        in
+        "<transition id=\"t"^string_of_int tid^"\">"
+        ^"<name><text>"^name^"</text></name></transition>\n"
+    and pnml_of_arc (id1, id2, kind) =
+        let source, target = match kind with
+            PetriNet.PT -> ("p"^string_of_int id1,
+                            "t"^string_of_int id2)
+           |PetriNet.TP -> ("t"^string_of_int id1,
+                            "p"^string_of_int id2)
+           | _ -> failwith "oops"
+       in
+        "<arc id=\""^source^"_"^target^"\" source=\""^source^"\""
+            ^" target=\""^target^"\"></arc>\n"
+    in
+    let places = PetriNet.places pn
+    and transitions = PetriNet.transitions pn
+    and arcs = PetriNet.arcs pn
+    in
+    (match map with Some map -> List.iter (fun (pid, p) ->
+        match p with PetriNet.LS ai ->
+            Hashtbl.add map ai pid | _ -> ()) places | None -> ());
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    ^"<pnml xmlns=\"http://www.pnml.org/version-2009/grammar/pnml\">\n"
+    ^"<net id=\"model\" type=\"http://www.pnml.org/version-2009/grammar/ptnet\">\n"
+    ^"<page id=\"page0\"><name><text>DefaultPage</text></name>\n"
+    ^(String.concat "" (List.map pnml_of_place places))
+    ^(String.concat "" (List.map pnml_of_transition transitions))
+    ^(String.concat "" (List.map pnml_of_arc arcs))
+    ^"</page><name><text>model</text></name></net></pnml>\n"
+
 let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 	let pn = pn_of_an true an ctx
 	in
