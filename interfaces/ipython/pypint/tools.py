@@ -88,6 +88,7 @@ format2ext = {
     "dump": "an",
     "nusmv": "smv",
     "pep": "ll",
+    "pnml": "pnml",
     "romeo": "xml",
 }
 ext2format = dict([(j,i) for (i,j) in format2ext.items()])
@@ -104,6 +105,7 @@ File extensions supported by :py:meth:`.Model.save_as` method:
 
 * ``.an``: Pint native format
 * ``.ll``: PEP format (Petri net)
+* ``.pnml``: PNML format (Petri net)
 * ``.smv``: NuSMV format
 * ``.xml``: Romeo format (Petri net)
 """
