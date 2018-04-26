@@ -16,6 +16,7 @@ and bifurcations_mode_choices = ["ua";"mole+ua"]
 and opt_bifurcations_mode = ref "ua"
 and opt_oneshot_mutations_cut = ref 0
 and opt_ignore_automata = ref SSet.empty
+and opt_auto_conts = ref true
 
 let parse_automata_set =
 	An_input.parse_string An_parser.automata_set
@@ -39,6 +40,8 @@ let cmdopts = An_cli.common_cmdopts @ An_cli.input_cmdopts @ [
         ("--ignore-automata",
             arg_string_set parse_automata_set opt_ignore_automata,
             "a,b,..\tIgnore given automata for cutsets or mutations");
+        ("--skip-continuity-constraint", Arg.Clear opt_auto_conts,
+            "\tRelax necessary condition (for large models)");
 	]
 
 let args, abort = An_cli.parse cmdopts usage_msg
@@ -71,7 +74,7 @@ let req_automata = resolve_sig_a_set an !opt_req_automata
 let env = init_env an ctx [goal]
 
 let static_reach () =
-	let result = local_reachability env
+	let result = local_reachability ~auto_conts:(!opt_auto_conts) env
 	in
 	if !An_cli.opt_json_stdout then
 		print_endline (json_of_ternary result)
