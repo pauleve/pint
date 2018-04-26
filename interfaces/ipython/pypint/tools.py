@@ -440,6 +440,7 @@ __reachability_tools = ["its", "nusmv", "mole"]
 
 @modeltool
 def reachability(self, goal=None, fallback="its", tool="sa",
+        sa_args=[],
         reduce_for_goal=True, timeout=None, **kwgoal):
     """
     Check if `goal` is reachable from the initial state.
@@ -457,6 +458,7 @@ def reachability(self, goal=None, fallback="its", tool="sa",
         conclusive
         * ``"its"``, ``"nusmv"``, ``"its"``: directly use the specified
         model-checker.
+    :keyword list(str) sa_args: additional arguments for static analysis
     :keyword bool reduce_for_goal: before invoking a model-checker, perform the
         goal-oriented reduction of the automata network
     :param int timeout: command timeout in seconds
@@ -477,7 +479,7 @@ def reachability(self, goal=None, fallback="its", tool="sa",
     assert fallback in __reachability_tools + [None]
     assert tool in ["sa"] + __reachability_tools
     if tool == "sa":
-        cp = _run_tool("pint-reach", goal, input_model=self, timeout=None)
+        cp = _run_tool("pint-reach", goal, *sa_args, input_model=self, timeout=None)
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
         if output == Inconc and fallback is not None:
