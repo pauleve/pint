@@ -689,9 +689,10 @@ let full_lcg ac an =
 	lcg#build;
 	lcg
 
-let build_oa_lcg an ctx goal sols =
+let build_oa_lcg ?(auto_conts=true) an ctx goal sols =
 	let lcg = new lcg default_lcg_setup an ctx goal sols
 	in
+    lcg#set_auto_conts auto_conts;
     lcg#build;
     lcg
 

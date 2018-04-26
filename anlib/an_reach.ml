@@ -127,9 +127,9 @@ let restrict_sols ?(update=true) overlay lcg valid =
     in
     ObjSet.iter apply_obj lcg#objs
 
-let unordered_oa env sols =
+let unordered_oa ?(auto_conts=true) env sols =
 	dbg ~level:1 ". unordered over-approximation";
-    let oa_lcg = build_oa_lcg env.an env.ctx env.goal sols
+    let oa_lcg = build_oa_lcg ~auto_conts env.an env.ctx env.goal sols
 	in
 	let valid = color_nodes_connected_to_trivial_sols oa_lcg
 	in
@@ -139,10 +139,10 @@ let unordered_oa env sols =
 
 (**** Local reachability ****)
 
-let local_reachability env =
+let local_reachability ?(auto_conts=true) env =
 	let sols = An_localpaths.abstract_local_paths env.ac env.an
 	in
-	let uoa, (oa_lcg, valid) = unordered_oa env sols
+	let uoa, (oa_lcg, valid) = unordered_oa ~auto_conts env sols
 	in
 	if not uoa then
 		False
@@ -444,20 +444,37 @@ let lcg_for_requirements env =
 
 
 
-let gored_lcg ?(skip_oa=false) env =
-    let valid_solutions = if skip_oa then An_localpaths.abstract_local_paths env.ac env.an else
-        let sols = An_localpaths.abstract_local_paths env.ac env.an
+let rec gored_lcg ?(skip_oa=false) env =
+    let solutions = An_localpaths.abstract_local_paths env.ac env.an
+    in
+    let valid_solutions = if skip_oa then solutions else
+        let rlcg_nooa = gored_lcg ~skip_oa:true env
+        in
+        let goals = LSSet.elements rlcg_nooa#procs
         in
         let overlay = Hashtbl.create 42
-        and oa_lcg = build_oa_lcg env.an env.ctx env.goal sols
+        and oa_lcg = build_oa_lcg ~auto_conts:false env.an env.ctx goals solutions
+        in
+        let valid = color_nodes_connected_to_trivial_sols oa_lcg
+        in
+        let _ = restrict_sols ~update:false overlay oa_lcg valid
+        in
+        let push_obj obj =
+            let isols, sols = solutions obj
+            in
+            let sols = List.combine isols sols
+            in
+            let valid_sol (id, alp) =
+                let lss = extract_local_states alp
+                in
+                List.for_all (fun ls -> NodeSet.mem (NodeLS ls) valid) lss
+            in
+            let sols = List.filter valid_sol sols
+            in
+            Hashtbl.add overlay obj (List.map fst sols)
         in
         fun obj -> (
-            (if not (Hashtbl.mem overlay obj) then
-                let _ = oa_lcg#build_obj obj
-                in
-                let valid = color_nodes_connected_to_trivial_sols oa_lcg
-                in
-                restrict_sols ~update:false overlay oa_lcg valid);
+            (if not (Hashtbl.mem overlay obj) then push_obj obj);
             An_localpaths.restricted_abstract_local_paths env.ac env.an overlay obj
         )
     in
