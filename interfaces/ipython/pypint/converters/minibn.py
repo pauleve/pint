@@ -37,7 +37,6 @@ class BooleanNetwork(dict):
                 [sa] = self.vars([a])
                 expr_up = fa.subs({sa: ba.FALSE}).simplify()
                 expr_down = (~fa).subs({sa: ba.TRUE}).simplify()
-                print(a, fa, expr_up, expr_down)
                 b2a.make_transitions([(a, 0, 1)], expr_up)
                 b2a.make_transitions([(a, 1, 0)], expr_down)
 
