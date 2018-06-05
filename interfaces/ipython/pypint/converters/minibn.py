@@ -15,6 +15,7 @@ class BooleanNetwork(dict):
     def to_pint(self):
         from colomoto_jupyter.sessionfiles import new_output_file
         from pypint.converters.lib.boolean_utils import BoolToAN
+        from pypint.converters.lib.export_utils import pint_protect
         ba = self.ba
 
         def ls_of_lit(lit):
@@ -31,7 +32,7 @@ class BooleanNetwork(dict):
             b2a = BoolToAN(ba, ls_of_lit, out)
 
             for a in sorted(self.keys()):
-                out("{} [0, 1]".format(a))
+                out("{} [0, 1]".format(pint_protect(a)))
 
             for a, fa in sorted(self.items()):
                 [sa] = self.vars([a])
