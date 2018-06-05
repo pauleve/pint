@@ -21,6 +21,8 @@ class BoolToAN:
         return boolean.BooleanAlgebra()
 
     def make_transitions(self, changes, expr):
+        if expr == self.ba.FALSE:
+            return
         LT = partial(pint_of_localtransition, changes)
 
         dnf = self.ba.dnf(expr)
