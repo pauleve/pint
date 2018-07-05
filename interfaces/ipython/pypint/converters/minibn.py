@@ -2,7 +2,12 @@ from colomoto_jupyter.sessionfiles import new_output_file
 from pypint.converters.lib.boolean_utils import BoolToAN
 from pypint.converters.lib.export_utils import pint_protect
 
+from colomoto.minibn import BooleanNetwork
+
 def import_minibn(f):
+    assert isinstance(f, BooleanNetwork), \
+        "{}: only objects of type {} are supported".format(import_minibn, BooleanNetwork)
+
     ba = f.ba
 
     def ls_of_lit(lit):
