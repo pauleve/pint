@@ -27,8 +27,8 @@ def import_minibn(f):
 
         for a, fa in sorted(f.items()):
             sa = f.vars(a)[0]
-            expr_up = fa.subs({sa: ba.FALSE}).simplify()
-            expr_down = (~fa).subs({sa: ba.TRUE}).simplify()
+            expr_up = fa.subs({sa: ba.FALSE}).literalize().simplify()
+            expr_down = (~fa).subs({sa: ba.TRUE}).literalize().simplify()
             b2a.make_transitions([(a, 0, 1)], expr_up)
             b2a.make_transitions([(a, 1, 0)], expr_down)
 
