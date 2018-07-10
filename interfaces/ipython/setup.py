@@ -41,10 +41,8 @@ setup(name = NAME,
     install_requires = [
         "colomoto_jupyter[networkx] >=0.4.1, <0.5",
         "networkx >= 2.0",
+        "boolean.py",
     ],
-    extras_require = {
-        "cadbiom": ["boolean.py"],
-    },
     entry_points = {
         "console_scripts": [
             "pint-import=pypint.console:import_model",
