@@ -4,7 +4,7 @@ package:
   version: {{ version|replace('-','.') }}
 
 source:
-  url: https://github.com/pauleve/pint/releases/download/{{ version }}/pint_{{ version }}_linux-x86_64.tgz
+  url: https://github.com/pauleve/pint/releases/download/{{ version }}/pint_{{ version }}_linux-x86_64.txz
 
 requirements:
   run:

@@ -162,7 +162,7 @@ dist-static: dist-clean
 	install -m 755 dist/static/bin/pint-env $(STATIC_DESTDIR)/bin
 	install -m 644 dist/static/README $(STATIC_DESTDIR)
 	install -m 755 dist/static/install.sh $(STATIC_DESTDIR)
-	tar cvzf $(STATIC_DESTDIR).tgz -C dist $(STATIC_BASENAME)
+	tar cvJf $(STATIC_DESTDIR).txz -C dist $(STATIC_BASENAME)
 
 dist: pre-release
 	make make-dist-via-docker
