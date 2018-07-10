@@ -57,6 +57,10 @@ Please cite **Pint** as follows:
 
 Other related papers:
 
+- `Prediction of Mutations to Control Pathways Enabling Tumour Cell Invasion with the CoLoMoTo Interactive Notebook (Tutorial) <http://dx.doi.org/10.3389/fphys.2018.00787>`_
+  (N. Levy, A. Naldi, C. Hernandez, G. Stoll, D. Thieffry, A. Zinovyev, L. Calzone, and L. Paulevé in *Frontiers in Physiology*, 2018)
+- `The CoLoMoTo Interactive Notebook: Accessible and Reproducible Computational Analyses for Qualitative Biological Networks <http://dx.doi.org/10.3389/fphys.2018.00680>`_
+  (A. Naldi, C. Hernandez, N. Levy, G. Stoll, P. T. Monteiro, C. Chaouiya, T. Helikar, A. Zinovyev, L. Calzone, S. Cohen-Boulakia, D. Thieffry, and L. Paulevé in *Frontiers in Physiology*, 2018)
 - `Pint: A Static Analyzer for Transient Dynamics of Qualitative Networks with IPython Interface <https://hal.archives-ouvertes.fr/hal-01589248/file/pint.pdf>`_
   (L. Paulevé at *CMSB 2017*)
 - `Reduction of Qualitative Models of Biological Networks for Transient Dynamics Analysis <https://hal.archives-ouvertes.fr/hal-01580765/file/preprint.pdf>`_
