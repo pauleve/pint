@@ -6,8 +6,8 @@ When loaded, the `pypint` module will perform the follow tasks:
 * if in IPython, displays the version of Pint binaries, and executes
   :py:func:`.ipython_install`.
 """
-__version__ = "1.4.1"
-__pint_required__ = "2017-12-01"
+__version__ = "1.4.2"
+__pint_required__ = "2018-07-10"
 
 import os
 import shutil
