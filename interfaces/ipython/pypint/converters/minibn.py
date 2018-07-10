@@ -2,9 +2,12 @@ from colomoto_jupyter.sessionfiles import new_output_file
 from pypint.converters.lib.boolean_utils import BoolToAN
 from pypint.converters.lib.export_utils import pint_protect
 
-from colomoto.minibn import BooleanNetwork
+from colomoto.minibn import BooleanNetwork, MultiValuedNetwork
 
 def import_minibn(f):
+    if isinstance(f, MultiValuedNetwork):
+        raise Exception("Direct conversion from MultiValuedNetwork is not supported yet (you should use biolqm instead)")
+
     assert isinstance(f, BooleanNetwork), \
         "{}: only objects of type {} are supported".format(import_minibn, BooleanNetwork)
 
