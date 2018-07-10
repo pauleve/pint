@@ -133,7 +133,7 @@ class Mole(Tool):
 class GINsim(Tool):
     exe = "GINsim"
     jars = {
-    "GINsim.jar": "http://ginsim.org/sites/default/files/GINsim-3.0.0b-with-deps.jar",
+    "GINsim.jar": "http://ginsim.org/sites/default/files/ginsim-dev/GINsim-3.0.0b-SNAPSHOT-jar-with-dependencies.jar",
     }
 
     @classmethod
