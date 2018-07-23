@@ -22,13 +22,20 @@ let an, ctx = An_cli.process_input ()
 let restrict = List.map (resolve_sig_ls an) !restrict
 
 let fixpoints () =
-	let fps = An_fixpoint.fixpoints ~restrict an
-	in
 	if !An_cli.opt_json_stdout then
+        let fps = An_fixpoint.fixpoints ~restrict an
+        in
 		print_endline (json_of_list (json_of_state an) fps)
 	else
-		(print_endline ("# "^string_of_int (List.length fps)^ " fixed points");
-		List.iter print_endline (List.map (string_of_state an) fps))
+        let n = ref 0
+        in
+        let fixpoint state =
+            incr n;
+            print_endline (string_of_state an state)
+        in
+        let _ = An_fixpoint.fixpoints_jit fixpoint restrict an
+        in
+		print_endline ("# "^string_of_int !n^ " fixed points")
 
 let _ = if !do_fixpoints then fixpoints ()
 
