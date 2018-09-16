@@ -10,9 +10,13 @@ import tarfile
 import tempfile
 
 try:
-    from urllib.request import urlretrieve
+    from urllib.request import urlretrieve, build_opener, install_opener
 except:
-    from urllib import urlretrieve
+    from urllib import urlretrieve, build_opener, install_opener
+
+opener = build_opener()
+opener.addheaders = [('User-Agent','Mozilla/5.0')]
+install_opener(opener)
 
 def chmod_x(filename):
     st = os.stat(filename)
@@ -34,7 +38,8 @@ def install_bin_from_tar(tar, member, dest):
 
 def install_from_tarurl(url, match_member, args):
     localfile = urlretrieve(url)[0]
-    with tarfile.open(localfile, "r:gz") as t:
+    fmt = url.split(".")[-1]
+    with tarfile.open(localfile, "r:%s"%fmt) as t:
         for m in t:
             if match_member(m):
                 dest = os.path.join(args.prefix, "bin", os.path.basename(m.name))
@@ -107,17 +112,16 @@ class NuSMV(Tool):
 
 class ITS(Tool):
     exe = "its-reach"
-    url_pat = "http://teamcity-systeme.lip6.fr/guestAuth/repository/download/%s"
+    url_pat = "http://anaconda.org/colomoto/its/20180905/download/%s/its-20180905-0.tar.bz2"
     binfile = {
-        "linux64": url_pat % "bt54/.lastSuccessful/ITS_linux_64.tar.gz",
-        "linux32": url_pat % "bt53/.lastSuccessful/ITS_linux_32.tar.gz",
-        "darwin": url_pat % "bt52/.lastSuccessful/ITS_darwin_64.tar.gz",
+        "linux64": url_pat % "linux-64",
     }
     @classmethod
     def install(self, system, args):
+        assert system in self.binfile, "Cannot install binaries for %s" % system
         binfile = self.binfile[system]
         def match_entry(m):
-            return m.name in ["its-reach", "its-ctl", "its-ltl"]
+            return m.name in ["bin/its-reach", "bin/its-ctl"]
         install_from_tarurl(binfile, match_entry, args)
 
 class Mole(Tool):
