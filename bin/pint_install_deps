@@ -10,13 +10,9 @@ import tarfile
 import tempfile
 
 try:
-    from urllib.request import urlretrieve, build_opener, install_opener
+    from urllib.request import urlretrieve
 except:
-    from urllib import urlretrieve, build_opener, install_opener
-
-opener = build_opener()
-opener.addheaders = [('User-Agent','Mozilla/5.0')]
-install_opener(opener)
+    from urllib import urlretrieve
 
 def chmod_x(filename):
     st = os.stat(filename)
@@ -112,7 +108,7 @@ class NuSMV(Tool):
 
 class ITS(Tool):
     exe = "its-reach"
-    url_pat = "http://anaconda.org/colomoto/its/20180905/download/%s/its-20180905-0.tar.bz2"
+    url_pat = "https://api.anaconda.org/download/colomoto/its/20180905/%s/its-20180905-0.tar.bz2"
     binfile = {
         "linux64": url_pat % "linux-64",
     }
@@ -134,46 +130,7 @@ class Mole(Tool):
             return m.name in ["mole", "mci2dot"]
         install_from_tarurl(binfile, match_entry, args)
 
-class GINsim(Tool):
-    exe = "GINsim"
-    jars = {
-    "GINsim.jar": "http://ginsim.org/sites/default/files/ginsim-dev/GINsim-3.0.0b-SNAPSHOT-jar-with-dependencies.jar",
-    }
-
-    @classmethod
-    def is_installed(self, args):
-        if super(GINsim, self).is_installed(args):
-            print("# checking GINsim version")
-            fd, script = tempfile.mkstemp(".py")
-            try:
-                f = os.fdopen(fd, "w")
-                f.write('assert "lqm" in globals()\n')
-                f.close()
-                return subprocess.call(["GINsim", "-s", script]) == 0
-            finally:
-                os.unlink(script)
-        return False
-
-    @classmethod
-    def install(self, system, args):
-        destjar_dir = os.path.join(args.pintsharedir, "3rdparty")
-        for jarname, src in self.jars.items():
-            destjar = os.path.join(destjar_dir, jarname)
-            print("installing %s" % destjar)
-            prepare_dest(destjar)
-            urlretrieve(src, destjar)
-
-        destbin = os.path.join(args.prefix, "bin", "GINsim")
-        print("installing %s" % destbin)
-        prepare_dest(destbin)
-        classpath = "{d}/{ginsim}:$CLASSPATH".format(\
-                        d = destjar_dir,
-                        ginsim = "GINsim.jar")
-        with open(destbin, "w") as fd:
-            fd.write("""#!/usr/bin/env bash\njava -cp "%s" org.ginsim.Launcher "${@}"\n""" % classpath)
-        chmod_x(destbin)
-
-tools = [Clingo, NuSMV, ITS, Mole, GINsim]
+tools = [Clingo, NuSMV, ITS, Mole]
 
 if __name__ == "__main__":
     system = platform.system().lower()
