@@ -13,6 +13,8 @@ def check_pint_version():
 if __name__ == "__main__":
     setup({"pkg": "colomoto/pint", "check_progs": ["pint-config", "pint-reach"],
                 "check_install": check_pint_version},
+        {"pkg": "colomoto/mole", "check_progs": ["mole"]},
         PKG["clingo"],
+        PKG["ginsim"],
         PKG["its"],
         PKG["nusmv"])
