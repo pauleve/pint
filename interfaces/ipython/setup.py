@@ -50,6 +50,7 @@ setup(name = NAME,
     },
     include_package_data = True,
     packages = find_packages(exclude=["tests"]),
+    py_modules = ["pypint_setup"],
     **META
 )
 

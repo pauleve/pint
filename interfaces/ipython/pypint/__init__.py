@@ -7,7 +7,6 @@ When loaded, the `pypint` module will perform the follow tasks:
   :py:func:`.ipython_install`.
 """
 __version__ = "1.4.2"
-__pint_required__ = "2018-07-10"
 
 import os
 import shutil
@@ -24,6 +23,9 @@ from .ui import *
 from .tools import *
 from .utils import *
 
+import colomoto.setup_helper
+import pypint_setup
+
 __SETUP_DONE = False
 
 __PINT_VERSION__ = None
@@ -31,16 +33,16 @@ __PINT_VERSION__ = None
 def check_pint():
     if shutil.which("pint-config") is None:
         raise Exception("Pint binaries should be installed separately. " + \
-            "See https://loicpauleve.name/pint/doc/#Binaries")
+            "See https://loicpauleve.name/pint/doc/#Binaries" + \
+            "or run\n\tpython -m pypint_setup")
 
-    global __PINT_VERSION__
-    version = subprocess.check_output(["pint-config", "version"]).decode()
-    __PINT_VERSION__ = version.strip()
-
-    if __pint_required__ > __PINT_VERSION__:
+    if not pypint_setup.check_pint_version():
         raise Exception("Pint >= {0} is required. Please upgrade Pint binaries. " \
-                .format(__pint_required__) +  \
-            "See https://loicpauleve.name/pint/doc/#Binaries" )
+                .format(pypint_setup.__pint_required__) +  \
+            "See https://loicpauleve.name/pint/doc/#Binaries" + \
+            "or run\n\tpython -m pypint_setup -f")
+    global __PINT_VERSION__
+    __PINT_VERSION__ = pypint_setup.__PINT_VERSION__
 
 
 def setup_environ():
