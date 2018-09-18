@@ -34,13 +34,13 @@ def check_pint():
     if shutil.which("pint-config") is None:
         raise Exception("Pint binaries should be installed separately. " + \
             "See https://loicpauleve.name/pint/doc/#Binaries" + \
-            "or run\n\tpython -m pypint_setup")
+            " or run\n\tpython -m pypint_setup")
 
     if not pypint_setup.check_pint_version():
         raise Exception("Pint >= {0} is required. Please upgrade Pint binaries. " \
                 .format(pypint_setup.__pint_required__) +  \
             "See https://loicpauleve.name/pint/doc/#Binaries" + \
-            "or run\n\tpython -m pypint_setup -f")
+            " or run\n\tpython -m pypint_setup")
     global __PINT_VERSION__
     __PINT_VERSION__ = pypint_setup.__PINT_VERSION__
 
@@ -53,15 +53,10 @@ def setup_environ():
     os.environ["PATH"] = "%s:%s" % (bin_path, os.environ["PATH"])
     __SETUP_DONE = True
 
-def hello_ipython():
-    info("You are using Pint version %s and pypint %s" % (__PINT_VERSION__,__version__))
-
-
 if not __SETUP_DONE:
     setup_environ()
 
 if IN_IPYTHON:
-    hello_ipython()
     from colomoto_jupyter import jupyter_setup
 
     menu = [
