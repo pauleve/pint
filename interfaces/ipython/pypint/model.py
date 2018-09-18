@@ -13,6 +13,7 @@ from urllib.request import urlretrieve
 from xml.dom.minidom import parse as xml_parse_dom
 from zipfile import ZipFile
 
+from colomoto_jupyter import import_colomoto_tool
 from colomoto_jupyter.io import download, ensure_localfile
 
 from .cfg import *
@@ -326,8 +327,6 @@ def import_with_ginsim(fmt, inputfile, anfile, simplify=True):
     # some file formats, such as zginml, can define named states
     states = {}
 
-    cleanup_files = []
-
     if fmt == "zginml":
         def parse_localstate(value):
             a,i = value.split(";")
@@ -345,24 +344,15 @@ def import_with_ginsim(fmt, inputfile, anfile, simplify=True):
                         name = state.getAttribute("name")
                         states[name] = parse_state(state.getAttribute("value"))
 
-    args = ["GINsim", "-lqm", "-if", fmt, inputfile, "-of", "an", anfile]
-    subprocess.check_call(args)
-
-    if simplify:
-        info("Simplifying model...")
-        subprocess.check_call(["pint-export", "--simplify", "-i", anfile,
-                                "-o", anfile])
-
-    model = FileModel(anfile)
+    biolqm = import_colomoto_tool("biolqm")
+    lqm = biolqm.load(inputfile)
+    model = biolqm.to_pint(lqm, simplify=simplify)
 
     if states:
         for name, state in states.items():
             model.register_state(name, state)
         info("%d state(s) have been registered: %s" \
             % (len(states), ", ".join(states.keys())))
-
-    for filename in cleanup_files:
-        os.unlink(filename)
 
     return model
 
@@ -407,11 +397,11 @@ def load(filename=None, format=None, simplify=True, **opts):
     Supported file extensions:
 
     * ``.an`` (automata network), native Pint file format;
-    * ``.ginml``, imported using GINsim
+    * ``.ginml``, imported using GINsim (require `ginsim` Python module)
     * ``.zginml``, like ginml, with in addition the support of named initial states;
-    * ``.sbml`` (SBML-qual), imported using GINsim (with bioLQM);
+    * ``.sbml`` (SBML-qual), imported using GINsim (require `ginsim` Python module);
     * ``.boolsim``, ``.booleannet``, ``.boolfunctions`` (or ``.bn``): Boolean network formats, imported
-      using GINsim (with bioLQM)`.
+      using GINsim (require `ginsim` Python module)`.
     * ``.bc``: Biocham model - the importation implements its Boolean semantics
       (experimental feature)
 
