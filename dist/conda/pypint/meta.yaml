@@ -21,7 +21,7 @@ requirements:
     - setuptools
   run:
     - python >=3.5
-    - colomoto_jupyter >=0.4.7,<0.5
+    - colomoto_jupyter >=0.4.10
     - boolean.py
     - ginsim >=2.9.6
     - networkx >=2.0

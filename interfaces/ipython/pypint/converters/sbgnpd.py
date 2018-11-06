@@ -187,6 +187,22 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
 
     b2a = BoolToAN(ba, ls_of_lit, out_trs.append, subs)
 
+    def make_transitions(changes, conds):
+        var_changes = set([a for (a,_,_) in changes])
+        def var_of_symbol(s):
+            if s in subs:
+                s = subs[s]
+                if not isinstance(s, ba.Symbol):
+                    return [y.obj.a for y in s.get_symbols()]
+                return [s.obj.a]
+            return [s.obj]
+        for s in conds.get_symbols():
+            vars = var_of_symbol(s)
+            for v in vars:
+                assert v not in var_changes, (changes, vars, conds)
+
+        b2a.make_transitions(changes, conds)
+
     #
     # transitions + automata for explicit processes
     #
@@ -197,11 +213,11 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
         if not pconflicts and len(p.consumptions) == 0:
             for e in p.productions:
                 for a,j in local_states_of_entity(e):
-                    b2a.make_transitions([(a,0,j)], conds)
+                    make_transitions([(a,0,j)], conds)
         elif not pconflicts and len(p.productions) == 0 and len(p.consumptions) == 1:
             e = p.consumptions[0]
             trs = [(a,i,0) for a,i in local_states_of_entity(e)]
-            b2a.make_transitions(trs, conds)
+            make_transitions(trs, conds)
         else:
 
             implicit_process = not pconflicts and \
@@ -219,7 +235,7 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
                     conds &= Lit(e)
                 for c in pconflicts:
                     conds &= ~Lit(c)
-                b2a.make_transitions([(an_name(p),0,1)], conds)
+                make_transitions([(an_name(p),0,1)], conds)
                 conds = Lit(p)
 
             gstories = {}
@@ -260,7 +276,7 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
             for e in productions:
                 sids = e2stories.get(e)
                 if not sids:
-                    b2a.make_transitions([(an_name(e),0,1)], conds)
+                    make_transitions([(an_name(e),0,1)], conds)
                 else:
                     push_sids(sids)
                     for sid in sids:
@@ -288,17 +304,17 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
                     changes.append((a,i,j))
                     if not j:
                         prod_done &= Lit(StoryState(sid,0))
-                b2a.make_transitions(changes, conds)
+                make_transitions(changes, conds)
 
             # process de-activation
             if not implicit_process:
                 done = prod_done
-                b2a.make_transitions([(an_name(p), 1, 0)], done)
+                make_transitions([(an_name(p), 1, 0)], done)
             else:
                 done = ba.TRUE
 
             for e in cons_indiv_e:
-                b2a.make_transitions([(an_name(e),1,0)], conds & done)
+                make_transitions([(an_name(e),1,0)], conds & done)
 
     for spec in sorted(out_trs):
         out(spec)
