@@ -166,6 +166,8 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
             for m in n.inputs[1:]:
                 expr |= logic_from_entity(m)
             return expr
+        elif n.type == "not": # ! next SBGN-PD specification
+            return ~logic_from_entity(n.inputs[0])
 
     def logic_of_modulations(modulations):
         expr = ba.FALSE
