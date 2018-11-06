@@ -49,7 +49,8 @@ MODULATION_ARCS = [
     "catalysis",
     "stimulation",
     "necessary stimulation",
-    "inhibition"
+    "inhibition",
+    "absolute inhibition",
 ]
 LOGIC_ARCS = [
     "logic arc",
@@ -327,7 +328,7 @@ class SbgnPDModel:
 
                 source = resolve(n.getAttribute("source"))
                 target = resolve(n.getAttribute("target"))
-                    
+
                 if cls == "production":
                     source.register_production(target)
                 elif cls == "consumption":

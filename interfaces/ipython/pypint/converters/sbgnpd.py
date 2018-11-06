@@ -174,6 +174,8 @@ def import_sbgnpd(sbgnpd_filename, outfd, initial_state=(), stories=(),
             varexpr = logic_from_entity(var)
             if cls == "necessary stimulation":
                 necessary &= varexpr
+            elif cls == "absolute inhibition":
+                necessary &= ~varexpr
             elif cls in ["stimulation", "catalysis","modulation"]:
                 expr |= varexpr
             elif cls in ["inhibition", "modulation"]:
