@@ -39,11 +39,12 @@ let solver ?(opts="") ?(inputs=["-"]) () =
 			^opts^" "^String.concat " " inputs)
 
 let decl asp pred =
+    if String.length pred = 0 then asp else (
 	let s = pred^".\n"
 	in
 	dbg_noendl ~level:5 s;
 	output_string (snd asp) s;
-	asp
+	asp)
 
 let decls asp preds =
 	let decl = decl asp

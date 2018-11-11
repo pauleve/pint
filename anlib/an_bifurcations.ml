@@ -12,6 +12,24 @@ open An_reach_asp
 open ASP_solver
 open Pn_mci
 
+let asp_transitions asp trs =
+    let asp_of_trstate pred trid state =
+        String.concat ". " (List.map (fun (a,i) ->
+            pred^"("^string_of_int trid^","
+                ^string_of_int a^","^string_of_int i^")")
+                (IMap.bindings state))
+    in
+    let asp_of_tr trid tr asp =
+        let asp = decl asp ("tr("^string_of_int trid^")")
+        in
+        let asp = decl asp (asp_of_trstate "pre" trid tr.pre)
+        in
+        let asp = decl asp (asp_of_trstate "post" trid tr.dest)
+        in
+        decl asp (asp_of_trstate "post" trid tr.cond)
+    in
+    Hashtbl.fold asp_of_tr trs asp
+
 let asp_ucont_lcg asp lcg =
 	let edge_asp ?(instance=any_instance) n1 n2 =
 		"oa_lcg("^instance^","^n1^","^n2^")"
@@ -108,7 +126,6 @@ let asp_unfolding asp (an, ctx) =
 		(asp, 1) unf.plname)
 
 let asp_bifurcation_lcg asp ac (an, ctx) goal =
-    assert_async_an an;
 	(* build full lcg *)
 	let full_lcg = full_lcg ac an
 	in
@@ -123,19 +140,7 @@ let asp_bifurcation_lcg asp ac (an, ctx) goal =
 	let asp = ISet.fold (fun a asp -> decl asp (bool_asp a)) (boolean_automata an) asp
 	in
 	(* push transitions definition *)
-	let register_transition trid tr asp =
-        let a,i = IMap.choose tr.orig
-        and _,j = IMap.choose tr.dest
-        in
-		if (a,i) = goal then asp else
-		let asp = decl asp ("tr("^string_of_int trid^","
-			^automaton_asp a^","^string_of_int i^","^string_of_int j^")")
-		in
-		IMap.fold (fun b k asp ->
-			decl asp ("trcond("^string_of_int trid^","^
-			automaton_asp b^","^string_of_int k^")")) tr.cond asp
-	in
-	let asp = Hashtbl.fold register_transition an.trs asp
+	let asp = asp_transitions asp an.trs
 	in
 	(* push LCG for over-approximation *)
 	let asp = asp_ucont_lcg asp full_lcg
