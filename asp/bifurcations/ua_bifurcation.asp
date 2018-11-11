@@ -21,26 +21,23 @@ oa_lcg(ucont,goal,ls(A,I)) :- goal(A,I).
 
 
 % select one bifurcation transition
-1 { btr(ID,A,I,J) : tr(ID,A,I,J) } 1.
-btrcond(ID,B,K) :- btr(ID,A,I,J),trcond(ID,B,K).
-#show btr/4.
-%#show btrcond/3.
-oa_init(ucont,A,J) :- btr(ID,A,I,J).
-K=L :- btr(ID,_,_,_),trcond(ID,B,K),oa_init(ucont,B,L).
+1 { btr(T) : tr(T) } 1.
+#show btr/1.
+oa_init(ucont,A,J) :- btr(T), post(T,A,J).
+:- btr(T), post(T,B,K), oa_init(ucont,B,L), L != K.
 
 %
 % Check that the state before btr can reach the input goal
 %
 1 { init(sic,A,J) : ls(A,J) } :- ua_lcg(sic, _, ls(A, _)).
-init(sic,A,I) :- oa_init(ucont,A,I),btr(_,B,_,_),B!=A.
-init(sic,A,I) :- btr(ID,_,_,_),trcond(ID,A,I).
-init(sic,A,I) :- btr(ID,A,I,_).
+init(sic,A,I) :- btr(T), pre(T,A,I).
+ba(A) :- btr(T), pre(T,A,_).
+init(sic,A,I) :- oa_init(ucont,A,I), not ba(A).
 ua_lcg(sic,goal,ls(A,I)) :- goal(A,I).
 :- goal(A,I),init(sic,A,I). % optional, but makes it faster
 
 % choose a single initial state
 1 {sb(A,I) : init(sic,A,I)} 1 :- init(sic,A,_).
-sb(A,I) :- oa_init(ucont,A,I),btr(_,B,_,_),B!=A.
-sb(A,I) :- btr(ID,_,_,_),trcond(ID,A,I).
-sb(A,I) :- btr(ID,A,I,_).
+sb(A,I) :- oa_init(ucont,A,I), not ba(A).
+sb(A,I) :- btr(T), pre(T,A,I).
 
