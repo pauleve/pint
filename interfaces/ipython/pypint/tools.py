@@ -167,17 +167,24 @@ def save_as(self, filename):
     return export(self, ext2format[ext], output=filename)
 
 @modeltool
-def to_nusmv(self, skip_init=True):
+def to_nusmv(self, skip_init=True, existential_ctx=True):
     """
     TODO
 
     :keyword bool skip_init: do not generate an INIT statement.
+    :keyword bool existential_ctx: if True (default),
+        whenever the initial state is partial, the properties have to hold from
+        at least one complete initial state;
+        if False, the properties have to hold from all the possible complete initial
+        states.
     """
     format = "nusmv"
     smvfile = new_output_file(ext=format2ext[format])
     mapfile = new_output_file(ext="json")
 
-    raw_args = ["--mapfile", mapfile]
+    raw_args = ["--mapfile", mapfile,
+        "--existential-ctx" if existential_ctx else "--universal-ctx",
+    ]
     if skip_init:
         raw_args += ["--no-init"]
     try:
