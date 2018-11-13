@@ -90,22 +90,6 @@ class Clingo(Tool):
             return m.isfile() and os.path.basename(m.name) == "clingo"
         install_from_tarurl(binfile, match_entry, args)
 
-class NuSMV(Tool):
-    exe = "NuSMV"
-    url_pat = "http://nusmv.fbk.eu/distrib/NuSMV-2.6.0-%s.tar.gz"
-    binfile = {
-        "linux64": url_pat % "linux64",
-        "linux32": url_pat % "linux32",
-        "darwin": url_pat % "macosx64",
-    }
-
-    @classmethod
-    def install(self, system, args):
-        binfile = self.binfile[system]
-        def match_entry(m):
-            return m.name.endswith("bin/NuSMV")
-        install_from_tarurl(binfile, match_entry, args)
-
 class ITS(Tool):
     exe = "its-reach"
     url_pat = "https://api.anaconda.org/download/colomoto/its/20180905/%s/its-20180905-0.tar.bz2"
@@ -130,7 +114,7 @@ class Mole(Tool):
             return m.name in ["mole", "mci2dot"]
         install_from_tarurl(binfile, match_entry, args)
 
-tools = [Clingo, NuSMV, ITS, Mole]
+tools = [Clingo, ITS, Mole]
 
 if __name__ == "__main__":
     system = platform.system().lower()
