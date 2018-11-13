@@ -2,6 +2,10 @@
 import json
 import re
 
+from functools import reduce
+
+from colomoto.temporal_logics import *
+
 re_int = re.compile(r"\d+")
 
 class Inconc:
@@ -227,8 +231,10 @@ class Goal:
             return self(*arg)
         elif isinstance(arg, tuple) and len(arg) == 2:
             return self({arg[0]: arg[1]})
-        elif arg is None:
+        elif arg is None and kwargs:
             return self(**kwargs)
+        elif arg is None:
+            return None
         else:
             raise TypeError("Cannot convert a %s to %s" % (type(arg), self))
 
@@ -269,6 +275,15 @@ class Goal:
             args += [",".join([pint_of_localstates([ai]) for ai in g.items()]) \
                         for g in gs]
         return " ".join(args)
+
+    def to_ctl(self):
+        """
+        Returns the CTL specification of the goal
+        """
+        def ctl_of_goal(g):
+            return S(g[0]) & (EF (ctl_of_goal(g[1:]))) if len(g) > 1 \
+                    else S(g[0])
+        return reduce(lambda s1, s2: s1 | s2, map(ctl_of_goal, self.__goals))
 
     def __str__(self):
         return self.to_pint()

@@ -6,6 +6,8 @@ import tempfile
 
 import networkx as nx
 
+from colomoto.temporal_logics import *
+
 from .cfg import *
 from .types import *
 from .ui import *
@@ -51,6 +53,7 @@ def _run_tool(cmd, *args, input_model=None, reduce_for_goal=None, **run_opts):
 
     args.insert(0, cmd)
 
+    reduce_for_goal = Goal.from_arg(reduce_for_goal)
     if reduce_for_goal:
         pre_args = ["pint-export", "--reduce-for-goal",
                         reduce_for_goal.to_pint(), "--squeeze"]
@@ -125,13 +128,13 @@ def EquipTools(cls):
 #
 
 @modeltool
-def export(self, format, output=None, raw_args=None):
+def export(self, format, output=None, reduce_for_goal=None, raw_args=None):
     """
     Export the AN model to the given `format`. If not provided the `output`
     filename is generated using :py:func:`.new_output_file` and the extension
     corresponding to the export format.
 
-    .. seealso:: :py:data:`.EXPORT_SUPPORTED_FORMATS`, and similar method :py:meth:`.save_as`
+    e. seealso:: :py:data:`.EXPORT_SUPPORTED_FORMATS`, and similar method :py:meth:`.save_as`
     """
     format = format.lower()
     format = format_alias.get(format, format)
@@ -143,7 +146,7 @@ def export(self, format, output=None, raw_args=None):
     if not output:
         output = new_output_file(ext=format2ext[format])
     args += ["-o", output]
-    _run_tool("pint-export", *args, *raw_args,
+    _run_tool("pint-export", *args, *raw_args, reduce_for_goal=reduce_for_goal,
                 input_model=self, stdout=None)
     if IN_IPYTHON:
         return FileLink(output)
@@ -167,7 +170,7 @@ def save_as(self, filename):
     return export(self, ext2format[ext], output=filename)
 
 @modeltool
-def to_nusmv(self, skip_init=True, existential_ctx=True):
+def to_nusmv(self, skip_init=True, existential_ctx=True, reduce_for_goal=None):
     """
     TODO
 
@@ -177,6 +180,9 @@ def to_nusmv(self, skip_init=True, existential_ctx=True):
         at least one complete initial state;
         if False, the properties have to hold from all the possible complete initial
         states.
+    :keyword reduce_for_goal: perform goal-oriented model reduction before
+        exportation.
+    :type reduce_for_goal: str or list(str) or .Goal
     """
     format = "nusmv"
     smvfile = new_output_file(ext=format2ext[format])
@@ -188,7 +194,8 @@ def to_nusmv(self, skip_init=True, existential_ctx=True):
     if skip_init:
         raw_args += ["--no-init"]
     try:
-        export(self, format, output=smvfile, raw_args=raw_args)
+        export(self, format, output=smvfile, reduce_for_goal=reduce_for_goal,
+                raw_args=raw_args)
         with open(mapfile) as mf:
             bindings = json.load(mf)
     finally:
@@ -465,7 +472,7 @@ def reachability(self, goal=None, fallback="its", tool="sa",
     :keyword str tool: tool for the model-checking:
         * ``"sa"``: static analysis with potential fallback method if not
         conclusive
-        * ``"its"``, ``"nusmv"``, ``"its"``: directly use the specified
+        * ``"its"``, ``"nusmv"``, ``"mole"``: directly use the specified
         model-checker.
     :keyword list(str) sa_args: additional arguments for static analysis
     :keyword bool reduce_for_goal: before invoking a model-checker, perform the
@@ -494,9 +501,17 @@ def reachability(self, goal=None, fallback="its", tool="sa",
         if output == Inconc and fallback is not None:
             info("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
             tool = fallback
-    if tool != "sa":
+    reduce_for_goal = goal if reduce_for_goal else None
+    if tool == "sa":
+        pass
+    elif tool == "nusmv":
+        smv = self.to_nusmv(skip_init=False, reduce_for_goal=reduce_for_goal)
+        smv.add_ctl(EF(goal.to_ctl()))
+        print(smv.verify())
+        output = smv.alltrue(timeout=timeout)
+    else: # its, mole
         cp = _run_tool("pint-%s" % tool, goal, input_model=self,
-                        reduce_for_goal=goal if reduce_for_goal else None,
+                        reduce_for_goal=reduce_for_goal,
                         timeout=timeout)
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
