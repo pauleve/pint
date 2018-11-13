@@ -4,6 +4,8 @@ import os
 import subprocess
 import tempfile
 
+from functools import reduce
+
 import networkx as nx
 
 from colomoto.temporal_logics import *
@@ -741,6 +743,27 @@ def automaton_graph(self, a):
             g.add_edge(i, j, label=str(idx))
     return g
 
+@modeltool
+def ctl_of_cutset(self, cutset, goal=None, **kwgoal):
+    """
+    Return the CTL specification for `cutset` being a cut-set for `goal`
+    reachability.
+
+    :param goal: goal specification (e.g., ``"a=1"``)
+    :type goal: str or list(str) or .Goal
+    :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
+    :param cutset: cut-set
+    :type cutset: list(dict[str,int or int list])
+    """
+    goal = Goal.from_arg(goal, **kwgoal)
+    def ls_ctl(ai):
+        (a,i) = ai
+        if isinstance(i, int):
+            return S({a:i})
+        else:
+            return reduce(lambda x, y: x|y, [ls_ctl((a,j)) for j in i])
+    cutset_ctl = reduce(lambda x, y: x|y, map(ls_ctl, cutset.items()))
+    return ~EU(~cutset_ctl, goal.to_ctl())
 
 __all__ = [t[0] for t in __MODEL_TOOLS] + [
     "EXPORT_SUPPORTED_FORMATS",
