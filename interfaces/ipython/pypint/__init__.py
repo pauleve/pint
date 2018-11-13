@@ -167,11 +167,11 @@ if IN_IPYTHON:
     }""",
     "action_enable_debug": """function() {
         IPython.notebook.kernel.execute(pypint_jsapi.module_alias+".enable_dbg()");
-        pint_jsapi.debug_enabled(true);
+        pypint_jsapi.debug_enabled(true);
     }""",
     "action_disable_debug": """function() {
         IPython.notebook.kernel.execute(pypint_jsapi.module_alias+".disable_dbg()");
-        pint_jsapi.debug_enabled(false);
+        pypint_jsapi.debug_enabled(false);
     }""",
     "btn_enable_debug": "null",
     "btn_disable_debug": "null",
