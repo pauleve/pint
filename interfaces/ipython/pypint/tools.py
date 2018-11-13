@@ -53,8 +53,8 @@ def _run_tool(cmd, *args, input_model=None, reduce_for_goal=None, **run_opts):
 
     args.insert(0, cmd)
 
-    reduce_for_goal = Goal.from_arg(reduce_for_goal)
     if reduce_for_goal:
+        reduce_for_goal = Goal.from_arg(reduce_for_goal)
         pre_args = ["pint-export", "--reduce-for-goal",
                         reduce_for_goal.to_pint(), "--squeeze"]
         for a in reduce_for_goal.automata:
@@ -424,21 +424,26 @@ def bifurcations(self, goal=None, method="ua", timeout=None, **kwgoal):
     :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
     :keyword str method:
 
-        * ``"exact"`` for complete identification of bifurcation transitions
-          (PSPACE);
+        * ``"exact"`` or ``"nusmv"`` for complete identification of bifurcation transitions
+          (PSPACE)
         * ``"ua+mole"`` for under-approximation relying on exact the reachable
           states set prior computation (NP+PSPACE)
         * ``"ua"`` for under-approximation of bifurcation transitions (NP)
     :param int timeout: command timeout in seconds
     :rtype: :py:class:`.LocalTransition` list
     """
-    assert method in ["exact", "ua", "mole+ua"]
+    assert method in ["exact", "ua", "mole+ua", "nusmv"]
 
     goal = Goal.from_arg(goal, **kwgoal)
 
     if method == "exact":
-        cmd = "pint-nusmv"
-        args = ["--bifurcations"]
+        method = "nusmv"
+    if method == "nusmv":
+        smv = self.to_nusmv(skip_init=False)
+        for tr in self.local_transitions:
+            smv.add_ctl(tr.ctl_bifurcation(goal))
+        r = smv.verify(as_dict=False, timeout=timeout)
+        return [tr for (tr, r) in zip(self.local_transitions, r) if r]
     else:
         info("This computation is an *under-approximation*: \
 returned transitions are all bifurcation transitions, but some may have been missed. \

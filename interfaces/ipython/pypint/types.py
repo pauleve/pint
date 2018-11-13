@@ -35,6 +35,8 @@ def pint_value(value):
     """
     Returns string representation of a value for Pint
     """
+    if value == "":
+        return value
     if isinstance(value, int):
         return str(value)
     else:
@@ -95,6 +97,17 @@ class LocalTransition(object):
     def origins(self):
         return frozenset([(self.a, self.i)])
 
+    def ctl_bifurcation(self, goal):
+        """
+        Returns the CTL specification for this transition being a bifurcation
+        transition for `goal`.
+        """
+        goal = goal.to_ctl()
+        pre = {self.a: self.i}
+        pre.update(self.conds)
+        post = {self.a: self.j}
+        return EF(S(pre) & ~goal & EF(goal) & EX(S(post) & ~EF(goal)))
+
 class SynchronizedLocalTransitions(object):
     """
     Synchronized local transitions.
@@ -133,6 +146,17 @@ class SynchronizedLocalTransitions(object):
     @property
     def origins(self):
         return frozenset([(a,i) for (a,i,_) in self.local_transitions])
+
+    def ctl_bifurcation(self, goal):
+        """
+        Returns the CTL specification for this transition being a bifurcation
+        transition for `goal`.
+        """
+        goal = goal.to_ctl()
+        pre = dict([(a,i) for (a,i,_) in self.local_transitions])
+        pre.update(self.conds)
+        post = dict([(a,j) for (a,_,j) in self.local_transitions])
+        return EF(S(pre) & ~goal & EF(goal) & EX(S(post) & ~EF(goal)))
 
 
 def local_transition_from_json(tup):
@@ -231,10 +255,8 @@ class Goal:
             return self(*arg)
         elif isinstance(arg, tuple) and len(arg) == 2:
             return self({arg[0]: arg[1]})
-        elif arg is None and kwargs:
-            return self(**kwargs)
         elif arg is None:
-            return None
+            return self(**kwargs)
         else:
             raise TypeError("Cannot convert a %s to %s" % (type(arg), self))
 
