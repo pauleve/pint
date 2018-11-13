@@ -23,7 +23,6 @@ VALID_EXE = [
     "pint-its",
     "pint-lcg",
     "pint-mole",
-    "pint-nusmv",
     "pint-reach",
     "pint-sg",
     "pint-stable",
