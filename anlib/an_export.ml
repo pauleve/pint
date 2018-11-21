@@ -468,17 +468,19 @@ let romeo_of_an ?(map=None) ?(mapfile="") an ctx =
 		match p with PetriNet.LS ai ->
 			Hashtbl.add map ai (repr_ls ai, pid) | _ -> ()) places | None -> ());
 	(if mapfile <> "" then
-		let mapplaces = List.filter
-			(function (_, PetriNet.LS _) -> true | _ -> false) places
-		in
-		let string_of_map (id, p) =
-			match p with PetriNet.LS ai ->
-				string_of_int id^" "^repr_ls ai^"\n"
-			| _ -> raise (Invalid_argument "string_of_map")
-		in
-		let mapdata = String.concat "" (List.map string_of_map mapplaces)
-		in
-		Util.dump_to_file mapfile mapdata
+        let bindings = List.fold_left (fun b (pid, p) ->
+            match p with PetriNet.LS ai ->
+                let repr_ai = "P_"^string_of_int pid^repr_ls ai^"=1"
+                in
+                ([json_of_str (fst ai);json_of_sigls (snd ai)],repr_ai)::b
+            | _ -> b) [] places
+        in
+        let json_of_binding (k,v) =
+            json_of_list id (json_of_list id k::json_of_str v::[])
+        in
+        let buf = json_of_list json_of_binding  bindings
+        in
+        Util.dump_to_file mapfile buf
 	);
 	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<TPN>\n"
 	^ (String.concat "" (List.map romeo_of_place places))
