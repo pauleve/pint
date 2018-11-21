@@ -20,7 +20,6 @@ if IN_IPYTHON:
 
 VALID_EXE = [
     "pint-export",
-    "pint-its",
     "pint-lcg",
     "pint-mole",
     "pint-reach",
@@ -634,11 +633,11 @@ def count_reachable_states(self, tool="pint", timeout=None):
     assert tool in ["pint", "its"], "Wrong `tool` argument. See help."
     if tool == "pint":
         argv = ["pint-sg", "--count-reachable"]
+        cp = _run_tool(*argv, input_model=self, timeout=timeout)
+        output = cp.stdout.decode()
+        return json.loads(output)
     else:
-        argv = ["pint-its", "--tool", "count"]
-    cp = _run_tool(*argv, input_model=self, timeout=timeout)
-    output = cp.stdout.decode()
-    return json.loads(output)
+        return self.to_its().count_reachable(timeout=timeout)
 
 @modeltool
 def summary(model):

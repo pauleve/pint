@@ -4,7 +4,6 @@ TARGETS=\
 	pinttop\
 	pint-config\
 	pint-export\
-	pint-its\
 	pint-lcg\
 	pint-mole\
 	pint-reach\
@@ -17,7 +16,6 @@ TARGETS=\
 OSX_TARGETS=\
 	pint-config\
 	pint-export\
-	pint-its\
 	pint-lcg\
 	pint-mole\
 	int-reach\
