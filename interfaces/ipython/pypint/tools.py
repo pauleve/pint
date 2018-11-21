@@ -206,6 +206,32 @@ def to_nusmv(self, skip_init=True, existential_ctx=True, reduce_for_goal=None):
     from colomoto.modelchecking import ColomotoNuSMV
     return ColomotoNuSMV(smvfile, bindings.get)
 
+@modeltool
+def to_its(self, reduce_for_goal=None):
+    """
+    TODO
+
+    :keyword reduce_for_goal: perform goal-oriented model reduction before
+        exportation.
+    :type reduce_for_goal: str or list(str) or .Goal
+    """
+    format = "romeo"
+    outfile = new_output_file(ext=format2ext[format])
+    mapfile = new_output_file(ext="json")
+
+    raw_args = ["--mapfile", mapfile]
+    try:
+        export(self, format, output=outfile, reduce_for_goal=reduce_for_goal,
+                raw_args=raw_args)
+        with open(mapfile) as mf:
+            bindings = json.load(mf)
+    finally:
+        os.unlink(mapfile)
+
+    bindings = dict([(tuple(k),v) for k,v in bindings])
+    from colomoto.modelchecking import ColomotoITS
+    return ColomotoITS(outfile, bindings.get)
+
 
 def _model_modification(self, args):
     output = new_output_file(ext="an")
