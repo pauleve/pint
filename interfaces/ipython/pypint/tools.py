@@ -458,7 +458,7 @@ def bifurcations(self, goal=None, method="ua", timeout=None, **kwgoal):
     :param int timeout: command timeout in seconds
     :rtype: :py:class:`.LocalTransition` list
     """
-    assert method in ["exact", "ua", "mole+ua", "nusmv"]
+    assert method in ["exact", "ua", "mole+ua", "nusmv", "its"]
 
     goal = Goal.from_arg(goal, **kwgoal)
 
@@ -469,6 +469,11 @@ def bifurcations(self, goal=None, method="ua", timeout=None, **kwgoal):
         for tr in self.local_transitions:
             smv.add_ctl(tr.ctl_bifurcation(goal))
         r = smv.verify(as_dict=False, timeout=timeout)
+        return [tr for (tr, r) in zip(self.local_transitions, r) if r]
+    elif method == "its":
+        itsm = self.to_its()
+        ctls = [tr.ctl_bifurcation(goal) for tr in self.local_transitions]
+        r = itsm.verify_ctls(ctls, timeout=timeout)
         return [tr for (tr, r) in zip(self.local_transitions, r) if r]
     else:
         info("This computation is an *under-approximation*: \
