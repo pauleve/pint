@@ -450,8 +450,8 @@ def bifurcations(self, goal=None, method="ua", timeout=None, **kwgoal):
     :keyword kwgoal: keywords for goal specification (instead of `goal` argument)
     :keyword str method:
 
-        * ``"exact"`` or ``"nusmv"`` for complete identification of bifurcation transitions
-          (PSPACE)
+        * ``"exact"``, ``"nusmv"``, or ``"its"`` for complete identification of bifurcation
+            transitions (PSPACE); ``"exact"`` is an alias for ``"nusmv"``.
         * ``"ua+mole"`` for under-approximation relying on exact the reachable
           states set prior computation (NP+PSPACE)
         * ``"ua"`` for under-approximation of bifurcation transitions (NP)
