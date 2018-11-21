@@ -90,20 +90,6 @@ class Clingo(Tool):
             return m.isfile() and os.path.basename(m.name) == "clingo"
         install_from_tarurl(binfile, match_entry, args)
 
-class ITS(Tool):
-    exe = "its-reach"
-    url_pat = "https://api.anaconda.org/download/colomoto/its/20180905/%s/its-20180905-0.tar.bz2"
-    binfile = {
-        "linux64": url_pat % "linux-64",
-    }
-    @classmethod
-    def install(self, system, args):
-        assert system in self.binfile, "Cannot install binaries for %s" % system
-        binfile = self.binfile[system]
-        def match_entry(m):
-            return m.name in ["bin/its-reach", "bin/its-ctl"]
-        install_from_tarurl(binfile, match_entry, args)
-
 class Mole(Tool):
     exe = "mole"
     binfile_pat = "http://loicpauleve.name/mole-%s.tgz"
@@ -114,7 +100,7 @@ class Mole(Tool):
             return m.name in ["mole", "mci2dot"]
         install_from_tarurl(binfile, match_entry, args)
 
-tools = [Clingo, ITS, Mole]
+tools = [Clingo, Mole]
 
 if __name__ == "__main__":
     system = platform.system().lower()
