@@ -85,6 +85,8 @@ if IN_IPYTHON:
             ]},
         {"name":"Convert to tool",
             "sub-menu": [
+            {"name": "ITS-Tools",
+                "snippet":['itsm = an.to_its()']},
             {"name": "NuSMV",
                 "snippet":['smv = an.to_nusmv()']},
             ]},
