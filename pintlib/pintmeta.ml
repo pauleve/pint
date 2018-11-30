@@ -1,1 +1,1 @@
-let version = "2018-07-10" (*VERSION*)
+let version = "2018-11-30" (*VERSION*)
