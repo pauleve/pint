@@ -2,6 +2,8 @@
 echo "Installing pint in $PREFIX"
 set -e
 
+tar xvJf *.txz --strip-components=1
+
 mkdir -p "${PREFIX}/bin"
 cp -v -p bin/* "${PREFIX}/bin/"
 
