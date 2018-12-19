@@ -11,6 +11,9 @@ requirements:
     - clingo
     - mole
 
+build:
+    number: 1
+
 about:
   home: https://loicpauleve.name/pint/
   license: CeCILL
