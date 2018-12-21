@@ -535,7 +535,7 @@ def reachability(self, goal=None, fallback="its", tool="sa",
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
         if output == Inconc and fallback is not None:
-            info("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
+            dbg("Approximations are inconclusive, fallback to exact model-checking with `%s`" % fallback)
             tool = fallback
     reduce_for_goal = goal if reduce_for_goal else None
     if tool == "sa":
@@ -543,9 +543,15 @@ def reachability(self, goal=None, fallback="its", tool="sa",
     elif tool == "nusmv":
         smv = self.to_nusmv(skip_init=False, reduce_for_goal=reduce_for_goal)
         smv.add_ctl(EF(goal.to_ctl()))
-        print(smv.verify())
         output = smv.alltrue(timeout=timeout)
-    else: # its, mole
+    elif tool == "its":
+        itsm = self.to_its()
+        spec = goal.to_ctl()
+        if goal.is_state_formula():
+            output = itsm.reachability(spec)
+        else:
+            output = itsm.verify_ctl(spec)
+    else: # mole
         cp = _run_tool("pint-%s" % tool, goal, input_model=self,
                         reduce_for_goal=reduce_for_goal,
                         timeout=timeout)

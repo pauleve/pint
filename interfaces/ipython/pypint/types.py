@@ -286,6 +286,16 @@ class Goal:
             and len(self.__goals[0]) == 1 \
             and len(self.__goals[0][0]) == 1 \
 
+    def is_state_formula(self):
+        """
+        ``True`` iff the goal corresponds to a state formula (no sequence of
+        goals)
+        """
+        for g in self.__goals:
+            if len(g) > 1:
+                return False
+        return True
+
     def to_pint(self):
         """
         Returns the argument to append to Pint commands for goal specification
