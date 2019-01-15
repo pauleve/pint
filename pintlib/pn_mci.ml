@@ -61,9 +61,9 @@ let load_mci filename =
 	and _ = read_int mci
 	in
 	let plname = List.map (fun _ -> IO.read_string mci) (Util.range 1 numpl)
-	and _ = read_int mci
+	and _ = IO.read mci
 	and trname = List.map (fun _ -> IO.read_string mci) (Util.range 1 numtr)
-	and _ = read_int mci
+	and _ = IO.read mci
 	in
 	unf.plname <- Array.of_list plname;
 	unf.trname <- Array.of_list trname;
