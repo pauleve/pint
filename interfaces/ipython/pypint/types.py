@@ -194,6 +194,7 @@ class Goal:
     Examples:
 
     >>> Goal(a=1)          # simple goal
+    >>> Goal((a,1))        # equivalent to above
     >>> Goal("a=1")        # equivalent to above
     >>> Goal(a=1,b=1)      # single sub-state goal
     >>> Goal("a=1,b=1")    # equivalent to above
@@ -222,6 +223,8 @@ class Goal:
                 return dict(map(parse_ls, a.split(",")))
             elif isinstance(a, dict):
                 return a.copy()
+            elif isinstance(a, tuple):
+                return dict([a])
             else:
                 raise TypeError("Goal: do not support %s as argument" % type(a))
 
