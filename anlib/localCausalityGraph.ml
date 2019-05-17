@@ -692,7 +692,7 @@ let full_lcg ac an =
 let build_oa_lcg ?(auto_conts=true) an ctx goal sols =
 	let lcg = new lcg default_lcg_setup an ctx goal sols
 	in
-    lcg#set_auto_conts auto_conts;
+    lcg#set_auto_conts (auto_conts && is_async_automata_network an);
     lcg#build;
     lcg
 
