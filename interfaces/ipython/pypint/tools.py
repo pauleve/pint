@@ -531,7 +531,7 @@ def reachability(self, goal=None, fallback="its", tool="sa",
     assert fallback in __reachability_tools + [None]
     assert tool in ["sa"] + __reachability_tools
     if tool == "sa":
-        cp = _run_tool("pint-reach", goal, *sa_args, input_model=self, timeout=None)
+        cp = _run_tool("pint-reach", goal, *sa_args, input_model=self, timeout=timeout)
         output = cp.stdout.decode()
         output = ternary(json.loads(output))
         if output == Inconc and fallback is not None:
