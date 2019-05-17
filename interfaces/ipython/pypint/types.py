@@ -8,16 +8,20 @@ from colomoto.temporal_logics import *
 
 re_int = re.compile(r"\d+")
 
-class Inconc:
+class _Inconc:
     """
     Inconclusive type (in opposition to `True` and `False`).
     It rises a `TypeError` when used in a Boolean expression.
     """
     def __init__(self):
-        raise TypeError("Inconc should not be instantiated")
+        if hasattr(self, "singleton"):
+            raise TypeError("Inconc should not be instantiated")
+        _Inconc.singleton = self
     def __bool__(self):
         raise TypeError("Inconc is not a Boolean")
     __nonzero__ = __bool__
+
+Inconc = _Inconc()
 
 def ternary(b):
     """
