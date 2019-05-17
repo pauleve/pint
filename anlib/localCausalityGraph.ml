@@ -196,7 +196,7 @@ object(self)
 			in
 			let rels = self#children (NodeObj obj)
 			in
-			let def = dobj^"[label=\""^string_of_obj an obj^"\"];\n"
+			let def = dobj^"[label=\""^string_of_obj ~protect:false an obj^"\"];\n"
 			and edges = String.concat "\n" (List.map dot_of_rel rels)
 			in
 			def ^ edges ^ "\n"

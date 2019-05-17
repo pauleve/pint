@@ -466,10 +466,10 @@ let string_of_sigls ?(protect=true) = function
 	  StateId i -> string_of_int i
 	| StateLabel n -> protect_str protect n
 
-let string_of_lsid an a i =
+let string_of_lsid ?(protect=true) an a i =
     let _, sigi = Hashtbl.find an.ls2sig (a,i)
     in
-    string_of_sigls sigi
+    string_of_sigls ~protect sigi
 
 let string_of_ls ?(protect=false) an ai =
     let sa, sigi = Hashtbl.find an.ls2sig ai
@@ -493,12 +493,12 @@ let string_of_lsset an =
 let string_of_state an =
     string_of_map (string_of_ls an) IMap.fold
 
-let string_of_obj an (a,i,j) =
+let string_of_obj ?(protect=true) an (a,i,j) =
     let sa, i = Hashtbl.find an.ls2sig (a,i)
     and _, j = Hashtbl.find an.ls2sig (a,j)
     in
-    let si = string_of_sigls i
-    and sj = string_of_sigls j
+    let si = string_of_sigls ~protect i
+    and sj = string_of_sigls ~protect j
     in
     sa^" "^si^" "^sj
 
