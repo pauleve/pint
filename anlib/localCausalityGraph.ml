@@ -467,10 +467,11 @@ class lcg lcg_setup an ctx pl solutions
 		(* we assume the minCont grows *)
 		let register_cont obj = 
 			let nobj = NodeObj obj
+            and a,i,j = obj
 			in
+            if ctx_has_ls (a,i) self#ctx then (
 			try
 				let ctx = fst (Hashtbl.find conts_flood nobj)
-				and a,i,j = obj
 				in
 				let make_cont i' =
 					let obj' = (a,i',j)
@@ -488,7 +489,7 @@ class lcg lcg_setup an ctx pl solutions
 				dbg ("cont("^string_of_obj an (a,i,j)^")="
                         ^string_of_cls an a ais);
 				ISet.iter make_cont ais
-			with Not_found -> ()
+			with Not_found -> ())
 		in
 		let my_objs = new_objs
 		in
@@ -692,7 +693,7 @@ let full_lcg ac an =
 let build_oa_lcg ?(auto_conts=true) an ctx goal sols =
 	let lcg = new lcg default_lcg_setup an ctx goal sols
 	in
-    lcg#set_auto_conts (auto_conts && is_async_automata_network an);
+    lcg#set_auto_conts auto_conts;
     lcg#build;
     lcg
 
