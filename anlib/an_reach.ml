@@ -139,7 +139,7 @@ let unordered_oa ?(auto_conts=true) env sols =
 
 (**** Local reachability ****)
 
-let local_reachability ?(auto_conts=true) env =
+let local_reachability ?(auto_conts=true) ?(quick=false) env =
 	let sols = An_localpaths.abstract_local_paths env.ac env.an
 	in
 	let uoa, (oa_lcg, valid) = unordered_oa ~auto_conts env sols
@@ -147,6 +147,7 @@ let local_reachability ?(auto_conts=true) env =
 	if not uoa then
 		False
 	else (
+        if quick then Inconc else
         let overlay = Hashtbl.create (NodeSet.cardinal valid)
         in
         restrict_sols overlay oa_lcg valid;
