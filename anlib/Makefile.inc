@@ -18,7 +18,7 @@ SOURCES := \
 	#an_focal.ml\
 	an_snippets.ml\
 
-LIBS := facile
+LIBS := facile zarith
 
 ANLIB_SOURCES := $(SOURCES:%=anlib/%)
 export ANLIB_SOURCES

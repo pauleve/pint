@@ -22,14 +22,14 @@ SOURCES := \
 	ph_util.mli\
 	ph_util.ml\
 
-LIBS := facile
+LIBS := facile zarith
 
 PHLIB_SOURCES := $(SOURCES:%=phlib/%)
 export PHLIB_SOURCES
 PHLIB_LIBS := $(LIBS)
 export PHLIB_LIBS
 
-INCDIRS += $(OCAML_LIBDIR)facile
+INCDIRS += $(OCAML_LIBDIR)facile $(OCAML_LIBDIR)zarith
 export INCDIRS
 
 # vi:set syntax=make:

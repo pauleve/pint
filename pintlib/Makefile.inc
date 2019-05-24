@@ -19,7 +19,7 @@ SOURCES := \
 	param.ml\
 
 
-LIBS := bigarray unix nums str bes
+LIBS := bigarray unix str bes
 ifeq "$(BYTECODE)" "1"
 else
 LIBS := extLib $(LIBS)

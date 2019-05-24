@@ -26,6 +26,7 @@ You can use the script `pint_install_deps` to install runtime dependencies.
 - [CamlIDL](http://caml.inria.fr/pub/old_caml_site/camlidl/)
 * [Extlib](https://github.com/ygrek/ocaml-extlib)
 - [Facile](http://www.recherche.enac.fr/opti/facile/distrib)
+- [Zarith](https://github.com/ocaml/Zarith)
 - [Python](http://python.org)
 - (optional) [libRmath](http://www.r-project.org) from R - debian/ubuntu: `r-mathlib`
 

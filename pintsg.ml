@@ -1,5 +1,5 @@
 
-open Big_int
+open Big_int_Z
 
 open PintTypes
 

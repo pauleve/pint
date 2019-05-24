@@ -8,7 +8,7 @@ val opt_initial_procs : Ph_types.PSet.t ref
 val parse : in_channel -> Ph_types.ph * Ph_types.ctx
 
 (** Returns the total number of states of the given Process Hitting. *)
-val count_states : Ph_types.ph -> Big_int.big_int
+val count_states : Ph_types.ph -> Big_int_Z.big_int
 
 (** Returns the  number of sorts in the given Process Hitting. *)
 val count_sorts : Ph_types.ph -> int
