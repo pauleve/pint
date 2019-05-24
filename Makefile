@@ -18,7 +18,7 @@ OSX_TARGETS=\
 	pint-export\
 	pint-lcg\
 	pint-mole\
-	int-reach\
+	pint-reach\
 	pint-sg\
 	pint-stable\
 	#phc\
