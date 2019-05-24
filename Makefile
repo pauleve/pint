@@ -126,14 +126,16 @@ dist-osx:
 
 DOCKER_BUILDER=pint-dist-builder
 
+DOCKER=sudo docker
+
 docker-dist-builder:
-	docker pull $(shell grep FROM dist/Dockerfile|sed 's:FROM::')
-	docker build -t $(DOCKER_BUILDER) dist
+	$(DOCKER) pull $(shell grep FROM dist/Dockerfile|sed 's:FROM::')
+	$(DOCKER) build -t $(DOCKER_BUILDER) dist
 
 DOCKER_BUILDER_TARGETS=dist-pre-deb dist-deb dist-static
 
 make-dist-via-docker: docker-dist-builder
-	docker run --rm --volume $$PWD:/home/opam/pint-$(RELNAME) \
+	$(DOCKER) run --rm --volume $$PWD:/home/opam/pint-$(RELNAME) \
 		--workdir /home/opam/pint-$(RELNAME) \
 		$(DOCKER_BUILDER) \
 		make RELNAME=$(RELNAME) $(DOCKER_BUILDER_TARGETS) dist-clean
@@ -143,6 +145,7 @@ dist-pre-deb:
 	DEBEMAIL="Loic Pauleve <loic.pauleve@ens-cachan.org>" debchange -r -D unstable ""
 
 dist-deb:
+	mk-build-deps -i -r -t "apt-get -y --no-install-recommends" debian/control
 	dpkg-buildpackage -tc
 	mv -v ../pint_$(RELNAME)_*.deb dist/
 
