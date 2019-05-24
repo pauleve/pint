@@ -548,9 +548,9 @@ def reachability(self, goal=None, fallback="its", tool="sa",
         itsm = self.to_its()
         spec = goal.to_ctl()
         if goal.is_state_formula():
-            output = itsm.reachability(spec)
+            output = itsm.reachability(spec, timeout=timeout)
         else:
-            output = itsm.verify_ctl(spec)
+            output = itsm.verify_ctl(spec, timeout=timeout)
     else: # mole
         cp = _run_tool("pint-%s" % tool, goal, input_model=self,
                         reduce_for_goal=reduce_for_goal,
